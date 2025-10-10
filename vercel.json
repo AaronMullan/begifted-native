@@ -2,5 +2,26 @@
   "buildCommand": "npx expo export --platform web",
   "outputDirectory": "dist",
   "installCommand": "npm install",
-  "devCommand": "npx expo start --web"
+  "devCommand": "npx expo start --web",
+  "routes": [
+    {
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "/_expo/(.*)",
+      "dest": "/_expo/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1.html"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
 }
