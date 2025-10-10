@@ -5,6 +5,7 @@ import {
   useWindowDimensions,
   TouchableOpacity,
   Modal,
+  StyleSheet,
 } from "react-native";
 import { useState } from "react";
 import Auth from "./Auth";
@@ -21,90 +22,73 @@ export default function ContentBlock() {
   };
 
   return (
-    <View
-      style={{
-        width: "100%",
-        backgroundColor: "#396D75",
-        paddingBottom: 60,
-        paddingTop: 60,
-      }}
-    >
-      {/* Full-width background with contained content */}
+    <View style={styles.container}>
       <View
-        style={{
-          maxWidth: 1200,
-          width: "100%",
-          alignSelf: "center",
-          flexDirection: isDesktop ? "row" : "column",
-          justifyContent: "space-between",
-          alignItems: "center",
-
-          minHeight: isDesktop ? 400 : 300,
-        }}
+        style={[
+          styles.contentWrapper,
+          {
+            flexDirection: isDesktop ? "row" : "column",
+            minHeight: isDesktop ? 400 : 300,
+          },
+        ]}
       >
-        {/* Image content - now on the left */}
+        {/* Image content - left side */}
         <View
-          style={{
-            flex: isDesktop ? 1 : undefined,
-            width: isDesktop ? "50%" : "100%",
-          }}
+          style={[
+            styles.imageContainer,
+            {
+              flex: isDesktop ? 1 : undefined,
+              width: isDesktop ? "50%" : "100%",
+            },
+          ]}
         >
           <Image
             source={require("../assets/images/chucklehead.png")}
-            style={{ width: "100%", maxHeight: 600 }}
+            style={styles.image}
             resizeMode="cover"
           />
         </View>
 
-        {/* Text and button content - now on the right */}
+        {/* Text and button content - right side */}
         <View
-          style={{
-            flex: isDesktop ? 1 : undefined,
-            justifyContent: "space-between",
-            paddingLeft: isDesktop ? 80 : 0,
-            gap: 30,
-          }}
+          style={[
+            styles.textContainer,
+            {
+              flex: isDesktop ? 1 : undefined,
+              paddingLeft: isDesktop ? 80 : 0,
+            },
+          ]}
         >
           <Text
-            style={{
-              fontFamily: "RobotoFlex_400Regular",
-              fontSize: fontSize.heading,
-              color: "#fff",
-              marginBottom: 10,
-              textAlign: "left",
-              width: "100%",
-            }}
+            style={[
+              styles.heading,
+              {
+                fontSize: fontSize.heading,
+              },
+            ]}
           >
             The perfect gift—automatically. {"\n"}
             No, really.
           </Text>
+
           <Text
-            style={{
-              fontFamily: "RobotoFlex_400Regular",
-              fontSize: fontSize.body,
-              color: "#fff",
-              textAlign: "left",
-              lineHeight: fontSize.body * 1.5,
-              marginBottom: 20,
-            }}
+            style={[
+              styles.body,
+              {
+                fontSize: fontSize.body,
+                lineHeight: fontSize.body * 1.5,
+              },
+            ]}
           >
             Just sign up. We'll take care of the rest. Picked. Purchased. Sent.
             For everyone on your list.
           </Text>
 
           <TouchableOpacity
-            style={{
-              backgroundColor: "#231F20",
-              paddingHorizontal: 30,
-              paddingVertical: 15,
-              marginBottom: 20,
-              alignSelf: "flex-start",
-            }}
+            style={styles.button}
             onPress={() => setAuthModalVisible(true)}
           >
-            <Text style={{ color: "#fff", fontSize: 16, fontWeight: "bold" }}>
-              Get Started
-            </Text>
+            <Text style={styles.buttonText}>Get Started</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -115,13 +99,13 @@ export default function ContentBlock() {
         presentationStyle="pageSheet"
         onRequestClose={() => setAuthModalVisible(false)}
       >
-        <View style={{ flex: 1, backgroundColor: "#fff" }}>
-          <View style={{ padding: 20 }}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
             <TouchableOpacity
-              style={{ alignSelf: "flex-end", marginBottom: 20 }}
+              style={styles.closeButton}
               onPress={() => setAuthModalVisible(false)}
             >
-              <Text style={{ fontSize: 18, color: "#007AFF" }}>Close</Text>
+              <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>
             <Auth />
           </View>
@@ -130,3 +114,70 @@ export default function ContentBlock() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    width: "100%",
+    backgroundColor: "#396D75",
+    paddingBottom: 60,
+    paddingTop: 60,
+  },
+  contentWrapper: {
+    maxWidth: 1200,
+    width: "100%",
+    alignSelf: "center",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  imageContainer: {
+    // Dynamic styles applied inline
+  },
+  image: {
+    width: "100%",
+    maxHeight: 600,
+  },
+  textContainer: {
+    justifyContent: "space-between",
+    gap: 30,
+  },
+  heading: {
+    fontFamily: "RobotoFlex_400Regular",
+    color: "#fff",
+    marginBottom: 10,
+    textAlign: "left",
+    width: "100%",
+  },
+  body: {
+    fontFamily: "RobotoFlex_400Regular",
+    color: "#fff",
+    textAlign: "left",
+    marginBottom: 20,
+  },
+  button: {
+    backgroundColor: "#231F20",
+    paddingHorizontal: 30,
+    paddingVertical: 15,
+    marginBottom: 20,
+    alignSelf: "flex-start",
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  modalContent: {
+    padding: 20,
+  },
+  closeButton: {
+    alignSelf: "flex-end",
+    marginBottom: 20,
+  },
+  closeButtonText: {
+    fontSize: 18,
+    color: "#007AFF",
+  },
+});
