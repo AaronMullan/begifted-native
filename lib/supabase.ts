@@ -35,6 +35,6 @@ export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
     storage: storage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    detectSessionInUrl: Platform.OS === "web", // 👈 Changed this line
   },
 });
