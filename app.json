@@ -9,7 +9,10 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSContactsUsageDescription": "This app would like to access your contacts to help you import gift recipients."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +22,10 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false, 
+      "permissions": [
+        "READ_CONTACTS"
+      ]
     },
     "web": {
       "output": "static",

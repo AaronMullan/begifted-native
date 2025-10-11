@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   Alert,
+  Platform,
 } from "react-native";
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
@@ -12,6 +13,9 @@ import { Session } from "@supabase/supabase-js";
 import RecipientForm from "../components/RecipientForm";
 import RecipientCard from "../components/RecipientCard";
 import { Recipient } from "../types/recipient";
+import { useDeviceContacts, DeviceContact } from "../hooks/use-device-contacts";
+import ContactPicker from "../components/ContactPicker";
+import ContactFileImport from "../components/ContactFileImport";
 
 export default function Contacts() {
   const [session, setSession] = useState<Session | null>(null);
@@ -36,6 +40,9 @@ export default function Contacts() {
   const [state, setState] = useState("");
   const [zipCode, setZipCode] = useState("");
   const [country, setCountry] = useState("US");
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [deviceContacts, setDeviceContacts] = useState<DeviceContact[]>([]);
+  const { loading: contactsLoading, getDeviceContacts } = useDeviceContacts();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -254,6 +261,51 @@ export default function Contacts() {
       }
     }
   }
+  async function handleImportFromDevice() {
+    const contacts = await getDeviceContacts();
+    setDeviceContacts(contacts);
+    if (contacts.length > 0) {
+      setPickerVisible(true);
+    }
+  }
+
+  function handleImportFromFile(contacts: DeviceContact[]) {
+    setDeviceContacts(contacts);
+    if (contacts.length > 0) {
+      setPickerVisible(true);
+    }
+  }
+
+  function handleSelectContact(contact: DeviceContact) {
+    setPickerVisible(false);
+
+    // Pre-fill the form with contact data
+    setName(contact.name);
+
+    // Format birthday if available
+    if (contact.birthday) {
+      const { month, day, year } = contact.birthday;
+      const formattedBirthday = year
+        ? `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(
+            2,
+            "0"
+          )}`
+        : `${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      setBirthday(formattedBirthday);
+    }
+
+    // Pre-fill address if available
+    if (contact.addresses && contact.addresses.length > 0) {
+      const addr = contact.addresses[0];
+      setAddress(addr.street || "");
+      setCity(addr.city || "");
+      setState(addr.region || "");
+      setZipCode(addr.postalCode || "");
+      setCountry(addr.country || "US");
+    }
+
+    openAddForm();
+  }
 
   if (!session) {
     return (
@@ -277,9 +329,27 @@ export default function Contacts() {
         </Text>
 
         {!formVisible && (
-          <TouchableOpacity style={styles.addButton} onPress={openAddForm}>
-            <Text style={styles.addButtonText}>+ Add Recipient</Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity style={styles.addButton} onPress={openAddForm}>
+              <Text style={styles.addButtonText}>+ Add Recipient</Text>
+            </TouchableOpacity>
+
+            {Platform.OS === "web" ? (
+              <ContactFileImport onImport={handleImportFromFile} />
+            ) : (
+              <TouchableOpacity
+                style={[styles.addButton, styles.importButton]}
+                onPress={handleImportFromDevice}
+                disabled={contactsLoading}
+              >
+                <Text style={styles.addButtonText}>
+                  {contactsLoading
+                    ? "Loading..."
+                    : "📱 Import from Device Contacts"}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </>
         )}
 
         {formVisible && (
@@ -339,6 +409,12 @@ export default function Contacts() {
           </View>
         )}
       </View>
+      <ContactPicker
+        visible={pickerVisible}
+        contacts={deviceContacts}
+        onSelect={handleSelectContact}
+        onClose={() => setPickerVisible(false)}
+      />
     </ScrollView>
   );
 }
@@ -398,5 +474,8 @@ const styles = StyleSheet.create({
   },
   list: {
     gap: 12,
+  },
+  importButton: {
+    backgroundColor: "#34C759",
   },
 });
