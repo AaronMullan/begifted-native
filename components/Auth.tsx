@@ -22,6 +22,7 @@ AppState.addEventListener("change", (state) => {
 
 type FormData = {
   email: string;
+  password: string;
 };
 
 export default function Auth() {
@@ -37,6 +38,7 @@ export default function Auth() {
   } = useForm<FormData>({
     defaultValues: {
       email: "",
+      password: "",
     },
   });
 
@@ -50,32 +52,38 @@ export default function Auth() {
     });
   }, []);
 
-  async function sendMagicLink(data: FormData) {
+  async function handleAuth(data: FormData) {
     setLoading(true);
     setMessage("");
 
-    // Get the current URL for web, use deep link for mobile
-    const getRedirectUrl = () => {
-      if (Platform.OS === "web") {
-        // Use window.location.origin to get current URL (works for localhost and production)
-        return typeof window !== "undefined"
-          ? window.location.origin
-          : "https://begifted.vercel.app";
-      }
-      return "begifted://";
-    };
-
-    const { error } = await supabase.auth.signInWithOtp({
+    // Try to sign in first
+    let { error } = await supabase.auth.signInWithPassword({
       email: data.email,
-      options: {
-        emailRedirectTo: getRedirectUrl(),
-      },
+      password: data.password,
     });
 
-    if (error) {
+    // If user doesn't exist, create account
+    if (error?.message.includes("Invalid login credentials")) {
+      const { data: signUpData, error: signUpError } =
+        await supabase.auth.signUp({
+          email: data.email,
+          password: data.password,
+        });
+
+      if (signUpError) {
+        setMessage(`Error: ${signUpError.message}`);
+      } else if (signUpData.session) {
+        setMessage("✅ Account created! You're signed in.");
+        reset();
+      } else {
+        setMessage(
+          "Account created but requires email verification. Check your inbox."
+        );
+      }
+    } else if (error) {
       setMessage(`Error: ${error.message}`);
     } else {
-      setMessage("✅ Check your email for the magic link!");
+      setMessage("✅ Signed in successfully!");
       reset();
     }
 
@@ -103,10 +111,8 @@ export default function Auth() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Sign in with a magic link</Text>
-      <Text style={styles.subtitle}>
-        No password needed. We'll send you a link to sign in.
-      </Text>
+      <Text style={styles.title}>Sign In</Text>
+      <Text style={styles.subtitle}>Sign in with your email and password</Text>
 
       {/* Email Field */}
       <View style={[styles.verticallySpaced, styles.mt20]}>
@@ -138,17 +144,51 @@ export default function Auth() {
         )}
       </View>
 
-      {/* Send Magic Link Button */}
+      {/* Password Field */}
+      <View style={styles.verticallySpaced}>
+        <Text style={styles.label}>Password</Text>
+        <Controller
+          control={control}
+          name="password"
+          rules={{
+            required: "Password is required",
+            minLength: {
+              value: 6,
+              message: "Password must be at least 6 characters",
+            },
+          }}
+          render={({ field: { onChange, onBlur, value } }) => (
+            <TextInput
+              onChangeText={onChange}
+              onBlur={onBlur}
+              value={value}
+              secureTextEntry
+              placeholder="Password (min 6 characters)"
+              autoCapitalize="none"
+              style={[styles.input, errors.password && styles.inputError]}
+            />
+          )}
+        />
+        {errors.password && (
+          <Text style={styles.errorText}>{errors.password.message}</Text>
+        )}
+      </View>
+
+      {/* Sign In / Sign Up Button */}
       <View style={[styles.verticallySpaced, styles.mt20]}>
         <TouchableOpacity
           style={styles.button}
           disabled={loading}
-          onPress={handleSubmit(sendMagicLink)}
+          onPress={handleSubmit(handleAuth)}
         >
           <Text style={styles.buttonText}>
-            {loading ? "Sending..." : "Send Magic Link"}
+            {loading ? "Loading..." : "Sign In / Sign Up"}
           </Text>
         </TouchableOpacity>
+        <Text style={styles.hint}>
+          Don't have an account? Just enter your email and a password to create
+          one.
+        </Text>
       </View>
 
       {/* Success/Error Messages */}
@@ -245,6 +285,13 @@ const styles = StyleSheet.create({
     color: "#333",
     marginBottom: 20,
     textAlign: "center",
+  },
+  hint: {
+    fontSize: 12,
+    color: "#999",
+    marginTop: 12,
+    textAlign: "center",
+    fontStyle: "italic",
   },
   messageContainer: {
     marginTop: 20,

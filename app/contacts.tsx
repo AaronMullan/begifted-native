@@ -277,7 +277,7 @@ export default function Contacts() {
   }
 
   function handleSelectContact(contact: DeviceContact) {
-    setPickerVisible(false);
+    // Don't close picker here - let ContactPicker handle it
 
     // Pre-fill the form with contact data
     setName(contact.name);
@@ -304,7 +304,11 @@ export default function Contacts() {
       setCountry(addr.country || "US");
     }
 
-    openAddForm();
+    // Use setTimeout to ensure modal closes before form opens
+    setTimeout(() => {
+      setPickerVisible(false);
+      openAddForm();
+    }, 100);
   }
 
   if (!session) {

@@ -58,8 +58,9 @@ export default function ContactPicker({
             <TouchableOpacity
               style={styles.contactItem}
               onPress={() => {
-                onSelect(item);
                 setSearchQuery("");
+                onSelect(item);
+                onClose();
               }}
             >
               <Text style={styles.contactName}>{item.name}</Text>
