@@ -8,6 +8,7 @@ import {
   Platform,
 } from "react-native";
 import { useState, useEffect } from "react";
+import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import RecipientForm from "../components/RecipientForm";
@@ -18,6 +19,7 @@ import ContactPicker from "../components/ContactPicker";
 import ContactFileImport from "../components/ContactFileImport";
 
 export default function Contacts() {
+  const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -334,7 +336,10 @@ export default function Contacts() {
 
         {!formVisible && (
           <>
-            <TouchableOpacity style={styles.addButton} onPress={openAddForm}>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => router.push("/contacts/add")}
+            >
               <Text style={styles.addButtonText}>+ Add Recipient</Text>
             </TouchableOpacity>
 
