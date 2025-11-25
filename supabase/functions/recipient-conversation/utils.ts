@@ -1,0 +1,75 @@
+// Helper function to clean and parse JSON from OpenAI responses
+export function parseOpenAIJSON(content: string): any {
+  console.log("Raw OpenAI content:", content);
+  // Remove markdown code block formatting if present
+  let cleanContent = content.trim();
+  if (cleanContent.startsWith("")) {
+    cleanContent = cleanContent.replace(/^on\s*/, "").replace(/\s*```$/, "");
+  } else if (cleanContent.startsWith("```")) {
+    cleanContent = cleanContent.replace(/^```\s*/, "").replace(/\s*```$/, "");
+  }
+  console.log("Cleaned content for parsing:", cleanContent);
+  try {
+    return JSON.parse(cleanContent);
+  } catch (error) {
+    console.error("JSON parse error after cleaning:", error);
+    console.error("Content that failed to parse:", cleanContent);
+    throw error;
+  }
+}
+// Helper function to get next occurrence of a date
+export function getNextOccurrenceDate(month: number, day: number): string {
+  const currentYear = new Date().getFullYear();
+  const currentDate = new Date();
+  // Create date for this year
+  let nextDate = new Date(currentYear, month - 1, day);
+  // If the date has already passed this year, use next year
+  if (nextDate < currentDate) {
+    nextDate = new Date(currentYear + 1, month - 1, day);
+  }
+  return nextDate.toISOString().split("T")[0];
+}
+
+// Helper function to convert holiday names to occasions with dates
+export function convertHolidaysToOccasions(
+  holidayNames: string[]
+): Array<{ date: string; occasion_type: string }> {
+  const holidayDateMap: Record<string, { month: number; day: number }> = {
+    christmas: { month: 12, day: 25 },
+    "christmas day": { month: 12, day: 25 },
+    easter: { month: 4, day: 9 }, // Approximate - Easter is variable, using 2024 date as example
+    "valentine's day": { month: 2, day: 14 },
+    "valentines day": { month: 2, day: 14 },
+    "mother's day": { month: 5, day: 12 }, // Approximate - varies by country
+    "mothers day": { month: 5, day: 12 },
+    "father's day": { month: 6, day: 16 }, // Approximate - varies by country
+    "fathers day": { month: 6, day: 16 },
+    "groundhog day": { month: 2, day: 2 },
+    "new year's day": { month: 1, day: 1 },
+    "new years day": { month: 1, day: 1 },
+    "independence day": { month: 7, day: 4 },
+    thanksgiving: { month: 11, day: 28 }, // Approximate - 4th Thursday
+    halloween: { month: 10, day: 31 },
+  };
+
+  const occasions: Array<{ date: string; occasion_type: string }> = [];
+
+  for (const holiday of holidayNames) {
+    const normalized = holiday.toLowerCase().trim();
+    const dateInfo = holidayDateMap[normalized];
+
+    if (dateInfo) {
+      const nextDate = getNextOccurrenceDate(dateInfo.month, dateInfo.day);
+      occasions.push({
+        date: nextDate,
+        occasion_type: normalized.replace(/'/g, "").replace(/\s+/g, "_"), // e.g., "valentines_day"
+      });
+    } else {
+      // For unknown holidays, use a generic date (e.g., current year, Jan 1)
+      // Or you could prompt the user for the date
+      console.warn(`Unknown holiday: ${holiday}`);
+    }
+  }
+
+  return occasions;
+}
