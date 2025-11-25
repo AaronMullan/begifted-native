@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - "supabase/functions/**" # Since repo root is begifted/, path is relative to that
+      - "supabase/functions/**"
   workflow_dispatch:
 
 jobs:
