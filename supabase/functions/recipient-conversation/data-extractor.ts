@@ -1,4 +1,4 @@
-import { parseOpenAIJSON } from "./utils";
+import { parseOpenAIJSON } from "./utils.ts";
 import type {
   ContextInfo,
   Message,
