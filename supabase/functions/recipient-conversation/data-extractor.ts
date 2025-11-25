@@ -485,7 +485,7 @@ IMPORTANT: If the priority fields have values, use them exactly as provided abov
     Array.isArray(extractedData.preferred_holidays) &&
     extractedData.preferred_holidays.length > 0
   ) {
-    const { convertHolidaysToOccasions } = await import("./utils");
+    const { convertHolidaysToOccasions } = await import("./utils.ts");
     const holidayOccasions = convertHolidaysToOccasions(
       extractedData.preferred_holidays
     );
@@ -533,7 +533,7 @@ IMPORTANT: If the priority fields have values, use them exactly as provided abov
         day >= 1 &&
         day <= 31
       ) {
-        const { getNextOccurrenceDate } = await import("./utils");
+        const { getNextOccurrenceDate } = await import("./utils.ts");
         const nextBirthdayDate = getNextOccurrenceDate(month, day);
 
         const birthdayExists = extractedData.occasions?.some(

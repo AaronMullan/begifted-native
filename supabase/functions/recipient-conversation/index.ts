@@ -5,7 +5,7 @@ import {
   extractFullRecipient,
   extractFields,
   extractField,
-} from "./data-extractor";
+} from "./data-extractor.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
