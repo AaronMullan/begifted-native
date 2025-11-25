@@ -97,7 +97,7 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
 
         if (recipientError) throw recipientError;
 
-        // Create occasions if provided
+        // Create occasions if provided (includes birthday if it was extracted as an occasion)
         if (data.occasions && data.occasions.length > 0 && recipient) {
           const occasionsData = data.occasions.map((occasion) => ({
             user_id: userId,
@@ -113,57 +113,6 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
           if (occasionsError) {
             console.error("Error creating occasions:", occasionsError);
             // Don't fail the whole operation if occasions fail
-          }
-        }
-
-        // Create birthday occasion if birthday exists
-        if (data.birthday && recipient) {
-          // Parse birthday and create occasions for this year and next year
-          const birthdayParts = data.birthday.split("-");
-          if (birthdayParts.length >= 2) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const nextYear = new Date(today);
-            nextYear.setFullYear(nextYear.getFullYear() + 1);
-
-            let month: number;
-            let day: number;
-
-            if (birthdayParts.length === 3) {
-              month = parseInt(birthdayParts[1]) - 1;
-              day = parseInt(birthdayParts[2]);
-            } else {
-              month = parseInt(birthdayParts[0]) - 1;
-              day = parseInt(birthdayParts[1]);
-            }
-
-            const currentYear = today.getFullYear();
-            const thisYearDate = new Date(currentYear, month, day);
-            const nextYearDate = new Date(currentYear + 1, month, day);
-
-            const occasionsToCreate: any[] = [];
-
-            if (thisYearDate >= today && thisYearDate <= nextYear) {
-              occasionsToCreate.push({
-                user_id: userId,
-                recipient_id: recipient.id,
-                date: thisYearDate.toISOString().split("T")[0],
-                occasion_type: "birthday",
-              });
-            }
-
-            if (nextYearDate <= nextYear) {
-              occasionsToCreate.push({
-                user_id: userId,
-                recipient_id: recipient.id,
-                date: nextYearDate.toISOString().split("T")[0],
-                occasion_type: "birthday",
-              });
-            }
-
-            if (occasionsToCreate.length > 0) {
-              await supabase.from("occasions").insert(occasionsToCreate);
-            }
           }
         }
 

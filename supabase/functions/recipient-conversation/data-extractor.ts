@@ -389,7 +389,7 @@ Conversation:
 ${conversationHistory}
 
 Look for birthday mentions like: "her birthday is...", "she was born on...", "he turns [age] on..."
-Look for holiday mentions like: "we celebrate Christmas", "Mother's Day", "anniversaries", "Valentine's Day"
+Look for holidays, occasions, and special events like: "we celebrate Christmas", "Mother's Day", "anniversaries", "Valentine's Day", "New Year's", "Spring Equinox", "Autumn Equinox", "our anniversary", or any other special dates mentioned.
 
 Extract and return valid JSON (no markdown formatting) with this exact structure:
 {
@@ -406,11 +406,21 @@ Extract and return valid JSON (no markdown formatting) with this exact structure
   "state": "string or null",
   "zip_code": "string or null",
   "country": "string or null",
-  "preferred_holidays": ["array of holiday names mentioned like Christmas, Easter, Mother's Day, Valentine's Day, Groundhog Day, etc."],
+  "occasions": [
+    {
+      "date": "YYYY-MM-DD or null (extract date if mentioned in conversation, otherwise null)",
+      "occasion_type": "lowercase_with_underscores (e.g., 'christmas', 'anniversary', 'spring_equinox', 'new_years', 'autumn_equinox')"
+    }
+  ],
   "confidence_score": "number 0-1 (use 0.9+ if name and relationship are clear)"
 }
 
-IMPORTANT: If the priority fields have values, use them exactly as provided above.`;
+IMPORTANT: 
+- Extract ALL occasions mentioned (holidays, anniversaries, equinoxes, solstices, personal events, etc.)
+- If a date is mentioned with the occasion (e.g., "our anniversary is June 15"), extract it in YYYY-MM-DD format
+- If no date is mentioned, set date to null - we'll calculate it later
+- Use descriptive occasion_type names (e.g., "anniversary", "spring_equinox", "new_years", "christmas")
+- If the priority fields have values, use them exactly as provided above.`;
   console.log("🔍 PASS 2: Full extraction with context...");
   const fullResponse = await fetch(
     "https://api.openai.com/v1/chat/completions",
@@ -479,39 +489,42 @@ IMPORTANT: If the priority fields have values, use them exactly as provided abov
   if (criticalFields.relationship_type && !extractedData.relationship_type) {
     extractedData.relationship_type = criticalFields.relationship_type;
   }
-  // Convert preferred_holidays to occasions
-  if (
-    extractedData.preferred_holidays &&
-    Array.isArray(extractedData.preferred_holidays) &&
-    extractedData.preferred_holidays.length > 0
-  ) {
+
+  // Process occasions - fill in missing dates using holiday lookup
+  if (extractedData.occasions && Array.isArray(extractedData.occasions)) {
     const { convertHolidaysToOccasions } = await import("./utils.ts");
-    const holidayOccasions = convertHolidaysToOccasions(
-      extractedData.preferred_holidays
-    );
 
-    // Initialize occasions array if it doesn't exist
-    if (!extractedData.occasions) {
-      extractedData.occasions = [];
-    }
+    // Process each occasion
+    for (const occasion of extractedData.occasions) {
+      // If date is missing, try to look it up
+      if (
+        !occasion.date ||
+        occasion.date === "null" ||
+        occasion.date === null
+      ) {
+        const holidayOccasions = convertHolidaysToOccasions([
+          occasion.occasion_type,
+        ]);
 
-    // Add holiday occasions (avoid duplicates)
-    // Add holiday occasions (avoid duplicates)
-    for (const holidayOccasion of holidayOccasions) {
-      const exists = extractedData.occasions.some(
-        (occ: { date: string; occasion_type: string }) =>
-          occ.occasion_type === holidayOccasion.occasion_type &&
-          occ.date === holidayOccasion.date
-      );
-      if (!exists) {
-        extractedData.occasions.push(holidayOccasion);
+        if (holidayOccasions.length > 0 && holidayOccasions[0].date) {
+          // Found in lookup, use that date
+          occasion.date = holidayOccasions[0].date;
+        } else {
+          // Unknown occasion - use placeholder date (Jan 1 of next year)
+          // User can edit this later in the UI
+          const nextYear = new Date().getFullYear() + 1;
+          occasion.date = `${nextYear}-01-01`;
+          console.warn(
+            `Unknown occasion "${occasion.occasion_type}" - using placeholder date ${occasion.date}`
+          );
+        }
       }
     }
-  }
-  // Add birthday as an occasion if it exists
-  if (extractedData.birthday && !extractedData.occasions) {
+  } else if (!extractedData.occasions) {
     extractedData.occasions = [];
   }
+
+  // Add birthday as an occasion if it exists (only if not already in occasions)
   if (extractedData.birthday) {
     // Parse birthday and add as occasion
     const birthdayParts = extractedData.birthday.split("-");
