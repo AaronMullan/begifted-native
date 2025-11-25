@@ -132,7 +132,9 @@ export function ConversationView({
             onPress={onFinishConversation}
             disabled={isLoading || isSending}
           >
-            <Text style={styles.nextStepButtonText}>Continue to Review</Text>
+            <Text style={styles.nextStepButtonText}>
+              Let's Move to the Next Step
+            </Text>
           </TouchableOpacity>
         )}
 
