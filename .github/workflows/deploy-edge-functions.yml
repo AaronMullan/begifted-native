@@ -1,0 +1,54 @@
+name: Deploy Edge Functions
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "supabase/functions/**"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Debug - List directory structure
+        run: |
+          echo "Current directory:"
+          pwd
+          echo "Directory contents:"
+          ls -la
+          echo "Looking for supabase directory:"
+          find . -name "supabase" -type d 2>/dev/null || echo "No supabase directory found"
+          echo "Looking for functions:"
+          find . -path "*/functions/*" -type d 2>/dev/null | head -5 || echo "No functions found"
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy Edge Functions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: qgcyndtymegkobgfcpdh
+        run: |
+          if [ -d "supabase/functions" ]; then
+            supabase functions deploy recipient-conversation --project-ref $SUPABASE_PROJECT_REF
+            supabase functions deploy generate-gift-suggestions --project-ref $SUPABASE_PROJECT_REF
+          elif [ -d "begifted/supabase/functions" ]; then
+            cd begifted
+            supabase functions deploy recipient-conversation --project-ref $SUPABASE_PROJECT_REF
+            supabase functions deploy generate-gift-suggestions --project-ref $SUPABASE_PROJECT_REF
+          else
+            echo "Error: Could not find supabase/functions directory"
+            exit 1
+          fi
