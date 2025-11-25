@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -19,13 +19,6 @@ interface OccasionsSelectionViewProps {
   onSkip: () => Promise<void>;
 }
 
-interface OccasionOption {
-  id: string;
-  label: string;
-  type: string;
-  defaultDate?: string; // For birthdays from extracted data
-}
-
 export function OccasionsSelectionView({
   extractedData,
   onBack,
@@ -37,14 +30,12 @@ export function OccasionsSelectionView({
   >([]);
 
   useEffect(() => {
-    // Initialize with occasions from extractedData
     const initialOccasions: Array<{
       date: string;
       occasion_type: string;
       enabled: boolean;
     }> = [];
 
-    // First, add any occasions that were extracted from the conversation (holidays, etc.)
     if (extractedData.occasions && extractedData.occasions.length > 0) {
       extractedData.occasions.forEach((occasion) => {
         initialOccasions.push({
@@ -55,90 +46,8 @@ export function OccasionsSelectionView({
       });
     }
 
-    // Then, add birthday occasions if birthday exists
-    if (extractedData.birthday) {
-      // Parse birthday to create occasion dates
-      const birthdayParts = extractedData.birthday.split("-");
-      if (birthdayParts.length >= 2) {
-        let month: number;
-        let day: number;
-
-        if (birthdayParts.length === 3) {
-          // Format: YYYY-MM-DD - ignore the year, use only month and day
-          month = parseInt(birthdayParts[1], 10);
-          day = parseInt(birthdayParts[2], 10);
-        } else {
-          // Format: MM-DD
-          month = parseInt(birthdayParts[0], 10);
-          day = parseInt(birthdayParts[1], 10);
-        }
-
-        // Validate month and day
-        if (
-          isNaN(month) ||
-          isNaN(day) ||
-          month < 1 ||
-          month > 12 ||
-          day < 1 ||
-          day > 31
-        ) {
-          console.warn("Invalid birthday format:", extractedData.birthday);
-        } else {
-          // Get today's date in local timezone
-          const todayLocal = new Date();
-          todayLocal.setHours(0, 0, 0, 0);
-          const currentYear = todayLocal.getFullYear();
-
-          // Create date strings directly in ISO format to avoid timezone issues
-          const formatDateString = (
-            year: number,
-            month: number,
-            day: number
-          ): string => {
-            const monthStr = month.toString().padStart(2, "0");
-            const dayStr = day.toString().padStart(2, "0");
-            return `${year}-${monthStr}-${dayStr}`;
-          };
-
-          const thisYearDateStr = formatDateString(currentYear, month, day);
-          const nextYearDateStr = formatDateString(currentYear + 1, month, day);
-
-          // Compare dates as strings in local timezone
-          const todayStr = formatDateString(
-            todayLocal.getFullYear(),
-            todayLocal.getMonth() + 1,
-            todayLocal.getDate()
-          );
-
-          const nextYearLocal = new Date(todayLocal);
-          nextYearLocal.setFullYear(nextYearLocal.getFullYear() + 1);
-          const nextYearStr = formatDateString(
-            nextYearLocal.getFullYear(),
-            nextYearLocal.getMonth() + 1,
-            nextYearLocal.getDate()
-          );
-
-          if (thisYearDateStr >= todayStr && thisYearDateStr <= nextYearStr) {
-            initialOccasions.push({
-              date: thisYearDateStr,
-              occasion_type: "birthday",
-              enabled: true,
-            });
-          }
-
-          if (nextYearDateStr <= nextYearStr) {
-            initialOccasions.push({
-              date: nextYearDateStr,
-              occasion_type: "birthday",
-              enabled: true,
-            });
-          }
-        }
-      }
-    }
-
     setSelectedOccasions(initialOccasions);
-  }, [extractedData.birthday, extractedData.occasions]);
+  }, [extractedData.occasions]);
 
   const toggleOccasion = (index: number) => {
     setSelectedOccasions((prev) =>
@@ -160,10 +69,8 @@ export function OccasionsSelectionView({
   };
 
   const formatDate = (dateString: string): string => {
-    // Parse date string (YYYY-MM-DD) manually to avoid timezone issues
     const parts = dateString.split("-");
     if (parts.length !== 3) {
-      // Fallback to Date parsing if format is unexpected
       const date = new Date(dateString);
       return date.toLocaleDateString("en-US", {
         weekday: "long",
@@ -174,10 +81,8 @@ export function OccasionsSelectionView({
     }
 
     const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1; // JavaScript months are 0-indexed
+    const month = parseInt(parts[1], 10) - 1;
     const day = parseInt(parts[2], 10);
-
-    // Create date in local timezone (not UTC)
     const date = new Date(year, month, day);
 
     return date.toLocaleDateString("en-US", {
@@ -189,15 +94,12 @@ export function OccasionsSelectionView({
   };
 
   const formatOccasionType = (type: string): string => {
-    // Capitalize first letter and handle common types
     const formatted = type.charAt(0).toUpperCase() + type.slice(1);
-    // Replace underscores with spaces for better display
     return formatted.replace(/_/g, " ");
   };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#231F20" />
@@ -254,7 +156,6 @@ export function OccasionsSelectionView({
         )}
       </ScrollView>
 
-      {/* Footer Actions */}
       <View style={styles.footer}>
         <TouchableOpacity style={styles.skipButton} onPress={onSkip}>
           <Text style={styles.skipButtonText}>Skip</Text>
