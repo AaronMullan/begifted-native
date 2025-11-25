@@ -28,6 +28,7 @@ export function OccasionsSelectionView({
   const [selectedOccasions, setSelectedOccasions] = useState<
     Array<{ date: string; occasion_type: string; enabled: boolean }>
   >([]);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     const initialOccasions: Array<{
@@ -58,14 +59,23 @@ export function OccasionsSelectionView({
   };
 
   const handleContinue = async () => {
-    const enabledOccasions = selectedOccasions
-      .filter((occ) => occ.enabled)
-      .map((occ) => ({
-        date: occ.date,
-        occasion_type: occ.occasion_type,
-      }));
+    if (isProcessing) return; // Prevent double-clicks
 
-    await onContinue(enabledOccasions);
+    setIsProcessing(true);
+    try {
+      const enabledOccasions = selectedOccasions
+        .filter((occ) => occ.enabled)
+        .map((occ) => ({
+          date: occ.date,
+          occasion_type: occ.occasion_type,
+        }));
+
+      await onContinue(enabledOccasions);
+    } catch (error) {
+      console.error("Error in handleContinue:", error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const formatDate = (dateString: string): string => {
@@ -157,15 +167,25 @@ export function OccasionsSelectionView({
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.skipButton} onPress={onSkip}>
+        <TouchableOpacity
+          style={styles.skipButton}
+          onPress={onSkip}
+          disabled={isProcessing}
+        >
           <Text style={styles.skipButtonText}>Skip</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.continueButton}
+          style={[
+            styles.continueButton,
+            isProcessing && styles.continueButtonDisabled,
+          ]}
           onPress={handleContinue}
+          disabled={isProcessing}
         >
-          <Text style={styles.continueButtonText}>Continue</Text>
+          <Text style={styles.continueButtonText}>
+            {isProcessing ? "Processing..." : "Continue"}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -176,6 +196,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  continueButtonDisabled: {
+    opacity: 0.6,
   },
   header: {
     flexDirection: "row",

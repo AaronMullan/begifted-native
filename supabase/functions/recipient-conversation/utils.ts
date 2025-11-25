@@ -31,6 +31,7 @@ export function getNextOccurrenceDate(month: number, day: number): string {
 }
 
 // Helper function to convert holiday names to occasions with dates
+// This is a FALLBACK lookup for common holidays when dates aren't provided in conversation
 export function convertHolidaysToOccasions(
   holidayNames: string[]
 ): Array<{ date: string; occasion_type: string }> {
@@ -47,9 +48,17 @@ export function convertHolidaysToOccasions(
     "groundhog day": { month: 2, day: 2 },
     "new year's day": { month: 1, day: 1 },
     "new years day": { month: 1, day: 1 },
+    "new year's": { month: 1, day: 1 },
+    "new years": { month: 1, day: 1 },
     "independence day": { month: 7, day: 4 },
     thanksgiving: { month: 11, day: 28 }, // Approximate - 4th Thursday
     halloween: { month: 10, day: 31 },
+    "autumn equinox": { month: 9, day: 22 }, // Approximate - varies by year
+    "fall equinox": { month: 9, day: 22 },
+    "spring equinox": { month: 3, day: 20 }, // Approximate - varies by year
+    "vernal equinox": { month: 3, day: 20 },
+    "winter solstice": { month: 12, day: 21 }, // Approximate - varies by year
+    "summer solstice": { month: 6, day: 21 }, // Approximate - varies by year
   };
 
   const occasions: Array<{ date: string; occasion_type: string }> = [];
@@ -64,11 +73,8 @@ export function convertHolidaysToOccasions(
         date: nextDate,
         occasion_type: normalized.replace(/'/g, "").replace(/\s+/g, "_"), // e.g., "valentines_day"
       });
-    } else {
-      // For unknown holidays, use a generic date (e.g., current year, Jan 1)
-      // Or you could prompt the user for the date
-      console.warn(`Unknown holiday: ${holiday}`);
     }
+    // If not found, return empty - caller will handle unknown holidays with placeholder dates
   }
 
   return occasions;
