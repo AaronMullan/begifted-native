@@ -75,6 +75,8 @@ export interface ContextInfo {
   name?: string | null;
   relationship?: string | null;
   interests?: string[];
+  birthday?: string | null;
+  occasions_mentioned?: string[];
   other_details?: string;
   existing_name?: string | null;
   existing_relationship?: string | null;
