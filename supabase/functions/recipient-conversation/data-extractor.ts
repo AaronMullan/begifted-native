@@ -45,6 +45,8 @@ Return JSON with what's been established:
   "name": "person's name if clearly mentioned, null otherwise",
   "relationship": "relationship if established, null otherwise", 
   "interests": ["any interests mentioned"],
+  "birthday": "birthday if mentioned (YYYY-MM-DD, MM-DD, or descriptive like 'October 31, 2002'), null otherwise",
+  "occasions_mentioned": ["array of holidays/occasions mentioned (e.g., 'christmas', 'anniversary', 'kwanzaa')"],
   "other_details": "brief summary of other key details gathered",
   "conversation_length": ${messages.length},
   "readiness_score": "0-10 scale how ready this seems for next step"
@@ -226,7 +228,11 @@ Use these exact patterns when appropriate:
 
 2. When ready to proceed after gathering basics:
 
-"Wonderful! I have great information about [person's name] and [their interests]. To make my gift suggestions even more personalized, it would be helpful to know their birthday and any special holidays you like to celebrate together (Christmas, Mother's Day, anniversaries, etc.). Feel free to share what you know, or if you'd prefer to add this later, just click 'Let's move to the next step' below."
+IMPORTANT: Check the CONVERSATION CONTEXT to see if birthday or occasions were already mentioned. Only ask for what's missing:
+- If birthday is missing: "To make my gift suggestions even more personalized, it would be helpful to know their birthday."
+- If occasions are missing: "It would be helpful to know any special holidays you like to celebrate together (Christmas, Mother's Day, anniversaries, etc.)."
+- If both are provided: Skip to template #3 (fully ready to proceed)
+- If one is missing: Ask only for what's missing, then say "Feel free to share what you know, or if you'd prefer to add this later, just click 'Let's move to the next step' below."
 
 3. When fully ready to proceed:
 
@@ -246,6 +252,8 @@ RESPONSE REQUIREMENTS:
 - Be specific about what's needed vs. optional
 - Use established info naturally (e.g., "Mary, your mom")
 - Never ask open-ended questions after message 4
+- CRITICAL: Check CONVERSATION CONTEXT before asking for birthday or holidays - if they're already mentioned, acknowledge them and don't ask again
+- If birthday and occasions are both already provided, use template #3 (fully ready to proceed)
 
 Current exchange #${messageCount}. Be prescriptive and guide the user clearly:`;
 }

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import { Alert } from "react-native";
@@ -225,6 +225,40 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
   const handleNavigateBack = useCallback(() => {
     router.back();
   }, [router]);
+
+  // Background enrichment of occasions with dates
+  useEffect(() => {
+    if (extractedData?.occasions && extractedData.occasions.length > 0) {
+      // Background process to enrich occasions with dates
+      const enrichOccasions = async () => {
+        const { lookupOccasionDate } = await import("../utils/occasion-dates");
+        const enrichedOccasions = extractedData.occasions!.map((occasion) => {
+          // If date is missing or is a placeholder, try to look it up
+          if (!occasion.date || occasion.date.includes("01-01")) {
+            const lookedUpDate = lookupOccasionDate(occasion.occasion_type);
+            if (lookedUpDate) {
+              return { ...occasion, date: lookedUpDate };
+            }
+          }
+          return occasion;
+        });
+        
+        // Only update if we actually enriched any occasions
+        const hasChanges = enrichedOccasions.some((occ, idx) => 
+          occ.date !== extractedData.occasions![idx].date
+        );
+        
+        if (hasChanges) {
+          genericSetExtractedData({
+            ...extractedData,
+            occasions: enrichedOccasions,
+          });
+        }
+      };
+      
+      enrichOccasions();
+    }
+  }, [extractedData, genericSetExtractedData]);
 
   // Wrapper for setExtractedData to maintain interface
   const setExtractedData = useCallback(
