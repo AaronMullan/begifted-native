@@ -2,10 +2,10 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   StyleSheet,
 } from "react-native";
 import { Recipient } from "../types/recipient";
+import { PrimaryButton, SecondaryButton } from "./ui/buttons";
 
 interface RecipientFormProps {
   editingRecipient: Recipient | null;
@@ -210,26 +210,25 @@ export default function RecipientForm({
       </View>
 
       <View style={styles.formButtons}>
-        <TouchableOpacity
-          style={[styles.button, styles.cancelButton]}
+        <SecondaryButton
+          title="Cancel"
           onPress={onCancel}
-        >
-          <Text style={styles.cancelButtonText}>Cancel</Text>
-        </TouchableOpacity>
+          style={styles.cancelButton}
+        />
 
-        <TouchableOpacity
-          style={[styles.button, styles.submitButton]}
-          onPress={onSave}
-          disabled={loading}
-        >
-          <Text style={styles.submitButtonText}>
-            {loading
+        <PrimaryButton
+          title={
+            loading
               ? "Saving..."
               : editingRecipient
               ? "Update"
-              : "Add Recipient"}
-          </Text>
-        </TouchableOpacity>
+              : "Add Recipient"
+          }
+          onPress={onSave}
+          disabled={loading}
+          loading={loading}
+          style={styles.submitButton}
+        />
       </View>
     </View>
   );

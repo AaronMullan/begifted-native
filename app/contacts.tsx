@@ -1,7 +1,6 @@
 import {
   View,
   Text,
-  TouchableOpacity,
   ScrollView,
   StyleSheet,
   Alert,
@@ -17,6 +16,7 @@ import { Recipient } from "../types/recipient";
 import { useDeviceContacts, DeviceContact } from "../hooks/use-device-contacts";
 import ContactPicker from "../components/ContactPicker";
 import ContactFileImport from "../components/ContactFileImport";
+import { PrimaryButton } from "../components/ui/buttons";
 
 export default function Contacts() {
   const router = useRouter();
@@ -336,27 +336,26 @@ export default function Contacts() {
 
         {!formVisible && (
           <>
-            <TouchableOpacity
-              style={styles.addButton}
+            <PrimaryButton
+              title="+ Add Recipient"
               onPress={() => router.push("/contacts/add")}
-            >
-              <Text style={styles.addButtonText}>+ Add Recipient</Text>
-            </TouchableOpacity>
+              style={styles.addButton}
+            />
 
             {Platform.OS === "web" ? (
               <ContactFileImport onImport={handleImportFromFile} />
             ) : (
-              <TouchableOpacity
-                style={[styles.addButton, styles.importButton]}
+              <PrimaryButton
+                title={
+                  contactsLoading
+                    ? "Loading..."
+                    : "📱 Import from Device Contacts"
+                }
                 onPress={handleImportFromDevice}
                 disabled={contactsLoading}
-              >
-                <Text style={styles.addButtonText}>
-                  {contactsLoading
-                    ? "Loading..."
-                    : "📱 Import from Device Contacts"}
-                </Text>
-              </TouchableOpacity>
+                loading={contactsLoading}
+                style={[styles.addButton, styles.importButton]}
+              />
             )}
           </>
         )}

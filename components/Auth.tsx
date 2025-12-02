@@ -4,13 +4,13 @@ import {
   View,
   AppState,
   TextInput,
-  TouchableOpacity,
   Text,
   Platform,
 } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { supabase } from "../lib/supabase";
 import { Session } from "@supabase/supabase-js";
+import { PrimaryButton, SecondaryButton } from "./ui/buttons";
 
 AppState.addEventListener("change", (state) => {
   if (state === "active") {
@@ -99,12 +99,11 @@ export default function Auth() {
     return (
       <View style={styles.container}>
         <Text style={styles.welcomeText}>Welcome, {session.user.email}!</Text>
-        <TouchableOpacity
-          style={[styles.button, styles.signOutButton]}
+        <SecondaryButton
+          title="Sign Out"
           onPress={signOut}
-        >
-          <Text style={styles.buttonText}>Sign Out</Text>
-        </TouchableOpacity>
+          style={styles.signOutButton}
+        />
       </View>
     );
   }
@@ -176,15 +175,13 @@ export default function Auth() {
 
       {/* Sign In / Sign Up Button */}
       <View style={[styles.verticallySpaced, styles.mt20]}>
-        <TouchableOpacity
-          style={styles.button}
-          disabled={loading}
+        <PrimaryButton
+          title={loading ? "Loading..." : "Sign In / Sign Up"}
           onPress={handleSubmit(handleAuth)}
-        >
-          <Text style={styles.buttonText}>
-            {loading ? "Loading..." : "Sign In / Sign Up"}
-          </Text>
-        </TouchableOpacity>
+          disabled={loading}
+          loading={loading}
+          style={styles.button}
+        />
         <Text style={styles.hint}>
           Don't have an account? Just enter your email and a password to create
           one.

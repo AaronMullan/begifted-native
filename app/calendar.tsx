@@ -1,16 +1,11 @@
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView, Alert } from "react-native";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { Ionicons } from "@expo/vector-icons";
+import { IconButton } from "../components/ui/IconButton";
+import { PrimaryButton, SecondaryButton } from "../components/ui/buttons";
 
 interface Occasion {
   id: string;
@@ -231,13 +226,12 @@ export default function Calendar() {
                 View all your upcoming occasions
               </Text>
             </View>
-            <TouchableOpacity
+            <SecondaryButton
+              title="Back"
               onPress={() => router.back()}
+              icon={<Ionicons name="arrow-back" size={20} color="#231F20" />}
               style={styles.backButton}
-            >
-              <Ionicons name="arrow-back" size={20} color="#231F20" />
-              <Text style={styles.backText}>Back</Text>
-            </TouchableOpacity>
+            />
           </View>
 
           {/* Summary section */}
@@ -245,15 +239,12 @@ export default function Calendar() {
             <Text style={styles.occasionsCount}>
               {occasions.length} Occasion{occasions.length !== 1 ? "s" : ""}
             </Text>
-            <TouchableOpacity
-              style={styles.addButton}
+            <PrimaryButton
+              title="Add Recipient"
               onPress={() => router.push("/contacts" as any)}
-            >
-              <View style={styles.addButtonContent}>
-                <Ionicons name="add" size={20} color="white" />
-                <Text style={styles.addButtonText}>Add Recipient</Text>
-              </View>
-            </TouchableOpacity>
+              icon={<Ionicons name="add" size={20} color="white" />}
+              style={styles.addButton}
+            />
           </View>
 
           {/* Occasions list */}

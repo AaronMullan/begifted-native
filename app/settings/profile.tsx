@@ -3,7 +3,6 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   TextInput,
   Alert,
 } from "react-native";
@@ -12,6 +11,8 @@ import { useRouter } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { Ionicons } from "@expo/vector-icons";
+import { IconButton } from "../../components/ui/IconButton";
+import { PrimaryButton } from "../../components/ui/buttons";
 
 export default function ProfileSettings() {
   const [session, setSession] = useState<Session | null>(null);
@@ -237,12 +238,11 @@ export default function ProfileSettings() {
                 Manage your personal information
               </Text>
             </View>
-            <TouchableOpacity
+            <IconButton
+              icon={<Ionicons name="arrow-back" size={20} color="#231F20" />}
               onPress={() => router.back()}
               style={styles.backButton}
-            >
-              <Ionicons name="arrow-back" size={20} color="#231F20" />
-            </TouchableOpacity>
+            />
           </View>
 
           {/* Personal Information Section */}
@@ -359,24 +359,19 @@ export default function ProfileSettings() {
           </View>
 
           {/* Save Button */}
-          <TouchableOpacity
-            style={[
-              styles.saveButton,
-              !hasChanges && styles.saveButtonDisabled,
-              saving && styles.saveButtonSaving,
-            ]}
+          <PrimaryButton
+            title={
+              saving
+                ? "Saving..."
+                : hasChanges
+                ? "Save Changes"
+                : "No Changes"
+            }
             onPress={handleSave}
             disabled={saving || !hasChanges}
-          >
-            <Text
-              style={[
-                styles.saveButtonText,
-                !hasChanges && styles.saveButtonTextDisabled,
-              ]}
-            >
-              {saving ? "Saving..." : hasChanges ? "Save Changes" : "No Changes"}
-            </Text>
-          </TouchableOpacity>
+            loading={saving}
+            style={styles.saveButton}
+          />
         </View>
       </View>
     </ScrollView>

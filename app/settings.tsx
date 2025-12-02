@@ -10,6 +10,7 @@ import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { Ionicons } from "@expo/vector-icons";
+import { IconButton } from "../components/ui/IconButton";
 
 export default function Settings() {
   const [session, setSession] = useState<Session | null>(null);
@@ -116,12 +117,11 @@ export default function Settings() {
                 Manage your account and preferences
               </Text>
             </View>
-            <TouchableOpacity
+            <IconButton
+              icon={<Ionicons name="arrow-back" size={20} color="#231F20" />}
               onPress={() => router.back()}
               style={styles.backButton}
-            >
-              <Ionicons name="arrow-back" size={20} color="#231F20" />
-            </TouchableOpacity>
+            />
           </View>
 
           {/* Settings cards */}
