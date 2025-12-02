@@ -3,13 +3,13 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
+import { IconButton } from "../../ui/IconButton";
+import { PrimaryButton, SecondaryButton } from "../../ui/buttons";
 
 interface DataReviewViewProps {
   extractedData: ExtractedData;
@@ -61,9 +61,11 @@ export function DataReviewView({
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#231F20" />
-        </TouchableOpacity>
+        <IconButton
+          icon={<Ionicons name="arrow-back" size={24} color="#231F20" />}
+          onPress={onBack}
+          style={styles.backButton}
+        />
         <Text style={styles.headerTitle}>Review Recipient Data</Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -270,33 +272,22 @@ export function DataReviewView({
 
       {/* Footer Actions */}
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.backButtonFooter}
+        <SecondaryButton
+          title="Back"
           onPress={onBack}
           disabled={isSaving}
-        >
-          <Text style={styles.backButtonText}>Back</Text>
-        </TouchableOpacity>
+          style={styles.backButtonFooter}
+        />
 
-        <TouchableOpacity
-          style={[
-            styles.saveButton,
-            (!extractedData.name ||
-              !extractedData.relationship_type ||
-              isSaving) &&
-              styles.saveButtonDisabled,
-          ]}
+        <PrimaryButton
+          title="Continue"
           onPress={onSave}
           disabled={
             !extractedData.name || !extractedData.relationship_type || isSaving
           }
-        >
-          {isSaving ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={styles.saveButtonText}>Continue</Text>
-          )}
-        </TouchableOpacity>
+          loading={isSaving}
+          style={styles.saveButton}
+        />
       </View>
     </View>
   );

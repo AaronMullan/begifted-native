@@ -2,7 +2,6 @@ import {
   View,
   Text,
   Image,
-  TouchableOpacity,
   Modal,
   StyleSheet,
   Pressable,
@@ -13,6 +12,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import Auth from "./Auth";
+import { IconButton } from "./ui/IconButton";
+import { TextButton } from "./ui/buttons";
 
 export default function HamburgerMenu() {
   const [menuVisible, setMenuVisible] = useState(false);
@@ -61,18 +62,18 @@ export default function HamburgerMenu() {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.hamburgerButton}
+      <IconButton
+        icon={
+          <Image
+            source={require("../assets/images/hamburger.png")}
+            style={{ width: 32, height: 32 }}
+            resizeMode="contain"
+          />
+        }
         onPress={handleMenuToggle}
-        accessibilityRole="button"
         accessibilityLabel="Navigation menu"
-      >
-        <Image
-          source={require("../assets/images/hamburger.png")}
-          style={{ width: 32, height: 32 }}
-          resizeMode="contain"
-        />
-      </TouchableOpacity>
+        style={styles.hamburgerButton}
+      />
 
       {menuVisible && (
         <>
@@ -82,40 +83,45 @@ export default function HamburgerMenu() {
           {/* Dropdown menu */}
           <View style={styles.menuContainer}>
             <Link href="/" asChild onPress={handleMenuToggle}>
-              <TouchableOpacity style={styles.menuItem}>
-                <Text style={styles.menuText}>Home</Text>
-              </TouchableOpacity>
+              <TextButton
+                title="Home"
+                onPress={handleMenuToggle}
+                style={styles.menuItem}
+                textStyle={styles.menuText}
+              />
             </Link>
             <Link href="/contacts" asChild onPress={handleMenuToggle}>
-              <TouchableOpacity style={styles.menuItem}>
-                <Text style={styles.menuText}>Contacts</Text>
-              </TouchableOpacity>
+              <TextButton
+                title="Contacts"
+                onPress={handleMenuToggle}
+                style={styles.menuItem}
+                textStyle={styles.menuText}
+              />
             </Link>
             <Link href="/faq" asChild onPress={handleMenuToggle}>
-              <TouchableOpacity style={styles.menuItem}>
-                <Text style={styles.menuText}>FAQ</Text>
-              </TouchableOpacity>
+              <TextButton
+                title="FAQ"
+                onPress={handleMenuToggle}
+                style={styles.menuItem}
+                textStyle={styles.menuText}
+              />
             </Link>
 
             {/* Conditional Sign In / Sign Out */}
             {session && session.user ? (
-              <TouchableOpacity
-                style={[styles.menuItem, styles.authItem, styles.signOutItem]}
+              <TextButton
+                title="Sign Out"
                 onPress={handleSignOut}
-              >
-                <Text style={[styles.menuText, styles.signOutText]}>
-                  Sign Out
-                </Text>
-              </TouchableOpacity>
+                style={[styles.menuItem, styles.authItem, styles.signOutItem]}
+                textStyle={[styles.menuText, styles.signOutText]}
+              />
             ) : (
-              <TouchableOpacity
-                style={[styles.menuItem, styles.authItem]}
+              <TextButton
+                title="Sign In"
                 onPress={handleSignIn}
-              >
-                <Text style={[styles.menuText, styles.signInText]}>
-                  Sign In
-                </Text>
-              </TouchableOpacity>
+                style={[styles.menuItem, styles.authItem]}
+                textStyle={[styles.menuText, styles.signInText]}
+              />
             )}
           </View>
         </>
@@ -130,12 +136,12 @@ export default function HamburgerMenu() {
       >
         <View style={{ flex: 1, backgroundColor: "#fff" }}>
           <View style={{ padding: 20 }}>
-            <TouchableOpacity
-              style={{ alignSelf: "flex-end", marginBottom: 20 }}
+            <TextButton
+              title="Close"
               onPress={() => setAuthModalVisible(false)}
-            >
-              <Text style={{ fontSize: 18, color: "#007AFF" }}>Close</Text>
-            </TouchableOpacity>
+              style={{ alignSelf: "flex-end", marginBottom: 20 }}
+              textStyle={{ fontSize: 18, color: "#007AFF" }}
+            />
             <Auth />
           </View>
         </View>

@@ -1,15 +1,11 @@
 import { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-} from "react-native";
+import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
 import { OccasionItem } from "./OccasionItem";
 import { OccasionEditor } from "./OccasionEditor";
+import { IconButton } from "../../ui/IconButton";
+import { PrimaryButton, SecondaryButton } from "../../ui/buttons";
 
 interface OccasionsSelectionViewProps {
   extractedData: ExtractedData;
@@ -30,7 +26,9 @@ export function OccasionsSelectionView({
     Array<{ date: string; occasion_type: string; enabled: boolean }>
   >([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [editingOccasionIndex, setEditingOccasionIndex] = useState<number | null>(null);
+  const [editingOccasionIndex, setEditingOccasionIndex] = useState<
+    number | null
+  >(null);
 
   useEffect(() => {
     const initialOccasions: Array<{
@@ -102,9 +100,11 @@ export function OccasionsSelectionView({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#231F20" />
-        </TouchableOpacity>
+        <IconButton
+          icon={<Ionicons name="arrow-back" size={24} color="#231F20" />}
+          onPress={onBack}
+          style={styles.backButton}
+        />
         <Text style={styles.headerTitle}>Select Occasions</Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -142,26 +142,20 @@ export function OccasionsSelectionView({
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.skipButton}
+        <SecondaryButton
+          title="Skip"
           onPress={onSkip}
           disabled={isProcessing}
-        >
-          <Text style={styles.skipButtonText}>Skip</Text>
-        </TouchableOpacity>
+          style={styles.skipButton}
+        />
 
-        <TouchableOpacity
-          style={[
-            styles.continueButton,
-            isProcessing && styles.continueButtonDisabled,
-          ]}
+        <PrimaryButton
+          title={isProcessing ? "Processing..." : "Continue"}
           onPress={handleContinue}
           disabled={isProcessing}
-        >
-          <Text style={styles.continueButtonText}>
-            {isProcessing ? "Processing..." : "Continue"}
-          </Text>
-        </TouchableOpacity>
+          loading={isProcessing}
+          style={styles.continueButton}
+        />
       </View>
 
       {editingOccasionIndex !== null && (
@@ -180,9 +174,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-  },
-  continueButtonDisabled: {
-    opacity: 0.6,
   },
   header: {
     flexDirection: "row",
@@ -247,29 +238,8 @@ const styles = StyleSheet.create({
   },
   skipButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  skipButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#231F20",
   },
   continueButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    backgroundColor: "#FFB6C1",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  continueButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#fff",
   },
 });

@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   ScrollView,
   StyleSheet,
   KeyboardAvoidingView,
@@ -12,6 +11,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Message } from "@/hooks/use-add-recipient-flow";
+import { IconButton } from "../../ui/IconButton";
+import { PrimaryButton } from "../../ui/buttons";
 
 interface ConversationViewProps {
   messages: Message[];
@@ -69,9 +70,11 @@ export function ConversationView({
     >
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onNavigateBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#231F20" />
-        </TouchableOpacity>
+        <IconButton
+          icon={<Ionicons name="arrow-back" size={24} color="#231F20" />}
+          onPress={onNavigateBack}
+          style={styles.backButton}
+        />
         <Text style={styles.headerTitle}>Add Recipient</Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -127,15 +130,12 @@ export function ConversationView({
       {/* Input Area */}
       <View style={styles.inputContainer}>
         {shouldShowNextStepButton && (
-          <TouchableOpacity
-            style={styles.nextStepButton}
+          <PrimaryButton
+            title="Let's Move to the Next Step"
             onPress={onFinishConversation}
             disabled={isLoading || isSending}
-          >
-            <Text style={styles.nextStepButtonText}>
-              Let's Move to the Next Step
-            </Text>
-          </TouchableOpacity>
+            style={styles.nextStepButton}
+          />
         )}
 
         <View style={styles.inputRow}>
@@ -151,21 +151,22 @@ export function ConversationView({
             maxLength={500}
             editable={!isLoading && !isSending}
           />
-          <TouchableOpacity
+          <IconButton
+            icon={
+              isSending ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Ionicons name="send" size={20} color="#fff" />
+              )
+            }
+            onPress={handleSend}
+            disabled={!inputMessage.trim() || isLoading || isSending}
             style={[
               styles.sendButton,
               (!inputMessage.trim() || isLoading || isSending) &&
                 styles.sendButtonDisabled,
             ]}
-            onPress={handleSend}
-            disabled={!inputMessage.trim() || isLoading || isSending}
-          >
-            {isSending ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Ionicons name="send" size={20} color="#fff" />
-            )}
-          </TouchableOpacity>
+          />
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -258,17 +259,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   nextStepButton: {
-    backgroundColor: "#FFB6C1",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    alignItems: "center",
     marginBottom: 12,
-  },
-  nextStepButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
   },
   inputRow: {
     flexDirection: "row",

@@ -3,7 +3,6 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   Switch,
 } from "react-native";
 import { useState, useEffect } from "react";
@@ -11,6 +10,8 @@ import { useRouter } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { Ionicons } from "@expo/vector-icons";
+import { IconButton } from "../../components/ui/IconButton";
+import { PrimaryButton } from "../../components/ui/buttons";
 
 interface NotificationPreferences {
   push_notifications_enabled: boolean;
@@ -217,12 +218,11 @@ export default function Notifications() {
                 Manage your communication preferences
               </Text>
             </View>
-            <TouchableOpacity
+            <IconButton
+              icon={<Ionicons name="arrow-back" size={20} color="#231F20" />}
               onPress={() => router.back()}
               style={styles.backButton}
-            >
-              <Ionicons name="arrow-back" size={20} color="#231F20" />
-            </TouchableOpacity>
+            />
           </View>
 
           {/* Notification Methods Section */}
@@ -428,24 +428,19 @@ export default function Notifications() {
           </View>
 
           {/* Save Button */}
-          <TouchableOpacity
-            style={[
-              styles.saveButton,
-              !hasChanges && styles.saveButtonDisabled,
-              saving && styles.saveButtonSaving,
-            ]}
+          <PrimaryButton
+            title={
+              saving
+                ? "Saving..."
+                : hasChanges
+                ? "Save Changes"
+                : "No Changes"
+            }
             onPress={handleSave}
             disabled={saving || !hasChanges}
-          >
-            <Text
-              style={[
-                styles.saveButtonText,
-                !hasChanges && styles.saveButtonTextDisabled,
-              ]}
-            >
-              {saving ? "Saving..." : hasChanges ? "Save Changes" : "No Changes"}
-            </Text>
-          </TouchableOpacity>
+            loading={saving}
+            style={styles.saveButton}
+          />
         </View>
       </View>
     </ScrollView>
@@ -578,26 +573,7 @@ const styles = StyleSheet.create({
     color: "#FFB6C1",
   },
   saveButton: {
-    backgroundColor: "#FFB6C1",
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: "center",
     marginTop: 8,
-  },
-  saveButtonDisabled: {
-    backgroundColor: "#E0E0E0",
-    opacity: 0.6,
-  },
-  saveButtonSaving: {
-    opacity: 0.7,
-  },
-  saveButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  saveButtonTextDisabled: {
-    color: "#666",
   },
   loadingText: {
     textAlign: "center",

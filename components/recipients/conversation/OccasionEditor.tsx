@@ -3,12 +3,13 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   Modal,
   StyleSheet,
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { IconButton } from "../../ui/IconButton";
+import { PrimaryButton, SecondaryButton } from "../../ui/buttons";
 
 interface OccasionEditorProps {
   occasion: {
@@ -71,9 +72,11 @@ export function OccasionEditor({
         <View style={styles.modalContent}>
           <View style={styles.header}>
             <Text style={styles.title}>Edit Occasion Date</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#231F20" />
-            </TouchableOpacity>
+            <IconButton
+              icon={<Ionicons name="close" size={24} color="#231F20" />}
+              onPress={onClose}
+              style={styles.closeButton}
+            />
           </View>
 
           <View style={styles.content}>
@@ -99,12 +102,16 @@ export function OccasionEditor({
           </View>
 
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-              <Text style={styles.saveButtonText}>Save</Text>
-            </TouchableOpacity>
+            <SecondaryButton
+              title="Cancel"
+              onPress={onClose}
+              style={styles.cancelButton}
+            />
+            <PrimaryButton
+              title="Save"
+              onPress={handleSave}
+              style={styles.saveButton}
+            />
           </View>
         </View>
       </View>
@@ -184,29 +191,8 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#231F20",
   },
   saveButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: "#FFB6C1",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#fff",
   },
 });

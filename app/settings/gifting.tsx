@@ -3,8 +3,8 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   Switch,
+  TouchableOpacity,
 } from "react-native";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
@@ -12,6 +12,8 @@ import { supabase } from "../../lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { Ionicons } from "@expo/vector-icons";
 import PreferenceCard from "../../components/PreferenceCard";
+import { IconButton } from "../../components/ui/IconButton";
+import { PrimaryButton } from "../../components/ui/buttons";
 import {
   PHILOSOPHY_OPTIONS,
   TONE_OPTIONS,
@@ -47,9 +49,8 @@ export default function GiftingPreferences() {
     autoFallbackEnabled: false,
   });
 
-  const [originalFormData, setOriginalFormData] = useState<GiftingPreferences>(
-    formData
-  );
+  const [originalFormData, setOriginalFormData] =
+    useState<GiftingPreferences>(formData);
   const [showReminderPicker, setShowReminderPicker] = useState(false);
 
   useEffect(() => {
@@ -204,12 +205,11 @@ export default function GiftingPreferences() {
                 personal style and preferences.
               </Text>
             </View>
-            <TouchableOpacity
+            <IconButton
+              icon={<Ionicons name="arrow-back" size={20} color="#231F20" />}
               onPress={() => router.back()}
               style={styles.backButton}
-            >
-              <Ionicons name="arrow-back" size={20} color="#231F20" />
-            </TouchableOpacity>
+            />
           </View>
 
           {/* Preference Cards */}
@@ -336,24 +336,19 @@ export default function GiftingPreferences() {
           </View>
 
           {/* Save Button */}
-          <TouchableOpacity
-            style={[
-              styles.saveButton,
-              !hasChanges && styles.saveButtonDisabled,
-              saving && styles.saveButtonSaving,
-            ]}
+          <PrimaryButton
+            title={
+              saving
+                ? "Saving..."
+                : hasChanges
+                ? "Save Preferences"
+                : "No Changes"
+            }
             onPress={handleSave}
             disabled={saving || !hasChanges}
-          >
-            <Text
-              style={[
-                styles.saveButtonText,
-                !hasChanges && styles.saveButtonTextDisabled,
-              ]}
-            >
-              {saving ? "Saving..." : hasChanges ? "Save Preferences" : "No Changes"}
-            </Text>
-          </TouchableOpacity>
+            loading={saving}
+            style={styles.saveButton}
+          />
         </View>
       </View>
     </ScrollView>
@@ -484,26 +479,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   saveButton: {
-    backgroundColor: "#FFB6C1",
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: "center",
     marginTop: 8,
-  },
-  saveButtonDisabled: {
-    backgroundColor: "#E0E0E0",
-    opacity: 0.6,
-  },
-  saveButtonSaving: {
-    opacity: 0.7,
-  },
-  saveButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  saveButtonTextDisabled: {
-    color: "#666",
   },
   loadingText: {
     textAlign: "center",
@@ -511,5 +487,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
-
-

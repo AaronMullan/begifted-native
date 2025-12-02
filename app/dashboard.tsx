@@ -1,7 +1,6 @@
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
   ScrollView,
   Alert,
@@ -11,6 +10,7 @@ import { Link, useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { Ionicons } from "@expo/vector-icons";
+import { PrimaryButton } from "../components/ui/buttons";
 
 export default function Dashboard() {
   const [session, setSession] = useState<Session | null>(null);
@@ -152,12 +152,11 @@ export default function Dashboard() {
                 Let's make someone's day special
               </Text>
             </View>
-            <TouchableOpacity
+            <SecondaryButton
+              title="Sign Out"
               onPress={handleSignOut}
               style={styles.signOutButton}
-            >
-              <Text style={styles.signOutText}>Sign Out</Text>
-            </TouchableOpacity>
+            />
           </View>
 
           {/* Three cards */}
