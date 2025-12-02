@@ -171,15 +171,30 @@ export default function Calendar() {
     return diffDays;
   }
 
+  function formatOccasionType(type: string): string {
+    if (type === "birthday") return "Birthday";
+    if (type === "custom") return "Custom Occasion";
+    // Format other occasion types (e.g., "kwanzaa" -> "Kwanzaa", "rosh_hashanah" -> "Rosh Hashanah")
+    const formatted = type.charAt(0).toUpperCase() + type.slice(1);
+    return formatted.replace(/_/g, " ");
+  }
+
   function formatOccasionTitle(occasion: Occasion): string {
     const recipientName = occasion.recipient?.name || "Unknown";
-    const occasionType =
-      occasion.occasion_type === "custom" ? "custom" : "birthday";
-    // Handle possessive correctly
-    const possessive = recipientName.endsWith("s")
-      ? `${recipientName}'`
-      : `${recipientName}'s`;
-    return `${possessive} ${occasionType}`;
+    const occasionType = formatOccasionType(
+      occasion.occasion_type || "birthday"
+    );
+
+    // For birthdays, use possessive format (e.g., "Rob's Birthday")
+    // For other occasions, show "Occasion : Recipient Name" (e.g., "Kwanzaa : Rob Dumkoff")
+    if (occasion.occasion_type === "birthday") {
+      const possessive = recipientName.endsWith("s")
+        ? `${recipientName}'`
+        : `${recipientName}'s`;
+      return `${possessive} ${occasionType}`;
+    }
+
+    return `${occasionType} : ${recipientName}`;
   }
 
   const groupedOccasions = groupOccasionsByMonth(occasions);
@@ -259,6 +274,7 @@ export default function Calendar() {
                   {groupedOccasions[monthKey].map((occasion) => {
                     const daysUntil = calculateDaysUntil(occasion.date);
                     const isCustom = occasion.occasion_type === "custom";
+                    const isBirthday = occasion.occasion_type === "birthday";
 
                     return (
                       <View key={occasion.id} style={styles.occasionCard}>
@@ -291,8 +307,10 @@ export default function Calendar() {
                           >
                             {daysUntil} day{daysUntil !== 1 ? "s" : ""}
                           </Text>
-                          {isCustom && (
-                            <Text style={styles.customLabel}>Custom</Text>
+                          {!isBirthday && (
+                            <Text style={styles.customLabel}>
+                              {formatOccasionType(occasion.occasion_type)}
+                            </Text>
                           )}
                         </View>
                       </View>
@@ -482,4 +500,3 @@ const styles = StyleSheet.create({
     color: "#999",
   },
 });
-

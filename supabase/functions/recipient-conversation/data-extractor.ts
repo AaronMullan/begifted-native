@@ -236,7 +236,7 @@ IMPORTANT: Check the CONVERSATION CONTEXT to see if birthday or occasions were a
 
 3. When fully ready to proceed:
 
-"Perfect! I have everything I need to help you add [person's name] to your gift list and get started on tailored suggestions. Click 'Let's move to the next step' below."
+"Perfect! I have everything I need to help you add [person's name] to your gift list and get started on tailored suggestions. Feel free to add more information, or click 'Let's move to the next step' below."
 
 4. When missing critical info:
 

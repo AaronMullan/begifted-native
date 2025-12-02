@@ -97,22 +97,88 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
 
         if (recipientError) throw recipientError;
 
-        // Create occasions if provided (includes birthday if it was extracted as an occasion)
-        if (data.occasions && data.occasions.length > 0 && recipient) {
-          const occasionsData = data.occasions.map((occasion) => ({
-            user_id: userId,
-            recipient_id: recipient.id,
-            date: occasion.date,
-            occasion_type: occasion.occasion_type || "custom",
-          }));
+        // Create occasions: collect all occasions and ensure birthday is included if it exists
+        if (recipient) {
+          const occasionsToCreate: Array<{
+            user_id: string;
+            recipient_id: string;
+            date: string;
+            occasion_type: string;
+          }> = [];
 
-          const { error: occasionsError } = await supabase
-            .from("occasions")
-            .insert(occasionsData);
+          // Add all occasions from the occasions array
+          if (data.occasions && data.occasions.length > 0) {
+            data.occasions.forEach((occasion) => {
+              occasionsToCreate.push({
+                user_id: userId,
+                recipient_id: recipient.id,
+                date: occasion.date,
+                occasion_type: occasion.occasion_type || "custom",
+              });
+            });
+          }
 
-          if (occasionsError) {
-            console.error("Error creating occasions:", occasionsError);
-            // Don't fail the whole operation if occasions fail
+          // If birthday exists, ensure it's added as an occasion (if not already included)
+          if (data.birthday) {
+            const birthdayParts = data.birthday.trim().split("-");
+            if (birthdayParts.length >= 2) {
+              const month = parseInt(
+                birthdayParts[birthdayParts.length === 3 ? 1 : 0],
+                10
+              );
+              const day = parseInt(
+                birthdayParts[birthdayParts.length === 3 ? 2 : 1],
+                10
+              );
+
+              if (
+                !isNaN(month) &&
+                !isNaN(day) &&
+                month >= 1 &&
+                month <= 12 &&
+                day >= 1 &&
+                day <= 31
+              ) {
+                // Calculate next occurrence of birthday
+                const currentYear = new Date().getFullYear();
+                const currentDate = new Date();
+                let nextBirthdayDate = new Date(currentYear, month - 1, day);
+                if (nextBirthdayDate < currentDate) {
+                  nextBirthdayDate = new Date(currentYear + 1, month - 1, day);
+                }
+                const nextBirthdayDateStr = nextBirthdayDate
+                  .toISOString()
+                  .split("T")[0];
+
+                // Check if birthday is already in occasions array
+                const birthdayAlreadyIncluded = occasionsToCreate.some(
+                  (occ) =>
+                    occ.occasion_type === "birthday" &&
+                    occ.date === nextBirthdayDateStr
+                );
+
+                if (!birthdayAlreadyIncluded) {
+                  occasionsToCreate.push({
+                    user_id: userId,
+                    recipient_id: recipient.id,
+                    date: nextBirthdayDateStr,
+                    occasion_type: "birthday",
+                  });
+                }
+              }
+            }
+          }
+
+          // Insert all occasions if we have any
+          if (occasionsToCreate.length > 0) {
+            const { error: occasionsError } = await supabase
+              .from("occasions")
+              .insert(occasionsToCreate);
+
+            if (occasionsError) {
+              console.error("Error creating occasions:", occasionsError);
+              // Don't fail the whole operation if occasions fail
+            }
           }
         }
 
@@ -242,12 +308,12 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
           }
           return occasion;
         });
-        
+
         // Only update if we actually enriched any occasions
-        const hasChanges = enrichedOccasions.some((occ, idx) => 
-          occ.date !== extractedData.occasions![idx].date
+        const hasChanges = enrichedOccasions.some(
+          (occ, idx) => occ.date !== extractedData.occasions![idx].date
         );
-        
+
         if (hasChanges) {
           genericSetExtractedData({
             ...extractedData,
@@ -255,7 +321,7 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
           });
         }
       };
-      
+
       enrichOccasions();
     }
   }, [extractedData, genericSetExtractedData]);
