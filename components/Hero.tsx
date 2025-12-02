@@ -1,11 +1,11 @@
-import { View, Text, Image, useWindowDimensions } from "react-native";
+import { View, Text, Image } from "react-native";
 import { useState } from "react";
 import Auth from "./Auth";
+import { useResponsive } from "../hooks/use-responsive";
+import { colors, fonts, spacing } from "../constants/theme";
 
 export default function Hero() {
-  const { width } = useWindowDimensions();
-  const isDesktop = width >= 1024;
-  const isTablet = width >= 768;
+  const { isDesktop, isTablet } = useResponsive();
 
   const fontSize = {
     display: isDesktop ? 70 : isTablet ? 32 : 30,
@@ -13,20 +13,30 @@ export default function Hero() {
 
   return (
     <View
-      style={{ width: "100%", backgroundColor: "#52A78B", paddingBottom: 60 }}
+      style={{
+        width: "100%",
+        backgroundColor: colors.primaryTeal,
+        paddingBottom: spacing.padding.xxxl,
+      }}
     >
       {/* Full-width background with contained content */}
-      <View style={{ maxWidth: 1200, width: "100%", alignSelf: "center" }}>
+      <View
+        style={{
+          maxWidth: spacing.contentMaxWidth,
+          width: "100%",
+          alignSelf: "center",
+        }}
+      >
         <View style={{ width: "100%" }}>
           <Text
             style={{
-              fontFamily: "AzeretMono_400Regular",
+              fontFamily: fonts.display,
               textAlign: "left",
-              color: "#fff",
+              color: colors.white,
               fontSize: fontSize.display,
-              borderColor: "#396D75",
+              borderColor: colors.darkTeal,
               borderBottomWidth: 2,
-              paddingBottom: 10,
+              paddingBottom: spacing.margin.sm,
               alignSelf: "flex-start",
             }}
           >
@@ -39,7 +49,7 @@ export default function Hero() {
             minHeight: isDesktop ? 500 : 300,
             justifyContent: "space-between",
             alignItems: "center",
-            backgroundColor: "#52A78B",
+            backgroundColor: colors.primaryTeal,
           }}
           accessibilityRole="header"
           accessibilityLabel="Hero"
@@ -47,18 +57,18 @@ export default function Hero() {
         >
           <Text
             style={{
-              fontFamily: "Times New Roman",
+              fontFamily: fonts.hero,
               fontStyle: "italic",
               fontSize: fontSize.display,
               fontWeight: "regular",
-              marginBottom: 16,
-              color: "#fff",
+              marginBottom: spacing.margin.lg,
+              color: colors.white,
               textAlign: "left",
             }}
           >
             <Text>This gifting season{"\n"}</Text>
             <Text>give yourself the{"\n"}</Text>
-            <Text style={{ color: "#231F20" }}>gift of time.</Text>
+            <Text style={{ color: colors.darkText }}>gift of time.</Text>
           </Text>
 
           <Image
@@ -66,7 +76,7 @@ export default function Hero() {
             style={{
               width: isDesktop ? 530 : "100%",
               height: isDesktop ? 530 : 400,
-              borderColor: "#fff",
+              borderColor: colors.white,
               borderWidth: 2,
             }}
             resizeMode="cover"

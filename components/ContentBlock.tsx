@@ -2,18 +2,17 @@ import {
   View,
   Text,
   Image,
-  useWindowDimensions,
   TouchableOpacity,
   Modal,
   StyleSheet,
 } from "react-native";
 import { useState } from "react";
 import Auth from "./Auth";
+import { useResponsive } from "../hooks/use-responsive";
+import { colors, fonts, spacing, buttonStyles } from "../constants/theme";
 
 export default function ContentBlock() {
-  const { width } = useWindowDimensions();
-  const isDesktop = width >= 1024;
-  const isTablet = width >= 768;
+  const { isDesktop, isTablet } = useResponsive();
   const [authModalVisible, setAuthModalVisible] = useState(false);
 
   const fontSize = {
@@ -118,12 +117,12 @@ export default function ContentBlock() {
 const styles = StyleSheet.create({
   container: {
     width: "100%",
-    backgroundColor: "#396D75",
-    paddingBottom: 60,
-    paddingTop: 60,
+    backgroundColor: colors.darkTeal,
+    paddingBottom: spacing.padding.xxxl,
+    paddingTop: spacing.padding.xxxl,
   },
   contentWrapper: {
-    maxWidth: 1200,
+    maxWidth: spacing.contentMaxWidth,
     width: "100%",
     alignSelf: "center",
     justifyContent: "space-between",
@@ -138,43 +137,43 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     justifyContent: "space-between",
-    gap: 30,
+    gap: spacing.padding.xxl,
   },
   heading: {
-    fontFamily: "RobotoFlex_400Regular",
-    color: "#fff",
-    marginBottom: 10,
+    fontFamily: fonts.body,
+    color: colors.white,
+    marginBottom: spacing.margin.sm,
     textAlign: "left",
     width: "100%",
   },
   body: {
-    fontFamily: "RobotoFlex_400Regular",
-    color: "#fff",
+    fontFamily: fonts.body,
+    color: colors.white,
     textAlign: "left",
-    marginBottom: 20,
+    marginBottom: spacing.margin.xl,
   },
   button: {
-    backgroundColor: "#231F20",
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    marginBottom: 20,
+    backgroundColor: buttonStyles.primary.backgroundColor,
+    paddingHorizontal: buttonStyles.primary.paddingHorizontal,
+    paddingVertical: buttonStyles.primary.paddingVertical,
+    marginBottom: spacing.margin.xl,
     alignSelf: "flex-start",
   },
   buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+    color: buttonStyles.primary.color,
+    fontSize: buttonStyles.primary.fontSize,
+    fontWeight: buttonStyles.primary.fontWeight,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
   },
   modalContent: {
-    padding: 20,
+    padding: spacing.margin.xl,
   },
   closeButton: {
     alignSelf: "flex-end",
-    marginBottom: 20,
+    marginBottom: spacing.margin.xl,
   },
   closeButtonText: {
     fontSize: 18,

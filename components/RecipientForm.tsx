@@ -3,6 +3,7 @@ import {
   Text,
   TextInput,
   StyleSheet,
+  ScrollView,
 } from "react-native";
 import { Recipient } from "../types/recipient";
 import { PrimaryButton, SecondaryButton } from "./ui/buttons";
@@ -73,7 +74,7 @@ export default function RecipientForm({
   onCancel,
 }: RecipientFormProps) {
   return (
-    <View style={styles.form}>
+    <ScrollView style={styles.scrollView} contentContainerStyle={styles.form}>
       <Text style={styles.formTitle}>
         {editingRecipient ? "Edit Recipient" : "Add Recipient"}
       </Text>
@@ -230,21 +231,17 @@ export default function RecipientForm({
           style={styles.submitButton}
         />
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollView: {
+    flex: 1,
+  },
   form: {
     backgroundColor: "white",
     padding: 20,
-    borderRadius: 8,
-    marginBottom: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   formTitle: {
     fontSize: 20,

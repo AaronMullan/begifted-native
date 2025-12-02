@@ -7,6 +7,7 @@ import {
   ViewStyle,
   TextStyle,
 } from "react-native";
+import { buttonStyles, colors, borderRadius } from "../../constants/theme";
 
 interface ButtonProps {
   title: string;
@@ -61,7 +62,7 @@ export function Button({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={variant === "primary" ? "#fff" : "#231F20"}
+          color={variant === "primary" ? colors.white : colors.darkText}
         />
       ) : (
         <>
@@ -75,30 +76,33 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
     gap: 8,
-    minHeight: 48,
   },
   primary: {
-    backgroundColor: "#FFB6C1",
+    backgroundColor: buttonStyles.primary.backgroundColor,
+    paddingHorizontal: buttonStyles.primary.paddingHorizontal,
+    paddingVertical: buttonStyles.primary.paddingVertical,
+    borderRadius: borderRadius.small,
   },
   primaryText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
+    color: buttonStyles.primary.color,
+    fontSize: buttonStyles.primary.fontSize,
+    fontWeight: buttonStyles.primary.fontWeight,
   },
   secondary: {
     backgroundColor: "transparent",
     borderWidth: 1,
     borderColor: "#ddd",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: borderRadius.small,
+    minHeight: 48,
   },
   secondaryText: {
-    color: "#231F20",
+    color: colors.darkText,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -109,7 +113,7 @@ const styles = StyleSheet.create({
     minHeight: 32,
   },
   textText: {
-    color: "#231F20",
+    color: colors.darkText,
     fontSize: 16,
     fontWeight: "500",
   },

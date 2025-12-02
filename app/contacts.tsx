@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Alert,
   Platform,
+  Modal,
 } from "react-native";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
@@ -17,11 +18,14 @@ import { useDeviceContacts, DeviceContact } from "../hooks/use-device-contacts";
 import ContactPicker from "../components/ContactPicker";
 import ContactFileImport from "../components/ContactFileImport";
 import { PrimaryButton } from "../components/ui/buttons";
+import { Occasion } from "../utils/dateUtils";
 
 export default function Contacts() {
   const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
-  const [recipients, setRecipients] = useState<Recipient[]>([]);
+  const [recipients, setRecipients] = useState<
+    (Recipient & { occasions?: Occasion[] })[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [formVisible, setFormVisible] = useState(false);
   const [editingRecipient, setEditingRecipient] = useState<Recipient | null>(
@@ -74,7 +78,7 @@ export default function Contacts() {
   async function fetchRecipients(userId: string) {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data: recipientsData, error: recipientsError } = await supabase
         .from("recipients")
         .select(
           "id, name, relationship_type, interests, birthday, emotional_tone_preference, gift_budget_min, gift_budget_max, address, address_line_2, city, state, zip_code, country, created_at"
@@ -82,8 +86,37 @@ export default function Contacts() {
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setRecipients(data || []);
+      if (recipientsError) throw recipientsError;
+
+      // Fetch occasions for each recipient
+      const recipientsWithOccasions = await Promise.all(
+        (recipientsData || []).map(async (recipient) => {
+          const { data: occasionsData, error: occasionsError } = await supabase
+            .from("occasions")
+            .select("id, occasion_type, custom_occasion, date, is_annual")
+            .eq("recipient_id", recipient.id)
+            .eq("user_id", userId)
+            .order("date", { ascending: true });
+
+          if (occasionsError) {
+            console.error("Error fetching occasions:", occasionsError);
+            return { ...recipient, occasions: [] };
+          }
+
+          return {
+            ...recipient,
+            occasions: (occasionsData || []).map((occ) => ({
+              id: occ.id,
+              occasion_type: occ.occasion_type,
+              custom_occasion: occ.custom_occasion,
+              date: occ.date,
+              is_annual: occ.is_annual,
+            })),
+          };
+        })
+      );
+
+      setRecipients(recipientsWithOccasions);
     } catch (error) {
       console.error("Error fetching recipients:", error);
       if (error instanceof Error) {
@@ -360,40 +393,47 @@ export default function Contacts() {
           </>
         )}
 
-        {formVisible && (
-          <RecipientForm
-            editingRecipient={editingRecipient}
-            name={name}
-            relationshipType={relationshipType}
-            interests={interests}
-            birthday={birthday}
-            emotionalTone={emotionalTone}
-            budgetMin={budgetMin}
-            budgetMax={budgetMax}
-            address={address}
-            addressLine2={addressLine2}
-            city={city}
-            state={state}
-            zipCode={zipCode}
-            country={country}
-            loading={loading}
-            onNameChange={setName}
-            onRelationshipTypeChange={setRelationshipType}
-            onInterestsChange={setInterests}
-            onBirthdayChange={setBirthday}
-            onEmotionalToneChange={setEmotionalTone}
-            onBudgetMinChange={setBudgetMin}
-            onBudgetMaxChange={setBudgetMax}
-            onAddressChange={setAddress}
-            onAddressLine2Change={setAddressLine2}
-            onCityChange={setCity}
-            onStateChange={setState}
-            onZipCodeChange={setZipCode}
-            onCountryChange={setCountry}
-            onSave={saveRecipient}
-            onCancel={closeForm}
-          />
-        )}
+        <Modal
+          visible={formVisible}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={closeForm}
+        >
+          <View style={styles.modalContainer}>
+            <RecipientForm
+              editingRecipient={editingRecipient}
+              name={name}
+              relationshipType={relationshipType}
+              interests={interests}
+              birthday={birthday}
+              emotionalTone={emotionalTone}
+              budgetMin={budgetMin}
+              budgetMax={budgetMax}
+              address={address}
+              addressLine2={addressLine2}
+              city={city}
+              state={state}
+              zipCode={zipCode}
+              country={country}
+              loading={loading}
+              onNameChange={setName}
+              onRelationshipTypeChange={setRelationshipType}
+              onInterestsChange={setInterests}
+              onBirthdayChange={setBirthday}
+              onEmotionalToneChange={setEmotionalTone}
+              onBudgetMinChange={setBudgetMin}
+              onBudgetMaxChange={setBudgetMax}
+              onAddressChange={setAddress}
+              onAddressLine2Change={setAddressLine2}
+              onCityChange={setCity}
+              onStateChange={setState}
+              onZipCodeChange={setZipCode}
+              onCountryChange={setCountry}
+              onSave={saveRecipient}
+              onCancel={closeForm}
+            />
+          </View>
+        </Modal>
 
         {loading && recipients.length === 0 ? (
           <Text style={styles.loadingText}>Loading...</Text>
@@ -410,8 +450,7 @@ export default function Contacts() {
               <RecipientCard
                 key={recipient.id}
                 recipient={recipient}
-                onEdit={openEditForm}
-                onDelete={deleteRecipient}
+                onClick={openEditForm}
               />
             ))}
           </View>
@@ -485,5 +524,9 @@ const styles = StyleSheet.create({
   },
   importButton: {
     backgroundColor: "#34C759",
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
   },
 });

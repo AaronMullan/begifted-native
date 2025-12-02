@@ -4,13 +4,15 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  TouchableOpacity,
 } from "react-native";
 import { useState, useEffect } from "react";
 import { Link, useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { Ionicons } from "@expo/vector-icons";
-import { PrimaryButton } from "../components/ui/buttons";
+import { SecondaryButton } from "../components/ui/buttons";
+import { colors, spacing, shadows, borderRadius } from "../constants/theme";
 
 export default function Dashboard() {
   const [session, setSession] = useState<Session | null>(null);
@@ -210,31 +212,27 @@ export default function Dashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E6E6FA", // Light purple background
+    backgroundColor: colors.lightPurple,
   },
   content: {
     flex: 1,
     maxWidth: 800,
     alignSelf: "center",
     width: "100%",
-    padding: 20,
+    padding: spacing.margin.xl,
   },
   mainCard: {
-    backgroundColor: "white",
-    borderRadius: 16,
-    padding: 24,
-    marginTop: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.large,
+    padding: spacing.padding.xl,
+    marginTop: spacing.margin.xl,
+    ...shadows.medium,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 32,
+    marginBottom: spacing.margin.xxxl,
   },
   headerLeft: {
     flex: 1,
@@ -242,12 +240,12 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#231F20",
-    marginBottom: 8,
+    color: colors.darkText,
+    marginBottom: spacing.margin.xs,
   },
   tagline: {
     fontSize: 16,
-    color: "#666",
+    color: colors.gray,
   },
   signOutButton: {
     paddingVertical: 8,
@@ -255,24 +253,20 @@ const styles = StyleSheet.create({
   },
   signOutText: {
     fontSize: 14,
-    color: "#231F20",
+    color: colors.darkText,
     fontWeight: "500",
   },
   cardsContainer: {
-    gap: 20,
+    gap: spacing.margin.xl,
   },
   card: {
-    backgroundColor: "white",
-    borderRadius: 12,
-    padding: 24,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.medium,
+    padding: spacing.padding.xl,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    ...shadows.light,
     borderWidth: 1,
-    borderColor: "#f0f0f0",
+    borderColor: colors.lightGray,
   },
   iconContainer: {
     width: 64,
@@ -280,8 +274,8 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
-    backgroundColor: "#f8f8f8",
+    marginBottom: spacing.margin.lg,
+    backgroundColor: colors.lightGrayAlt,
   },
   recipientsIcon: {
     backgroundColor: "#FFF0F5",
@@ -295,24 +289,24 @@ const styles = StyleSheet.create({
   cardNumber: {
     fontSize: 48,
     fontWeight: "bold",
-    color: "#231F20",
-    marginBottom: 8,
+    color: colors.darkText,
+    marginBottom: spacing.margin.xs,
   },
   cardTitle: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#231F20",
-    marginBottom: 8,
+    color: colors.darkText,
+    marginBottom: spacing.margin.xs,
   },
   settingsTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#231F20",
-    marginBottom: 8,
+    color: colors.darkText,
+    marginBottom: spacing.margin.xs,
   },
   cardDescription: {
     fontSize: 14,
-    color: "#666",
+    color: colors.gray,
     textAlign: "center",
     marginTop: 4,
   },

@@ -2,9 +2,10 @@ import {
   View,
   Text,
   Image,
-  useWindowDimensions,
   StyleSheet,
 } from "react-native";
+import { useResponsive } from "../hooks/use-responsive";
+import { colors, fonts, spacing } from "../constants/theme";
 
 // Create a mapping object for all logos
 const logoImages = {
@@ -60,9 +61,7 @@ const brandLogos = [
 ];
 
 export default function BrandGrid() {
-  const { width } = useWindowDimensions();
-  const isDesktop = width >= 1024;
-  const isTablet = width >= 768;
+  const { isDesktop, isTablet } = useResponsive();
 
   const fontSize = {
     heading: isDesktop ? 24 : isTablet ? 20 : 18,
@@ -107,16 +106,16 @@ export default function BrandGrid() {
       style={{
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#BB693E",
-        padding: 20,
+        backgroundColor: colors.brownOrange,
+        padding: spacing.margin.xl,
       }}
     >
       <Text
         style={{
-          fontFamily: "RobotoFlex_400Regular",
+          fontFamily: fonts.body,
           fontSize: fontSize.heading,
-          color: "#fff",
-          marginBottom: 20,
+          color: colors.white,
+          marginBottom: spacing.margin.xl,
           textAlign: "center",
         }}
       >
@@ -136,13 +135,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: spacing.margin.xl,
   },
   gridItem: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 10,
+    padding: spacing.margin.sm,
   },
   logoImage: {
     width: 60,

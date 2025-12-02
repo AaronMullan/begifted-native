@@ -11,6 +11,7 @@ import { supabase } from "../lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { Ionicons } from "@expo/vector-icons";
 import { IconButton } from "../components/ui/IconButton";
+import { colors, spacing, shadows, borderRadius } from "../constants/theme";
 
 export default function Settings() {
   const [session, setSession] = useState<Session | null>(null);
@@ -166,31 +167,27 @@ export default function Settings() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E6E6FA", // Light purple background
+    backgroundColor: colors.lightPurple,
   },
   content: {
     flex: 1,
     maxWidth: 800,
     alignSelf: "center",
     width: "100%",
-    padding: 20,
+    padding: spacing.margin.xl,
   },
   mainCard: {
-    backgroundColor: "white",
-    borderRadius: 16,
-    padding: 24,
-    marginTop: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.large,
+    padding: spacing.padding.xl,
+    marginTop: spacing.margin.xl,
+    ...shadows.medium,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 32,
+    marginBottom: spacing.margin.xxxl,
   },
   headerLeft: {
     flex: 1,
@@ -198,33 +195,29 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#231F20",
-    marginBottom: 8,
+    color: colors.darkText,
+    marginBottom: spacing.margin.xs,
   },
   subtitle: {
     fontSize: 16,
-    color: "#666",
+    color: colors.gray,
   },
   backButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: spacing.margin.xs,
+    paddingHorizontal: spacing.margin.md,
   },
   cardsContainer: {
-    gap: 16,
+    gap: spacing.margin.lg,
   },
   settingsCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "white",
-    borderRadius: 12,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.medium,
+    padding: spacing.margin.xl,
+    ...shadows.light,
     borderWidth: 1,
-    borderColor: "#f0f0f0",
+    borderColor: colors.lightGray,
   },
   iconContainer: {
     width: 56,
@@ -232,7 +225,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: spacing.margin.lg,
   },
   cardContent: {
     flex: 1,
@@ -240,20 +233,20 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#231F20",
+    color: colors.darkText,
     marginBottom: 4,
   },
   cardDescription: {
     fontSize: 14,
-    color: "#666",
+    color: colors.gray,
     lineHeight: 20,
   },
   chevron: {
-    marginLeft: 12,
+    marginLeft: spacing.margin.md,
   },
   loadingText: {
     textAlign: "center",
-    color: "#666",
+    color: colors.gray,
     fontSize: 16,
   },
 });
