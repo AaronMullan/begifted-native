@@ -1,11 +1,12 @@
-import { useState, useCallback, useEffect } from "react";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import { supabase } from "../lib/supabase";
+import { useCallback, useEffect, useState } from "react";
 import { Alert } from "react-native";
+import { supabase } from "../lib/supabase";
 import {
-  useConversationFlow,
-  Message,
   ExtractedData,
+  Message,
+  useConversationFlow,
 } from "./use-conversation-flow";
 
 interface UseAddRecipientFlowReturn {
@@ -15,6 +16,8 @@ interface UseAddRecipientFlowReturn {
   showDataReview: boolean;
   showOccasionsSelection: boolean;
   isSaving: boolean;
+  saveSuccess: boolean;
+  savedRecipientName: string | null;
   messagesEndRef: React.RefObject<any>;
   shouldShowNextStepButton: boolean;
   conversationContext: string;
@@ -25,6 +28,7 @@ interface UseAddRecipientFlowReturn {
   handleOccasionsBack: () => void;
   handleOccasionsContinue: (occasions: any[]) => Promise<void>;
   handleOccasionsSkip: () => Promise<void>;
+  handleViewRecipients: () => void;
   setShowDataReview: (show: boolean) => void;
   setShowOccasionsSelection: (show: boolean) => void;
   setExtractedData: (data: ExtractedData | null) => void;
@@ -35,6 +39,8 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
   const [showDataReview, setShowDataReview] = useState(false);
   const [showOccasionsSelection, setShowOccasionsSelection] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [savedRecipientName, setSavedRecipientName] = useState<string | null>(null);
 
   // Use the generic conversation flow hook
   const {
@@ -116,14 +122,26 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
           }
         }
 
-        Alert.alert("Success", "Recipient added successfully!", [
-          {
-            text: "OK",
-            onPress: () => {
-              router.back();
+        // Trigger success haptic feedback
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+        // Trigger gift generation in the background (fire-and-forget)
+        if (recipient?.id) {
+          fetch("https://be-gifted.vercel.app/api/generate-gifts", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
             },
-          },
-        ]);
+            body: JSON.stringify({ recipientId: recipient.id }),
+          }).catch((err) => {
+            // Log but don't fail the save flow
+            console.error("Failed to trigger gift generation:", err);
+          });
+        }
+
+        // Set success state to show success screen
+        setSavedRecipientName(data.name || "Recipient");
+        setSaveSuccess(true);
       } catch (error) {
         console.error("Error saving recipient:", error);
         Alert.alert(
@@ -226,6 +244,11 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
     router.back();
   }, [router]);
 
+  const handleViewRecipients = useCallback(() => {
+    // Replace so user can't navigate back to the completed add flow
+    router.replace("/contacts");
+  }, [router]);
+
   // Background enrichment of occasions with dates
   useEffect(() => {
     if (extractedData?.occasions && extractedData.occasions.length > 0) {
@@ -275,6 +298,8 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
     showDataReview,
     showOccasionsSelection,
     isSaving,
+    saveSuccess,
+    savedRecipientName,
     messagesEndRef,
     shouldShowNextStepButton,
     conversationContext: conversationContext || "",
@@ -285,6 +310,7 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
     handleOccasionsBack,
     handleOccasionsContinue,
     handleOccasionsSkip,
+    handleViewRecipients,
     setShowDataReview,
     setShowOccasionsSelection,
     setExtractedData,
@@ -292,4 +318,5 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
 }
 
 // Re-export types for backward compatibility
-export type { Message, ExtractedData };
+export type { ExtractedData, Message };
+
