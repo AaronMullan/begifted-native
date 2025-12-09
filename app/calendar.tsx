@@ -1,16 +1,18 @@
+import { Ionicons } from "@expo/vector-icons";
+import { Session } from "@supabase/supabase-js";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
-  View,
+  Alert,
+  ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
+  View,
 } from "react-native";
-import { useState, useEffect } from "react";
-import { useRouter } from "expo-router";
+import { RecipientEditModal } from "../components/RecipientEditModal";
 import { supabase } from "../lib/supabase";
-import { Session } from "@supabase/supabase-js";
-import { Ionicons } from "@expo/vector-icons";
+import { Recipient } from "../types/recipient";
 
 interface Occasion {
   id: string;
@@ -31,6 +33,8 @@ export default function Calendar() {
   const [session, setSession] = useState<Session | null>(null);
   const [occasions, setOccasions] = useState<Occasion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [selectedRecipient, setSelectedRecipient] = useState<Recipient | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -182,6 +186,71 @@ export default function Calendar() {
     return `${possessive} ${occasionType}`;
   }
 
+  async function handleOccasionPress(occasion: Occasion) {
+    try {
+      // Fetch full recipient data
+      const { data, error } = await supabase
+        .from("recipients")
+        .select("*")
+        .eq("id", occasion.recipient_id)
+        .single();
+
+      if (error) throw error;
+
+      setSelectedRecipient(data);
+      setEditModalVisible(true);
+    } catch (error) {
+      console.error("Error fetching recipient:", error);
+      Alert.alert("Error", "Failed to load recipient details");
+    }
+  }
+
+  async function handleModalSave(updatedData: Partial<Recipient>) {
+    if (!session?.user || !selectedRecipient) return;
+
+    const { data, error } = await supabase
+      .from("recipients")
+      .update({
+        ...updatedData,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", selectedRecipient.id)
+      .eq("user_id", session.user.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Refresh occasions to reflect any changes
+    fetchOccasions(session.user.id);
+  }
+
+  async function handleDeleteRecipient(id: string) {
+    if (!session?.user) return;
+
+    try {
+      const { error } = await supabase
+        .from("recipients")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", session.user.id);
+
+      if (error) throw error;
+
+      // Refresh occasions
+      fetchOccasions(session.user.id);
+      Alert.alert("Success", "Recipient deleted");
+    } catch (error) {
+      console.error("Error deleting recipient:", error);
+      Alert.alert("Error", "Failed to delete recipient");
+    }
+  }
+
+  function handleModalClose() {
+    setEditModalVisible(false);
+    setSelectedRecipient(null);
+  }
+
   const groupedOccasions = groupOccasionsByMonth(occasions);
   const sortedMonths = Object.keys(groupedOccasions).sort((a, b) => {
     return (
@@ -261,7 +330,12 @@ export default function Calendar() {
                     const isCustom = occasion.occasion_type === "custom";
 
                     return (
-                      <View key={occasion.id} style={styles.occasionCard}>
+                      <TouchableOpacity
+                        key={occasion.id}
+                        style={styles.occasionCard}
+                        onPress={() => handleOccasionPress(occasion)}
+                        activeOpacity={0.7}
+                      >
                         <View style={styles.occasionIconContainer}>
                           <Ionicons
                             name="gift-outline"
@@ -295,7 +369,7 @@ export default function Calendar() {
                             <Text style={styles.customLabel}>Custom</Text>
                           )}
                         </View>
-                      </View>
+                      </TouchableOpacity>
                     );
                   })}
                 </View>
@@ -304,6 +378,13 @@ export default function Calendar() {
           )}
         </View>
       </View>
+      <RecipientEditModal
+        visible={editModalVisible}
+        recipient={selectedRecipient}
+        onClose={handleModalClose}
+        onSave={handleModalSave}
+        onDelete={handleDeleteRecipient}
+      />
     </ScrollView>
   );
 }
