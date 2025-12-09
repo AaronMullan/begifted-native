@@ -1,0 +1,419 @@
+---
+description: React performance patterns and optimization guidelines
+globs: *.tsx,*.jsx
+---
+
+# React Performance & Optimization
+
+## Derived state during render
+
+Don't use effects to calculate values that can be derived during render. If you can calculate something from existing props or state, do it directly in the component body.
+
+### ❌ Bad - unnecessary effect for derived state
+
+```jsx
+const UserProfile = ({ user }: { user: User }) => {
+  const [displayName, setDisplayName] = useState('');
+
+  useEffect(() => {
+    setDisplayName(user.firstName + ' ' + user.lastName);
+  }, [user.firstName, user.lastName]);
+
+  return <h1>{displayName}</h1>;
+};
+```
+
+### ✅ Good - calculate during render
+
+```jsx
+const UserProfile = ({ user }: { user: User }) => {
+  const displayName = user.firstName + ' ' + user.lastName;
+  return <h1>{displayName}</h1>;
+};
+```
+
+```jsx
+const ProductList = ({ products, category }: { products: Product[], category: string }) => {
+  const filteredProducts = products.filter(p => p.category === category);
+  return <div>{/* render products */}</div>;
+};
+```
+
+## Event Handlers vs Effects
+
+Use event handlers for user interactions, not effects. Effects are for synchronization with external systems, not for responding to user actions:
+
+### ❌ Bad - effect for user interaction
+
+```jsx
+const SearchInput = () => {
+  const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    if (query) {
+      performSearch(query);
+    }
+  }, [query]);
+
+  return <input value={query} onChange={(e) => setQuery(e.target.value)} />;
+};
+```
+
+### ✅ Good - event handler for user action
+
+```jsx
+async function performSearch(formData: FormData) {
+  const query = formData.get("query");
+  // ... do your search logic here
+}
+
+export default function SearchInput() {
+  return (
+    <form action={performSearch}>
+      <input name="query" />
+      <button type="submit">Search</button>
+    </form>
+  );
+}
+```
+
+## Effect chain simplification
+
+Avoid chains of effects that trigger each other. Multiple effects updating state in response to other state changes create unnecessary complexity and potential infinite loops:
+
+### ❌ Bad - effect chain
+
+```jsx
+const ShoppingCart = ({ items }: { items: CartItem[] }) => {
+  const [subtotal, setSubtotal] = useState(0);
+  const [tax, setTax] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [discount, setDiscount] = useState(0);
+
+  useEffect(() => {
+    const newSubtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    setSubtotal(newSubtotal);
+  }, [items]);
+
+  useEffect(() => {
+    setDiscount(subtotal > 100 ? subtotal * 0.1 : 0);
+  }, [subtotal]);
+
+  useEffect(() => {
+    setTax((subtotal - discount) * 0.08);
+  }, [subtotal, discount]);
+
+  useEffect(() => {
+    setTotal(subtotal - discount + tax);
+  }, [subtotal, discount, tax]);
+
+  return (
+    <div>
+      <div>Subtotal: ${subtotal}</div>
+      <div>Discount: ${discount}</div>
+      <div>Tax: ${tax}</div>
+      <div>Total: ${total}</div>
+    </div>
+  );
+};
+```
+
+### ✅ Good - calculate everything during render
+
+```jsx
+const ShoppingCart = ({ items }: { items: CartItem[] }) => {
+  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const discount = subtotal > 100 ? subtotal * 0.1 : 0;
+  const tax = (subtotal - discount) * 0.08;
+  const total = subtotal - discount + tax;
+
+  return (
+    <div>
+      <div>Subtotal: ${subtotal}</div>
+      <div>Discount: ${discount}</div>
+      <div>Tax: ${tax}</div>
+      <div>Total: ${total}</div>
+    </div>
+  );
+};
+```
+
+> Avoid setting state based on props. Use derived state instead.
+
+## Why useCallback and useMemo are mostly useless
+
+We often wrap functions in `useCallback` and values in `useMemo` thinking it will improve performance. In many cases, these optimizations do more harm than good, adding complexity without meaningful benefits, or behave differently than expected.
+
+```jsx
+// ✅ This works - no props
+const ExpensiveTree = React.memo(() => <div>I'm expensive!</div>);
+
+// ❌ This breaks - inline object creates new reference every render
+<ExpensiveTree style={{ backgroundColor: 'blue' }} />
+
+// ❌ This also breaks - JSX creates new objects every render
+<ExpensiveTree>
+  <p>Hello, world!</p>
+</ExpensiveTree>
+
+// ❌ This breaks too - fallback creates new array every render
+<ExpensiveTree items={stableArray ?? []} />
+```
+
+> The problem: Component consumers often don't know (and shouldn't need to know) that a component is memoized. Adding props, passing children, or using fallback values can silently break performance optimizations.
+
+### The Memoization Tax
+
+When you choose manual memoization, you're committing to:
+
+- Memoizing every non-primitive prop
+- Learning about (and remembering) referential stability
+- Maintaining memoization everywhere in the component tree
+- Debugging when memoization breaks (often far from where the problem was introduced)
+
+### What to do instead
+
+- Focus on Component Composition to isolate expensive components to limit re-renders.
+- Use an external state management.
+- Rely on React Compiler to do the memoization for you. (more on the topic of React Compiler soon)
+
+## useRef as a better alternative
+
+`useRef` frequently provides a simpler, more performant solution than `useState` or `useEffect`. Let's look at the four unique use cases (Types) for `useRef`.
+
+### 1. DOM Element References - useRef<T>(null)
+
+```jsx
+const inputRef = useRef<HTMLInputElement>(null);
+// Type: MutableRefObject<HTMLInputElement | null>
+
+const focusInput = () => inputRef.current?.focus();
+```
+
+### 2. Mutable Value Container - useRef<T>(initialValue)
+
+```jsx
+import { useEffect, useRef } from "react";
+
+function useScrollRef() {
+  const scrollYRef = useRef<number>(0);
+
+  useEffect(() => {
+    const onScroll = () => {
+      scrollYRef.current = window.scrollY;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return scrollYRef; // read when needed without causing renders
+}
+```
+
+### 3. Latest Value Reference - useRef<T>(value)
+
+```jsx
+const callbackRef = useRef(onDataChange);
+callbackRef.current = onDataChange; // Update on each render
+// Always holds the latest callback without effect dependencies
+```
+
+### 4. Generic Container - useRef<T | null>(null)
+
+```jsx
+const timerRef = useRef<NodeJS.Timeout | null>(null);
+// For values that might be different types or null
+```
+
+> When you use useRef to store a value, you don't need to worry about stale closures. The value is always the latest, even if the component re-renders.
+
+### Key benefits of useRef:
+
+- No re-renders when values change
+- No dependency array management
+- No stale closure issues
+- Simpler than useState + useEffect combinations
+- Works naturally with React's rendering model
+
+Before reaching for useState or useEffect, consider if useRef might be the simpler solution.
+
+Let's look at three helpful patterns for using `useRef`:
+
+## Pattern 1: Avoiding Stale Closures
+
+### ❌ Stale closure with useEffect
+
+```jsx
+const NotificationManager = ({ product }: { product: Product }) => {
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Stale - uses product.id from when effect was created
+      fetchNotifications(product.id).then(setNotifications);
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [product.id]); // Forces re-creation of interval when product changes
+
+  return <div>{/* render notifications */}</div>;
+};
+```
+
+### ✅ Always fresh with useRef
+
+```jsx
+const NotificationManager = ({ product }: { product: Product }) => {
+  const [notifications, setNotifications] = useState([]);
+  const productRef = useRef(product);
+  productRef.current = product; // Always current product
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Always uses latest product.id
+      fetchNotifications(productRef.current.id).then(setNotifications);
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []); // No dependencies - interval created only once
+
+  return <div>{/* render notifications */}</div>;
+};
+```
+
+## Pattern 2: Polling with Stable Intervals
+
+Polling (keeps the interval stable while still seeing the latest value):
+
+### ❌ Stale closure
+
+```jsx
+function StockTicker({ symbol }: { symbol: string }) {
+  const [price, setPrice] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(async () => {
+      // Always fetch for the latest symbol
+      const response = await fetch(`/api/stock/${symbol}`);
+      const data = await response.json();
+      setPrice(data.price);
+    }, 1000);
+
+    return () => clearInterval(id);
+  }, []); // Omitting symbol leads to a stale closure
+
+  return (
+    <div>
+      <strong>{symbol}</strong>: ${price.toFixed(2)}
+    </div>
+  );
+}
+```
+
+### ❌ Interval clears and is remade whenever the symbol changes
+
+```jsx
+function StockTicker({ symbol }: { symbol: string }) {
+  const [price, setPrice] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(async () => {
+      // Always fetch for the latest symbol
+      const response = await fetch(`/api/stock/${symbol}`);
+      const data = await response.json();
+      setPrice(data.price);
+    }, 1000);
+
+    return () => clearInterval(id);
+  }, [symbol]); // interval setup runs every time symbol changes
+
+  return (
+    <div>
+      <strong>{symbol}</strong>: ${price.toFixed(2)}
+    </div>
+  );
+}
+```
+
+### ✅ Stable interval with latest value
+
+```jsx
+function StockTicker({ symbol }: { symbol: string }) {
+  const [price, setPrice] = useState(0);
+
+  // Store latest symbol in a ref
+  const symbolRef = useRef(symbol);
+  symbolRef.current = symbol; // always current
+
+  useEffect(() => {
+    const id = setInterval(async () => {
+      // Always fetch for the latest symbol
+      const response = await fetch(`/api/stock/${symbolRef.current}`);
+      const data = await response.json();
+      setPrice(data.price);
+    }, 1000);
+
+    return () => clearInterval(id);
+  }, []); // interval setup runs only once
+
+  return (
+    <div>
+      <strong>{symbol}</strong>: ${price.toFixed(2)}
+    </div>
+  );
+}
+```
+
+## Pattern 3: Imperative Operations
+
+```jsx
+const VideoPlayer = ({ src }: { src: string }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const play = () => videoRef.current?.play();
+  const pause = () => videoRef.current?.pause();
+  const seek = (time: number) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = time;
+    }
+  };
+
+  return (
+    <div>
+      <video ref={videoRef} src={src} />
+      <button onClick={play}>Play</button>
+      <button onClick={pause}>Pause</button>
+    </div>
+  );
+};
+```
+
+## Pattern 4: Mutable Values without Re-renders
+
+```jsx
+const SearchInput = () => {
+  const searchRef = useRef<string>('');
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleSearch = (query: string) => {
+    searchRef.current = query;
+
+    // Clear previous timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    // Debounce search
+    timeoutRef.current = setTimeout(() => {
+      performSearch(searchRef.current);
+    }, 300);
+  };
+
+  return (
+    <input
+      onChange={(e) => handleSearch(e.target.value)}
+      placeholder="Search..."
+    />
+  );
+};
+```

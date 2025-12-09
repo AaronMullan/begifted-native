@@ -1,0 +1,210 @@
+---
+description: React TypeScript best practices and guidelines
+globs: *.ts,*.tsx
+---
+
+# React TypeScript Best Practices
+
+## Core Philosophy
+
+- TypeScript makes engineers more confident and refactoring easier
+- Use TypeScript for all "JavaScript-First" projects (Next.js, headless CMS, React front-ends)
+- WordPress block development is optional (limited TypeScript support)
+- Favor efficiency over strict typing - don't let TypeScript block development
+- Never ship code with compilation errors
+
+## Escape Hatches (Use When Stuck)
+
+### 1. Type cast: `as unknown as ExpectedType`
+
+```typescript
+const withExpectedType = myValueThatWithWrongType as unknown as ExpectedType;
+```
+
+### 2. Use `any` type
+
+```typescript
+function prepareMyObject(object: any) {
+    // do something with object
+}
+```
+
+Set `noImplicitAny: true` in tsconfig.json to make `any` explicit.
+
+### 3. Use `// @ts-expect-error` (last resort)
+
+```typescript
+// TODO(username): object is not typed properly but it should have a `function` method
+// @ts-expect-error
+const result = object.function()
+```
+
+Always leave a TODO comment explaining why.
+
+## tsconfig.json Requirements
+
+```json
+{
+  "compilerOptions": {
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noUnusedParameters": true
+  }
+}
+```
+
+## CI Requirements
+
+Run `tsc --noEmit` on every PR/MR to catch compilation issues before merge.
+
+## General Best Practices
+
+### ✅ Use discriminated unions
+
+```typescript
+// Good
+type FetchingState<TData> =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "success"; data: TData }
+  | { status: "error"; error: Error };
+
+// Bad
+type FetchingState<TData> = {
+  status: "idle" | "loading" | "success" | "error";
+  data?: TData;
+  error?: Error;
+};
+```
+
+### ✅ Use switch statements with discriminated unions
+
+```typescript
+const handleEvent = (event: Event) => {
+  switch (event.type) {
+    case "user.created":
+      console.log(event.data.email);
+      break;
+    case "user.deleted":
+      console.log(event.data.id);
+      break;
+  }
+};
+```
+
+### ✅ Use top-level import type
+
+```typescript
+// Good
+import type { User } from "./user";
+
+// Bad
+import { type User } from "./user";
+```
+
+## React-Specific Practices
+
+### Use `type` for props (not `interface`)
+
+```typescript
+type BlocksProps = {
+	html: string;
+};
+
+export const Blocks: React.FC<BlockProps> = ({ html }) => {
+    // render blocks
+}
+```
+
+Use `interface` only when props need to be extended by other components.
+
+### Use `React.FC` for components
+
+```typescript
+type MyComponentProps = {
+	/* props */
+};
+
+export const MyComponent: React.FC<MyComponentProps> = (props) => {
+	// component logic
+}
+```
+
+### Use function default arguments (not `defaultProps`)
+
+```typescript
+// defaultProps deprecated in React 19
+type MyComponentProps = {
+    title?: string;
+};
+
+export const MyComponent: React.FC<MyComponentProps> = ({ title = 'Default Title' }) => {
+    // ...
+}
+```
+
+Set ESLint: `'react/require-default-props': ['error', { functions: 'defaultArguments' }]`
+
+### Explicitly declare `children` (don't use `PropsWithChildren`)
+
+```typescript
+type LayoutProps = {
+    children: React.Node; // Required, not optional
+};
+
+const Layout: React.FC<LayoutProps> = ({ children }) => {
+    return <main>{children}</main>;
+}
+```
+
+### ❌ Avoid prop spreading
+
+```typescript
+// Bad
+const Post: React.FC<PostProps> = (props) => {
+    return (
+        <article>
+            <PostContent {...props} />
+        </article>
+    );
+}
+```
+
+Pass props explicitly. Especially dangerous with native DOM elements.
+
+### Co-locate types with components
+
+Keep component types in the same file as the component. Only hoist to avoid circular dependencies or for shared types.
+
+### Use `@types` packages when needed
+
+Check DefinitelyTyped repo if library doesn't ship types.
+
+## Global Type Definitions
+
+Only create global types to extend existing globals (e.g., `window` object). Don't put app types in global scope.
+
+```json
+// tsconfig.json
+{
+  "include": [
+    "next-env.d.ts",
+    "src/global.d.ts",
+    "**/*.ts",
+    "**/*.tsx"
+  ]
+}
+```
+
+```typescript
+// globals.d.ts
+interface Window {
+    custom_prop: number;
+}
+```
+
+## Tools
+
+- **TypeScript Error Translator**: Human-readable error explanations
+- **pretty-ts-errors**: VSCode extension for readable errors

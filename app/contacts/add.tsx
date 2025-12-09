@@ -7,6 +7,7 @@ import { ConversationView } from "../../components/recipients/conversation/Conve
 import { DataReviewView } from "../../components/recipients/conversation/DataReviewView";
 import { OccasionsSelectionView } from "../../components/recipients/conversation/OccasionsSelectionView";
 import { ManualDataEntry } from "../../components/recipients/conversation/ManualDataEntry";
+import { SuccessView } from "../../components/recipients/conversation/SuccessView";
 
 const AddRecipient = () => {
   const { user, loading: authLoading } = useAuth();
@@ -22,6 +23,8 @@ const AddRecipient = () => {
     showDataReview,
     showOccasionsSelection,
     isSaving,
+    saveSuccess,
+    savedRecipientName,
     messagesEndRef,
     shouldShowNextStepButton,
     conversationContext,
@@ -32,6 +35,7 @@ const AddRecipient = () => {
     handleOccasionsBack,
     handleOccasionsContinue,
     handleOccasionsSkip,
+    handleViewRecipients,
     setShowDataReview,
     setShowOccasionsSelection,
     setExtractedData,
@@ -89,6 +93,16 @@ const AddRecipient = () => {
   if (!authLoading && !user) {
     router.replace("/");
     return null;
+  }
+
+  // Show success screen when save completes
+  if (saveSuccess) {
+    return (
+      <SuccessView
+        recipientName={savedRecipientName || "Recipient"}
+        onViewRecipients={handleViewRecipients}
+      />
+    );
   }
 
   if (showManualEntry) {

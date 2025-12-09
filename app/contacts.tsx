@@ -1,22 +1,23 @@
+import { Session } from "@supabase/supabase-js";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
   Alert,
   Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { useState, useEffect } from "react";
-import { useRouter } from "expo-router";
-import { supabase } from "../lib/supabase";
-import { Session } from "@supabase/supabase-js";
-import RecipientForm from "../components/RecipientForm";
-import RecipientCard from "../components/RecipientCard";
-import { Recipient } from "../types/recipient";
-import { useDeviceContacts, DeviceContact } from "../hooks/use-device-contacts";
-import ContactPicker from "../components/ContactPicker";
 import ContactFileImport from "../components/ContactFileImport";
+import ContactPicker from "../components/ContactPicker";
+import RecipientCard from "../components/RecipientCard";
+import { RecipientEditModal } from "../components/RecipientEditModal";
+import RecipientForm from "../components/RecipientForm";
+import { DeviceContact, useDeviceContacts } from "../hooks/use-device-contacts";
+import { supabase } from "../lib/supabase";
+import { Recipient } from "../types/recipient";
 
 export default function Contacts() {
   const router = useRouter();
@@ -24,6 +25,10 @@ export default function Contacts() {
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [loading, setLoading] = useState(true);
   const [formVisible, setFormVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [selectedRecipient, setSelectedRecipient] = useState<Recipient | null>(
+    null
+  );
   const [editingRecipient, setEditingRecipient] = useState<Recipient | null>(
     null
   );
@@ -113,21 +118,8 @@ export default function Contacts() {
   }
 
   function openEditForm(recipient: Recipient) {
-    setEditingRecipient(recipient);
-    setName(recipient.name);
-    setRelationshipType(recipient.relationship_type);
-    setInterests(recipient.interests ? recipient.interests.join(", ") : "");
-    setBirthday(recipient.birthday || "");
-    setEmotionalTone(recipient.emotional_tone_preference || "");
-    setBudgetMin(recipient.gift_budget_min?.toString() || "");
-    setBudgetMax(recipient.gift_budget_max?.toString() || "");
-    setAddress(recipient.address || "");
-    setAddressLine2(recipient.address_line_2 || "");
-    setCity(recipient.city || "");
-    setState(recipient.state || "");
-    setZipCode(recipient.zip_code || "");
-    setCountry(recipient.country || "US");
-    setFormVisible(true);
+    setSelectedRecipient(recipient);
+    setEditModalVisible(true);
   }
 
   function closeForm() {
@@ -262,6 +254,32 @@ export default function Contacts() {
         Alert.alert("Error deleting recipient", error.message);
       }
     }
+  }
+
+  async function handleModalSave(updatedData: Partial<Recipient>) {
+    if (!session?.user || !selectedRecipient) return;
+
+    const { data, error } = await supabase
+      .from("recipients")
+      .update({
+        ...updatedData,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", selectedRecipient.id)
+      .eq("user_id", session.user.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    setRecipients(
+      recipients.map((r) => (r.id === selectedRecipient.id ? data : r))
+    );
+  }
+
+  function handleModalClose() {
+    setEditModalVisible(false);
+    setSelectedRecipient(null);
   }
   async function handleImportFromDevice() {
     const contacts = await getDeviceContacts();
@@ -423,6 +441,13 @@ export default function Contacts() {
         contacts={deviceContacts}
         onSelect={handleSelectContact}
         onClose={() => setPickerVisible(false)}
+      />
+      <RecipientEditModal
+        visible={editModalVisible}
+        recipient={selectedRecipient}
+        onClose={handleModalClose}
+        onSave={handleModalSave}
+        onDelete={deleteRecipient}
       />
     </ScrollView>
   );
