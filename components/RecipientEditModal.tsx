@@ -1,17 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    Linking,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Linking,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { supabase } from "../lib/supabase";
 import type { GiftSuggestion, Recipient } from "../types/recipient";
@@ -22,6 +22,7 @@ type RecipientEditModalProps = {
   onClose: () => void;
   onSave: (updatedRecipient: Partial<Recipient>) => Promise<void>;
   onDelete: (id: string) => void;
+  initialTab?: "details" | "gifts";
 };
 
 export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
@@ -30,6 +31,7 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
   onClose,
   onSave,
   onDelete,
+  initialTab = "gifts",
 }) => {
   // Form state
   const [name, setName] = useState("");
@@ -50,7 +52,14 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
   const [saving, setSaving] = useState(false);
   const [suggestions, setSuggestions] = useState<GiftSuggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-  const [activeTab, setActiveTab] = useState<"details" | "gifts">("gifts");
+  const [activeTab, setActiveTab] = useState<"details" | "gifts">(initialTab);
+
+  // Reset active tab when modal is opened for a recipient
+  useEffect(() => {
+    if (visible && recipient) {
+      setActiveTab(initialTab);
+    }
+  }, [visible, recipient?.id, initialTab]);
 
   // Populate form when recipient changes
   useEffect(() => {
@@ -132,19 +141,20 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
       const newBudgetMax = budgetMax ? parseInt(budgetMax) : undefined;
 
       // Check if gift-relevant fields have changed from original
-      const hasGiftRelevantChanges = originalValues ? (
-        relationshipType.trim() !== originalValues.relationship_type ||
-        newInterests !== originalValues.interests ||
-        emotionalTone.trim() !== originalValues.emotional_tone_preference ||
-        newBudgetMin !== originalValues.gift_budget_min ||
-        newBudgetMax !== originalValues.gift_budget_max
-      ) : false;
+      const hasGiftRelevantChanges = originalValues
+        ? relationshipType.trim() !== originalValues.relationship_type ||
+          newInterests !== originalValues.interests ||
+          emotionalTone.trim() !== originalValues.emotional_tone_preference ||
+          newBudgetMin !== originalValues.gift_budget_min ||
+          newBudgetMax !== originalValues.gift_budget_max
+        : false;
 
       console.log("Save check:", {
         hasGiftRelevantChanges,
         newInterests,
         originalInterests: originalValues?.interests,
-        relationshipChanged: relationshipType.trim() !== originalValues?.relationship_type,
+        relationshipChanged:
+          relationshipType.trim() !== originalValues?.relationship_type,
         interestsChanged: newInterests !== originalValues?.interests,
       });
 
@@ -167,7 +177,7 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
       // If gift-relevant fields changed, trigger new gift generation
       if (hasGiftRelevantChanges) {
         console.log("Triggering gift generation for:", recipient.id);
-        
+
         fetch("https://be-gifted.vercel.app/api/generate-gifts", {
           method: "POST",
           headers: {
@@ -770,4 +780,3 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 });
-

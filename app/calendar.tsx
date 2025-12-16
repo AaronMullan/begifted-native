@@ -34,7 +34,9 @@ export default function Calendar() {
   const [occasions, setOccasions] = useState<Occasion[]>([]);
   const [loading, setLoading] = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [selectedRecipient, setSelectedRecipient] = useState<Recipient | null>(null);
+  const [selectedRecipient, setSelectedRecipient] = useState<Recipient | null>(
+    null
+  );
   const router = useRouter();
 
   useEffect(() => {
@@ -384,6 +386,7 @@ export default function Calendar() {
         onClose={handleModalClose}
         onSave={handleModalSave}
         onDelete={handleDeleteRecipient}
+        initialTab="gifts"
       />
     </ScrollView>
   );
@@ -563,4 +566,3 @@ const styles = StyleSheet.create({
     color: "#999",
   },
 });
-

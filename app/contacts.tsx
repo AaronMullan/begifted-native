@@ -448,6 +448,7 @@ export default function Contacts() {
         onClose={handleModalClose}
         onSave={handleModalSave}
         onDelete={deleteRecipient}
+        initialTab="details"
       />
     </ScrollView>
   );
