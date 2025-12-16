@@ -1,4 +1,5 @@
-import { View, Text, TouchableOpacity, StyleSheet, Switch } from "react-native";
+import { View, StyleSheet, Switch } from "react-native";
+import { Text, Card } from "react-native-paper";
 import { Ionicons } from "@expo/vector-icons";
 
 interface OccasionItemProps {
@@ -49,50 +50,43 @@ export function OccasionItem({ occasion, onToggle, onEdit }: OccasionItemProps) 
   const displayDate = formatDate(occasion.date);
 
   return (
-    <TouchableOpacity
-      onPress={onEdit}
-      style={styles.occasionItem}
-      activeOpacity={0.7}
-    >
-      <View style={styles.occasionContent}>
-        <View style={styles.occasionIcon}>
-          <Ionicons name="gift-outline" size={24} color="#FFB6C1" />
+    <Card style={styles.occasionItem} onPress={onEdit}>
+      <Card.Content>
+        <View style={styles.occasionContent}>
+          <View style={styles.occasionIcon}>
+            <Ionicons name="gift-outline" size={24} color="#FFB6C1" />
+          </View>
+          <View style={styles.occasionDetails}>
+            <Text variant="titleSmall" style={styles.occasionType}>
+              {formatOccasionType(occasion.occasion_type)}
+            </Text>
+            <Text
+              variant="bodyMedium"
+              style={[
+                styles.occasionDate,
+                displayDate === "Add Date" && styles.addDateText,
+              ]}
+            >
+              {displayDate}
+            </Text>
+          </View>
         </View>
-        <View style={styles.occasionDetails}>
-          <Text style={styles.occasionType}>
-            {formatOccasionType(occasion.occasion_type)}
-          </Text>
-          <Text
-            style={[
-              styles.occasionDate,
-              displayDate === "Add Date" && styles.addDateText,
-            ]}
-          >
-            {displayDate}
-          </Text>
-        </View>
-      </View>
-      <Switch
-        value={occasion.enabled}
-        onValueChange={onToggle}
-        trackColor={{ false: "#E0E0E0", true: "#FFB6C1" }}
-        thumbColor={occasion.enabled ? "#FF6B9D" : "#f4f3f4"}
-        ios_backgroundColor="#E0E0E0"
-      />
-    </TouchableOpacity>
+        <Switch
+          value={occasion.enabled}
+          onValueChange={onToggle}
+          trackColor={{ false: "#E0E0E0", true: "#FFB6C1" }}
+          thumbColor={occasion.enabled ? "#FF6B9D" : "#f4f3f4"}
+          ios_backgroundColor="#E0E0E0"
+        />
+      </Card.Content>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   occasionItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    marginBottom: 12,
     backgroundColor: "#f8f8f8",
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
   },
   occasionContent: {
     flexDirection: "row",
@@ -112,15 +106,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   occasionType: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#231F20",
     marginBottom: 4,
   },
-  occasionDate: {
-    fontSize: 14,
-    color: "#666",
-  },
+  occasionDate: {},
   addDateText: {
     color: "#FF6B9D",
     fontStyle: "italic",

@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
+import { Text, Button } from "react-native-paper";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -95,24 +96,31 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
 
         {/* Success message */}
         <Animated.View style={textAnimatedStyle}>
-          <Text style={styles.title}>All Done!</Text>
-          <Text style={styles.message}>
-            <Text style={styles.recipientName}>{recipientName}</Text> has been
-            added to your recipients.
+          <Text variant="headlineMedium" style={styles.title}>
+            All Done!
+          </Text>
+          <Text variant="bodyLarge" style={styles.message}>
+            <Text variant="bodyLarge" style={styles.recipientName}>
+              {recipientName}
+            </Text>{" "}
+            has been added to your recipients.
           </Text>
         </Animated.View>
 
         {/* View recipients button */}
         <Animated.View style={buttonAnimatedStyle}>
-          <TouchableOpacity
-            style={styles.button}
+          <Button
+            mode="contained"
+            buttonColor="#FFB6C1"
             onPress={onViewRecipients}
-            activeOpacity={0.8}
+            style={styles.button}
+            icon="arrow-forward"
           >
-            <Text style={styles.buttonText}>View Recipients</Text>
-            <Ionicons name="arrow-forward" size={18} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.hint}>Redirecting automatically...</Text>
+            View Recipients
+          </Button>
+          <Text variant="bodySmall" style={styles.hint}>
+            Redirecting automatically...
+          </Text>
         </Animated.View>
       </View>
     </View>
@@ -154,46 +162,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#231F20",
     textAlign: "center",
     marginBottom: 12,
   },
   message: {
-    fontSize: 16,
-    color: "#666",
     textAlign: "center",
     lineHeight: 24,
     marginBottom: 40,
+    color: "#666",
   },
   recipientName: {
     fontWeight: "600",
     color: "#231F20",
   },
   button: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFB6C1",
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 12,
-    gap: 8,
     shadowColor: "#FFB6C1",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#fff",
-  },
   hint: {
     marginTop: 16,
-    fontSize: 13,
     color: "#999",
     textAlign: "center",
   },

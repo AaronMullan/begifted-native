@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from "react";
+import { View, ScrollView, StyleSheet } from "react-native";
 import {
-  View,
   Text,
   TextInput,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
+  IconButton,
+  Button,
   ActivityIndicator,
-} from "react-native";
+} from "react-native-paper";
 import { Ionicons } from "@expo/vector-icons";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
 
@@ -61,10 +60,16 @@ export function DataReviewView({
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#231F20" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Review Recipient Data</Text>
+        <IconButton
+          icon="arrow-back"
+          size={24}
+          iconColor="#231F20"
+          onPress={onBack}
+          style={styles.backButton}
+        />
+        <Text variant="titleLarge" style={styles.headerTitle}>
+          Review Recipient Data
+        </Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -72,90 +77,90 @@ export function DataReviewView({
         style={styles.scrollView}
         contentContainerStyle={styles.content}
       >
-        <Text style={styles.description}>
+        <Text variant="bodyMedium" style={styles.description}>
           Please review and edit the information we extracted. Make any
           necessary changes before continuing.
         </Text>
 
         {/* Basic Information Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Basic Information</Text>
+          <Text variant="titleLarge" style={styles.sectionTitle}>
+            Basic Information
+          </Text>
 
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>
-              Name <Text style={styles.required}>*</Text>
-            </Text>
             <TextInput
-              style={styles.input}
+              mode="outlined"
+              label="Name *"
               value={extractedData.name || ""}
               onChangeText={(value) => updateField("name", value)}
               placeholder="Enter name"
-              placeholderTextColor="#999"
+              style={styles.input}
             />
           </View>
 
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>
-              Relationship <Text style={styles.required}>*</Text>
-            </Text>
             <TextInput
-              style={styles.input}
+              mode="outlined"
+              label="Relationship *"
               value={extractedData.relationship_type || ""}
               onChangeText={(value) => updateField("relationship_type", value)}
               placeholder="e.g., Sister, Friend, Colleague"
-              placeholderTextColor="#999"
+              style={styles.input}
             />
           </View>
 
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Birthday</Text>
             <TextInput
-              style={styles.input}
+              mode="outlined"
+              label="Birthday"
               value={extractedData.birthday || ""}
               onChangeText={(value) => updateField("birthday", value)}
               placeholder="YYYY-MM-DD or MM-DD"
-              placeholderTextColor="#999"
+              style={styles.input}
             />
           </View>
 
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Interests</Text>
             <TextInput
-              style={[styles.input, styles.textArea]}
+              mode="outlined"
+              label="Interests"
               value={interestsText}
               onChangeText={updateInterests}
               placeholder="e.g., reading, hiking, coffee (comma-separated)"
-              placeholderTextColor="#999"
               multiline
               numberOfLines={3}
               autoCapitalize="none"
               autoCorrect={false}
+              style={styles.input}
             />
           </View>
         </View>
 
         {/* Gift Preferences Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Gift Preferences</Text>
+          <Text variant="titleLarge" style={styles.sectionTitle}>
+            Gift Preferences
+          </Text>
 
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Emotional Tone</Text>
             <TextInput
-              style={styles.input}
+              mode="outlined"
+              label="Emotional Tone"
               value={extractedData.emotional_tone_preference || ""}
               onChangeText={(value) =>
                 updateField("emotional_tone_preference", value)
               }
               placeholder="e.g., warm, professional, playful"
-              placeholderTextColor="#999"
+              style={styles.input}
             />
           </View>
 
           <View style={styles.row}>
             <View style={[styles.fieldContainer, styles.halfWidth]}>
-              <Text style={styles.label}>Budget Min</Text>
               <TextInput
-                style={styles.input}
+                mode="outlined"
+                label="Budget Min"
                 value={extractedData.gift_budget_min?.toString() || ""}
                 onChangeText={(value) =>
                   updateField(
@@ -164,15 +169,15 @@ export function DataReviewView({
                   )
                 }
                 placeholder="$"
-                placeholderTextColor="#999"
                 keyboardType="numeric"
+                style={styles.input}
               />
             </View>
 
             <View style={[styles.fieldContainer, styles.halfWidth]}>
-              <Text style={styles.label}>Budget Max</Text>
               <TextInput
-                style={styles.input}
+                mode="outlined"
+                label="Budget Max"
                 value={extractedData.gift_budget_max?.toString() || ""}
                 onChangeText={(value) =>
                   updateField(
@@ -181,8 +186,8 @@ export function DataReviewView({
                   )
                 }
                 placeholder="$"
-                placeholderTextColor="#999"
                 keyboardType="numeric"
+                style={styles.input}
               />
             </View>
           </View>
@@ -190,78 +195,80 @@ export function DataReviewView({
 
         {/* Address Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Address (Optional)</Text>
+          <Text variant="titleLarge" style={styles.sectionTitle}>
+            Address (Optional)
+          </Text>
 
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Street Address</Text>
             <TextInput
-              style={styles.input}
+              mode="outlined"
+              label="Street Address"
               value={extractedData.address || ""}
               onChangeText={(value) => updateField("address", value)}
               placeholder="123 Main Street"
-              placeholderTextColor="#999"
+              style={styles.input}
             />
           </View>
 
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Address Line 2</Text>
             <TextInput
-              style={styles.input}
+              mode="outlined"
+              label="Address Line 2"
               value={extractedData.address_line_2 || ""}
               onChangeText={(value) => updateField("address_line_2", value)}
               placeholder="Apt, Suite, etc."
-              placeholderTextColor="#999"
+              style={styles.input}
             />
           </View>
 
           <View style={styles.row}>
             <View style={[styles.fieldContainer, styles.halfWidth]}>
-              <Text style={styles.label}>City</Text>
               <TextInput
-                style={styles.input}
+                mode="outlined"
+                label="City"
                 value={extractedData.city || ""}
                 onChangeText={(value) => updateField("city", value)}
                 placeholder="City"
-                placeholderTextColor="#999"
+                style={styles.input}
               />
             </View>
 
             <View style={[styles.fieldContainer, styles.halfWidth]}>
-              <Text style={styles.label}>State</Text>
               <TextInput
-                style={styles.input}
+                mode="outlined"
+                label="State"
                 value={extractedData.state || ""}
                 onChangeText={(value) => updateField("state", value)}
                 placeholder="State"
-                placeholderTextColor="#999"
                 maxLength={2}
                 autoCapitalize="characters"
+                style={styles.input}
               />
             </View>
           </View>
 
           <View style={styles.row}>
             <View style={[styles.fieldContainer, styles.halfWidth]}>
-              <Text style={styles.label}>ZIP Code</Text>
               <TextInput
-                style={styles.input}
+                mode="outlined"
+                label="ZIP Code"
                 value={extractedData.zip_code || ""}
                 onChangeText={(value) => updateField("zip_code", value)}
                 placeholder="ZIP"
-                placeholderTextColor="#999"
                 keyboardType="numeric"
                 maxLength={10}
+                style={styles.input}
               />
             </View>
 
             <View style={[styles.fieldContainer, styles.halfWidth]}>
-              <Text style={styles.label}>Country</Text>
               <TextInput
-                style={styles.input}
+                mode="outlined"
+                label="Country"
                 value={extractedData.country || "US"}
                 onChangeText={(value) => updateField("country", value)}
                 placeholder="Country"
-                placeholderTextColor="#999"
+                style={styles.input}
               />
             </View>
           </View>
@@ -270,33 +277,27 @@ export function DataReviewView({
 
       {/* Footer Actions */}
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.backButtonFooter}
+        <Button
+          mode="outlined"
           onPress={onBack}
           disabled={isSaving}
+          style={styles.backButtonFooter}
         >
-          <Text style={styles.backButtonText}>Back</Text>
-        </TouchableOpacity>
+          Back
+        </Button>
 
-        <TouchableOpacity
-          style={[
-            styles.saveButton,
-            (!extractedData.name ||
-              !extractedData.relationship_type ||
-              isSaving) &&
-              styles.saveButtonDisabled,
-          ]}
+        <Button
+          mode="contained"
+          buttonColor="#FFB6C1"
           onPress={onSave}
           disabled={
             !extractedData.name || !extractedData.relationship_type || isSaving
           }
+          loading={isSaving}
+          style={styles.saveButton}
         >
-          {isSaving ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={styles.saveButtonText}>Continue</Text>
-          )}
-        </TouchableOpacity>
+          Continue
+        </Button>
       </View>
     </View>
   );
@@ -318,13 +319,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   backButton: {
-    padding: 8,
+    margin: 0,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#231F20",
-  },
+  headerTitle: {},
   headerSpacer: {
     width: 40,
   },
@@ -335,46 +332,20 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   description: {
-    fontSize: 14,
-    color: "#666",
     marginBottom: 24,
     lineHeight: 20,
+    color: "#666",
   },
   section: {
     marginBottom: 32,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#231F20",
     marginBottom: 16,
   },
   fieldContainer: {
     marginBottom: 16,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 8,
-  },
-  required: {
-    color: "#FF3B30",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: "#231F20",
-    backgroundColor: "#fff",
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: "top",
-  },
+  input: {},
   row: {
     flexDirection: "row",
     gap: 16,
@@ -392,33 +363,8 @@ const styles = StyleSheet.create({
   },
   backButtonFooter: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  backButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#231F20",
   },
   saveButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    backgroundColor: "#FFB6C1",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  saveButtonDisabled: {
-    backgroundColor: "#ccc",
-    opacity: 0.5,
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#fff",
   },
 });

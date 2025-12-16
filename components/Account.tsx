@@ -1,13 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import {
-  StyleSheet,
-  View,
-  Alert,
-  TextInput,
-  TouchableOpacity,
-  Text,
-} from "react-native";
+import { StyleSheet, View, Alert } from "react-native";
+import { TextInput, Button, Text } from "react-native-paper";
 import { Session } from "@supabase/supabase-js";
 
 export default function Account({ session }: { session: Session }) {
@@ -86,53 +80,58 @@ export default function Account({ session }: { session: Session }) {
   return (
     <View style={styles.container}>
       <View style={[styles.verticallySpaced, styles.mt20]}>
-        <Text style={styles.label}>Email</Text>
         <TextInput
-          value={session?.user?.email}
+          mode="outlined"
+          label="Email"
+          value={session?.user?.email || ""}
           editable={false}
-          style={[styles.input, styles.disabledInput]}
+          style={styles.input}
         />
       </View>
       <View style={styles.verticallySpaced}>
-        <Text style={styles.label}>Username</Text>
         <TextInput
+          mode="outlined"
+          label="Username"
           value={username || ""}
-          onChangeText={(text) => setUsername(text)}
-          style={styles.input}
+          onChangeText={setUsername}
           placeholder="Username"
+          style={styles.input}
         />
       </View>
       <View style={styles.verticallySpaced}>
-        <Text style={styles.label}>Website</Text>
         <TextInput
+          mode="outlined"
+          label="Website"
           value={website || ""}
-          onChangeText={(text) => setWebsite(text)}
-          style={styles.input}
+          onChangeText={setWebsite}
           placeholder="Website"
+          style={styles.input}
         />
       </View>
 
       <View style={[styles.verticallySpaced, styles.mt20]}>
-        <TouchableOpacity
-          style={styles.button}
+        <Button
+          mode="contained"
           onPress={() =>
             updateProfile({ username, website, avatar_url: avatarUrl })
           }
           disabled={loading}
+          loading={loading}
+          style={styles.button}
         >
-          <Text style={styles.buttonText}>
-            {loading ? "Loading ..." : "Update"}
-          </Text>
-        </TouchableOpacity>
+          Update
+        </Button>
       </View>
 
       <View style={styles.verticallySpaced}>
-        <TouchableOpacity
-          style={[styles.button, styles.signOutButton]}
+        <Button
+          mode="contained"
+          buttonColor="#FF3B30"
           onPress={() => supabase.auth.signOut()}
+          style={styles.signOutButton}
         >
-          <Text style={styles.buttonText}>Sign Out</Text>
-        </TouchableOpacity>
+          Sign Out
+        </Button>
       </View>
     </View>
   );
@@ -151,35 +150,13 @@ const styles = StyleSheet.create({
   mt20: {
     marginTop: 20,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 8,
-    color: "#333",
-  },
   input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-  },
-  disabledInput: {
-    backgroundColor: "#f5f5f5",
-    color: "#666",
+    marginBottom: 4,
   },
   button: {
-    backgroundColor: "#007AFF",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
+    marginTop: 8,
   },
   signOutButton: {
-    backgroundColor: "#FF3B30",
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
+    marginTop: 8,
   },
 });

@@ -1,11 +1,6 @@
 import { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-} from "react-native";
+import { View, ScrollView, StyleSheet } from "react-native";
+import { Text, IconButton, Button } from "react-native-paper";
 import { Ionicons } from "@expo/vector-icons";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
 import { OccasionItem } from "./OccasionItem";
@@ -102,10 +97,16 @@ export function OccasionsSelectionView({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#231F20" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Select Occasions</Text>
+        <IconButton
+          icon="arrow-back"
+          size={24}
+          iconColor="#231F20"
+          onPress={onBack}
+          style={styles.backButton}
+        />
+        <Text variant="titleLarge" style={styles.headerTitle}>
+          Select Occasions
+        </Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -113,7 +114,7 @@ export function OccasionsSelectionView({
         style={styles.scrollView}
         contentContainerStyle={styles.content}
       >
-        <Text style={styles.description}>
+        <Text variant="bodyMedium" style={styles.description}>
           Select which occasions you'd like to track for this recipient. We've
           automatically added occasions based on your conversation.
         </Text>
@@ -121,8 +122,10 @@ export function OccasionsSelectionView({
         {selectedOccasions.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="calendar-outline" size={48} color="#999" />
-            <Text style={styles.emptyText}>No occasions found</Text>
-            <Text style={styles.emptySubtext}>
+            <Text variant="titleLarge" style={styles.emptyText}>
+              No occasions found
+            </Text>
+            <Text variant="bodyMedium" style={styles.emptySubtext}>
               Occasions will be automatically created from the birthday and
               holidays you mentioned.
             </Text>
@@ -142,26 +145,25 @@ export function OccasionsSelectionView({
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.skipButton}
+        <Button
+          mode="outlined"
           onPress={onSkip}
           disabled={isProcessing}
+          style={styles.skipButton}
         >
-          <Text style={styles.skipButtonText}>Skip</Text>
-        </TouchableOpacity>
+          Skip
+        </Button>
 
-        <TouchableOpacity
-          style={[
-            styles.continueButton,
-            isProcessing && styles.continueButtonDisabled,
-          ]}
+        <Button
+          mode="contained"
+          buttonColor="#FFB6C1"
           onPress={handleContinue}
           disabled={isProcessing}
+          loading={isProcessing}
+          style={styles.continueButton}
         >
-          <Text style={styles.continueButtonText}>
-            {isProcessing ? "Processing..." : "Continue"}
-          </Text>
-        </TouchableOpacity>
+          Continue
+        </Button>
       </View>
 
       {editingOccasionIndex !== null && (
@@ -181,9 +183,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
-  continueButtonDisabled: {
-    opacity: 0.6,
-  },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -195,13 +194,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   backButton: {
-    padding: 8,
+    margin: 0,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#231F20",
-  },
+  headerTitle: {},
   headerSpacer: {
     width: 40,
   },
@@ -212,10 +207,9 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   description: {
-    fontSize: 14,
-    color: "#666",
     marginBottom: 24,
     lineHeight: 20,
+    color: "#666",
   },
   emptyState: {
     alignItems: "center",
@@ -223,16 +217,12 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#231F20",
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtext: {
-    fontSize: 14,
-    color: "#666",
     textAlign: "center",
+    color: "#666",
   },
   occasionsList: {
     gap: 12,
@@ -247,29 +237,8 @@ const styles = StyleSheet.create({
   },
   skipButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  skipButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#231F20",
   },
   continueButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    backgroundColor: "#FFB6C1",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  continueButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#fff",
   },
 });

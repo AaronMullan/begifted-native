@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { Provider as PaperProvider, MD3LightTheme } from "react-native-paper";
 import Header from "../components/Header";
 import { useFontsLoader } from "../hooks/use-fonts-loader";
 
@@ -15,10 +16,12 @@ export default function RootLayout() {
   }
 
   return (
-    <Stack
-      screenOptions={{
-        header: () => <Header />,
-      }}
-    />
+    <PaperProvider theme={MD3LightTheme}>
+      <Stack
+        screenOptions={{
+          header: () => <Header />,
+        }}
+      />
+    </PaperProvider>
   );
 }

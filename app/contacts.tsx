@@ -1,15 +1,8 @@
 import { Session } from "@supabase/supabase-js";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import {
-  Alert,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Alert, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { Text, Button } from "react-native-paper";
 import ContactFileImport from "../components/ContactFileImport";
 import ContactPicker from "../components/ContactPicker";
 import RecipientCard from "../components/RecipientCard";
@@ -335,8 +328,10 @@ export default function Contacts() {
     return (
       <View style={styles.container}>
         <View style={styles.content}>
-          <Text style={styles.title}>Contacts</Text>
-          <Text style={styles.subtitle}>
+          <Text variant="headlineMedium" style={styles.title}>
+            Contacts
+          </Text>
+          <Text variant="bodyLarge" style={styles.subtitle}>
             Please sign in to manage your gift recipients.
           </Text>
         </View>
@@ -347,34 +342,38 @@ export default function Contacts() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>My Contacts</Text>
-        <Text style={styles.subtitle}>
+        <Text variant="headlineMedium" style={styles.title}>
+          My Contacts
+        </Text>
+        <Text variant="bodyLarge" style={styles.subtitle}>
           Manage the people you want to send gifts to.
         </Text>
 
         {!formVisible && (
           <>
-            <TouchableOpacity
-              style={styles.addButton}
+            <Button
+              mode="contained"
               onPress={() => router.push("/contacts/add")}
+              style={styles.addButton}
+              icon="plus"
             >
-              <Text style={styles.addButtonText}>+ Add Recipient</Text>
-            </TouchableOpacity>
+              Add Recipient
+            </Button>
 
             {Platform.OS === "web" ? (
               <ContactFileImport onImport={handleImportFromFile} />
             ) : (
-              <TouchableOpacity
-                style={[styles.addButton, styles.importButton]}
+              <Button
+                mode="contained"
+                buttonColor="#34C759"
                 onPress={handleImportFromDevice}
                 disabled={contactsLoading}
+                loading={contactsLoading}
+                style={styles.importButton}
+                icon="phone"
               >
-                <Text style={styles.addButtonText}>
-                  {contactsLoading
-                    ? "Loading..."
-                    : "📱 Import from Device Contacts"}
-                </Text>
-              </TouchableOpacity>
+                Import from Device Contacts
+              </Button>
             )}
           </>
         )}
@@ -415,11 +414,15 @@ export default function Contacts() {
         )}
 
         {loading && recipients.length === 0 ? (
-          <Text style={styles.loadingText}>Loading...</Text>
+          <Text variant="bodyLarge" style={styles.loadingText}>
+            Loading...
+          </Text>
         ) : recipients.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No recipients yet.</Text>
-            <Text style={styles.emptySubtext}>
+            <Text variant="titleLarge" style={styles.emptyText}>
+              No recipients yet.
+            </Text>
+            <Text variant="bodyMedium" style={styles.emptySubtext}>
               Add your first recipient to get started!
             </Text>
           </View>
@@ -466,51 +469,29 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
-    fontSize: 32,
-    fontWeight: "bold",
     marginBottom: 8,
-    color: "#231F20",
   },
   subtitle: {
-    fontSize: 16,
-    color: "#666",
     marginBottom: 24,
   },
   addButton: {
-    backgroundColor: "#007AFF",
-    padding: 16,
-    borderRadius: 8,
-    alignItems: "center",
     marginBottom: 20,
-    cursor: "pointer",
-  },
-  addButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
   },
   loadingText: {
     textAlign: "center",
-    color: "#666",
-    fontSize: 16,
   },
   emptyState: {
     padding: 40,
     alignItems: "center",
   },
   emptyText: {
-    fontSize: 18,
-    color: "#666",
     marginBottom: 8,
   },
-  emptySubtext: {
-    fontSize: 14,
-    color: "#999",
-  },
+  emptySubtext: {},
   list: {
     gap: 12,
   },
   importButton: {
-    backgroundColor: "#34C759",
+    marginBottom: 20,
   },
 });

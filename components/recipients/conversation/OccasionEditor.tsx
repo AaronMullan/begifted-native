@@ -1,13 +1,6 @@
 import { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Modal,
-  StyleSheet,
-  Alert,
-} from "react-native";
+import { View, Modal, StyleSheet, Alert } from "react-native";
+import { Text, TextInput, IconButton, Button } from "react-native-paper";
 import { Ionicons } from "@expo/vector-icons";
 
 interface OccasionEditorProps {
@@ -70,41 +63,52 @@ export function OccasionEditor({
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.header}>
-            <Text style={styles.title}>Edit Occasion Date</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#231F20" />
-            </TouchableOpacity>
+            <Text variant="titleLarge" style={styles.title}>
+              Edit Occasion Date
+            </Text>
+            <IconButton
+              icon="close"
+              size={24}
+              iconColor="#231F20"
+              onPress={onClose}
+              style={styles.closeButton}
+            />
           </View>
 
           <View style={styles.content}>
-            <Text style={styles.occasionType}>
+            <Text variant="titleMedium" style={styles.occasionType}>
               {formatOccasionType(occasion.occasion_type)}
             </Text>
 
             <View style={styles.fieldContainer}>
-              <Text style={styles.label}>Date</Text>
               <TextInput
-                style={styles.input}
+                mode="outlined"
+                label="Date"
                 value={dateInput}
                 onChangeText={setDateInput}
                 placeholder="YYYY-MM-DD"
-                placeholderTextColor="#999"
                 keyboardType="numeric"
                 maxLength={10}
+                style={styles.input}
               />
-              <Text style={styles.helperText}>
+              <Text variant="bodySmall" style={styles.helperText}>
                 Enter date in YYYY-MM-DD format (e.g., 2026-12-25)
               </Text>
             </View>
           </View>
 
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-              <Text style={styles.saveButtonText}>Save</Text>
-            </TouchableOpacity>
+            <Button mode="outlined" onPress={onClose} style={styles.cancelButton}>
+              Cancel
+            </Button>
+            <Button
+              mode="contained"
+              buttonColor="#FFB6C1"
+              onPress={handleSave}
+              style={styles.saveButton}
+            >
+              Save
+            </Button>
           </View>
         </View>
       </View>
@@ -136,44 +140,26 @@ const styles = StyleSheet.create({
     borderBottomColor: "#e0e0e0",
   },
   title: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#231F20",
+    flex: 1,
   },
   closeButton: {
-    padding: 4,
+    margin: 0,
   },
   content: {
     padding: 16,
   },
   occasionType: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#231F20",
     marginBottom: 16,
   },
   fieldContainer: {
     marginBottom: 8,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#231F20",
-    marginBottom: 8,
-  },
   input: {
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: "#231F20",
-    backgroundColor: "#fff",
+    marginBottom: 4,
   },
   helperText: {
-    fontSize: 12,
-    color: "#666",
     marginTop: 4,
+    color: "#666",
   },
   footer: {
     flexDirection: "row",
@@ -184,29 +170,8 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#231F20",
   },
   saveButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: "#FFB6C1",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#fff",
   },
 });

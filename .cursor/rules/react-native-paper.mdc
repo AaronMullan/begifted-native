@@ -1,0 +1,190 @@
+---
+description: React Native Paper component usage guidelines
+globs: *.tsx,*.ts
+---
+
+# React Native Paper Component Guidelines
+
+## Core Principle
+
+**Always use React Native Paper components for UI elements.** This project exclusively uses React Native Paper (https://oss.callstack.com/react-native-paper/) for all UI components to ensure consistent Material Design styling across the application.
+
+## Component Mapping
+
+### Required Replacements
+
+- `TouchableOpacity` → `Button` (from react-native-paper) for buttons
+- `TextInput` (from react-native) → `TextInput` (from react-native-paper)
+- `Modal` (for UI) → `Dialog` (from react-native-paper) for alerts/confirmations
+- `Text` (for styled text) → `Text` (from react-native-paper) with variants
+- `ActivityIndicator` → `ActivityIndicator` (from react-native-paper)
+- Custom styled cards → `Card`, `Card.Content`, `Card.Cover` (from react-native-paper)
+- Alert.alert() → `Dialog` component from Paper
+
+### Allowed Core React Native Components
+
+These core React Native components are acceptable for layout purposes only:
+
+- `View` - for layout containers
+- `ScrollView` - for scrollable content
+- `FlatList`, `SectionList` - for lists
+- `Image` - for images
+- `Modal` - acceptable for full-screen layouts (but use Paper components inside)
+
+## Import Pattern
+
+```typescript
+// ✅ Good - Paper components
+import { Button, TextInput, Text, Card, Dialog } from "react-native-paper";
+import { View, ScrollView } from "react-native"; // Layout only
+
+// ❌ Bad - React Native UI components
+import { TouchableOpacity, TextInput, Text } from "react-native";
+```
+
+## Component Usage Examples
+
+### Buttons
+
+```typescript
+// ✅ Good
+<Button mode="contained" onPress={handlePress}>Save</Button>
+<Button mode="outlined" onPress={handleCancel}>Cancel</Button>
+<Button mode="text" onPress={handleAction}>Action</Button>
+<Button mode="elevated" icon="check" onPress={handleSubmit}>Submit</Button>
+
+// ❌ Bad
+<TouchableOpacity onPress={handlePress}>
+  <Text>Save</Text>
+</TouchableOpacity>
+```
+
+### Text Inputs
+
+```typescript
+// ✅ Good
+<TextInput
+  mode="outlined"
+  label="Email"
+  value={email}
+  onChangeText={setEmail}
+  error={!!errors.email}
+/>
+
+// ❌ Bad
+<TextInput
+  style={styles.input}
+  value={email}
+  onChangeText={setEmail}
+  placeholder="Email"
+/>
+```
+
+### Text
+
+```typescript
+// ✅ Good - Use variants
+<Text variant="headlineLarge">Title</Text>
+<Text variant="titleMedium">Subtitle</Text>
+<Text variant="bodyLarge">Body text</Text>
+<Text variant="bodySmall">Caption</Text>
+
+// ❌ Bad - Custom styling
+<Text style={styles.title}>Title</Text>
+```
+
+### Dialogs
+
+```typescript
+// ✅ Good
+<Dialog visible={visible} onDismiss={onClose}>
+  <Dialog.Title>Confirm</Dialog.Title>
+  <Dialog.Content>
+    <Text>Are you sure?</Text>
+  </Dialog.Content>
+  <Dialog.Actions>
+    <Button onPress={onClose}>Cancel</Button>
+    <Button onPress={onConfirm}>Confirm</Button>
+  </Dialog.Actions>
+</Dialog>;
+
+// ❌ Bad
+Alert.alert("Title", "Message", [{ text: "OK" }]);
+```
+
+### Cards
+
+```typescript
+// ✅ Good
+<Card>
+  <Card.Cover source={{ uri: imageUrl }} />
+  <Card.Content>
+    <Text variant="titleLarge">Card Title</Text>
+    <Text variant="bodyMedium">Card content</Text>
+  </Card.Content>
+  <Card.Actions>
+    <Button>Cancel</Button>
+    <Button>Ok</Button>
+  </Card.Actions>
+</Card>
+```
+
+## Theming
+
+React Native Paper uses Material Design 3 (MD3) theming. The app uses `MD3LightTheme` by default. To customize the theme, modify the theme object passed to `PaperProvider` in `app/_layout.tsx`.
+
+```typescript
+import { Provider as PaperProvider, MD3LightTheme } from "react-native-paper";
+
+const theme = {
+  ...MD3LightTheme,
+  colors: {
+    ...MD3LightTheme.colors,
+    primary: "#007AFF",
+    // Customize other colors
+  },
+};
+```
+
+## Icons
+
+Continue using `@expo/vector-icons` (Ionicons) for icons, but integrate with Paper components using the `icon` prop where supported:
+
+```typescript
+<Button icon="check" onPress={handleSubmit}>Save</Button>
+<IconButton icon="close" onPress={onClose} />
+```
+
+## Prohibited Patterns
+
+1. ❌ Do not use `TouchableOpacity` for buttons - use `Button` instead
+2. ❌ Do not use React Native `TextInput` - use Paper's `TextInput`
+3. ❌ Do not use `Alert.alert()` - use `Dialog` component
+4. ❌ Do not create custom styled buttons - use Paper `Button` with modes
+5. ❌ Do not use inline styles for text - use Paper `Text` variants
+6. ❌ Do not import UI components from 'react-native' except for layout (View, ScrollView)
+
+## Style Guidelines
+
+- Use Paper component props (like `mode`, `variant`) instead of custom styles when possible
+- Keep StyleSheet usage minimal - Paper components have built-in styling
+- Use theme colors through Paper's theming system, not hardcoded colors
+- Prefer Paper's spacing and sizing over custom values
+
+## Migration Checklist
+
+When updating existing components:
+
+1. Replace `TouchableOpacity` with `Button`
+2. Replace RN `TextInput` with Paper `TextInput`
+3. Replace `Modal` with `Dialog` (for alerts) or keep Modal but use Paper components inside
+4. Replace `Text` with Paper `Text` using appropriate variants
+5. Replace custom cards with `Card` components
+6. Remove unused StyleSheet styles
+7. Update imports to use Paper components
+
+## Resources
+
+- Official Documentation: https://oss.callstack.com/react-native-paper/
+- Component API Reference: https://callstack.github.io/react-native-paper/docs/components/Button
+- Theme Customization: https://callstack.github.io/react-native-paper/docs/guides/theming

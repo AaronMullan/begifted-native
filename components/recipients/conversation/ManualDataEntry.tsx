@@ -1,12 +1,6 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-} from "react-native";
+import { View, ScrollView, StyleSheet } from "react-native";
+import { Text, TextInput, Button } from "react-native-paper";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
 
 interface ManualDataEntryProps {
@@ -92,8 +86,10 @@ export function ManualDataEntry({
         style={styles.scrollView}
         contentContainerStyle={styles.content}
       >
-        <Text style={styles.title}>Manual Entry</Text>
-        <Text style={styles.description}>
+        <Text variant="headlineSmall" style={styles.title}>
+          Manual Entry
+        </Text>
+        <Text variant="bodyMedium" style={styles.description}>
           {partialData
             ? "We couldn't extract all the information. Please complete the required fields."
             : "Enter the recipient information manually."}
@@ -101,96 +97,96 @@ export function ManualDataEntry({
 
         {/* Basic Information Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Basic Information</Text>
+          <Text variant="titleLarge" style={styles.sectionTitle}>
+            Basic Information
+          </Text>
 
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>
-              Name <Text style={styles.required}>*</Text>
-            </Text>
             <TextInput
-              style={styles.input}
+              mode="outlined"
+              label="Name *"
               value={name}
               onChangeText={setName}
               placeholder="Enter name"
-              placeholderTextColor="#999"
+              style={styles.input}
             />
           </View>
 
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>
-              Relationship <Text style={styles.required}>*</Text>
-            </Text>
             <TextInput
-              style={styles.input}
+              mode="outlined"
+              label="Relationship *"
               value={relationshipType}
               onChangeText={setRelationshipType}
               placeholder="e.g., Sister, Friend, Colleague"
-              placeholderTextColor="#999"
+              style={styles.input}
             />
           </View>
 
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Birthday</Text>
             <TextInput
-              style={styles.input}
+              mode="outlined"
+              label="Birthday"
               value={birthday}
               onChangeText={setBirthday}
               placeholder="YYYY-MM-DD or MM-DD"
-              placeholderTextColor="#999"
+              style={styles.input}
             />
           </View>
 
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Interests</Text>
             <TextInput
-              style={[styles.input, styles.textArea]}
+              mode="outlined"
+              label="Interests"
               value={interests}
               onChangeText={setInterests}
               placeholder="e.g., reading, hiking, coffee (comma-separated)"
-              placeholderTextColor="#999"
               multiline
               numberOfLines={3}
+              style={styles.input}
             />
           </View>
         </View>
 
         {/* Gift Preferences Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Gift Preferences</Text>
+          <Text variant="titleLarge" style={styles.sectionTitle}>
+            Gift Preferences
+          </Text>
 
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Emotional Tone</Text>
             <TextInput
-              style={styles.input}
+              mode="outlined"
+              label="Emotional Tone"
               value={emotionalTone}
               onChangeText={setEmotionalTone}
               placeholder="e.g., warm, professional, playful"
-              placeholderTextColor="#999"
+              style={styles.input}
             />
           </View>
 
           <View style={styles.row}>
             <View style={[styles.fieldContainer, styles.halfWidth]}>
-              <Text style={styles.label}>Budget Min</Text>
               <TextInput
-                style={styles.input}
+                mode="outlined"
+                label="Budget Min"
                 value={budgetMin}
                 onChangeText={setBudgetMin}
                 placeholder="$"
-                placeholderTextColor="#999"
                 keyboardType="numeric"
+                style={styles.input}
               />
             </View>
 
             <View style={[styles.fieldContainer, styles.halfWidth]}>
-              <Text style={styles.label}>Budget Max</Text>
               <TextInput
-                style={styles.input}
+                mode="outlined"
+                label="Budget Max"
                 value={budgetMax}
                 onChangeText={setBudgetMax}
                 placeholder="$"
-                placeholderTextColor="#999"
                 keyboardType="numeric"
+                style={styles.input}
               />
             </View>
           </View>
@@ -198,78 +194,80 @@ export function ManualDataEntry({
 
         {/* Address Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Address (Optional)</Text>
+          <Text variant="titleLarge" style={styles.sectionTitle}>
+            Address (Optional)
+          </Text>
 
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Street Address</Text>
             <TextInput
-              style={styles.input}
+              mode="outlined"
+              label="Street Address"
               value={address}
               onChangeText={setAddress}
               placeholder="123 Main Street"
-              placeholderTextColor="#999"
+              style={styles.input}
             />
           </View>
 
           <View style={styles.fieldContainer}>
-            <Text style={styles.label}>Address Line 2</Text>
             <TextInput
-              style={styles.input}
+              mode="outlined"
+              label="Address Line 2"
               value={addressLine2}
               onChangeText={setAddressLine2}
               placeholder="Apt, Suite, etc."
-              placeholderTextColor="#999"
+              style={styles.input}
             />
           </View>
 
           <View style={styles.row}>
             <View style={[styles.fieldContainer, styles.halfWidth]}>
-              <Text style={styles.label}>City</Text>
               <TextInput
-                style={styles.input}
+                mode="outlined"
+                label="City"
                 value={city}
                 onChangeText={setCity}
                 placeholder="City"
-                placeholderTextColor="#999"
+                style={styles.input}
               />
             </View>
 
             <View style={[styles.fieldContainer, styles.halfWidth]}>
-              <Text style={styles.label}>State</Text>
               <TextInput
-                style={styles.input}
+                mode="outlined"
+                label="State"
                 value={state}
                 onChangeText={setState}
                 placeholder="State"
-                placeholderTextColor="#999"
                 maxLength={2}
                 autoCapitalize="characters"
+                style={styles.input}
               />
             </View>
           </View>
 
           <View style={styles.row}>
             <View style={[styles.fieldContainer, styles.halfWidth]}>
-              <Text style={styles.label}>ZIP Code</Text>
               <TextInput
-                style={styles.input}
+                mode="outlined"
+                label="ZIP Code"
                 value={zipCode}
                 onChangeText={setZipCode}
                 placeholder="ZIP"
-                placeholderTextColor="#999"
                 keyboardType="numeric"
                 maxLength={10}
+                style={styles.input}
               />
             </View>
 
             <View style={[styles.fieldContainer, styles.halfWidth]}>
-              <Text style={styles.label}>Country</Text>
               <TextInput
-                style={styles.input}
+                mode="outlined"
+                label="Country"
                 value={country}
                 onChangeText={setCountry}
                 placeholder="Country"
-                placeholderTextColor="#999"
+                style={styles.input}
               />
             </View>
           </View>
@@ -278,17 +276,19 @@ export function ManualDataEntry({
 
       {/* Footer Actions */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-          <Text style={styles.cancelButtonText}>Cancel</Text>
-        </TouchableOpacity>
+        <Button mode="outlined" onPress={onCancel} style={styles.cancelButton}>
+          Cancel
+        </Button>
 
-        <TouchableOpacity
-          style={[styles.saveButton, !isValid && styles.saveButtonDisabled]}
+        <Button
+          mode="contained"
+          buttonColor="#FFB6C1"
           onPress={handleSave}
           disabled={!isValid}
+          style={styles.saveButton}
         >
-          <Text style={styles.saveButtonText}>Continue</Text>
-        </TouchableOpacity>
+          Continue
+        </Button>
       </View>
     </View>
   );
@@ -306,52 +306,23 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#231F20",
     marginBottom: 8,
   },
   description: {
-    fontSize: 14,
-    color: "#666",
     marginBottom: 24,
     lineHeight: 20,
+    color: "#666",
   },
   section: {
     marginBottom: 32,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#231F20",
     marginBottom: 16,
   },
   fieldContainer: {
     marginBottom: 16,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 8,
-  },
-  required: {
-    color: "#FF3B30",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: "#231F20",
-    backgroundColor: "#fff",
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: "top",
-  },
+  input: {},
   row: {
     flexDirection: "row",
     gap: 16,
@@ -369,33 +340,8 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#231F20",
   },
   saveButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    backgroundColor: "#FFB6C1",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  saveButtonDisabled: {
-    backgroundColor: "#ccc",
-    opacity: 0.5,
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#fff",
   },
 });

@@ -1,18 +1,23 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Image,
   Linking,
   Modal,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
+import {
+  ActivityIndicator,
+  Text,
+  TextInput,
+  Button,
+  IconButton,
+  Card,
+  Divider,
+} from "react-native-paper";
 import { supabase } from "../lib/supabase";
 import type { GiftSuggestion, Recipient } from "../types/recipient";
 
@@ -241,246 +246,235 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color="#231F20" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{recipient.name}</Text>
-          <TouchableOpacity
+          <IconButton
+            icon="close"
+            size={24}
+            onPress={onClose}
+            iconColor="#231F20"
+          />
+          <Text variant="titleLarge" style={styles.headerTitle}>
+            {recipient.name}
+          </Text>
+          <Button
+            mode="contained"
             onPress={handleSave}
             disabled={saving || !name.trim() || !relationshipType.trim()}
-            style={[
-              styles.saveButton,
-              (saving || !name.trim() || !relationshipType.trim()) &&
-                styles.saveButtonDisabled,
-            ]}
+            loading={saving}
+            style={styles.saveButton}
+            compact
           >
-            {saving ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.saveButtonText}>Save</Text>
-            )}
-          </TouchableOpacity>
+            Save
+          </Button>
         </View>
 
         {/* Tabs */}
         <View style={styles.tabs}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === "gifts" && styles.activeTab]}
+          <Button
+            mode={activeTab === "gifts" ? "contained" : "text"}
             onPress={() => setActiveTab("gifts")}
+            icon="gift-outline"
+            style={styles.tab}
+            compact
           >
-            <Ionicons
-              name="gift-outline"
-              size={18}
-              color={activeTab === "gifts" ? "#007AFF" : "#666"}
-            />
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "gifts" && styles.activeTabText,
-              ]}
-            >
-              Gift Ideas
-              {suggestions.length > 0 && (
-                <Text style={styles.badgeText}> ({suggestions.length})</Text>
-              )}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === "details" && styles.activeTab]}
+            Gift Ideas
+            {suggestions.length > 0 && ` (${suggestions.length})`}
+          </Button>
+          <Button
+            mode={activeTab === "details" ? "contained" : "text"}
             onPress={() => setActiveTab("details")}
+            icon="account-outline"
+            style={styles.tab}
+            compact
           >
-            <Ionicons
-              name="person-outline"
-              size={18}
-              color={activeTab === "details" ? "#007AFF" : "#666"}
-            />
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "details" && styles.activeTabText,
-              ]}
-            >
-              Details
-            </Text>
-          </TouchableOpacity>
+            Details
+          </Button>
         </View>
 
         <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
           {activeTab === "details" ? (
             /* Details Tab */
             <View style={styles.form}>
-              <Text style={styles.sectionTitle}>Basic Information</Text>
-
-              <Text style={styles.label}>
-                Name <Text style={styles.required}>*</Text>
+              <Text variant="titleMedium" style={styles.sectionTitle}>
+                Basic Information
               </Text>
+
               <TextInput
-                style={styles.input}
+                mode="outlined"
+                label="Name *"
                 value={name}
                 onChangeText={setName}
                 placeholder="e.g., Sarah Johnson"
-                placeholderTextColor="#999"
+                style={styles.input}
               />
 
-              <Text style={styles.label}>
-                Relationship <Text style={styles.required}>*</Text>
-              </Text>
               <TextInput
-                style={styles.input}
+                mode="outlined"
+                label="Relationship *"
                 value={relationshipType}
                 onChangeText={setRelationshipType}
                 placeholder="e.g., Sister, Friend, Colleague"
-                placeholderTextColor="#999"
+                style={styles.input}
               />
 
-              <Text style={styles.label}>Birthday</Text>
               <TextInput
-                style={styles.input}
+                mode="outlined"
+                label="Birthday"
                 value={birthday}
                 onChangeText={setBirthday}
                 placeholder="YYYY-MM-DD"
-                placeholderTextColor="#999"
+                style={styles.input}
               />
 
-              <Text style={styles.label}>Interests</Text>
               <TextInput
-                style={[styles.input, styles.textArea]}
+                mode="outlined"
+                label="Interests"
                 value={interests}
                 onChangeText={setInterests}
                 placeholder="e.g., reading, hiking, coffee (comma-separated)"
-                placeholderTextColor="#999"
                 multiline
                 numberOfLines={3}
+                style={styles.input}
               />
 
-              <Text style={styles.sectionTitle}>Gift Preferences</Text>
+              <Text variant="titleMedium" style={styles.sectionTitle}>
+                Gift Preferences
+              </Text>
 
-              <Text style={styles.label}>Emotional Tone</Text>
               <TextInput
-                style={styles.input}
+                mode="outlined"
+                label="Emotional Tone"
                 value={emotionalTone}
                 onChangeText={setEmotionalTone}
                 placeholder="e.g., heartfelt, playful, elegant"
-                placeholderTextColor="#999"
+                style={styles.input}
               />
 
-              <Text style={styles.label}>Budget Range</Text>
+              <Text variant="bodyMedium" style={styles.label}>
+                Budget Range
+              </Text>
               <View style={styles.budgetRow}>
                 <View style={styles.budgetField}>
-                  <Text style={styles.sublabel}>Min ($)</Text>
                   <TextInput
-                    style={styles.input}
+                    mode="outlined"
+                    label="Min ($)"
                     value={budgetMin}
                     onChangeText={setBudgetMin}
                     placeholder="25"
-                    placeholderTextColor="#999"
                     keyboardType="numeric"
+                    style={styles.input}
                   />
                 </View>
                 <View style={styles.budgetField}>
-                  <Text style={styles.sublabel}>Max ($)</Text>
                   <TextInput
-                    style={styles.input}
+                    mode="outlined"
+                    label="Max ($)"
                     value={budgetMax}
                     onChangeText={setBudgetMax}
                     placeholder="100"
-                    placeholderTextColor="#999"
                     keyboardType="numeric"
+                    style={styles.input}
                   />
                 </View>
               </View>
 
-              <Text style={styles.sectionTitle}>Shipping Address</Text>
+              <Text variant="titleMedium" style={styles.sectionTitle}>
+                Shipping Address
+              </Text>
 
-              <Text style={styles.label}>Address Line 1</Text>
               <TextInput
-                style={styles.input}
+                mode="outlined"
+                label="Address Line 1"
                 value={address}
                 onChangeText={setAddress}
                 placeholder="123 Main St"
-                placeholderTextColor="#999"
+                style={styles.input}
               />
 
-              <Text style={styles.label}>Address Line 2</Text>
               <TextInput
-                style={styles.input}
+                mode="outlined"
+                label="Address Line 2"
                 value={addressLine2}
                 onChangeText={setAddressLine2}
                 placeholder="Apt 4B"
-                placeholderTextColor="#999"
+                style={styles.input}
               />
 
               <View style={styles.addressRow}>
                 <View style={styles.cityField}>
-                  <Text style={styles.sublabel}>City</Text>
                   <TextInput
-                    style={styles.input}
+                    mode="outlined"
+                    label="City"
                     value={city}
                     onChangeText={setCity}
                     placeholder="New York"
-                    placeholderTextColor="#999"
+                    style={styles.input}
                   />
                 </View>
                 <View style={styles.stateField}>
-                  <Text style={styles.sublabel}>State</Text>
                   <TextInput
-                    style={styles.input}
+                    mode="outlined"
+                    label="State"
                     value={state}
                     onChangeText={setState}
                     placeholder="NY"
-                    placeholderTextColor="#999"
+                    style={styles.input}
                   />
                 </View>
               </View>
 
               <View style={styles.addressRow}>
                 <View style={styles.zipField}>
-                  <Text style={styles.sublabel}>Zip Code</Text>
                   <TextInput
-                    style={styles.input}
+                    mode="outlined"
+                    label="Zip Code"
                     value={zipCode}
                     onChangeText={setZipCode}
                     placeholder="10001"
-                    placeholderTextColor="#999"
                     keyboardType="numeric"
+                    style={styles.input}
                   />
                 </View>
                 <View style={styles.countryField}>
-                  <Text style={styles.sublabel}>Country</Text>
                   <TextInput
-                    style={styles.input}
+                    mode="outlined"
+                    label="Country"
                     value={country}
                     onChangeText={setCountry}
                     placeholder="US"
-                    placeholderTextColor="#999"
+                    style={styles.input}
                   />
                 </View>
               </View>
 
               {/* Delete Button */}
-              <TouchableOpacity
-                style={styles.deleteButton}
+              <Button
+                mode="outlined"
+                buttonColor="#FF3B30"
+                textColor="#FF3B30"
+                icon="delete-outline"
                 onPress={handleDelete}
+                style={styles.deleteButton}
               >
-                <Ionicons name="trash-outline" size={18} color="#FF3B30" />
-                <Text style={styles.deleteButtonText}>Delete Recipient</Text>
-              </TouchableOpacity>
+                Delete Recipient
+              </Button>
             </View>
           ) : (
             /* Gifts Tab */
             <View style={styles.giftsContainer}>
               {loadingSuggestions ? (
                 <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color="#FFB6C1" />
-                  <Text style={styles.loadingText}>
+                  <ActivityIndicator size="large" />
+                  <Text variant="bodyMedium" style={styles.loadingText}>
                     Loading gift suggestions...
                   </Text>
                 </View>
               ) : suggestions.length === 0 ? (
                 <View style={styles.emptyContainer}>
                   <Ionicons name="gift-outline" size={64} color="#ccc" />
-                  <Text style={styles.emptyTitle}>No Gift Ideas Yet</Text>
-                  <Text style={styles.emptyText}>
+                  <Text variant="titleLarge" style={styles.emptyTitle}>
+                    No Gift Ideas Yet
+                  </Text>
+                  <Text variant="bodyMedium" style={styles.emptyText}>
                     Gift suggestions will appear here once they're generated for{" "}
                     {recipient.name}.
                   </Text>
@@ -488,26 +482,28 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
               ) : (
                 <View style={styles.suggestionsList}>
                   {suggestions.map((suggestion) => (
-                    <TouchableOpacity
+                    <Card
                       key={suggestion.id}
                       style={styles.suggestionCard}
                       onPress={() => openLink(suggestion.link)}
                       disabled={!suggestion.link}
-                      activeOpacity={suggestion.link ? 0.7 : 1}
                     >
                       {suggestion.image_url && (
-                        <Image
+                        <Card.Cover
                           source={{ uri: suggestion.image_url }}
                           style={styles.suggestionImage}
-                          resizeMode="cover"
                         />
                       )}
-                      <View style={styles.suggestionContent}>
-                        <Text style={styles.suggestionTitle}>
+                      <Card.Content>
+                        <Text
+                          variant="titleMedium"
+                          style={styles.suggestionTitle}
+                        >
                           {suggestion.title}
                         </Text>
                         {suggestion.description && (
                           <Text
+                            variant="bodyMedium"
                             style={styles.suggestionDescription}
                             numberOfLines={2}
                           >
@@ -515,22 +511,25 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
                           </Text>
                         )}
                         <View style={styles.suggestionMeta}>
-                          <Text style={styles.suggestionPrice}>
+                          <Text
+                            variant="titleLarge"
+                            style={styles.suggestionPrice}
+                          >
                             {formatPrice(suggestion.price)}
                           </Text>
                           {suggestion.link && (
-                            <View style={styles.linkIndicator}>
-                              <Ionicons
-                                name="open-outline"
-                                size={14}
-                                color="#007AFF"
-                              />
-                              <Text style={styles.linkText}>View</Text>
-                            </View>
+                            <Button
+                              mode="text"
+                              icon="open-in-new"
+                              compact
+                              onPress={() => openLink(suggestion.link)}
+                            >
+                              View
+                            </Button>
                           )}
                         </View>
-                      </View>
-                    </TouchableOpacity>
+                      </Card.Content>
+                    </Card>
                   ))}
                 </View>
               )}
@@ -561,55 +560,21 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#231F20",
     flex: 1,
     textAlign: "center",
   },
   saveButton: {
-    backgroundColor: "#007AFF",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  saveButtonDisabled: {
-    backgroundColor: "#ccc",
-  },
-  saveButtonText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 14,
+    marginLeft: 8,
   },
   tabs: {
     flexDirection: "row",
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
+    paddingHorizontal: 8,
   },
   tab: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    gap: 6,
-  },
-  activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: "#007AFF",
-  },
-  tabText: {
-    fontSize: 14,
-    color: "#666",
-    fontWeight: "500",
-  },
-  activeTabText: {
-    color: "#007AFF",
-    fontWeight: "600",
-  },
-  badgeText: {
-    color: "#007AFF",
   },
   content: {
     flex: 1,
@@ -618,40 +583,14 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
     marginTop: 24,
     marginBottom: 12,
-    color: "#231F20",
   },
   label: {
-    fontSize: 14,
-    fontWeight: "600",
     marginBottom: 6,
-    color: "#333",
-  },
-  required: {
-    color: "#FF3B30",
-  },
-  sublabel: {
-    fontSize: 13,
-    fontWeight: "500",
-    marginBottom: 6,
-    color: "#666",
   },
   input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
     marginBottom: 16,
-    backgroundColor: "#fff",
-    color: "#231F20",
-  },
-  textArea: {
-    height: 80,
-    textAlignVertical: "top",
   },
   budgetRow: {
     flexDirection: "row",
@@ -677,21 +616,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   deleteButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
     marginTop: 32,
     marginBottom: 40,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: "#FF3B30",
-    borderRadius: 8,
-  },
-  deleteButtonText: {
-    color: "#FF3B30",
-    fontSize: 16,
-    fontWeight: "600",
   },
   // Gifts Tab Styles
   giftsContainer: {
@@ -704,7 +630,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 12,
-    fontSize: 14,
     color: "#666",
   },
   emptyContainer: {
@@ -713,50 +638,28 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#231F20",
     marginTop: 16,
   },
   emptyText: {
-    fontSize: 14,
-    color: "#666",
     textAlign: "center",
     marginTop: 8,
     paddingHorizontal: 20,
-    lineHeight: 20,
   },
   suggestionsList: {
     gap: 12,
   },
   suggestionCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    marginBottom: 12,
   },
   suggestionImage: {
     width: "100%",
     aspectRatio: 1,
     backgroundColor: "#f0f0f0",
   },
-  suggestionContent: {
-    padding: 16,
-  },
   suggestionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#231F20",
     marginBottom: 6,
   },
   suggestionDescription: {
-    fontSize: 14,
-    color: "#666",
-    lineHeight: 20,
     marginBottom: 12,
   },
   suggestionMeta: {
@@ -765,18 +668,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   suggestionPrice: {
-    fontSize: 16,
-    fontWeight: "700",
     color: "#34C759",
-  },
-  linkIndicator: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  linkText: {
-    fontSize: 14,
-    color: "#007AFF",
-    fontWeight: "500",
   },
 });

@@ -1,13 +1,6 @@
 import { useState, useEffect } from "react";
-import {
-  StyleSheet,
-  View,
-  AppState,
-  TextInput,
-  TouchableOpacity,
-  Text,
-  Platform,
-} from "react-native";
+import { StyleSheet, View, AppState } from "react-native";
+import { TextInput, Button, Text } from "react-native-paper";
 import { useForm, Controller } from "react-hook-form";
 import { supabase } from "../lib/supabase";
 import { Session } from "@supabase/supabase-js";
@@ -98,25 +91,32 @@ export default function Auth() {
   if (session && session.user) {
     return (
       <View style={styles.container}>
-        <Text style={styles.welcomeText}>Welcome, {session.user.email}!</Text>
-        <TouchableOpacity
-          style={[styles.button, styles.signOutButton]}
+        <Text variant="titleLarge" style={styles.welcomeText}>
+          Welcome, {session.user.email}!
+        </Text>
+        <Button
+          mode="contained"
+          buttonColor="#FF3B30"
           onPress={signOut}
+          style={styles.signOutButton}
         >
-          <Text style={styles.buttonText}>Sign Out</Text>
-        </TouchableOpacity>
+          Sign Out
+        </Button>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Sign In</Text>
-      <Text style={styles.subtitle}>Sign in with your email and password</Text>
+      <Text variant="headlineSmall" style={styles.title}>
+        Sign In
+      </Text>
+      <Text variant="bodyMedium" style={styles.subtitle}>
+        Sign in with your email and password
+      </Text>
 
       {/* Email Field */}
       <View style={[styles.verticallySpaced, styles.mt20]}>
-        <Text style={styles.label}>Email</Text>
         <Controller
           control={control}
           name="email"
@@ -129,24 +129,28 @@ export default function Auth() {
           }}
           render={({ field: { onChange, onBlur, value } }) => (
             <TextInput
+              mode="outlined"
+              label="Email"
+              value={value}
               onChangeText={onChange}
               onBlur={onBlur}
-              value={value}
               placeholder="email@address.com"
               autoCapitalize="none"
               keyboardType="email-address"
-              style={[styles.input, errors.email && styles.inputError]}
+              error={!!errors.email}
+              style={styles.input}
             />
           )}
         />
         {errors.email && (
-          <Text style={styles.errorText}>{errors.email.message}</Text>
+          <Text variant="bodySmall" style={styles.errorText}>
+            {errors.email.message}
+          </Text>
         )}
       </View>
 
       {/* Password Field */}
       <View style={styles.verticallySpaced}>
-        <Text style={styles.label}>Password</Text>
         <Controller
           control={control}
           name="password"
@@ -159,33 +163,38 @@ export default function Auth() {
           }}
           render={({ field: { onChange, onBlur, value } }) => (
             <TextInput
+              mode="outlined"
+              label="Password"
+              value={value}
               onChangeText={onChange}
               onBlur={onBlur}
-              value={value}
               secureTextEntry
               placeholder="Password (min 6 characters)"
               autoCapitalize="none"
-              style={[styles.input, errors.password && styles.inputError]}
+              error={!!errors.password}
+              style={styles.input}
             />
           )}
         />
         {errors.password && (
-          <Text style={styles.errorText}>{errors.password.message}</Text>
+          <Text variant="bodySmall" style={styles.errorText}>
+            {errors.password.message}
+          </Text>
         )}
       </View>
 
       {/* Sign In / Sign Up Button */}
       <View style={[styles.verticallySpaced, styles.mt20]}>
-        <TouchableOpacity
-          style={styles.button}
+        <Button
+          mode="contained"
           disabled={loading}
+          loading={loading}
           onPress={handleSubmit(handleAuth)}
+          style={styles.button}
         >
-          <Text style={styles.buttonText}>
-            {loading ? "Loading..." : "Sign In / Sign Up"}
-          </Text>
-        </TouchableOpacity>
-        <Text style={styles.hint}>
+          Sign In / Sign Up
+        </Button>
+        <Text variant="bodySmall" style={styles.hint}>
           Don't have an account? Just enter your email and a password to create
           one.
         </Text>
@@ -200,6 +209,7 @@ export default function Auth() {
           ]}
         >
           <Text
+            variant="bodyMedium"
             style={[
               styles.messageText,
               message.includes("Error") && styles.errorMessageText,
@@ -222,15 +232,10 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#333",
     marginBottom: 8,
     textAlign: "center",
   },
   subtitle: {
-    fontSize: 14,
-    color: "#666",
     textAlign: "center",
     marginBottom: 20,
   },
@@ -242,53 +247,25 @@ const styles = StyleSheet.create({
   mt20: {
     marginTop: 20,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 8,
-    color: "#333",
-  },
   input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-  },
-  inputError: {
-    borderColor: "#FF3B30",
-    borderWidth: 2,
+    marginBottom: 4,
   },
   errorText: {
     color: "#FF3B30",
-    fontSize: 12,
     marginTop: 4,
     marginLeft: 4,
   },
   button: {
-    backgroundColor: "#007AFF",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
+    marginTop: 8,
   },
   signOutButton: {
-    backgroundColor: "#FF3B30",
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
+    marginTop: 20,
   },
   welcomeText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
     marginBottom: 20,
     textAlign: "center",
   },
   hint: {
-    fontSize: 12,
-    color: "#999",
     marginTop: 12,
     textAlign: "center",
     fontStyle: "italic",
@@ -303,7 +280,6 @@ const styles = StyleSheet.create({
   },
   messageText: {
     color: "#2E7D32",
-    fontSize: 14,
     textAlign: "center",
   },
   errorContainer: {

@@ -1,12 +1,5 @@
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  Alert,
-} from "react-native";
+import { View, ScrollView, StyleSheet, Alert } from "react-native";
+import { Text, TextInput, IconButton, Button } from "react-native-paper";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { supabase } from "../../lib/supabase";
@@ -232,73 +225,67 @@ export default function ProfileSettings() {
           {/* Header section */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <Text style={styles.title}>Profile Settings</Text>
-              <Text style={styles.subtitle}>
+              <Text variant="headlineMedium" style={styles.title}>
+                Profile Settings
+              </Text>
+              <Text variant="bodyLarge" style={styles.subtitle}>
                 Manage your personal information
               </Text>
             </View>
-            <TouchableOpacity
+            <IconButton
+              icon="arrow-back"
+              size={20}
+              iconColor="#231F20"
               onPress={() => router.back()}
               style={styles.backButton}
-            >
-              <Ionicons name="arrow-back" size={20} color="#231F20" />
-            </TouchableOpacity>
+            />
           </View>
 
           {/* Personal Information Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Personal Information</Text>
-            <Text style={styles.sectionSubtitle}>
+            <Text variant="titleLarge" style={styles.sectionTitle}>
+              Personal Information
+            </Text>
+            <Text variant="bodyMedium" style={styles.sectionSubtitle}>
               Update your personal details and billing address.
             </Text>
 
             {/* Full Name */}
             <View style={styles.fieldContainer}>
-              <Text style={styles.label}>Full Name</Text>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.input}
-                  value={fullName}
-                  onChangeText={setFullName}
-                  placeholder="Enter your full name"
-                />
-                <Ionicons
-                  name="ellipsis-horizontal"
-                  size={20}
-                  color="#FF3B30"
-                  style={styles.editIcon}
-                />
-              </View>
+              <TextInput
+                mode="outlined"
+                label="Full Name"
+                value={fullName}
+                onChangeText={setFullName}
+                placeholder="Enter your full name"
+                right={<TextInput.Icon icon="ellipsis-horizontal" />}
+                style={styles.input}
+              />
             </View>
 
             {/* Username */}
             <View style={styles.fieldContainer}>
-              <Text style={styles.label}>Username</Text>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={[styles.input, !username && styles.inputFocused]}
-                  value={username}
-                  onChangeText={setUsername}
-                  placeholder="Choose a username"
-                />
-                <Ionicons
-                  name="ellipsis-horizontal"
-                  size={20}
-                  color="#FF3B30"
-                  style={styles.editIcon}
-                />
-              </View>
+              <TextInput
+                mode="outlined"
+                label="Username"
+                value={username}
+                onChangeText={setUsername}
+                placeholder="Choose a username"
+                right={<TextInput.Icon icon="ellipsis-horizontal" />}
+                style={styles.input}
+              />
             </View>
 
             {/* Email */}
             <View style={styles.fieldContainer}>
-              <Text style={styles.label}>Email</Text>
               <TextInput
-                style={[styles.input, styles.disabledInput]}
+                mode="outlined"
+                label="Email"
                 value={session.user?.email || ""}
                 editable={false}
+                style={styles.input}
               />
-              <Text style={styles.emailNote}>
+              <Text variant="bodySmall" style={styles.emailNote}>
                 Email cannot be changed. Contact support if you need to update
                 it.
               </Text>
@@ -307,76 +294,74 @@ export default function ProfileSettings() {
 
           {/* Billing Address Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Billing Address</Text>
+            <Text variant="titleLarge" style={styles.sectionTitle}>
+              Billing Address
+            </Text>
 
             {/* Street Address */}
             <View style={styles.fieldContainer}>
-              <Text style={styles.label}>Street Address</Text>
               <TextInput
-                style={styles.input}
+                mode="outlined"
+                label="Street Address"
                 value={streetAddress}
                 onChangeText={setStreetAddress}
                 placeholder="Enter street address"
+                style={styles.input}
               />
             </View>
 
             {/* City */}
             <View style={styles.fieldContainer}>
-              <Text style={styles.label}>City</Text>
               <TextInput
-                style={styles.input}
+                mode="outlined"
+                label="City"
                 value={city}
                 onChangeText={setCity}
                 placeholder="Enter city"
+                style={styles.input}
               />
             </View>
 
             {/* State and ZIP in a row */}
             <View style={styles.row}>
               <View style={[styles.fieldContainer, styles.halfWidth]}>
-                <Text style={styles.label}>State</Text>
                 <TextInput
-                  style={styles.input}
+                  mode="outlined"
+                  label="State"
                   value={state}
                   onChangeText={setState}
                   placeholder="State"
                   maxLength={2}
                   autoCapitalize="characters"
+                  style={styles.input}
                 />
               </View>
               <View style={[styles.fieldContainer, styles.halfWidth]}>
-                <Text style={styles.label}>ZIP Code</Text>
                 <TextInput
-                  style={styles.input}
+                  mode="outlined"
+                  label="ZIP Code"
                   value={zipCode}
                   onChangeText={setZipCode}
                   placeholder="ZIP"
                   keyboardType="numeric"
                   maxLength={10}
+                  style={styles.input}
                 />
               </View>
             </View>
           </View>
 
           {/* Save Button */}
-          <TouchableOpacity
-            style={[
-              styles.saveButton,
-              !hasChanges && styles.saveButtonDisabled,
-              saving && styles.saveButtonSaving,
-            ]}
+          <Button
+            mode="contained"
+            buttonColor="#FFB6C1"
             onPress={handleSave}
             disabled={saving || !hasChanges}
+            loading={saving}
+            style={styles.saveButton}
           >
-            <Text
-              style={[
-                styles.saveButtonText,
-                !hasChanges && styles.saveButtonTextDisabled,
-              ]}
-            >
-              {saving ? "Saving..." : hasChanges ? "Save Changes" : "No Changes"}
-            </Text>
-          </TouchableOpacity>
+            {hasChanges ? "Save Changes" : "No Changes"}
+          </Button>
         </View>
       </View>
     </ScrollView>
@@ -416,73 +401,31 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#231F20",
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
     color: "#666",
   },
   backButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    margin: 0,
   },
   section: {
     marginBottom: 32,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#231F20",
     marginBottom: 8,
   },
   sectionSubtitle: {
-    fontSize: 14,
-    color: "#666",
     marginBottom: 20,
+    color: "#666",
   },
   fieldContainer: {
     marginBottom: 20,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#231F20",
-    marginBottom: 8,
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    position: "relative",
-  },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: "white",
-    color: "#231F20",
-  },
-  inputFocused: {
-    borderColor: "#FFB6C1",
-    borderWidth: 2,
-  },
-  disabledInput: {
-    backgroundColor: "#f5f5f5",
-    color: "#666",
-  },
-  editIcon: {
-    position: "absolute",
-    right: 12,
-  },
+  input: {},
   emailNote: {
-    fontSize: 12,
-    color: "#999",
     marginTop: 4,
+    color: "#999",
   },
   row: {
     flexDirection: "row",
@@ -492,31 +435,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   saveButton: {
-    backgroundColor: "#FFB6C1",
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: "center",
     marginTop: 8,
-  },
-  saveButtonDisabled: {
-    backgroundColor: "#E0E0E0",
-    opacity: 0.6,
-  },
-  saveButtonSaving: {
-    opacity: 0.7,
-  },
-  saveButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  saveButtonTextDisabled: {
-    color: "#666",
   },
   loadingText: {
     textAlign: "center",
     color: "#666",
-    fontSize: 16,
   },
 });
 
