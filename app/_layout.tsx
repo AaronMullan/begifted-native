@@ -7,6 +7,12 @@ import { useFontsLoader } from "../hooks/use-fonts-loader";
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
+// Custom theme with reduced border radius for buttons
+const customTheme = {
+  ...MD3LightTheme,
+  roundness: 2, // Reduced from default (typically 8 or 12) to make buttons less rounded
+};
+
 export default function RootLayout() {
   // Load fonts and handle splash screen
   const fontsLoaded = useFontsLoader();
@@ -16,7 +22,7 @@ export default function RootLayout() {
   }
 
   return (
-    <PaperProvider theme={MD3LightTheme}>
+    <PaperProvider theme={customTheme}>
       <Stack
         screenOptions={{
           header: () => <Header />,
