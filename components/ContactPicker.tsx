@@ -1,12 +1,5 @@
-import {
-  Modal,
-  View,
-  Text,
-  TouchableOpacity,
-  FlatList,
-  StyleSheet,
-  TextInput,
-} from "react-native";
+import { Modal, View, FlatList, StyleSheet } from "react-native";
+import { Text, Button, TextInput, List } from "react-native-paper";
 import { useState } from "react";
 import { DeviceContact } from "../hooks/use-device-contacts";
 
@@ -37,52 +30,57 @@ export default function ContactPicker({
     >
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Select Contact</Text>
-          <TouchableOpacity onPress={onClose}>
-            <Text style={styles.closeButton}>Cancel</Text>
-          </TouchableOpacity>
+          <Text variant="headlineSmall" style={styles.title}>
+            Select Contact
+          </Text>
+          <Button mode="text" onPress={onClose}>
+            Cancel
+          </Button>
         </View>
 
         <TextInput
-          style={styles.searchInput}
+          mode="outlined"
           placeholder="Search contacts..."
           value={searchQuery}
           onChangeText={setSearchQuery}
           autoFocus
+          style={styles.searchInput}
         />
 
         <FlatList
           data={filteredContacts}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.contactItem}
+            <List.Item
+              title={item.name}
+              description={
+                <>
+                  {item.emails && item.emails.length > 0 && (
+                    <Text variant="bodySmall">📧 {item.emails[0]}</Text>
+                  )}
+                  {item.phoneNumbers && item.phoneNumbers.length > 0 && (
+                    <Text variant="bodySmall">
+                      {"\n"}📱 {item.phoneNumbers[0]}
+                    </Text>
+                  )}
+                  {item.birthday && (
+                    <Text variant="bodySmall">
+                      {"\n"}🎂 {item.birthday.month}/{item.birthday.day}
+                      {item.birthday.year && `/${item.birthday.year}`}
+                    </Text>
+                  )}
+                </>
+              }
               onPress={() => {
                 setSearchQuery("");
                 onSelect(item);
                 onClose();
               }}
-            >
-              <Text style={styles.contactName}>{item.name}</Text>
-              {item.emails && item.emails.length > 0 && (
-                <Text style={styles.contactDetail}>📧 {item.emails[0]}</Text>
-              )}
-              {item.phoneNumbers && item.phoneNumbers.length > 0 && (
-                <Text style={styles.contactDetail}>
-                  📱 {item.phoneNumbers[0]}
-                </Text>
-              )}
-              {item.birthday && (
-                <Text style={styles.contactDetail}>
-                  🎂 {item.birthday.month}/{item.birthday.day}
-                  {item.birthday.year && `/${item.birthday.year}`}
-                </Text>
-              )}
-            </TouchableOpacity>
+            />
           )}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>
+              <Text variant="bodyLarge" style={styles.emptyText}>
                 {searchQuery ? "No matching contacts" : "No contacts found"}
               </Text>
             </View>
@@ -107,42 +105,16 @@ const styles = StyleSheet.create({
     borderBottomColor: "#ddd",
   },
   title: {
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  closeButton: {
-    fontSize: 16,
-    color: "#007AFF",
-    fontWeight: "600",
+    flex: 1,
   },
   searchInput: {
     margin: 16,
-    padding: 12,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 8,
-    fontSize: 16,
-  },
-  contactItem: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  contactName: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  contactDetail: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 2,
   },
   emptyState: {
     padding: 40,
     alignItems: "center",
   },
   emptyText: {
-    fontSize: 16,
     color: "#999",
   },
 });

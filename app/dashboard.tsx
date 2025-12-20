@@ -1,11 +1,5 @@
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-} from "react-native";
+import { View, StyleSheet, ScrollView, Alert } from "react-native";
+import { Text, Button, Card } from "react-native-paper";
 import { useState, useEffect } from "react";
 import { Link, useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
@@ -128,8 +122,10 @@ export default function Dashboard() {
     return (
       <View style={styles.container}>
         <View style={styles.content}>
-          <Text style={styles.title}>Dashboard</Text>
-          <Text style={styles.subtitle}>
+          <Text variant="headlineMedium" style={styles.title}>
+            Dashboard
+          </Text>
+          <Text variant="bodyLarge" style={styles.subtitle}>
             Please sign in to view your dashboard.
           </Text>
         </View>
@@ -143,66 +139,87 @@ export default function Dashboard() {
     <ScrollView style={styles.container}>
       <View style={styles.content}>
         {/* Main white card container */}
-        <View style={styles.mainCard}>
+        <Card style={styles.mainCard}>
           {/* Header section */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <Text style={styles.greeting}>Hello, {displayName}!</Text>
-              <Text style={styles.tagline}>
+              <Text variant="headlineMedium" style={styles.greeting}>
+                Hello, {displayName}!
+              </Text>
+              <Text variant="bodyLarge" style={styles.tagline}>
                 Let's make someone's day special
               </Text>
             </View>
-            <TouchableOpacity
+            <Button
+              mode="text"
               onPress={handleSignOut}
               style={styles.signOutButton}
             >
-              <Text style={styles.signOutText}>Sign Out</Text>
-            </TouchableOpacity>
+              Sign Out
+            </Button>
           </View>
 
           {/* Three cards */}
           <View style={styles.cardsContainer}>
             {/* Recipients Card */}
             <Link href="/contacts" asChild>
-              <TouchableOpacity style={styles.card}>
-                <View style={[styles.iconContainer, styles.recipientsIcon]}>
-                  <Ionicons name="people" size={32} color="#FFB6C1" />
-                </View>
-                <Text style={styles.cardNumber}>{recipientsCount}</Text>
-                <Text style={styles.cardTitle}>Recipients</Text>
-                <Text style={styles.cardDescription}>
-                  Tap to view, edit, or add recipients
-                </Text>
-              </TouchableOpacity>
+              <Card style={styles.card}>
+                <Card.Content style={styles.cardContent}>
+                  <View style={[styles.iconContainer, styles.recipientsIcon]}>
+                    <Ionicons name="people" size={32} color="#FFB6C1" />
+                  </View>
+                  <Text variant="displaySmall" style={styles.cardNumber}>
+                    {recipientsCount}
+                  </Text>
+                  <Text variant="titleLarge" style={styles.cardTitle}>
+                    Recipients
+                  </Text>
+                  <Text variant="bodyMedium" style={styles.cardDescription}>
+                    Tap to view, edit, or add recipients
+                  </Text>
+                </Card.Content>
+              </Card>
             </Link>
 
             {/* Upcoming Card */}
             <Link href="/calendar" asChild>
-              <TouchableOpacity style={styles.card}>
-                <View style={[styles.iconContainer, styles.upcomingIcon]}>
-                  <Ionicons name="calendar" size={32} color="#FFA500" />
-                </View>
-                <Text style={styles.cardNumber}>{upcomingCount}</Text>
-                <Text style={styles.cardTitle}>Upcoming</Text>
-                <Text style={styles.cardDescription}>Tap to view calendar</Text>
-              </TouchableOpacity>
+              <Card style={styles.card}>
+                <Card.Content style={styles.cardContent}>
+                  <View style={[styles.iconContainer, styles.upcomingIcon]}>
+                    <Ionicons name="calendar" size={32} color="#FFA500" />
+                  </View>
+                  <Text variant="displaySmall" style={styles.cardNumber}>
+                    {upcomingCount}
+                  </Text>
+                  <Text variant="titleLarge" style={styles.cardTitle}>
+                    Upcoming
+                  </Text>
+                  <Text variant="bodyMedium" style={styles.cardDescription}>
+                    Tap to view calendar
+                  </Text>
+                </Card.Content>
+              </Card>
             </Link>
 
             {/* Settings Card */}
-            <TouchableOpacity
+            <Card
               style={styles.card}
               onPress={() => router.push("/settings" as any)}
             >
-              <View style={[styles.iconContainer, styles.settingsIcon]}>
-                <Ionicons name="settings" size={32} color="#9370DB" />
-              </View>
-              <Text style={styles.settingsTitle}>Settings</Text>
-              <Text style={styles.cardDescription}>
-                Manage your account and preferences
-              </Text>
-            </TouchableOpacity>
+              <Card.Content style={styles.cardContent}>
+                <View style={[styles.iconContainer, styles.settingsIcon]}>
+                  <Ionicons name="settings" size={32} color="#9370DB" />
+                </View>
+                <Text variant="titleLarge" style={styles.settingsTitle}>
+                  Settings
+                </Text>
+                <Text variant="bodyMedium" style={styles.cardDescription}>
+                  Manage your account and preferences
+                </Text>
+              </Card.Content>
+            </Card>
           </View>
-        </View>
+        </Card>
       </View>
     </ScrollView>
   );
@@ -241,39 +258,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   greeting: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#231F20",
     marginBottom: 8,
   },
   tagline: {
-    fontSize: 16,
     color: "#666",
   },
   signOutButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  signOutText: {
-    fontSize: 14,
-    color: "#231F20",
-    fontWeight: "500",
+    margin: 0,
   },
   cardsContainer: {
     gap: 20,
   },
   card: {
-    backgroundColor: "white",
-    borderRadius: 12,
-    padding: 24,
+    marginBottom: 0,
+  },
+  cardContent: {
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: "#f0f0f0",
   },
   iconContainer: {
     width: 64,
@@ -294,37 +294,23 @@ const styles = StyleSheet.create({
     backgroundColor: "#F3E5F5",
   },
   cardNumber: {
-    fontSize: 48,
-    fontWeight: "bold",
-    color: "#231F20",
     marginBottom: 8,
   },
   cardTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#231F20",
     marginBottom: 8,
   },
   settingsTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#231F20",
     marginBottom: 8,
   },
   cardDescription: {
-    fontSize: 14,
-    color: "#666",
     textAlign: "center",
     marginTop: 4,
+    color: "#666",
   },
   title: {
-    fontSize: 32,
-    fontWeight: "bold",
     marginBottom: 8,
-    color: "#231F20",
   },
   subtitle: {
-    fontSize: 16,
     color: "#666",
   },
 });

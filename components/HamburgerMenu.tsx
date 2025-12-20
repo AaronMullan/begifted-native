@@ -1,13 +1,5 @@
-import {
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  Modal,
-  StyleSheet,
-  Pressable,
-  Alert,
-} from "react-native";
+import { View, Image, Modal, StyleSheet, Pressable, Alert, TouchableOpacity } from "react-native";
+import { Text, Button, IconButton } from "react-native-paper";
 import { Link } from "expo-router";
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
@@ -81,41 +73,55 @@ export default function HamburgerMenu() {
 
           {/* Dropdown menu */}
           <View style={styles.menuContainer}>
-            <Link href="/" asChild onPress={handleMenuToggle}>
-              <TouchableOpacity style={styles.menuItem}>
-                <Text style={styles.menuText}>Home</Text>
-              </TouchableOpacity>
+            <Link href="/" asChild>
+              <Button
+                mode="text"
+                onPress={handleMenuToggle}
+                style={styles.menuItem}
+                textColor="#333"
+              >
+                Home
+              </Button>
             </Link>
-            <Link href="/contacts" asChild onPress={handleMenuToggle}>
-              <TouchableOpacity style={styles.menuItem}>
-                <Text style={styles.menuText}>Contacts</Text>
-              </TouchableOpacity>
+            <Link href="/contacts" asChild>
+              <Button
+                mode="text"
+                onPress={handleMenuToggle}
+                style={styles.menuItem}
+                textColor="#333"
+              >
+                Contacts
+              </Button>
             </Link>
-            <Link href="/faq" asChild onPress={handleMenuToggle}>
-              <TouchableOpacity style={styles.menuItem}>
-                <Text style={styles.menuText}>FAQ</Text>
-              </TouchableOpacity>
+            <Link href="/faq" asChild>
+              <Button
+                mode="text"
+                onPress={handleMenuToggle}
+                style={styles.menuItem}
+                textColor="#333"
+              >
+                FAQ
+              </Button>
             </Link>
 
             {/* Conditional Sign In / Sign Out */}
             {session && session.user ? (
-              <TouchableOpacity
-                style={[styles.menuItem, styles.authItem, styles.signOutItem]}
+              <Button
+                mode="contained"
+                buttonColor="#FF3B30"
                 onPress={handleSignOut}
+                style={styles.authItem}
               >
-                <Text style={[styles.menuText, styles.signOutText]}>
-                  Sign Out
-                </Text>
-              </TouchableOpacity>
+                Sign Out
+              </Button>
             ) : (
-              <TouchableOpacity
-                style={[styles.menuItem, styles.authItem]}
+              <Button
+                mode="contained"
                 onPress={handleSignIn}
+                style={styles.authItem}
               >
-                <Text style={[styles.menuText, styles.signInText]}>
-                  Sign In
-                </Text>
-              </TouchableOpacity>
+                Sign In
+              </Button>
             )}
           </View>
         </>
@@ -130,12 +136,12 @@ export default function HamburgerMenu() {
       >
         <View style={{ flex: 1, backgroundColor: "#fff" }}>
           <View style={{ padding: 20 }}>
-            <TouchableOpacity
-              style={{ alignSelf: "flex-end", marginBottom: 20 }}
+            <IconButton
+              icon="close"
+              size={24}
               onPress={() => setAuthModalVisible(false)}
-            >
-              <Text style={{ fontSize: 18, color: "#007AFF" }}>Close</Text>
-            </TouchableOpacity>
+              style={{ alignSelf: "flex-end", marginBottom: 20 }}
+            />
             <Auth />
           </View>
         </View>
@@ -151,6 +157,7 @@ const styles = StyleSheet.create({
   },
   hamburgerButton: {
     cursor: "pointer",
+    padding: 8,
   },
   backdrop: {
     position: "absolute",
@@ -178,28 +185,11 @@ const styles = StyleSheet.create({
     zIndex: 1001,
   },
   menuItem: {
-    padding: 16,
-    cursor: "pointer",
-  },
-  menuText: {
-    fontSize: 16,
-    color: "#333",
+    margin: 0,
+    justifyContent: "flex-start",
   },
   authItem: {
-    backgroundColor: "#007AFF",
-    borderRadius: 8,
-    alignItems: "center",
-    paddingVertical: 12,
-  },
-  signOutItem: {
-    backgroundColor: "#FF3B30",
-  },
-  signInText: {
-    color: "white",
-    fontWeight: "bold",
-  },
-  signOutText: {
-    color: "white",
-    fontWeight: "bold",
+    marginTop: 8,
+    marginHorizontal: 8,
   },
 });

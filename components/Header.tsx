@@ -18,7 +18,7 @@ export default function Header() {
   };
 
   return (
-    <View style={[styles.headerBackground, { paddingTop: insets.top + 10 }]}>
+    <View style={[styles.headerBackground, { paddingTop: insets.top + 8 }]}>
       {/* Contained content at max 1200px */}
       <View style={[styles.headerContent, { paddingHorizontal: getPadding() }]}>
         <Image
@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
   headerBackground: {
     width: "100%",
     backgroundColor: "#52A78B",
-    paddingBottom: 80,
+    paddingBottom: 16,
   },
   headerContent: {
     maxWidth: 1200,

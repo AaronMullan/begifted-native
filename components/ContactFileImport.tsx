@@ -1,11 +1,6 @@
 import { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-} from "react-native";
+import { View, StyleSheet, Platform } from "react-native";
+import { Button, Text } from "react-native-paper";
 import { DeviceContact } from "../hooks/use-device-contacts";
 
 interface Props {
@@ -102,15 +97,15 @@ export default function ContactFileImport({ onImport }: Props) {
     <View style={styles.container}>
       {hasContactPicker && (
         <>
-          <TouchableOpacity
-            style={styles.button}
+          <Button
+            mode="contained"
             onPress={handleContactPicker}
             disabled={loading}
+            loading={loading}
+            style={styles.button}
           >
-            <Text style={styles.buttonText}>
-              {loading ? "Loading..." : "👥 Pick from Browser Contacts"}
-            </Text>
-          </TouchableOpacity>
+            👥 Pick from Browser Contacts
+          </Button>
           <Text style={styles.divider}>OR</Text>
         </>
       )}
@@ -122,20 +117,20 @@ export default function ContactFileImport({ onImport }: Props) {
         style={{ display: "none" }}
         id="contact-file-input"
       />
-      <TouchableOpacity
-        style={styles.button}
+      <Button
+        mode="contained"
         onPress={() => {
           if (typeof document !== "undefined") {
             document.getElementById("contact-file-input")?.click();
           }
         }}
         disabled={loading}
+        loading={loading}
+        style={styles.button}
       >
-        <Text style={styles.buttonText}>
-          {loading ? "Loading..." : "📁 Upload Contacts File (.vcf or .csv)"}
-        </Text>
-      </TouchableOpacity>
-      <Text style={styles.hint}>
+        📁 Upload Contacts File (.vcf or .csv)
+      </Button>
+      <Text variant="bodySmall" style={styles.hint}>
         Export contacts from Gmail, Outlook, or your phone and upload here
       </Text>
     </View>
@@ -266,16 +261,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   button: {
-    backgroundColor: "#34C759",
-    padding: 16,
-    borderRadius: 8,
-    alignItems: "center",
     marginBottom: 8,
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
   },
   divider: {
     fontSize: 14,
@@ -285,9 +271,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   hint: {
-    fontSize: 12,
-    color: "#666",
     textAlign: "center",
     fontStyle: "italic",
+    marginTop: 8,
   },
 });

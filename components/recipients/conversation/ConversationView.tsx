@@ -1,15 +1,18 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
   View,
-  Text,
-  TextInput,
-  TouchableOpacity,
   ScrollView,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
 } from "react-native";
+import {
+  Text,
+  TextInput,
+  IconButton,
+  Button,
+  ActivityIndicator,
+} from "react-native-paper";
 import { Ionicons } from "@expo/vector-icons";
 import { Message } from "@/hooks/use-add-recipient-flow";
 
@@ -69,10 +72,16 @@ export function ConversationView({
     >
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onNavigateBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#231F20" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add Recipient</Text>
+        <IconButton
+          icon="arrow-back"
+          size={24}
+          iconColor="#231F20"
+          onPress={onNavigateBack}
+          style={styles.backButton}
+        />
+        <Text variant="titleLarge" style={styles.headerTitle}>
+          Add Recipient
+        </Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -101,6 +110,7 @@ export function ConversationView({
               ]}
             >
               <Text
+                variant="bodyLarge"
                 style={[
                   styles.messageText,
                   message.role === "user"
@@ -116,8 +126,10 @@ export function ConversationView({
 
         {isLoading && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#FFB6C1" />
-            <Text style={styles.loadingText}>Thinking...</Text>
+            <ActivityIndicator size="small" />
+            <Text variant="bodyMedium" style={styles.loadingText}>
+              Thinking...
+            </Text>
           </View>
         )}
 
@@ -127,31 +139,35 @@ export function ConversationView({
       {/* Input Area */}
       <View style={styles.inputContainer}>
         {shouldShowNextStepButton && (
-          <TouchableOpacity
-            style={styles.nextStepButton}
+          <Button
+            mode="contained"
+            buttonColor="#FFB6C1"
             onPress={onFinishConversation}
             disabled={isLoading || isSending}
+            style={styles.nextStepButton}
           >
-            <Text style={styles.nextStepButtonText}>
-              Let's Move to the Next Step
-            </Text>
-          </TouchableOpacity>
+            Let's Move to the Next Step
+          </Button>
         )}
 
         <View style={styles.inputRow}>
           <TextInput
-            style={styles.textInput}
+            mode="outlined"
             value={inputMessage}
             onChangeText={setInputMessage}
             placeholder="Type your message..."
-            placeholderTextColor="#999"
             onSubmitEditing={handleSend}
             returnKeyType="send"
             blurOnSubmit={false}
             maxLength={500}
             editable={!isLoading && !isSending}
+            style={styles.textInput}
+            contentStyle={styles.textInputContent}
           />
-          <TouchableOpacity
+          <IconButton
+            icon="send"
+            size={24}
+            iconColor="#fff"
             style={[
               styles.sendButton,
               (!inputMessage.trim() || isLoading || isSending) &&
@@ -159,13 +175,9 @@ export function ConversationView({
             ]}
             onPress={handleSend}
             disabled={!inputMessage.trim() || isLoading || isSending}
-          >
-            {isSending ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Ionicons name="send" size={20} color="#fff" />
-            )}
-          </TouchableOpacity>
+            containerColor="#FFB6C1"
+            loading={isSending}
+          />
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -188,13 +200,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   backButton: {
-    padding: 8,
+    margin: 0,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#231F20",
-  },
+  headerTitle: {},
   headerSpacer: {
     width: 40,
   },
@@ -230,7 +238,6 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 4,
   },
   messageText: {
-    fontSize: 16,
     lineHeight: 22,
   },
   userMessageText: {
@@ -247,7 +254,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginLeft: 8,
-    fontSize: 14,
     color: "#666",
   },
   inputContainer: {
@@ -258,17 +264,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   nextStepButton: {
-    backgroundColor: "#FFB6C1",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    alignItems: "center",
     marginBottom: 12,
-  },
-  nextStepButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
   },
   inputRow: {
     flexDirection: "row",
@@ -277,25 +273,14 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: "#231F20",
+  },
+  textInputContent: {
     backgroundColor: "#f5f5f5",
   },
   sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#FFB6C1",
-    justifyContent: "center",
-    alignItems: "center",
+    margin: 0,
   },
   sendButtonDisabled: {
-    backgroundColor: "#ccc",
     opacity: 0.5,
   },
 });

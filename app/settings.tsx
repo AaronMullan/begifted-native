@@ -1,10 +1,5 @@
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
+import { View, ScrollView, StyleSheet } from "react-native";
+import { Text, IconButton, Card } from "react-native-paper";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
@@ -41,7 +36,9 @@ export default function Settings() {
     return (
       <View style={styles.container}>
         <View style={styles.content}>
-          <Text style={styles.loadingText}>Loading...</Text>
+          <Text variant="bodyLarge" style={styles.loadingText}>
+            Loading...
+          </Text>
         </View>
       </View>
     );
@@ -51,8 +48,10 @@ export default function Settings() {
     return (
       <View style={styles.container}>
         <View style={styles.content}>
-          <Text style={styles.title}>Settings</Text>
-          <Text style={styles.subtitle}>
+          <Text variant="headlineMedium" style={styles.title}>
+            Settings
+          </Text>
+          <Text variant="bodyLarge" style={styles.subtitle}>
             Please sign in to manage your settings.
           </Text>
         </View>
@@ -107,57 +106,66 @@ export default function Settings() {
     <ScrollView style={styles.container}>
       <View style={styles.content}>
         {/* Main white card container */}
-        <View style={styles.mainCard}>
+        <Card style={styles.mainCard}>
           {/* Header section */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <Text style={styles.title}>Settings</Text>
-              <Text style={styles.subtitle}>
+              <Text variant="headlineMedium" style={styles.title}>
+                Settings
+              </Text>
+              <Text variant="bodyLarge" style={styles.subtitle}>
                 Manage your account and preferences
               </Text>
             </View>
-            <TouchableOpacity
+            <IconButton
+              icon="arrow-back"
+              size={20}
+              iconColor="#231F20"
               onPress={() => router.back()}
               style={styles.backButton}
-            >
-              <Ionicons name="arrow-back" size={20} color="#231F20" />
-            </TouchableOpacity>
+            />
           </View>
 
           {/* Settings cards */}
           <View style={styles.cardsContainer}>
             {settingsCards.map((card) => (
-              <TouchableOpacity
+              <Card
                 key={card.id}
                 style={styles.settingsCard}
                 onPress={() => router.push(card.route)}
               >
-                <View
-                  style={[
-                    styles.iconContainer,
-                    { backgroundColor: `${card.iconColor}20` },
-                  ]}
-                >
+                <Card.Content style={styles.cardContentWrapper}>
+                  <View
+                    style={[
+                      styles.iconContainer,
+                      { backgroundColor: `${card.iconColor}20` },
+                    ]}
+                  >
+                    <Ionicons
+                      name={card.icon as any}
+                      size={28}
+                      color={card.iconColor}
+                    />
+                  </View>
+                  <View style={styles.cardContent}>
+                    <Text variant="titleMedium" style={styles.cardTitle}>
+                      {card.title}
+                    </Text>
+                    <Text variant="bodyMedium" style={styles.cardDescription}>
+                      {card.description}
+                    </Text>
+                  </View>
                   <Ionicons
-                    name={card.icon as any}
-                    size={28}
-                    color={card.iconColor}
+                    name="chevron-forward"
+                    size={20}
+                    color="#999"
+                    style={styles.chevron}
                   />
-                </View>
-                <View style={styles.cardContent}>
-                  <Text style={styles.cardTitle}>{card.title}</Text>
-                  <Text style={styles.cardDescription}>{card.description}</Text>
-                </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color="#999"
-                  style={styles.chevron}
-                />
-              </TouchableOpacity>
+                </Card.Content>
+              </Card>
             ))}
           </View>
-        </View>
+        </Card>
       </View>
     </ScrollView>
   );
@@ -196,35 +204,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#231F20",
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
     color: "#666",
   },
   backButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    margin: 0,
   },
   cardsContainer: {
     gap: 16,
   },
   settingsCard: {
+    marginBottom: 0,
+  },
+  cardContentWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "white",
-    borderRadius: 12,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: "#f0f0f0",
   },
   iconContainer: {
     width: 56,
@@ -238,15 +234,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#231F20",
     marginBottom: 4,
   },
   cardDescription: {
-    fontSize: 14,
-    color: "#666",
     lineHeight: 20,
+    color: "#666",
   },
   chevron: {
     marginLeft: 12,

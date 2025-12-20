@@ -1,4 +1,5 @@
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
+import { Text, Card } from "react-native-paper";
 import { PreferenceOption } from "../constants/gifting-preferences";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -17,12 +18,14 @@ export default function PreferenceCard({
 }: PreferenceCardProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
+      <Text variant="titleMedium" style={styles.title}>
+        {title}
+      </Text>
       <View style={styles.optionsContainer}>
         {options.map((option) => {
           const isSelected = value === option.value;
           return (
-            <TouchableOpacity
+            <Card
               key={option.value}
               style={[
                 styles.option,
@@ -30,28 +33,32 @@ export default function PreferenceCard({
               ]}
               onPress={() => onValueChange(option.value)}
             >
-              <View style={styles.optionContent}>
-                <Text
-                  style={[
-                    styles.optionLabel,
-                    isSelected && styles.optionLabelSelected,
-                  ]}
-                >
-                  {option.label}
-                </Text>
-                <Text
-                  style={[
-                    styles.optionDescription,
-                    isSelected && styles.optionDescriptionSelected,
-                  ]}
-                >
-                  {option.description}
-                </Text>
-              </View>
-              {isSelected && (
-                <Ionicons name="checkmark-circle" size={24} color="#FFB6C1" />
-              )}
-            </TouchableOpacity>
+              <Card.Content>
+                <View style={styles.optionContent}>
+                  <Text
+                    variant="titleSmall"
+                    style={[
+                      styles.optionLabel,
+                      isSelected && styles.optionLabelSelected,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                  <Text
+                    variant="bodyMedium"
+                    style={[
+                      styles.optionDescription,
+                      isSelected && styles.optionDescriptionSelected,
+                    ]}
+                  >
+                    {option.description}
+                  </Text>
+                </View>
+                {isSelected && (
+                  <Ionicons name="checkmark-circle" size={24} color="#FFB6C1" />
+                )}
+              </Card.Content>
+            </Card>
           );
         })}
       </View>
@@ -64,23 +71,13 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   title: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#231F20",
     marginBottom: 12,
   },
   optionsContainer: {
     gap: 12,
   },
   option: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    backgroundColor: "#fff",
+    marginBottom: 0,
   },
   optionSelected: {
     borderColor: "#FFB6C1",
@@ -92,19 +89,12 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   optionLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#231F20",
     marginBottom: 4,
   },
   optionLabelSelected: {
     color: "#FF6B9D",
   },
-  optionDescription: {
-    fontSize: 14,
-    color: "#666",
-    lineHeight: 20,
-  },
+  optionDescription: {},
   optionDescriptionSelected: {
     color: "#888",
   },
