@@ -250,7 +250,7 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
             icon="close"
             size={24}
             onPress={onClose}
-            iconColor="#231F20"
+            iconColor="#000000"
           />
           <Text variant="titleLarge" style={styles.headerTitle}>
             {recipient.name}
@@ -449,8 +449,8 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
               {/* Delete Button */}
               <Button
                 mode="outlined"
-                buttonColor="#FF3B30"
-                textColor="#FF3B30"
+                buttonColor="#000000"
+                textColor="#000000"
                 icon="delete-outline"
                 onPress={handleDelete}
                 style={styles.deleteButton}
@@ -668,6 +668,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   suggestionPrice: {
-    color: "#34C759",
+    color: "#000000",
   },
 });

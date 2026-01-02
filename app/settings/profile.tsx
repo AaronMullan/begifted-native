@@ -235,7 +235,7 @@ export default function ProfileSettings() {
             <IconButton
               icon="arrow-back"
               size={20}
-              iconColor="#231F20"
+              iconColor="#000000"
               onPress={() => router.back()}
               style={styles.backButton}
             />
@@ -354,7 +354,7 @@ export default function ProfileSettings() {
           {/* Save Button */}
           <Button
             mode="contained"
-            buttonColor="#FFB6C1"
+            buttonColor="#000000"
             onPress={handleSave}
             disabled={saving || !hasChanges}
             loading={saving}
@@ -371,7 +371,7 @@ export default function ProfileSettings() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E6E6FA", // Light purple background
+    backgroundColor: "#FFFFFF", // White background
   },
   content: {
     flex: 1,

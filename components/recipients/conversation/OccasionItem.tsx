@@ -54,7 +54,7 @@ export function OccasionItem({ occasion, onToggle, onEdit }: OccasionItemProps) 
       <Card.Content>
         <View style={styles.occasionContent}>
           <View style={styles.occasionIcon}>
-            <Ionicons name="gift-outline" size={24} color="#FFB6C1" />
+            <Ionicons name="gift-outline" size={24} color="#000000" />
           </View>
           <View style={styles.occasionDetails}>
             <Text variant="titleSmall" style={styles.occasionType}>
@@ -74,8 +74,8 @@ export function OccasionItem({ occasion, onToggle, onEdit }: OccasionItemProps) 
         <Switch
           value={occasion.enabled}
           onValueChange={onToggle}
-          trackColor={{ false: "#E0E0E0", true: "#FFB6C1" }}
-          thumbColor={occasion.enabled ? "#FF6B9D" : "#f4f3f4"}
+          trackColor={{ false: "#E0E0E0", true: "#333333" }}
+          thumbColor={occasion.enabled ? "#000000" : "#f4f3f4"}
           ios_backgroundColor="#E0E0E0"
         />
       </Card.Content>
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#FFF0F5",
+    backgroundColor: "#F5F5F5",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   },
   occasionDate: {},
   addDateText: {
-    color: "#FF6B9D",
+    color: "#000000",
     fontStyle: "italic",
   },
 });

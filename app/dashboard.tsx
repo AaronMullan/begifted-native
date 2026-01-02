@@ -166,7 +166,7 @@ export default function Dashboard() {
               <Card style={styles.card}>
                 <Card.Content style={styles.cardContent}>
                   <View style={[styles.iconContainer, styles.recipientsIcon]}>
-                    <Ionicons name="people" size={32} color="#FFB6C1" />
+                    <Ionicons name="people" size={32} color="#000000" />
                   </View>
                   <Text variant="displaySmall" style={styles.cardNumber}>
                     {recipientsCount}
@@ -186,7 +186,7 @@ export default function Dashboard() {
               <Card style={styles.card}>
                 <Card.Content style={styles.cardContent}>
                   <View style={[styles.iconContainer, styles.upcomingIcon]}>
-                    <Ionicons name="calendar" size={32} color="#FFA500" />
+                    <Ionicons name="calendar" size={32} color="#000000" />
                   </View>
                   <Text variant="displaySmall" style={styles.cardNumber}>
                     {upcomingCount}
@@ -208,7 +208,7 @@ export default function Dashboard() {
             >
               <Card.Content style={styles.cardContent}>
                 <View style={[styles.iconContainer, styles.settingsIcon]}>
-                  <Ionicons name="settings" size={32} color="#9370DB" />
+                  <Ionicons name="settings" size={32} color="#000000" />
                 </View>
                 <Text variant="titleLarge" style={styles.settingsTitle}>
                   Settings
@@ -228,7 +228,7 @@ export default function Dashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E6E6FA", // Light purple background
+    backgroundColor: "#FFFFFF", // White background
   },
   content: {
     flex: 1,
@@ -285,13 +285,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8f8f8",
   },
   recipientsIcon: {
-    backgroundColor: "#FFF0F5",
+    backgroundColor: "#F5F5F5",
   },
   upcomingIcon: {
-    backgroundColor: "#FFF8E1",
+    backgroundColor: "#F5F5F5",
   },
   settingsIcon: {
-    backgroundColor: "#F3E5F5",
+    backgroundColor: "#F5F5F5",
   },
   cardNumber: {
     marginBottom: 8,

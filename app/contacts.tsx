@@ -364,8 +364,7 @@ export default function Contacts() {
               <ContactFileImport onImport={handleImportFromFile} />
             ) : (
               <Button
-                mode="contained"
-                buttonColor="#34C759"
+                mode="outlined"
                 onPress={handleImportFromDevice}
                 disabled={contactsLoading}
                 loading={contactsLoading}

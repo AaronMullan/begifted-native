@@ -111,7 +111,7 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
         <Animated.View style={buttonAnimatedStyle}>
           <Button
             mode="contained"
-            buttonColor="#FFB6C1"
+            buttonColor="#000000"
             onPress={onViewRecipients}
             style={styles.button}
             icon="arrow-forward"
@@ -151,13 +151,13 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: "#34C759",
+    backgroundColor: "#000000",
   },
   checkmarkWrapper: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: "#34C759",
+    backgroundColor: "#000000",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -173,10 +173,10 @@ const styles = StyleSheet.create({
   },
   recipientName: {
     fontWeight: "600",
-    color: "#231F20",
+    color: "#000000",
   },
   button: {
-    shadowColor: "#FFB6C1",
+    shadowColor: "#000000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

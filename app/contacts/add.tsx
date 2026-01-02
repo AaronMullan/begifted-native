@@ -83,7 +83,7 @@ const AddRecipient = () => {
   if (authLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FFB6C1" />
+        <ActivityIndicator size="large" color="#000000" />
         <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );

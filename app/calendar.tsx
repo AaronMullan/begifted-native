@@ -291,7 +291,7 @@ export default function Calendar() {
               onPress={() => router.back()}
               style={styles.backButton}
             >
-              <Ionicons name="arrow-back" size={20} color="#231F20" />
+              <Ionicons name="arrow-back" size={20} color="#000000" />
               <Text style={styles.backText}>Back</Text>
             </TouchableOpacity>
           </View>
@@ -395,7 +395,7 @@ export default function Calendar() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E6E6FA", // Light purple background
+    backgroundColor: "#FFFFFF", // White background
   },
   content: {
     flex: 1,
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#231F20",
+    color: "#000000",
     marginBottom: 8,
   },
   subtitle: {
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 14,
-    color: "#231F20",
+    color: "#000000",
     marginLeft: 4,
     fontWeight: "500",
   },
@@ -455,11 +455,11 @@ const styles = StyleSheet.create({
   occasionsCount: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#231F20",
+    color: "#000000",
   },
   addButton: {
     borderRadius: 8,
-    backgroundColor: "#FF8C42", // Orange-pink gradient color
+    backgroundColor: "#000000", // Black background
     overflow: "hidden",
   },
   addButtonContent: {
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
   monthHeader: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#231F20",
+    color: "#000000",
     marginBottom: 12,
   },
   occasionCard: {
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
   occasionTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#231F20",
+    color: "#000000",
     marginBottom: 4,
   },
   occasionDate: {
@@ -556,10 +556,10 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   daysUntilOrange: {
-    color: "#FFA500",
+    color: "#333333",
   },
   daysUntilGreen: {
-    color: "#34C759",
+    color: "#666666",
   },
   customLabel: {
     fontSize: 12,
