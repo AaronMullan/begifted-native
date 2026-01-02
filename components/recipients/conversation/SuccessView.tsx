@@ -89,7 +89,9 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
         {/* Animated checkmark circle */}
         <View style={styles.iconContainer}>
           <Animated.View style={[styles.ring, ringAnimatedStyle]} />
-          <Animated.View style={[styles.checkmarkWrapper, checkmarkAnimatedStyle]}>
+          <Animated.View
+            style={[styles.checkmarkWrapper, checkmarkAnimatedStyle]}
+          >
             <Ionicons name="checkmark" size={48} color="#fff" />
           </Animated.View>
         </View>
@@ -188,4 +190,3 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 });
-

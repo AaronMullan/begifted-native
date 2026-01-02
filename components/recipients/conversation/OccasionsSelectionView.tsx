@@ -25,7 +25,9 @@ export function OccasionsSelectionView({
     Array<{ date: string; occasion_type: string; enabled: boolean }>
   >([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [editingOccasionIndex, setEditingOccasionIndex] = useState<number | null>(null);
+  const [editingOccasionIndex, setEditingOccasionIndex] = useState<
+    number | null
+  >(null);
 
   useEffect(() => {
     const initialOccasions: Array<{

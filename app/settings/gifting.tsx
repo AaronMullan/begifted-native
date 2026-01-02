@@ -47,9 +47,8 @@ export default function GiftingPreferences() {
     autoFallbackEnabled: false,
   });
 
-  const [originalFormData, setOriginalFormData] = useState<GiftingPreferences>(
-    formData
-  );
+  const [originalFormData, setOriginalFormData] =
+    useState<GiftingPreferences>(formData);
   const [showReminderPicker, setShowReminderPicker] = useState(false);
 
   useEffect(() => {
@@ -351,7 +350,11 @@ export default function GiftingPreferences() {
                 !hasChanges && styles.saveButtonTextDisabled,
               ]}
             >
-              {saving ? "Saving..." : hasChanges ? "Save Preferences" : "No Changes"}
+              {saving
+                ? "Saving..."
+                : hasChanges
+                ? "Save Preferences"
+                : "No Changes"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -511,5 +514,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
-
-

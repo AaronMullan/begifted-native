@@ -98,7 +98,11 @@ export function OccasionEditor({
           </View>
 
           <View style={styles.footer}>
-            <Button mode="outlined" onPress={onClose} style={styles.cancelButton}>
+            <Button
+              mode="outlined"
+              onPress={onClose}
+              style={styles.cancelButton}
+            >
               Cancel
             </Button>
             <Button

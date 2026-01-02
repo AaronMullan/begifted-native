@@ -27,10 +27,7 @@ export default function PreferenceCard({
           return (
             <Card
               key={option.value}
-              style={[
-                styles.option,
-                isSelected && styles.optionSelected,
-              ]}
+              style={[styles.option, isSelected && styles.optionSelected]}
               onPress={() => onValueChange(option.value)}
             >
               <Card.Content>
@@ -99,5 +96,3 @@ const styles = StyleSheet.create({
     color: "#888",
   },
 });
-
-

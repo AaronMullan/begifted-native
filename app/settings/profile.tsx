@@ -75,17 +75,17 @@ export default function ProfileSettings() {
         // Set username (we know this field exists)
         const fetchedUsername = data.username || "";
         setUsername(fetchedUsername);
-        
+
         // Set full_name if it exists (might be stored as full_name or name)
         const fetchedFullName = data.full_name || data.name || "";
         setFullName(fetchedFullName);
-        
+
         // Set billing address fields if they exist
         const fetchedStreet = data.billing_address_street || "";
         const fetchedCity = data.billing_address_city || "";
         const fetchedState = data.billing_address_state || "";
         const fetchedZip = data.billing_address_zip || "";
-        
+
         setStreetAddress(fetchedStreet);
         setCity(fetchedCity);
         setState(fetchedState);
@@ -173,10 +173,7 @@ export default function ProfileSettings() {
     } catch (error) {
       console.error("Error saving profile:", error);
       if (error instanceof Error) {
-        Alert.alert(
-          "Error",
-          `Failed to save profile: ${error.message}`
-        );
+        Alert.alert("Error", `Failed to save profile: ${error.message}`);
       } else {
         Alert.alert("Error", "Failed to save profile. Please try again.");
       }
@@ -442,4 +439,3 @@ const styles = StyleSheet.create({
     color: "#666",
   },
 });
-

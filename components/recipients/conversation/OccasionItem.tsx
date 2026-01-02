@@ -12,12 +12,16 @@ interface OccasionItemProps {
   onEdit: () => void;
 }
 
-export function OccasionItem({ occasion, onToggle, onEdit }: OccasionItemProps) {
+export function OccasionItem({
+  occasion,
+  onToggle,
+  onEdit,
+}: OccasionItemProps) {
   const formatDate = (dateString: string): string => {
     if (!dateString || dateString.includes("01-01")) {
       return "Add Date";
     }
-    
+
     const parts = dateString.split("-");
     if (parts.length !== 3) {
       const date = new Date(dateString);
@@ -114,4 +118,3 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
 });
-

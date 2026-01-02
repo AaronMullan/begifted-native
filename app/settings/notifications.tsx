@@ -96,10 +96,8 @@ export default function Notifications() {
 
       if (data) {
         const prefs: NotificationPreferences = {
-          push_notifications_enabled:
-            data.push_notifications_enabled ?? true,
-          email_notifications_enabled:
-            data.email_notifications_enabled ?? true,
+          push_notifications_enabled: data.push_notifications_enabled ?? true,
+          email_notifications_enabled: data.email_notifications_enabled ?? true,
           reminder_2_weeks_before: data.reminder_2_weeks_before ?? true,
           reminder_1_week_before: data.reminder_1_week_before ?? true,
           reminder_day_of_event: data.reminder_day_of_event ?? true,
@@ -176,7 +174,8 @@ export default function Notifications() {
     setShowTimezonePicker(false);
   }
 
-  const hasChanges = JSON.stringify(preferences) !== JSON.stringify(originalPreferences);
+  const hasChanges =
+    JSON.stringify(preferences) !== JSON.stringify(originalPreferences);
   const currentTimezoneLabel =
     TIMEZONES.find((tz) => tz.value === preferences.timezone)?.label ||
     "Eastern Time (ET)";
@@ -283,7 +282,9 @@ export default function Notifications() {
               </View>
               <Switch
                 value={preferences.reminder_2_weeks_before}
-                onValueChange={() => togglePreference("reminder_2_weeks_before")}
+                onValueChange={() =>
+                  togglePreference("reminder_2_weeks_before")
+                }
                 trackColor={{ false: "#E0E0E0", true: "#333333" }}
                 thumbColor="#fff"
               />
@@ -336,7 +337,9 @@ export default function Notifications() {
               </View>
               <Switch
                 value={preferences.feedback_requests_enabled}
-                onValueChange={() => togglePreference("feedback_requests_enabled")}
+                onValueChange={() =>
+                  togglePreference("feedback_requests_enabled")
+                }
                 trackColor={{ false: "#E0E0E0", true: "#333333" }}
                 thumbColor="#fff"
               />
@@ -443,7 +446,11 @@ export default function Notifications() {
                 !hasChanges && styles.saveButtonTextDisabled,
               ]}
             >
-              {saving ? "Saving..." : hasChanges ? "Save Changes" : "No Changes"}
+              {saving
+                ? "Saving..."
+                : hasChanges
+                ? "Save Changes"
+                : "No Changes"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -605,5 +612,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
-
-
