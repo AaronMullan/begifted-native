@@ -31,7 +31,11 @@ export default function RecipientCard({
   // Format birthday for display
   const formatBirthday = (birthday?: string) => {
     if (!birthday) return null;
-    const date = new Date(birthday);
+
+    // Parse YYYY-MM-DD format and create date in local timezone
+    const [year, month, day] = birthday.split("-").map(Number);
+    const date = new Date(year, month - 1, day); // month is 0-indexed
+
     return date.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",

@@ -9,6 +9,7 @@ import RecipientCard from "../components/RecipientCard";
 import { RecipientEditModal } from "../components/RecipientEditModal";
 import RecipientForm from "../components/RecipientForm";
 import { DeviceContact, useDeviceContacts } from "../hooks/use-device-contacts";
+import { useToast } from "../hooks/use-toast";
 import { supabase } from "../lib/supabase";
 import { Recipient } from "../types/recipient";
 
@@ -43,6 +44,7 @@ export default function Contacts() {
   const [pickerVisible, setPickerVisible] = useState(false);
   const [deviceContacts, setDeviceContacts] = useState<DeviceContact[]>([]);
   const { loading: contactsLoading, getDeviceContacts } = useDeviceContacts();
+  const { showToast, toast } = useToast();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -340,119 +342,123 @@ export default function Contacts() {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <Text variant="headlineMedium" style={styles.title}>
-          My Contacts
-        </Text>
-        <Text variant="bodyLarge" style={styles.subtitle}>
-          Manage the people you want to send gifts to.
-        </Text>
-
-        {!formVisible && (
-          <>
-            <Button
-              mode="contained"
-              onPress={() => router.push("/contacts/add")}
-              style={styles.addButton}
-              icon="plus"
-            >
-              Add Recipient
-            </Button>
-
-            {Platform.OS === "web" ? (
-              <ContactFileImport onImport={handleImportFromFile} />
-            ) : (
-              <Button
-                mode="outlined"
-                onPress={handleImportFromDevice}
-                disabled={contactsLoading}
-                loading={contactsLoading}
-                style={styles.importButton}
-                icon="phone"
-              >
-                Import from Device Contacts
-              </Button>
-            )}
-          </>
-        )}
-
-        {formVisible && (
-          <RecipientForm
-            editingRecipient={editingRecipient}
-            name={name}
-            relationshipType={relationshipType}
-            interests={interests}
-            birthday={birthday}
-            emotionalTone={emotionalTone}
-            budgetMin={budgetMin}
-            budgetMax={budgetMax}
-            address={address}
-            addressLine2={addressLine2}
-            city={city}
-            state={state}
-            zipCode={zipCode}
-            country={country}
-            loading={loading}
-            onNameChange={setName}
-            onRelationshipTypeChange={setRelationshipType}
-            onInterestsChange={setInterests}
-            onBirthdayChange={setBirthday}
-            onEmotionalToneChange={setEmotionalTone}
-            onBudgetMinChange={setBudgetMin}
-            onBudgetMaxChange={setBudgetMax}
-            onAddressChange={setAddress}
-            onAddressLine2Change={setAddressLine2}
-            onCityChange={setCity}
-            onStateChange={setState}
-            onZipCodeChange={setZipCode}
-            onCountryChange={setCountry}
-            onSave={saveRecipient}
-            onCancel={closeForm}
-          />
-        )}
-
-        {loading && recipients.length === 0 ? (
-          <Text variant="bodyLarge" style={styles.loadingText}>
-            Loading...
+    <View style={styles.container}>
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.content}>
+          <Text variant="headlineMedium" style={styles.title}>
+            My Contacts
           </Text>
-        ) : recipients.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text variant="titleLarge" style={styles.emptyText}>
-              No recipients yet.
+          <Text variant="bodyLarge" style={styles.subtitle}>
+            Manage the people you want to send gifts to.
+          </Text>
+
+          {!formVisible && (
+            <>
+              <Button
+                mode="contained"
+                onPress={() => router.push("/contacts/add")}
+                style={styles.addButton}
+                icon="plus"
+              >
+                Add Recipient
+              </Button>
+
+              {Platform.OS === "web" ? (
+                <ContactFileImport onImport={handleImportFromFile} />
+              ) : (
+                <Button
+                  mode="outlined"
+                  onPress={handleImportFromDevice}
+                  disabled={contactsLoading}
+                  loading={contactsLoading}
+                  style={styles.importButton}
+                  icon="phone"
+                >
+                  Import from Device Contacts
+                </Button>
+              )}
+            </>
+          )}
+
+          {formVisible && (
+            <RecipientForm
+              editingRecipient={editingRecipient}
+              name={name}
+              relationshipType={relationshipType}
+              interests={interests}
+              birthday={birthday}
+              emotionalTone={emotionalTone}
+              budgetMin={budgetMin}
+              budgetMax={budgetMax}
+              address={address}
+              addressLine2={addressLine2}
+              city={city}
+              state={state}
+              zipCode={zipCode}
+              country={country}
+              loading={loading}
+              onNameChange={setName}
+              onRelationshipTypeChange={setRelationshipType}
+              onInterestsChange={setInterests}
+              onBirthdayChange={setBirthday}
+              onEmotionalToneChange={setEmotionalTone}
+              onBudgetMinChange={setBudgetMin}
+              onBudgetMaxChange={setBudgetMax}
+              onAddressChange={setAddress}
+              onAddressLine2Change={setAddressLine2}
+              onCityChange={setCity}
+              onStateChange={setState}
+              onZipCodeChange={setZipCode}
+              onCountryChange={setCountry}
+              onSave={saveRecipient}
+              onCancel={closeForm}
+            />
+          )}
+
+          {loading && recipients.length === 0 ? (
+            <Text variant="bodyLarge" style={styles.loadingText}>
+              Loading...
             </Text>
-            <Text variant="bodyMedium" style={styles.emptySubtext}>
-              Add your first recipient to get started!
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.list}>
-            {recipients.map((recipient) => (
-              <RecipientCard
-                key={recipient.id}
-                recipient={recipient}
-                onEdit={openEditForm}
-                onDelete={deleteRecipient}
-              />
-            ))}
-          </View>
-        )}
-      </View>
-      <ContactPicker
-        visible={pickerVisible}
-        contacts={deviceContacts}
-        onSelect={handleSelectContact}
-        onClose={() => setPickerVisible(false)}
-      />
-      <RecipientEditModal
-        visible={editModalVisible}
-        recipient={selectedRecipient}
-        onClose={handleModalClose}
-        onSave={handleModalSave}
-        onDelete={deleteRecipient}
-        initialTab="details"
-      />
-    </ScrollView>
+          ) : recipients.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text variant="titleLarge" style={styles.emptyText}>
+                No recipients yet.
+              </Text>
+              <Text variant="bodyMedium" style={styles.emptySubtext}>
+                Add your first recipient to get started!
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.list}>
+              {recipients.map((recipient) => (
+                <RecipientCard
+                  key={recipient.id}
+                  recipient={recipient}
+                  onEdit={openEditForm}
+                  onDelete={deleteRecipient}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+        <ContactPicker
+          visible={pickerVisible}
+          contacts={deviceContacts}
+          onSelect={handleSelectContact}
+          onClose={() => setPickerVisible(false)}
+        />
+        <RecipientEditModal
+          visible={editModalVisible}
+          recipient={selectedRecipient}
+          onClose={handleModalClose}
+          onSave={handleModalSave}
+          onDelete={deleteRecipient}
+          initialTab="details"
+          onShowToast={showToast}
+        />
+      </ScrollView>
+      {toast}
+    </View>
   );
 }
 
@@ -460,6 +466,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
+  },
+  scrollView: {
+    flex: 1,
   },
   content: {
     maxWidth: 800,

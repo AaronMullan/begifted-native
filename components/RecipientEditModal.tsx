@@ -28,6 +28,7 @@ type RecipientEditModalProps = {
   onSave: (updatedRecipient: Partial<Recipient>) => Promise<void>;
   onDelete: (id: string) => void;
   initialTab?: "details" | "gifts";
+  onShowToast?: (message: string) => void;
 };
 
 export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
@@ -37,6 +38,7 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
   onSave,
   onDelete,
   initialTab = "gifts",
+  onShowToast,
 }) => {
   // Form state
   const [name, setName] = useState("");
@@ -58,6 +60,7 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
   const [suggestions, setSuggestions] = useState<GiftSuggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "gifts">(initialTab);
+  const [hasChanges, setHasChanges] = useState(false);
 
   // Reset active tab when modal is opened for a recipient
   useEffect(() => {
@@ -109,25 +112,50 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
 
   // Store original values when modal opens (before any edits)
   const [originalValues, setOriginalValues] = useState<{
+    name: string;
+    birthday: string;
     relationship_type: string;
     interests: string;
     emotional_tone_preference: string;
     gift_budget_min?: number;
     gift_budget_max?: number;
+    address: string;
+    address_line_2: string;
+    city: string;
+    state: string;
+    zip_code: string;
+    country: string;
   } | null>(null);
 
   // Capture original values when recipient changes
   useEffect(() => {
     if (recipient) {
       setOriginalValues({
+        name: recipient.name,
+        birthday: recipient.birthday || "",
         relationship_type: recipient.relationship_type,
         interests: recipient.interests?.join(", ") || "",
         emotional_tone_preference: recipient.emotional_tone_preference || "",
         gift_budget_min: recipient.gift_budget_min,
         gift_budget_max: recipient.gift_budget_max,
+        address: recipient.address || "",
+        address_line_2: recipient.address_line_2 || "",
+        city: recipient.city || "",
+        state: recipient.state || "",
+        zip_code: recipient.zip_code || "",
+        country: recipient.country || "US",
       });
+      setHasChanges(false); // Reset when recipient changes
     }
   }, [recipient?.id]); // Only update when recipient ID changes, not on every re-render
+
+  // Utility function to wrap onChangeText handlers and mark changes
+  const createChangeHandler = (setter: (value: string) => void) => {
+    return (value: string) => {
+      setter(value);
+      setHasChanges(true);
+    };
+  };
 
   const handleSave = async () => {
     if (!recipient || !name.trim() || !relationshipType.trim()) {
@@ -144,10 +172,14 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
       const newInterests = interestsArray.join(", ");
       const newBudgetMin = budgetMin ? parseInt(budgetMin) : undefined;
       const newBudgetMax = budgetMax ? parseInt(budgetMax) : undefined;
+      const newBirthday = birthday.trim() || "";
+      const newName = name.trim();
 
       // Check if gift-relevant fields have changed from original
       const hasGiftRelevantChanges = originalValues
-        ? relationshipType.trim() !== originalValues.relationship_type ||
+        ? newName !== originalValues.name ||
+          newBirthday !== originalValues.birthday ||
+          relationshipType.trim() !== originalValues.relationship_type ||
           newInterests !== originalValues.interests ||
           emotionalTone.trim() !== originalValues.emotional_tone_preference ||
           newBudgetMin !== originalValues.gift_budget_min ||
@@ -156,6 +188,8 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
 
       console.log("Save check:", {
         hasGiftRelevantChanges,
+        nameChanged: newName !== originalValues?.name,
+        birthdayChanged: newBirthday !== originalValues?.birthday,
         newInterests,
         originalInterests: originalValues?.interests,
         relationshipChanged:
@@ -193,18 +227,27 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
           console.error("Failed to trigger gift generation:", err);
         });
 
-        // Show alert - use window.alert on web for reliability
+        // Show toast notification first, then close modal
         const message = `${name}'s profile has been updated. New gift suggestions are being generated and will appear shortly.`;
-        if (typeof window !== "undefined" && window.alert) {
-          window.alert(message);
-        } else {
-          Alert.alert("Saved!", message);
+        if (onShowToast) {
+          onShowToast(message);
         }
-        onClose();
+        // Close modal after a brief delay to ensure toast is visible
+        setTimeout(() => {
+          onClose();
+        }, 300);
       } else {
         console.log("No gift-relevant changes detected, closing modal");
-        onClose();
+        // Show toast for any save, even without gift-relevant changes
+        if (onShowToast) {
+          onShowToast(`${name}'s profile has been updated.`);
+        }
+        // Close modal after a brief delay to ensure toast is visible
+        setTimeout(() => {
+          onClose();
+        }, 300);
       }
+      setHasChanges(false); // Reset after successful save
     } catch (error) {
       console.error("Error saving recipient:", error);
       Alert.alert("Error", "Failed to save changes. Please try again.");
@@ -255,16 +298,23 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
           <Text variant="titleLarge" style={styles.headerTitle}>
             {recipient.name}
           </Text>
-          <Button
-            mode="contained"
-            onPress={handleSave}
-            disabled={saving || !name.trim() || !relationshipType.trim()}
-            loading={saving}
-            style={styles.saveButton}
-            compact
-          >
-            Save
-          </Button>
+          {activeTab !== "gifts" && (
+            <Button
+              mode="contained"
+              onPress={handleSave}
+              disabled={
+                saving ||
+                !name.trim() ||
+                !relationshipType.trim() ||
+                !hasChanges
+              }
+              loading={saving}
+              style={styles.saveButton}
+              compact
+            >
+              Save
+            </Button>
+          )}
         </View>
 
         {/* Tabs */}
@@ -302,7 +352,7 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
                 mode="outlined"
                 label="Name *"
                 value={name}
-                onChangeText={setName}
+                onChangeText={createChangeHandler(setName)}
                 placeholder="e.g., Sarah Johnson"
                 style={styles.input}
               />
@@ -311,7 +361,7 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
                 mode="outlined"
                 label="Relationship *"
                 value={relationshipType}
-                onChangeText={setRelationshipType}
+                onChangeText={createChangeHandler(setRelationshipType)}
                 placeholder="e.g., Sister, Friend, Colleague"
                 style={styles.input}
               />
@@ -320,7 +370,7 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
                 mode="outlined"
                 label="Birthday"
                 value={birthday}
-                onChangeText={setBirthday}
+                onChangeText={createChangeHandler(setBirthday)}
                 placeholder="YYYY-MM-DD"
                 style={styles.input}
               />
@@ -329,7 +379,7 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
                 mode="outlined"
                 label="Interests"
                 value={interests}
-                onChangeText={setInterests}
+                onChangeText={createChangeHandler(setInterests)}
                 placeholder="e.g., reading, hiking, coffee (comma-separated)"
                 multiline
                 numberOfLines={3}
@@ -344,7 +394,7 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
                 mode="outlined"
                 label="Emotional Tone"
                 value={emotionalTone}
-                onChangeText={setEmotionalTone}
+                onChangeText={createChangeHandler(setEmotionalTone)}
                 placeholder="e.g., heartfelt, playful, elegant"
                 style={styles.input}
               />
@@ -358,7 +408,7 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
                     mode="outlined"
                     label="Min ($)"
                     value={budgetMin}
-                    onChangeText={setBudgetMin}
+                    onChangeText={createChangeHandler(setBudgetMin)}
                     placeholder="25"
                     keyboardType="numeric"
                     style={styles.input}
@@ -369,7 +419,7 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
                     mode="outlined"
                     label="Max ($)"
                     value={budgetMax}
-                    onChangeText={setBudgetMax}
+                    onChangeText={createChangeHandler(setBudgetMax)}
                     placeholder="100"
                     keyboardType="numeric"
                     style={styles.input}
@@ -385,7 +435,7 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
                 mode="outlined"
                 label="Address Line 1"
                 value={address}
-                onChangeText={setAddress}
+                onChangeText={createChangeHandler(setAddress)}
                 placeholder="123 Main St"
                 style={styles.input}
               />
@@ -394,7 +444,7 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
                 mode="outlined"
                 label="Address Line 2"
                 value={addressLine2}
-                onChangeText={setAddressLine2}
+                onChangeText={createChangeHandler(setAddressLine2)}
                 placeholder="Apt 4B"
                 style={styles.input}
               />
@@ -405,7 +455,7 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
                     mode="outlined"
                     label="City"
                     value={city}
-                    onChangeText={setCity}
+                    onChangeText={createChangeHandler(setCity)}
                     placeholder="New York"
                     style={styles.input}
                   />
@@ -415,7 +465,7 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
                     mode="outlined"
                     label="State"
                     value={state}
-                    onChangeText={setState}
+                    onChangeText={createChangeHandler(setState)}
                     placeholder="NY"
                     style={styles.input}
                   />
@@ -428,7 +478,7 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
                     mode="outlined"
                     label="Zip Code"
                     value={zipCode}
-                    onChangeText={setZipCode}
+                    onChangeText={createChangeHandler(setZipCode)}
                     placeholder="10001"
                     keyboardType="numeric"
                     style={styles.input}
@@ -439,7 +489,7 @@ export const RecipientEditModal: React.FC<RecipientEditModalProps> = ({
                     mode="outlined"
                     label="Country"
                     value={country}
-                    onChangeText={setCountry}
+                    onChangeText={createChangeHandler(setCountry)}
                     placeholder="US"
                     style={styles.input}
                   />
