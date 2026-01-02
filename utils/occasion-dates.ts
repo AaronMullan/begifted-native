@@ -41,12 +41,19 @@ export function lookupOccasionDate(
   // Check fixed holidays first
   if (fixedHolidays[normalized]) {
     const { month, day } = fixedHolidays[normalized];
-    const date = new Date(targetYear, month - 1, day);
-    // If date has passed this year and no year specified, use next year
-    if (!year && date < currentDate) {
-      return new Date(targetYear + 1, month - 1, day).toISOString().split("T")[0];
+    let targetYearToUse = targetYear;
+    
+    // Always check if date has passed - if so, use next year (unless year was explicitly provided)
+    // Normalize dates to midnight for accurate comparison
+    const dateForThisYear = new Date(currentYear, month - 1, day);
+    const todayNormalized = new Date(currentYear, currentDate.getMonth(), currentDate.getDate());
+    
+    if (!year && dateForThisYear < todayNormalized) {
+      targetYearToUse = currentYear + 1;
     }
-    return date.toISOString().split("T")[0];
+    
+    const finalDate = new Date(targetYearToUse, month - 1, day);
+    return finalDate.toISOString().split("T")[0];
   }
   
   // Variable holidays that need calculation

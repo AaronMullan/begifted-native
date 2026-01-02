@@ -73,7 +73,7 @@ export function ConversationView({
       {/* Header */}
       <View style={styles.header}>
         <IconButton
-          icon="arrow-back"
+          icon="arrow-left"
           size={24}
           iconColor="#000000"
           onPress={onNavigateBack}
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   userMessageText: {
-    color: "#000000",
+    color: "#FFFFFF",
   },
   assistantMessageText: {
     color: "#000000",
@@ -281,6 +281,6 @@ const styles = StyleSheet.create({
     margin: 0,
   },
   sendButtonDisabled: {
-    opacity: 0.5,
+    opacity: 0.6,
   },
 });

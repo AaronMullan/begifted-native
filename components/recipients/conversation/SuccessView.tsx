@@ -116,7 +116,7 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
             buttonColor="#000000"
             onPress={onViewRecipients}
             style={styles.button}
-            icon="arrow-forward"
+            icon="arrow-right"
           >
             View Recipients
           </Button>
