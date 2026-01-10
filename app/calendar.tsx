@@ -10,7 +10,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { RecipientEditModal } from "../components/RecipientEditModal";
 import { supabase } from "../lib/supabase";
 import { Recipient } from "../types/recipient";
 import { useToast } from "../hooks/use-toast";
@@ -34,10 +33,6 @@ export default function Calendar() {
   const [session, setSession] = useState<Session | null>(null);
   const [occasions, setOccasions] = useState<Occasion[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [selectedRecipient, setSelectedRecipient] = useState<Recipient | null>(
-    null
-  );
   const router = useRouter();
   const { showToast, toast } = useToast();
 
@@ -190,69 +185,8 @@ export default function Calendar() {
     return `${possessive} ${occasionType}`;
   }
 
-  async function handleOccasionPress(occasion: Occasion) {
-    try {
-      // Fetch full recipient data
-      const { data, error } = await supabase
-        .from("recipients")
-        .select("*")
-        .eq("id", occasion.recipient_id)
-        .single();
-
-      if (error) throw error;
-
-      setSelectedRecipient(data);
-      setEditModalVisible(true);
-    } catch (error) {
-      console.error("Error fetching recipient:", error);
-      Alert.alert("Error", "Failed to load recipient details");
-    }
-  }
-
-  async function handleModalSave(updatedData: Partial<Recipient>) {
-    if (!session?.user || !selectedRecipient) return;
-
-    const { data, error } = await supabase
-      .from("recipients")
-      .update({
-        ...updatedData,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", selectedRecipient.id)
-      .eq("user_id", session.user.id)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    // Refresh occasions to reflect any changes
-    fetchOccasions(session.user.id);
-  }
-
-  async function handleDeleteRecipient(id: string) {
-    if (!session?.user) return;
-
-    try {
-      const { error } = await supabase
-        .from("recipients")
-        .delete()
-        .eq("id", id)
-        .eq("user_id", session.user.id);
-
-      if (error) throw error;
-
-      // Refresh occasions
-      fetchOccasions(session.user.id);
-      Alert.alert("Success", "Recipient deleted");
-    } catch (error) {
-      console.error("Error deleting recipient:", error);
-      Alert.alert("Error", "Failed to delete recipient");
-    }
-  }
-
-  function handleModalClose() {
-    setEditModalVisible(false);
-    setSelectedRecipient(null);
+  function handleOccasionPress(occasion: Occasion) {
+    router.push(`/contacts/${occasion.recipient_id}?tab=gifts`);
   }
 
   const groupedOccasions = groupOccasionsByMonth(occasions);
@@ -383,15 +317,6 @@ export default function Calendar() {
             )}
           </View>
         </View>
-        <RecipientEditModal
-          visible={editModalVisible}
-          recipient={selectedRecipient}
-          onClose={handleModalClose}
-          onSave={handleModalSave}
-          onDelete={handleDeleteRecipient}
-          initialTab="gifts"
-          onShowToast={showToast}
-        />
       </ScrollView>
       {toast}
     </View>

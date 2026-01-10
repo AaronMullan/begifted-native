@@ -6,7 +6,6 @@ import { Text, Button } from "react-native-paper";
 import ContactFileImport from "../components/ContactFileImport";
 import ContactPicker from "../components/ContactPicker";
 import RecipientCard from "../components/RecipientCard";
-import { RecipientEditModal } from "../components/RecipientEditModal";
 import RecipientForm from "../components/RecipientForm";
 import { DeviceContact, useDeviceContacts } from "../hooks/use-device-contacts";
 import { useToast } from "../hooks/use-toast";
@@ -19,10 +18,6 @@ export default function Contacts() {
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [loading, setLoading] = useState(true);
   const [formVisible, setFormVisible] = useState(false);
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [selectedRecipient, setSelectedRecipient] = useState<Recipient | null>(
-    null
-  );
   const [editingRecipient, setEditingRecipient] = useState<Recipient | null>(
     null
   );
@@ -113,8 +108,7 @@ export default function Contacts() {
   }
 
   function openEditForm(recipient: Recipient) {
-    setSelectedRecipient(recipient);
-    setEditModalVisible(true);
+    router.push(`/contacts/${recipient.id}?tab=details`);
   }
 
   function closeForm() {
@@ -251,31 +245,6 @@ export default function Contacts() {
     }
   }
 
-  async function handleModalSave(updatedData: Partial<Recipient>) {
-    if (!session?.user || !selectedRecipient) return;
-
-    const { data, error } = await supabase
-      .from("recipients")
-      .update({
-        ...updatedData,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", selectedRecipient.id)
-      .eq("user_id", session.user.id)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    setRecipients(
-      recipients.map((r) => (r.id === selectedRecipient.id ? data : r))
-    );
-  }
-
-  function handleModalClose() {
-    setEditModalVisible(false);
-    setSelectedRecipient(null);
-  }
   async function handleImportFromDevice() {
     const contacts = await getDeviceContacts();
     setDeviceContacts(contacts);
@@ -446,15 +415,6 @@ export default function Contacts() {
           contacts={deviceContacts}
           onSelect={handleSelectContact}
           onClose={() => setPickerVisible(false)}
-        />
-        <RecipientEditModal
-          visible={editModalVisible}
-          recipient={selectedRecipient}
-          onClose={handleModalClose}
-          onSave={handleModalSave}
-          onDelete={deleteRecipient}
-          initialTab="details"
-          onShowToast={showToast}
         />
       </ScrollView>
       {toast}
