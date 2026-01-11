@@ -69,7 +69,7 @@ export function OccasionEditor({
             <IconButton
               icon="close"
               size={24}
-              iconColor="#231F20"
+              iconColor="#000000"
               onPress={onClose}
               style={styles.closeButton}
             />
@@ -98,12 +98,16 @@ export function OccasionEditor({
           </View>
 
           <View style={styles.footer}>
-            <Button mode="outlined" onPress={onClose} style={styles.cancelButton}>
+            <Button
+              mode="outlined"
+              onPress={onClose}
+              style={styles.cancelButton}
+            >
               Cancel
             </Button>
             <Button
               mode="contained"
-              buttonColor="#FFB6C1"
+              buttonColor="#000000"
               onPress={handleSave}
               style={styles.saveButton}
             >

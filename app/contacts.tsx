@@ -6,9 +6,9 @@ import { Text, Button } from "react-native-paper";
 import ContactFileImport from "../components/ContactFileImport";
 import ContactPicker from "../components/ContactPicker";
 import RecipientCard from "../components/RecipientCard";
-import { RecipientEditModal } from "../components/RecipientEditModal";
 import RecipientForm from "../components/RecipientForm";
 import { DeviceContact, useDeviceContacts } from "../hooks/use-device-contacts";
+import { useToast } from "../hooks/use-toast";
 import { supabase } from "../lib/supabase";
 import { Recipient } from "../types/recipient";
 
@@ -18,10 +18,6 @@ export default function Contacts() {
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [loading, setLoading] = useState(true);
   const [formVisible, setFormVisible] = useState(false);
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [selectedRecipient, setSelectedRecipient] = useState<Recipient | null>(
-    null
-  );
   const [editingRecipient, setEditingRecipient] = useState<Recipient | null>(
     null
   );
@@ -43,6 +39,7 @@ export default function Contacts() {
   const [pickerVisible, setPickerVisible] = useState(false);
   const [deviceContacts, setDeviceContacts] = useState<DeviceContact[]>([]);
   const { loading: contactsLoading, getDeviceContacts } = useDeviceContacts();
+  const { showToast, toast } = useToast();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -111,8 +108,7 @@ export default function Contacts() {
   }
 
   function openEditForm(recipient: Recipient) {
-    setSelectedRecipient(recipient);
-    setEditModalVisible(true);
+    router.push(`/contacts/${recipient.id}?tab=details`);
   }
 
   function closeForm() {
@@ -249,31 +245,6 @@ export default function Contacts() {
     }
   }
 
-  async function handleModalSave(updatedData: Partial<Recipient>) {
-    if (!session?.user || !selectedRecipient) return;
-
-    const { data, error } = await supabase
-      .from("recipients")
-      .update({
-        ...updatedData,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", selectedRecipient.id)
-      .eq("user_id", session.user.id)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    setRecipients(
-      recipients.map((r) => (r.id === selectedRecipient.id ? data : r))
-    );
-  }
-
-  function handleModalClose() {
-    setEditModalVisible(false);
-    setSelectedRecipient(null);
-  }
   async function handleImportFromDevice() {
     const contacts = await getDeviceContacts();
     setDeviceContacts(contacts);
@@ -340,120 +311,114 @@ export default function Contacts() {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <Text variant="headlineMedium" style={styles.title}>
-          My Contacts
-        </Text>
-        <Text variant="bodyLarge" style={styles.subtitle}>
-          Manage the people you want to send gifts to.
-        </Text>
+    <View style={styles.container}>
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.content}>
+          <Text variant="headlineMedium" style={styles.title}>
+            My Contacts
+          </Text>
+          <Text variant="bodyLarge" style={styles.subtitle}>
+            Manage the people you want to send gifts to.
+          </Text>
 
-        {!formVisible && (
-          <>
-            <Button
-              mode="contained"
-              onPress={() => router.push("/contacts/add")}
-              style={styles.addButton}
-              icon="plus"
-            >
-              Add Recipient
-            </Button>
-
-            {Platform.OS === "web" ? (
-              <ContactFileImport onImport={handleImportFromFile} />
-            ) : (
+          {!formVisible && (
+            <>
               <Button
                 mode="contained"
-                buttonColor="#34C759"
-                onPress={handleImportFromDevice}
-                disabled={contactsLoading}
-                loading={contactsLoading}
-                style={styles.importButton}
-                icon="phone"
+                onPress={() => router.push("/contacts/add")}
+                style={styles.addButton}
+                icon="plus"
               >
-                Import from Device Contacts
+                Add Recipient
               </Button>
-            )}
-          </>
-        )}
 
-        {formVisible && (
-          <RecipientForm
-            editingRecipient={editingRecipient}
-            name={name}
-            relationshipType={relationshipType}
-            interests={interests}
-            birthday={birthday}
-            emotionalTone={emotionalTone}
-            budgetMin={budgetMin}
-            budgetMax={budgetMax}
-            address={address}
-            addressLine2={addressLine2}
-            city={city}
-            state={state}
-            zipCode={zipCode}
-            country={country}
-            loading={loading}
-            onNameChange={setName}
-            onRelationshipTypeChange={setRelationshipType}
-            onInterestsChange={setInterests}
-            onBirthdayChange={setBirthday}
-            onEmotionalToneChange={setEmotionalTone}
-            onBudgetMinChange={setBudgetMin}
-            onBudgetMaxChange={setBudgetMax}
-            onAddressChange={setAddress}
-            onAddressLine2Change={setAddressLine2}
-            onCityChange={setCity}
-            onStateChange={setState}
-            onZipCodeChange={setZipCode}
-            onCountryChange={setCountry}
-            onSave={saveRecipient}
-            onCancel={closeForm}
-          />
-        )}
+              {Platform.OS === "web" ? (
+                <ContactFileImport onImport={handleImportFromFile} />
+              ) : (
+                <Button
+                  mode="outlined"
+                  onPress={handleImportFromDevice}
+                  disabled={contactsLoading}
+                  loading={contactsLoading}
+                  style={styles.importButton}
+                  icon="phone"
+                >
+                  Import from Device Contacts
+                </Button>
+              )}
+            </>
+          )}
 
-        {loading && recipients.length === 0 ? (
-          <Text variant="bodyLarge" style={styles.loadingText}>
-            Loading...
-          </Text>
-        ) : recipients.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text variant="titleLarge" style={styles.emptyText}>
-              No recipients yet.
+          {formVisible && (
+            <RecipientForm
+              editingRecipient={editingRecipient}
+              name={name}
+              relationshipType={relationshipType}
+              interests={interests}
+              birthday={birthday}
+              emotionalTone={emotionalTone}
+              budgetMin={budgetMin}
+              budgetMax={budgetMax}
+              address={address}
+              addressLine2={addressLine2}
+              city={city}
+              state={state}
+              zipCode={zipCode}
+              country={country}
+              loading={loading}
+              onNameChange={setName}
+              onRelationshipTypeChange={setRelationshipType}
+              onInterestsChange={setInterests}
+              onBirthdayChange={setBirthday}
+              onEmotionalToneChange={setEmotionalTone}
+              onBudgetMinChange={setBudgetMin}
+              onBudgetMaxChange={setBudgetMax}
+              onAddressChange={setAddress}
+              onAddressLine2Change={setAddressLine2}
+              onCityChange={setCity}
+              onStateChange={setState}
+              onZipCodeChange={setZipCode}
+              onCountryChange={setCountry}
+              onSave={saveRecipient}
+              onCancel={closeForm}
+            />
+          )}
+
+          {loading && recipients.length === 0 ? (
+            <Text variant="bodyLarge" style={styles.loadingText}>
+              Loading...
             </Text>
-            <Text variant="bodyMedium" style={styles.emptySubtext}>
-              Add your first recipient to get started!
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.list}>
-            {recipients.map((recipient) => (
-              <RecipientCard
-                key={recipient.id}
-                recipient={recipient}
-                onEdit={openEditForm}
-                onDelete={deleteRecipient}
-              />
-            ))}
-          </View>
-        )}
-      </View>
-      <ContactPicker
-        visible={pickerVisible}
-        contacts={deviceContacts}
-        onSelect={handleSelectContact}
-        onClose={() => setPickerVisible(false)}
-      />
-      <RecipientEditModal
-        visible={editModalVisible}
-        recipient={selectedRecipient}
-        onClose={handleModalClose}
-        onSave={handleModalSave}
-        onDelete={deleteRecipient}
-        initialTab="details"
-      />
-    </ScrollView>
+          ) : recipients.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text variant="titleLarge" style={styles.emptyText}>
+                No recipients yet.
+              </Text>
+              <Text variant="bodyMedium" style={styles.emptySubtext}>
+                Add your first recipient to get started!
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.list}>
+              {recipients.map((recipient) => (
+                <RecipientCard
+                  key={recipient.id}
+                  recipient={recipient}
+                  onEdit={openEditForm}
+                  onDelete={deleteRecipient}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+        <ContactPicker
+          visible={pickerVisible}
+          contacts={deviceContacts}
+          onSelect={handleSelectContact}
+          onClose={() => setPickerVisible(false)}
+        />
+      </ScrollView>
+      {toast}
+    </View>
   );
 }
 
@@ -461,6 +426,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
+  },
+  scrollView: {
+    flex: 1,
   },
   content: {
     maxWidth: 800,

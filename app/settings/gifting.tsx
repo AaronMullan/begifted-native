@@ -47,9 +47,8 @@ export default function GiftingPreferences() {
     autoFallbackEnabled: false,
   });
 
-  const [originalFormData, setOriginalFormData] = useState<GiftingPreferences>(
-    formData
-  );
+  const [originalFormData, setOriginalFormData] =
+    useState<GiftingPreferences>(formData);
   const [showReminderPicker, setShowReminderPicker] = useState(false);
 
   useEffect(() => {
@@ -208,7 +207,7 @@ export default function GiftingPreferences() {
               onPress={() => router.back()}
               style={styles.backButton}
             >
-              <Ionicons name="arrow-back" size={20} color="#231F20" />
+              <Ionicons name="arrow-back" size={20} color="#000000" />
             </TouchableOpacity>
           </View>
 
@@ -302,7 +301,7 @@ export default function GiftingPreferences() {
                         {option.label}
                       </Text>
                       {formData.reminderDays === option.value && (
-                        <Ionicons name="checkmark" size={20} color="#FFB6C1" />
+                        <Ionicons name="checkmark" size={20} color="#000000" />
                       )}
                     </TouchableOpacity>
                   ))}
@@ -329,7 +328,7 @@ export default function GiftingPreferences() {
                     autoFallbackEnabled: checked,
                   }))
                 }
-                trackColor={{ false: "#E0E0E0", true: "#FFB6C1" }}
+                trackColor={{ false: "#E0E0E0", true: "#333333" }}
                 thumbColor="#fff"
               />
             </View>
@@ -351,7 +350,11 @@ export default function GiftingPreferences() {
                 !hasChanges && styles.saveButtonTextDisabled,
               ]}
             >
-              {saving ? "Saving..." : hasChanges ? "Save Preferences" : "No Changes"}
+              {saving
+                ? "Saving..."
+                : hasChanges
+                ? "Save Preferences"
+                : "No Changes"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -363,7 +366,7 @@ export default function GiftingPreferences() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E6E6FA", // Light purple background
+    backgroundColor: "#FFFFFF", // White background
   },
   content: {
     flex: 1,
@@ -395,7 +398,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#231F20",
+    color: "#000000",
     marginBottom: 8,
   },
   subtitle: {
@@ -415,7 +418,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#231F20",
+    color: "#000000",
     marginBottom: 12,
   },
   reminderSelector: {
@@ -430,7 +433,7 @@ const styles = StyleSheet.create({
   },
   reminderValue: {
     fontSize: 16,
-    color: "#231F20",
+    color: "#000000",
   },
   reminderPicker: {
     marginTop: 8,
@@ -452,11 +455,11 @@ const styles = StyleSheet.create({
   },
   reminderOptionText: {
     fontSize: 16,
-    color: "#231F20",
+    color: "#000000",
   },
   reminderOptionTextSelected: {
     fontWeight: "600",
-    color: "#FFB6C1",
+    color: "#000000",
   },
   switchSection: {
     flexDirection: "row",
@@ -475,7 +478,7 @@ const styles = StyleSheet.create({
   switchLabel: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#231F20",
+    color: "#000000",
     marginBottom: 4,
   },
   switchDescription: {
@@ -484,7 +487,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   saveButton: {
-    backgroundColor: "#FFB6C1",
+    backgroundColor: "#000000",
     paddingVertical: 16,
     borderRadius: 8,
     alignItems: "center",
@@ -511,5 +514,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
-
-

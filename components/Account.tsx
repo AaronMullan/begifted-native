@@ -126,7 +126,7 @@ export default function Account({ session }: { session: Session }) {
       <View style={styles.verticallySpaced}>
         <Button
           mode="contained"
-          buttonColor="#FF3B30"
+          buttonColor="#000000"
           onPress={() => supabase.auth.signOut()}
           style={styles.signOutButton}
         >

@@ -63,7 +63,7 @@ export function DataReviewView({
         <IconButton
           icon="arrow-back"
           size={24}
-          iconColor="#231F20"
+          iconColor="#000000"
           onPress={onBack}
           style={styles.backButton}
         />
@@ -288,7 +288,7 @@ export function DataReviewView({
 
         <Button
           mode="contained"
-          buttonColor="#FFB6C1"
+          buttonColor="#000000"
           onPress={onSave}
           disabled={
             !extractedData.name || !extractedData.relationship_type || isSaving

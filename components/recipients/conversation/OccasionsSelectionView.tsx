@@ -25,7 +25,9 @@ export function OccasionsSelectionView({
     Array<{ date: string; occasion_type: string; enabled: boolean }>
   >([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [editingOccasionIndex, setEditingOccasionIndex] = useState<number | null>(null);
+  const [editingOccasionIndex, setEditingOccasionIndex] = useState<
+    number | null
+  >(null);
 
   useEffect(() => {
     const initialOccasions: Array<{
@@ -100,7 +102,7 @@ export function OccasionsSelectionView({
         <IconButton
           icon="arrow-back"
           size={24}
-          iconColor="#231F20"
+          iconColor="#000000"
           onPress={onBack}
           style={styles.backButton}
         />
@@ -156,7 +158,7 @@ export function OccasionsSelectionView({
 
         <Button
           mode="contained"
-          buttonColor="#FFB6C1"
+          buttonColor="#000000"
           onPress={handleContinue}
           disabled={isProcessing}
           loading={isProcessing}

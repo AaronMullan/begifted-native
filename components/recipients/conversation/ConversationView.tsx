@@ -73,9 +73,9 @@ export function ConversationView({
       {/* Header */}
       <View style={styles.header}>
         <IconButton
-          icon="arrow-back"
+          icon="arrow-left"
           size={24}
-          iconColor="#231F20"
+          iconColor="#000000"
           onPress={onNavigateBack}
           style={styles.backButton}
         />
@@ -141,7 +141,7 @@ export function ConversationView({
         {shouldShowNextStepButton && (
           <Button
             mode="contained"
-            buttonColor="#FFB6C1"
+            buttonColor="#000000"
             onPress={onFinishConversation}
             disabled={isLoading || isSending}
             style={styles.nextStepButton}
@@ -175,7 +175,7 @@ export function ConversationView({
             ]}
             onPress={handleSend}
             disabled={!inputMessage.trim() || isLoading || isSending}
-            containerColor="#FFB6C1"
+            containerColor="#000000"
             loading={isSending}
           />
         </View>
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   userMessageBubble: {
-    backgroundColor: "#FFB6C1",
+    backgroundColor: "#333333",
     borderBottomRightRadius: 4,
   },
   assistantMessageBubble: {
@@ -241,10 +241,10 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   userMessageText: {
-    color: "#231F20",
+    color: "#FFFFFF",
   },
   assistantMessageText: {
-    color: "#231F20",
+    color: "#000000",
   },
   loadingContainer: {
     flexDirection: "row",
@@ -281,6 +281,6 @@ const styles = StyleSheet.create({
     margin: 0,
   },
   sendButtonDisabled: {
-    opacity: 0.5,
+    opacity: 0.6,
   },
 });

@@ -96,10 +96,8 @@ export default function Notifications() {
 
       if (data) {
         const prefs: NotificationPreferences = {
-          push_notifications_enabled:
-            data.push_notifications_enabled ?? true,
-          email_notifications_enabled:
-            data.email_notifications_enabled ?? true,
+          push_notifications_enabled: data.push_notifications_enabled ?? true,
+          email_notifications_enabled: data.email_notifications_enabled ?? true,
           reminder_2_weeks_before: data.reminder_2_weeks_before ?? true,
           reminder_1_week_before: data.reminder_1_week_before ?? true,
           reminder_day_of_event: data.reminder_day_of_event ?? true,
@@ -176,7 +174,8 @@ export default function Notifications() {
     setShowTimezonePicker(false);
   }
 
-  const hasChanges = JSON.stringify(preferences) !== JSON.stringify(originalPreferences);
+  const hasChanges =
+    JSON.stringify(preferences) !== JSON.stringify(originalPreferences);
   const currentTimezoneLabel =
     TIMEZONES.find((tz) => tz.value === preferences.timezone)?.label ||
     "Eastern Time (ET)";
@@ -221,7 +220,7 @@ export default function Notifications() {
               onPress={() => router.back()}
               style={styles.backButton}
             >
-              <Ionicons name="arrow-back" size={20} color="#231F20" />
+              <Ionicons name="arrow-back" size={20} color="#000000" />
             </TouchableOpacity>
           </View>
 
@@ -244,7 +243,7 @@ export default function Notifications() {
                 onValueChange={() =>
                   togglePreference("push_notifications_enabled")
                 }
-                trackColor={{ false: "#E0E0E0", true: "#FFB6C1" }}
+                trackColor={{ false: "#E0E0E0", true: "#333333" }}
                 thumbColor="#fff"
               />
             </View>
@@ -261,7 +260,7 @@ export default function Notifications() {
                 onValueChange={() =>
                   togglePreference("email_notifications_enabled")
                 }
-                trackColor={{ false: "#E0E0E0", true: "#FFB6C1" }}
+                trackColor={{ false: "#E0E0E0", true: "#333333" }}
                 thumbColor="#fff"
               />
             </View>
@@ -283,8 +282,10 @@ export default function Notifications() {
               </View>
               <Switch
                 value={preferences.reminder_2_weeks_before}
-                onValueChange={() => togglePreference("reminder_2_weeks_before")}
-                trackColor={{ false: "#E0E0E0", true: "#FFB6C1" }}
+                onValueChange={() =>
+                  togglePreference("reminder_2_weeks_before")
+                }
+                trackColor={{ false: "#E0E0E0", true: "#333333" }}
                 thumbColor="#fff"
               />
             </View>
@@ -299,7 +300,7 @@ export default function Notifications() {
               <Switch
                 value={preferences.reminder_1_week_before}
                 onValueChange={() => togglePreference("reminder_1_week_before")}
-                trackColor={{ false: "#E0E0E0", true: "#FFB6C1" }}
+                trackColor={{ false: "#E0E0E0", true: "#333333" }}
                 thumbColor="#fff"
               />
             </View>
@@ -314,7 +315,7 @@ export default function Notifications() {
               <Switch
                 value={preferences.reminder_day_of_event}
                 onValueChange={() => togglePreference("reminder_day_of_event")}
-                trackColor={{ false: "#E0E0E0", true: "#FFB6C1" }}
+                trackColor={{ false: "#E0E0E0", true: "#333333" }}
                 thumbColor="#fff"
               />
             </View>
@@ -336,8 +337,10 @@ export default function Notifications() {
               </View>
               <Switch
                 value={preferences.feedback_requests_enabled}
-                onValueChange={() => togglePreference("feedback_requests_enabled")}
-                trackColor={{ false: "#E0E0E0", true: "#FFB6C1" }}
+                onValueChange={() =>
+                  togglePreference("feedback_requests_enabled")
+                }
+                trackColor={{ false: "#E0E0E0", true: "#333333" }}
                 thumbColor="#fff"
               />
             </View>
@@ -352,7 +355,7 @@ export default function Notifications() {
               <Switch
                 value={preferences.system_updates_enabled}
                 onValueChange={() => togglePreference("system_updates_enabled")}
-                trackColor={{ false: "#E0E0E0", true: "#FFB6C1" }}
+                trackColor={{ false: "#E0E0E0", true: "#333333" }}
                 thumbColor="#fff"
               />
             </View>
@@ -369,7 +372,7 @@ export default function Notifications() {
                 onValueChange={() =>
                   togglePreference("promotional_emails_enabled")
                 }
-                trackColor={{ false: "#E0E0E0", true: "#FFB6C1" }}
+                trackColor={{ false: "#E0E0E0", true: "#333333" }}
                 thumbColor="#fff"
               />
             </View>
@@ -419,7 +422,7 @@ export default function Notifications() {
                       {tz.label}
                     </Text>
                     {preferences.timezone === tz.value && (
-                      <Ionicons name="checkmark" size={20} color="#FFB6C1" />
+                      <Ionicons name="checkmark" size={20} color="#000000" />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -443,7 +446,11 @@ export default function Notifications() {
                 !hasChanges && styles.saveButtonTextDisabled,
               ]}
             >
-              {saving ? "Saving..." : hasChanges ? "Save Changes" : "No Changes"}
+              {saving
+                ? "Saving..."
+                : hasChanges
+                ? "Save Changes"
+                : "No Changes"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -455,7 +462,7 @@ export default function Notifications() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E6E6FA", // Light purple background
+    backgroundColor: "#FFFFFF", // White background
   },
   content: {
     flex: 1,
@@ -487,7 +494,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#231F20",
+    color: "#000000",
     marginBottom: 8,
   },
   subtitle: {
@@ -504,7 +511,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#231F20",
+    color: "#000000",
     marginBottom: 8,
   },
   sectionSubtitle: {
@@ -527,7 +534,7 @@ const styles = StyleSheet.create({
   settingLabel: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#231F20",
+    color: "#000000",
     marginBottom: 4,
   },
   settingDescription: {
@@ -548,7 +555,7 @@ const styles = StyleSheet.create({
   },
   timezoneValue: {
     fontSize: 16,
-    color: "#231F20",
+    color: "#000000",
     marginTop: 4,
   },
   timezonePicker: {
@@ -571,14 +578,14 @@ const styles = StyleSheet.create({
   },
   timezoneOptionText: {
     fontSize: 16,
-    color: "#231F20",
+    color: "#000000",
   },
   timezoneOptionTextSelected: {
     fontWeight: "600",
-    color: "#FFB6C1",
+    color: "#000000",
   },
   saveButton: {
-    backgroundColor: "#FFB6C1",
+    backgroundColor: "#000000",
     paddingVertical: 16,
     borderRadius: 8,
     alignItems: "center",
@@ -605,5 +612,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
-
-

@@ -65,7 +65,7 @@ export default function Settings() {
       title: "Profile Settings",
       description: "Manage your personal information and account details",
       icon: "person-outline",
-      iconColor: "#FFB6C1",
+      iconColor: "#000000",
       route: "/settings/profile" as any,
     },
     {
@@ -73,7 +73,7 @@ export default function Settings() {
       title: "Gifting Preferences",
       description: "Customize how AI generates gift recommendations",
       icon: "gift-outline",
-      iconColor: "#FFB6C1",
+      iconColor: "#000000",
       route: "/settings/gifting" as any,
     },
     {
@@ -81,7 +81,7 @@ export default function Settings() {
       title: "Notifications",
       description: "Control email and push notification settings",
       icon: "notifications-outline",
-      iconColor: "#FFA500",
+      iconColor: "#000000",
       route: "/settings/notifications" as any,
     },
     {
@@ -89,7 +89,7 @@ export default function Settings() {
       title: "Billing & Subscription",
       description: "Manage your subscription plan and payment methods",
       icon: "card-outline",
-      iconColor: "#9370DB",
+      iconColor: "#000000",
       route: "/settings/billing" as any,
     },
     {
@@ -97,7 +97,7 @@ export default function Settings() {
       title: "Support & Help",
       description: "Get help, contact support or report issues",
       icon: "help-circle-outline",
-      iconColor: "#9370DB",
+      iconColor: "#000000",
       route: "/settings/support" as any,
     },
   ];
@@ -120,7 +120,7 @@ export default function Settings() {
             <IconButton
               icon="arrow-back"
               size={20}
-              iconColor="#231F20"
+              iconColor="#000000"
               onPress={() => router.back()}
               style={styles.backButton}
             />
@@ -138,7 +138,7 @@ export default function Settings() {
                   <View
                     style={[
                       styles.iconContainer,
-                      { backgroundColor: `${card.iconColor}20` },
+                      { backgroundColor: "#F5F5F5" },
                     ]}
                   >
                     <Ionicons
@@ -174,7 +174,7 @@ export default function Settings() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E6E6FA", // Light purple background
+    backgroundColor: "#FFFFFF", // White background
   },
   content: {
     flex: 1,

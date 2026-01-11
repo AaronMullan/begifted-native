@@ -27,10 +27,7 @@ export default function PreferenceCard({
           return (
             <Card
               key={option.value}
-              style={[
-                styles.option,
-                isSelected && styles.optionSelected,
-              ]}
+              style={[styles.option, isSelected && styles.optionSelected]}
               onPress={() => onValueChange(option.value)}
             >
               <Card.Content>
@@ -55,7 +52,7 @@ export default function PreferenceCard({
                   </Text>
                 </View>
                 {isSelected && (
-                  <Ionicons name="checkmark-circle" size={24} color="#FFB6C1" />
+                  <Ionicons name="checkmark-circle" size={24} color="#000000" />
                 )}
               </Card.Content>
             </Card>
@@ -80,9 +77,9 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   optionSelected: {
-    borderColor: "#FFB6C1",
+    borderColor: "#000000",
     borderWidth: 2,
-    backgroundColor: "#FFF0F5",
+    backgroundColor: "#F5F5F5",
   },
   optionContent: {
     flex: 1,
@@ -92,12 +89,10 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   optionLabelSelected: {
-    color: "#FF6B9D",
+    color: "#000000",
   },
   optionDescription: {},
   optionDescriptionSelected: {
     color: "#888",
   },
 });
-
-

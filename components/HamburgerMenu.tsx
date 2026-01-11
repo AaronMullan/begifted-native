@@ -1,4 +1,12 @@
-import { View, Image, Modal, StyleSheet, Pressable, Alert, TouchableOpacity } from "react-native";
+import {
+  View,
+  Image,
+  Modal,
+  StyleSheet,
+  Pressable,
+  Alert,
+  TouchableOpacity,
+} from "react-native";
 import { Text, Button, IconButton } from "react-native-paper";
 import { Link } from "expo-router";
 import { useState, useEffect } from "react";
@@ -61,8 +69,9 @@ export default function HamburgerMenu() {
       >
         <Image
           source={require("../assets/images/hamburger.png")}
-          style={{ width: 32, height: 32 }}
+          style={styles.hamburgerIcon}
           resizeMode="contain"
+          tintColor="#FFFFFF"
         />
       </TouchableOpacity>
 
@@ -93,6 +102,16 @@ export default function HamburgerMenu() {
                 Contacts
               </Button>
             </Link>
+            <Link href="/calendar" asChild>
+              <Button
+                mode="text"
+                onPress={handleMenuToggle}
+                style={styles.menuItem}
+                textColor="#333"
+              >
+                Calendar
+              </Button>
+            </Link>
             <Link href="/faq" asChild>
               <Button
                 mode="text"
@@ -108,7 +127,7 @@ export default function HamburgerMenu() {
             {session && session.user ? (
               <Button
                 mode="contained"
-                buttonColor="#FF3B30"
+                buttonColor="#000000"
                 onPress={handleSignOut}
                 style={styles.authItem}
               >
@@ -158,6 +177,11 @@ const styles = StyleSheet.create({
   hamburgerButton: {
     cursor: "pointer",
     padding: 8,
+  },
+  hamburgerIcon: {
+    width: 32,
+    height: 32,
+    tintColor: "#FFFFFF", // White for black header background
   },
   backdrop: {
     position: "absolute",

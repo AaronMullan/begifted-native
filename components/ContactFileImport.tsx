@@ -98,7 +98,7 @@ export default function ContactFileImport({ onImport }: Props) {
       {hasContactPicker && (
         <>
           <Button
-            mode="contained"
+            mode="outlined"
             onPress={handleContactPicker}
             disabled={loading}
             loading={loading}
@@ -118,7 +118,7 @@ export default function ContactFileImport({ onImport }: Props) {
         id="contact-file-input"
       />
       <Button
-        mode="contained"
+        mode="outlined"
         onPress={() => {
           if (typeof document !== "undefined") {
             document.getElementById("contact-file-input")?.click();

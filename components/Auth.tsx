@@ -96,7 +96,7 @@ export default function Auth() {
         </Text>
         <Button
           mode="contained"
-          buttonColor="#FF3B30"
+          buttonColor="#000000"
           onPress={signOut}
           style={styles.signOutButton}
         >

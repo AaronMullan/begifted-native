@@ -282,7 +282,7 @@ export function ManualDataEntry({
 
         <Button
           mode="contained"
-          buttonColor="#FFB6C1"
+          buttonColor="#000000"
           onPress={handleSave}
           disabled={!isValid}
           style={styles.saveButton}
