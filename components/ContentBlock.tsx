@@ -130,6 +130,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingHorizontal: 16,
   },
   imageContainer: {
     // Dynamic styles applied inline

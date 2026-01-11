@@ -102,6 +102,16 @@ export default function HamburgerMenu() {
                 Contacts
               </Button>
             </Link>
+            <Link href="/calendar" asChild>
+              <Button
+                mode="text"
+                onPress={handleMenuToggle}
+                style={styles.menuItem}
+                textColor="#333"
+              >
+                Calendar
+              </Button>
+            </Link>
             <Link href="/faq" asChild>
               <Button
                 mode="text"

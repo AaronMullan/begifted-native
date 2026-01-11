@@ -1,6 +1,12 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { StyleSheet, View, Linking } from "react-native";
-import { ActivityIndicator, Text, Button, Card } from "react-native-paper";
+import {
+  ActivityIndicator,
+  Text,
+  Button,
+  Card,
+  List,
+} from "react-native-paper";
 import { Ionicons } from "@expo/vector-icons";
 import type { GiftSuggestion } from "../../types/recipient";
 
@@ -8,6 +14,13 @@ type GiftSuggestionsViewProps = {
   suggestions: GiftSuggestion[];
   loading: boolean;
   recipientName: string;
+  isGenerating?: boolean;
+};
+
+type DateGroup = {
+  dateKey: string;
+  dateLabel: string;
+  suggestions: GiftSuggestion[];
 };
 
 const formatPrice = (price?: number) => {
@@ -24,11 +37,139 @@ const openLink = (link?: string) => {
   }
 };
 
+const formatDateLabel = (date: Date): string => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const lastWeek = new Date(today);
+  lastWeek.setDate(lastWeek.getDate() - 7);
+
+  const dateToCheck = new Date(date);
+  dateToCheck.setHours(0, 0, 0, 0);
+
+  if (dateToCheck.getTime() === today.getTime()) {
+    return "Today";
+  } else if (dateToCheck.getTime() === yesterday.getTime()) {
+    return "Yesterday";
+  } else if (dateToCheck >= lastWeek) {
+    return "Last Week";
+  } else {
+    return dateToCheck.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+};
+
+const groupSuggestionsByDate = (suggestions: GiftSuggestion[]): DateGroup[] => {
+  const groups: Map<string, DateGroup> = new Map();
+
+  suggestions.forEach((suggestion) => {
+    const date = new Date(suggestion.generated_at);
+    const dateKey = date.toISOString().split("T")[0]; // YYYY-MM-DD
+    const dateLabel = formatDateLabel(date);
+
+    if (!groups.has(dateKey)) {
+      groups.set(dateKey, {
+        dateKey,
+        dateLabel,
+        suggestions: [],
+      });
+    }
+
+    groups.get(dateKey)!.suggestions.push(suggestion);
+  });
+
+  // Sort groups by date descending (newest first)
+  return Array.from(groups.values()).sort((a, b) => {
+    return b.dateKey.localeCompare(a.dateKey);
+  });
+};
+
+const SuggestionCard: React.FC<{ suggestion: GiftSuggestion }> = ({
+  suggestion,
+}) => {
+  return (
+    <Card
+      key={suggestion.id}
+      style={styles.suggestionCard}
+      onPress={() => openLink(suggestion.link)}
+      disabled={!suggestion.link}
+    >
+      {suggestion.image_url && (
+        <Card.Cover
+          source={{ uri: suggestion.image_url }}
+          style={styles.suggestionImage}
+        />
+      )}
+      <Card.Content>
+        <Text variant="titleMedium" style={styles.suggestionTitle}>
+          {suggestion.title}
+        </Text>
+        {suggestion.description && (
+          <Text
+            variant="bodyMedium"
+            style={styles.suggestionDescription}
+            numberOfLines={2}
+          >
+            {suggestion.description}
+          </Text>
+        )}
+        <View style={styles.suggestionMeta}>
+          <Text variant="titleLarge" style={styles.suggestionPrice}>
+            {formatPrice(suggestion.price)}
+          </Text>
+          {suggestion.link && (
+            <Button
+              mode="text"
+              icon="open-in-new"
+              compact
+              onPress={() => openLink(suggestion.link)}
+            >
+              View
+            </Button>
+          )}
+        </View>
+      </Card.Content>
+    </Card>
+  );
+};
+
 export const GiftSuggestionsView: React.FC<GiftSuggestionsViewProps> = ({
   suggestions,
   loading,
   recipientName,
+  isGenerating = false,
 }) => {
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  // Show only first 5 suggestions initially
+  const recentSuggestions = useMemo(
+    () => suggestions.slice(0, 5),
+    [suggestions]
+  );
+  const olderSuggestions = useMemo(() => suggestions.slice(5), [suggestions]);
+
+  // Group older suggestions by date
+  const dateGroups = useMemo(
+    () => groupSuggestionsByDate(olderSuggestions),
+    [olderSuggestions]
+  );
+
+  const toggleGroup = (dateKey: string) => {
+    setExpandedGroups((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(dateKey)) {
+        newSet.delete(dateKey);
+      } else {
+        newSet.add(dateKey);
+      }
+      return newSet;
+    });
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -40,7 +181,7 @@ export const GiftSuggestionsView: React.FC<GiftSuggestionsViewProps> = ({
     );
   }
 
-  if (suggestions.length === 0) {
+  if (suggestions.length === 0 && !isGenerating) {
     return (
       <View style={styles.emptyContainer}>
         <Ionicons name="gift-outline" size={64} color="#ccc" />
@@ -57,52 +198,49 @@ export const GiftSuggestionsView: React.FC<GiftSuggestionsViewProps> = ({
 
   return (
     <View style={styles.giftsContainer}>
-      <View style={styles.suggestionsList}>
-        {suggestions.map((suggestion) => (
-          <Card
-            key={suggestion.id}
-            style={styles.suggestionCard}
-            onPress={() => openLink(suggestion.link)}
-            disabled={!suggestion.link}
-          >
-            {suggestion.image_url && (
-              <Card.Cover
-                source={{ uri: suggestion.image_url }}
-                style={styles.suggestionImage}
-              />
-            )}
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.suggestionTitle}>
-                {suggestion.title}
-              </Text>
-              {suggestion.description && (
-                <Text
-                  variant="bodyMedium"
-                  style={styles.suggestionDescription}
-                  numberOfLines={2}
-                >
-                  {suggestion.description}
-                </Text>
-              )}
-              <View style={styles.suggestionMeta}>
-                <Text variant="titleLarge" style={styles.suggestionPrice}>
-                  {formatPrice(suggestion.price)}
-                </Text>
-                {suggestion.link && (
-                  <Button
-                    mode="text"
-                    icon="open-in-new"
-                    compact
-                    onPress={() => openLink(suggestion.link)}
-                  >
-                    View
-                  </Button>
-                )}
+      {/* Show generating state */}
+      {isGenerating && (
+        <View style={styles.generatingContainer}>
+          <ActivityIndicator size="small" />
+          <Text variant="bodyMedium" style={styles.generatingText}>
+            Generating gift suggestions...
+          </Text>
+        </View>
+      )}
+
+      {/* Recent suggestions (first 5) */}
+      {recentSuggestions.length > 0 && (
+        <View style={styles.suggestionsList}>
+          {recentSuggestions.map((suggestion) => (
+            <SuggestionCard key={suggestion.id} suggestion={suggestion} />
+          ))}
+        </View>
+      )}
+
+      {/* Older suggestions grouped by date */}
+      {dateGroups.length > 0 && (
+        <View style={styles.dateGroupsContainer}>
+          <Text variant="titleMedium" style={styles.previousSuggestionsTitle}>
+            Previous Suggestions
+          </Text>
+          {dateGroups.map((group) => (
+            <List.Accordion
+              key={group.dateKey}
+              title={group.dateLabel}
+              left={(props) => <List.Icon {...props} icon="calendar" />}
+              expanded={expandedGroups.has(group.dateKey)}
+              onPress={() => toggleGroup(group.dateKey)}
+              style={styles.accordion}
+            >
+              <View style={styles.groupedSuggestions}>
+                {group.suggestions.map((suggestion) => (
+                  <SuggestionCard key={suggestion.id} suggestion={suggestion} />
+                ))}
               </View>
-            </Card.Content>
-          </Card>
-        ))}
-      </View>
+            </List.Accordion>
+          ))}
+        </View>
+      )}
     </View>
   );
 };
@@ -118,6 +256,20 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 12,
+    color: "#666",
+  },
+  generatingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  generatingText: {
+    marginLeft: 12,
     color: "#666",
   },
   emptyContainer: {
@@ -157,5 +309,20 @@ const styles = StyleSheet.create({
   },
   suggestionPrice: {
     color: "#000000",
+  },
+  dateGroupsContainer: {
+    marginTop: 24,
+  },
+  previousSuggestionsTitle: {
+    marginBottom: 16,
+    fontWeight: "600",
+  },
+  accordion: {
+    backgroundColor: "#fff",
+    marginBottom: 8,
+  },
+  groupedSuggestions: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
   },
 });

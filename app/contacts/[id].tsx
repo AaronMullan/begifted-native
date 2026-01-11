@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import { Text, Button, IconButton } from "react-native-paper";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
@@ -21,6 +21,7 @@ export default function RecipientEditPage() {
   const [suggestions, setSuggestions] = useState<GiftSuggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "gifts">(initialTab);
+  const [isGenerating, setIsGenerating] = useState(false);
   const { showToast, toast } = useToast();
 
   // Fetch recipient data
@@ -100,31 +101,85 @@ export default function RecipientEditPage() {
     }
   }, [params.tab]);
 
+  const fetchSuggestions = useCallback(
+    async (recipientId: string, checkForNew: boolean = false) => {
+      setLoadingSuggestions(true);
+      try {
+        const { data, error } = await supabase
+          .from("gift_suggestions")
+          .select("*")
+          .eq("recipient_id", recipientId)
+          .order("generated_at", { ascending: false });
+
+        if (error) throw error;
+        const newSuggestions = data || [];
+
+        // Check if new suggestions appeared (for polling detection)
+        if (checkForNew) {
+          setSuggestions((prevSuggestions) => {
+            // Compare by checking if there are more suggestions or newer timestamps
+            if (newSuggestions.length > prevSuggestions.length) {
+              // New suggestions detected, stop generating
+              setIsGenerating(false);
+            } else if (
+              newSuggestions.length > 0 &&
+              prevSuggestions.length > 0
+            ) {
+              // Check if the newest suggestion is newer than what we had
+              const newestNew = new Date(newSuggestions[0].generated_at);
+              const newestOld = new Date(prevSuggestions[0].generated_at);
+              if (newestNew > newestOld) {
+                setIsGenerating(false);
+              }
+            }
+            return newSuggestions;
+          });
+        } else {
+          setSuggestions(newSuggestions);
+        }
+      } catch (error) {
+        console.error("Error fetching suggestions:", error);
+        setSuggestions([]);
+      } finally {
+        setLoadingSuggestions(false);
+      }
+    },
+    []
+  );
+
   // Fetch gift suggestions when recipient changes
   useEffect(() => {
     if (recipient) {
       fetchSuggestions(recipient.id);
     }
-  }, [recipient]);
+  }, [recipient, fetchSuggestions]);
 
-  const fetchSuggestions = async (recipientId: string) => {
-    setLoadingSuggestions(true);
-    try {
-      const { data, error } = await supabase
-        .from("gift_suggestions")
-        .select("*")
-        .eq("recipient_id", recipientId)
-        .order("generated_at", { ascending: false });
+  // Polling logic for gift generation
+  useEffect(() => {
+    if (!isGenerating || !recipient) return;
 
-      if (error) throw error;
-      setSuggestions(data || []);
-    } catch (error) {
-      console.error("Error fetching suggestions:", error);
-      setSuggestions([]);
-    } finally {
-      setLoadingSuggestions(false);
-    }
-  };
+    const POLL_INTERVAL = 10000; // 10 seconds
+    const MAX_POLL_TIME = 300000; // 5 minutes
+    const startTime = Date.now();
+
+    const pollInterval = setInterval(async () => {
+      // Check if we've exceeded max poll time
+      if (Date.now() - startTime >= MAX_POLL_TIME) {
+        console.log("Polling timeout reached, stopping generation tracking");
+        setIsGenerating(false);
+        clearInterval(pollInterval);
+        return;
+      }
+
+      // Fetch suggestions to check for new ones (pass true to check for new suggestions)
+      await fetchSuggestions(recipient.id, true);
+    }, POLL_INTERVAL);
+
+    // Cleanup on unmount or when isGenerating becomes false
+    return () => {
+      clearInterval(pollInterval);
+    };
+  }, [isGenerating, recipient?.id, fetchSuggestions]);
 
   const handleSave = async () => {
     if (!recipient || !name.trim() || !relationshipType.trim()) {
@@ -162,6 +217,9 @@ export default function RecipientEditPage() {
       if (giftRelevantChanged) {
         console.log("Triggering gift generation for:", recipient.id);
 
+        // Start generation tracking
+        setIsGenerating(true);
+
         fetch("https://be-gifted.vercel.app/api/generate-gifts", {
           method: "POST",
           headers: {
@@ -170,6 +228,7 @@ export default function RecipientEditPage() {
           body: JSON.stringify({ recipientId: recipient.id }),
         }).catch((err) => {
           console.error("Failed to trigger gift generation:", err);
+          setIsGenerating(false); // Stop tracking on error
         });
 
         // Show toast notification
@@ -330,6 +389,7 @@ export default function RecipientEditPage() {
             suggestions={suggestions}
             loading={loadingSuggestions}
             recipientName={recipient.name}
+            isGenerating={isGenerating}
           />
         )}
       </ScrollView>
