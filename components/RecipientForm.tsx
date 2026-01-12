@@ -226,11 +226,7 @@ export default function RecipientForm({
       </View>
 
       <View style={styles.formButtons}>
-        <Button
-          mode="outlined"
-          onPress={onCancel}
-          style={styles.cancelButton}
-        >
+        <Button mode="outlined" onPress={onCancel} style={styles.cancelButton}>
           Cancel
         </Button>
 

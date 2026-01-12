@@ -1,26 +1,121 @@
 import { View, StyleSheet, ScrollView, Alert } from "react-native";
-import { Text, Button, Card } from "react-native-paper";
+import { Text, Button, Card, ActivityIndicator } from "react-native-paper";
 import { useState, useEffect } from "react";
 import { Link, useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { Ionicons } from "@expo/vector-icons";
+import { Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// Cache utility functions
+const CACHE_EXPIRATION_MS = 10 * 60 * 1000; // 10 minutes
+
+const getStorage = () => {
+  if (Platform.OS === "web") {
+    return {
+      getItem: (key: string) => {
+        if (typeof window !== "undefined") {
+          return Promise.resolve(window.localStorage.getItem(key));
+        }
+        return Promise.resolve(null);
+      },
+      setItem: (key: string, value: string) => {
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(key, value);
+        }
+        return Promise.resolve();
+      },
+      removeItem: (key: string) => {
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem(key);
+        }
+        return Promise.resolve();
+      },
+    };
+  }
+  return AsyncStorage;
+};
+
+type CachedDashboardData = {
+  recipientsCount: number;
+  upcomingCount: number;
+  username: string;
+  timestamp: number;
+};
+
+async function getCachedDashboardData(
+  userId: string
+): Promise<CachedDashboardData | null> {
+  try {
+    const storage = getStorage();
+    const cacheKey = `dashboard:${userId}`;
+    const cached = await storage.getItem(cacheKey);
+    if (!cached) return null;
+
+    const data: CachedDashboardData = JSON.parse(cached);
+    const now = Date.now();
+    const isExpired = now - data.timestamp > CACHE_EXPIRATION_MS;
+
+    if (isExpired) {
+      // Cache expired, remove it
+      await storage.removeItem(cacheKey);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Error reading dashboard cache:", error);
+    return null;
+  }
+}
+
+async function setCachedDashboardData(
+  userId: string,
+  data: Omit<CachedDashboardData, "timestamp">
+): Promise<void> {
+  try {
+    const storage = getStorage();
+    const cacheKey = `dashboard:${userId}`;
+    const cacheData: CachedDashboardData = {
+      ...data,
+      timestamp: Date.now(),
+    };
+    await storage.setItem(cacheKey, JSON.stringify(cacheData));
+  } catch (error) {
+    console.error("Error saving dashboard cache:", error);
+  }
+}
+
+async function clearDashboardCache(userId: string): Promise<void> {
+  try {
+    const storage = getStorage();
+    const cacheKey = `dashboard:${userId}`;
+    await storage.removeItem(cacheKey);
+  } catch (error) {
+    console.error("Error clearing dashboard cache:", error);
+  }
+}
 
 export default function Dashboard() {
   const [session, setSession] = useState<Session | null>(null);
   const [username, setUsername] = useState<string>("");
-  const [recipientsCount, setRecipientsCount] = useState<number>(0);
-  const [upcomingCount, setUpcomingCount] = useState<number>(0);
+  const [recipientsCount, setRecipientsCount] = useState<number | null>(null);
+  const [upcomingCount, setUpcomingCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingRecipients, setLoadingRecipients] = useState(true);
+  const [loadingUpcoming, setLoadingUpcoming] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) {
-        fetchUserData(session.user.id, session.user.email);
+        loadDashboardData(session.user.id, session.user.email);
       } else {
         setLoading(false);
+        setLoadingRecipients(false);
+        setLoadingUpcoming(false);
       }
     });
 
@@ -29,12 +124,18 @@ export default function Dashboard() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session) {
-        fetchUserData(session.user.id, session.user.email);
+        loadDashboardData(session.user.id, session.user.email);
       } else {
-        setRecipientsCount(0);
-        setUpcomingCount(0);
+        setRecipientsCount(null);
+        setUpcomingCount(null);
         setUsername("");
         setLoading(false);
+        setLoadingRecipients(false);
+        setLoadingUpcoming(false);
+        // Clear cache on sign out
+        if (session?.user?.id) {
+          clearDashboardCache(session.user.id);
+        }
       }
     });
 

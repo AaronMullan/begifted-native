@@ -16,7 +16,14 @@ export default function Hero() {
       style={{ width: "100%", backgroundColor: "#52A78B", paddingBottom: 60 }}
     >
       {/* Full-width background with contained content */}
-      <View style={{ maxWidth: 1200, width: "100%", alignSelf: "center", paddingHorizontal: 16 }}>
+      <View
+        style={{
+          maxWidth: 1200,
+          width: "100%",
+          alignSelf: "center",
+          paddingHorizontal: 16,
+        }}
+      >
         <View style={{ width: "100%" }}>
           <Text
             style={{

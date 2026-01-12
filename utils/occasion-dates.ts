@@ -1,7 +1,7 @@
 /**
  * Lookup the date for an occasion type. Handles both fixed-date holidays
  * and variable holidays (Easter, Thanksgiving, Kwanzaa, etc.)
- * 
+ *
  * @param occasionType - The occasion type (e.g., "easter", "thanksgiving", "kwanzaa", "anniversary")
  * @param year - Optional year, defaults to current year or next year if date has passed
  * @returns ISO date string (YYYY-MM-DD) or null if occasion type is unknown/user-specific
@@ -10,52 +10,60 @@ export function lookupOccasionDate(
   occasionType: string,
   year?: number
 ): string | null {
-  const normalized = occasionType.toLowerCase().trim().replace(/'/g, "").replace(/\s+/g, "_");
+  const normalized = occasionType
+    .toLowerCase()
+    .trim()
+    .replace(/'/g, "")
+    .replace(/\s+/g, "_");
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
   const targetYear = year || currentYear;
-  
+
   // Fixed-date holidays lookup
   const fixedHolidays: Record<string, { month: number; day: number }> = {
     christmas: { month: 12, day: 25 },
-    "christmas_day": { month: 12, day: 25 },
-    "valentines_day": { month: 2, day: 14 },
+    christmas_day: { month: 12, day: 25 },
+    valentines_day: { month: 2, day: 14 },
     "valentine's_day": { month: 2, day: 14 },
-    "new_years_day": { month: 1, day: 1 },
-    "new_years": { month: 1, day: 1 },
-    "independence_day": { month: 7, day: 4 },
+    new_years_day: { month: 1, day: 1 },
+    new_years: { month: 1, day: 1 },
+    independence_day: { month: 7, day: 4 },
     halloween: { month: 10, day: 31 },
-    "groundhog_day": { month: 2, day: 2 },
-    "st_patricks_day": { month: 3, day: 17 },
+    groundhog_day: { month: 2, day: 2 },
+    st_patricks_day: { month: 3, day: 17 },
     "st_patrick's_day": { month: 3, day: 17 },
-    "cinco_de_mayo": { month: 5, day: 5 },
+    cinco_de_mayo: { month: 5, day: 5 },
     juneteenth: { month: 6, day: 19 },
-    "veterans_day": { month: 11, day: 11 },
+    veterans_day: { month: 11, day: 11 },
     kwanzaa: { month: 12, day: 26 }, // Kwanzaa starts December 26 (fixed date)
     kwanza: { month: 12, day: 26 },
-    "makar_sankranti": { month: 1, day: 14 }, // Hindu fixed date
+    makar_sankranti: { month: 1, day: 14 }, // Hindu fixed date
     vaisakhi: { month: 4, day: 14 }, // Sikh/Hindu fixed date
     baisakhi: { month: 4, day: 14 },
   };
-  
+
   // Check fixed holidays first
   if (fixedHolidays[normalized]) {
     const { month, day } = fixedHolidays[normalized];
     let targetYearToUse = targetYear;
-    
+
     // Always check if date has passed - if so, use next year (unless year was explicitly provided)
     // Normalize dates to midnight for accurate comparison
     const dateForThisYear = new Date(currentYear, month - 1, day);
-    const todayNormalized = new Date(currentYear, currentDate.getMonth(), currentDate.getDate());
-    
+    const todayNormalized = new Date(
+      currentYear,
+      currentDate.getMonth(),
+      currentDate.getDate()
+    );
+
     if (!year && dateForThisYear < todayNormalized) {
       targetYearToUse = currentYear + 1;
     }
-    
+
     const finalDate = new Date(targetYearToUse, month - 1, day);
     return finalDate.toISOString().split("T")[0];
   }
-  
+
   // Variable holidays that need calculation
   switch (normalized) {
     case "easter":
@@ -109,7 +117,7 @@ function calculateEasterDate(year: number): string {
   const m = Math.floor((a + 11 * h + 22 * l) / 451);
   const month = Math.floor((h + l - 7 * m + 114) / 31);
   const day = ((h + l - 7 * m + 114) % 31) + 1;
-  
+
   const date = new Date(year, month - 1, day);
   const currentDate = new Date();
   // If date has passed this year and no year specified, calculate for next year
@@ -126,10 +134,10 @@ function calculateThanksgivingDate(year: number): string {
   // Get day of week (0 = Sunday, 4 = Thursday)
   const dayOfWeek = nov1.getDay();
   // Calculate days to add to get to first Thursday
-  const daysToAdd = dayOfWeek <= 4 ? (4 - dayOfWeek) : (11 - dayOfWeek);
+  const daysToAdd = dayOfWeek <= 4 ? 4 - dayOfWeek : 11 - dayOfWeek;
   // Add 3 weeks (21 days) to get to 4th Thursday
   const thanksgiving = new Date(year, 10, 1 + daysToAdd + 21);
-  
+
   const currentDate = new Date();
   if (thanksgiving < currentDate) {
     return calculateThanksgivingDate(year + 1);
@@ -146,7 +154,7 @@ function calculateMothersDayDate(year: number): string {
   const daysToAdd = (7 - dayOfWeek) % 7;
   // Add 1 week (7 days) to get to 2nd Sunday
   const mothersDay = new Date(year, 4, 1 + daysToAdd + 7);
-  
+
   const currentDate = new Date();
   if (mothersDay < currentDate) {
     return calculateMothersDayDate(year + 1);
@@ -163,7 +171,7 @@ function calculateFathersDayDate(year: number): string {
   const daysToAdd = (7 - dayOfWeek) % 7;
   // Add 2 weeks (14 days) to get to 3rd Sunday
   const fathersDay = new Date(year, 5, 1 + daysToAdd + 14);
-  
+
   const currentDate = new Date();
   if (fathersDay < currentDate) {
     return calculateFathersDayDate(year + 1);
@@ -175,7 +183,12 @@ function calculateFathersDayDate(year: number): string {
 // Uses simplified Meeus algorithm (accurate for 1951-2050)
 function calculateSpringEquinox(year: number): string {
   const y = (year - 2000) / 1000;
-  const jde = 2451623.80984 + 365242.37404 * y + 0.05169 * y * y - 0.00411 * y * y * y - 0.00057 * y * y * y * y;
+  const jde =
+    2451623.80984 +
+    365242.37404 * y +
+    0.05169 * y * y -
+    0.00411 * y * y * y -
+    0.00057 * y * y * y * y;
   const date = new Date((jde - 2440587.5) * 86400000);
   const currentDate = new Date();
   if (date < currentDate) {
@@ -188,7 +201,12 @@ function calculateSpringEquinox(year: number): string {
 // Uses simplified Meeus algorithm (accurate for 1951-2050)
 function calculateAutumnEquinox(year: number): string {
   const y = (year - 2000) / 1000;
-  const jde = 2451810.21715 + 365242.01767 * y - 0.11575 * y * y + 0.00337 * y * y * y + 0.00078 * y * y * y * y;
+  const jde =
+    2451810.21715 +
+    365242.01767 * y -
+    0.11575 * y * y +
+    0.00337 * y * y * y +
+    0.00078 * y * y * y * y;
   const date = new Date((jde - 2440587.5) * 86400000);
   const currentDate = new Date();
   if (date < currentDate) {
@@ -201,7 +219,12 @@ function calculateAutumnEquinox(year: number): string {
 // Uses simplified Meeus algorithm (accurate for 1951-2050)
 function calculateSummerSolstice(year: number): string {
   const y = (year - 2000) / 1000;
-  const jde = 2451716.56767 + 365241.62603 * y + 0.00325 * y * y + 0.00888 * y * y * y - 0.00030 * y * y * y * y;
+  const jde =
+    2451716.56767 +
+    365241.62603 * y +
+    0.00325 * y * y +
+    0.00888 * y * y * y -
+    0.0003 * y * y * y * y;
   const date = new Date((jde - 2440587.5) * 86400000);
   const currentDate = new Date();
   if (date < currentDate) {
@@ -214,7 +237,12 @@ function calculateSummerSolstice(year: number): string {
 // Uses simplified Meeus algorithm (accurate for 1951-2050)
 function calculateWinterSolstice(year: number): string {
   const y = (year - 2000) / 1000;
-  const jde = 2451900.05952 + 365242.74049 * y - 0.06223 * y * y - 0.00823 * y * y * y + 0.00032 * y * y * y * y;
+  const jde =
+    2451900.05952 +
+    365242.74049 * y -
+    0.06223 * y * y -
+    0.00823 * y * y * y +
+    0.00032 * y * y * y * y;
   const date = new Date((jde - 2440587.5) * 86400000);
   const currentDate = new Date();
   if (date < currentDate) {
@@ -237,7 +265,7 @@ function calculateDiwaliDate(year: number): string {
     2029: "2029-11-05",
     2030: "2030-10-26",
   };
-  
+
   if (diwaliDates[year]) {
     const date = new Date(diwaliDates[year]);
     const currentDate = new Date();
@@ -250,7 +278,7 @@ function calculateDiwaliDate(year: number): string {
     }
     return diwaliDates[year];
   }
-  
+
   // For years outside lookup table, use approximation formula
   // Diwali is approximately 15 days before the new moon in late October/early November
   // This is a simplified approximation
@@ -278,7 +306,7 @@ function calculateHoliDate(year: number): string {
     2029: "2029-03-01",
     2030: "2030-03-20",
   };
-  
+
   if (holiDates[year]) {
     const date = new Date(holiDates[year]);
     const currentDate = new Date();
@@ -291,7 +319,7 @@ function calculateHoliDate(year: number): string {
     }
     return holiDates[year];
   }
-  
+
   // For years outside lookup table, use approximation formula
   const baseDate = new Date(year, 2, 15); // March 15
   const daysOffset = (year - 2024) * 11; // Lunar calendar shifts ~11 days per year
@@ -317,7 +345,7 @@ function calculateHanukkahDate(year: number): string {
     2029: "2029-12-01",
     2030: "2030-12-20",
   };
-  
+
   if (hanukkahDates[year]) {
     const date = new Date(hanukkahDates[year]);
     const currentDate = new Date();
@@ -330,7 +358,7 @@ function calculateHanukkahDate(year: number): string {
     }
     return hanukkahDates[year];
   }
-  
+
   // For years outside lookup table, use approximation formula
   // Hanukkah typically falls in late November to late December
   const baseDate = new Date(year, 11, 10); // December 10
@@ -342,4 +370,3 @@ function calculateHanukkahDate(year: number): string {
   }
   return hanukkah.toISOString().split("T")[0];
 }
-
