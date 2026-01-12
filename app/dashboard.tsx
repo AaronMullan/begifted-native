@@ -1,6 +1,6 @@
 import { View, StyleSheet, ScrollView, Alert } from "react-native";
 import { Text, Button, Card, ActivityIndicator } from "react-native-paper";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import { Session } from "@supabase/supabase-js";
@@ -106,11 +106,13 @@ export default function Dashboard() {
   const [loadingRecipients, setLoadingRecipients] = useState(true);
   const [loadingUpcoming, setLoadingUpcoming] = useState(true);
   const router = useRouter();
+  const currentUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) {
+        currentUserIdRef.current = session.user.id;
         loadDashboardData(session.user.id, session.user.email);
       } else {
         setLoading(false);
@@ -124,27 +126,57 @@ export default function Dashboard() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session) {
+        currentUserIdRef.current = session.user.id;
         loadDashboardData(session.user.id, session.user.email);
       } else {
+        // Clear cache on sign out using stored userId
+        if (currentUserIdRef.current) {
+          clearDashboardCache(currentUserIdRef.current);
+          currentUserIdRef.current = null;
+        }
         setRecipientsCount(null);
         setUpcomingCount(null);
         setUsername("");
         setLoading(false);
         setLoadingRecipients(false);
         setLoadingUpcoming(false);
-        // Clear cache on sign out
-        if (session?.user?.id) {
-          clearDashboardCache(session.user.id);
-        }
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  async function fetchUserData(userId: string, userEmail?: string) {
-    try {
+  async function loadDashboardData(userId: string, userEmail?: string) {
+    // First, try to load from cache
+    const cached = await getCachedDashboardData(userId);
+    if (cached) {
+      // Show cached data immediately
+      setUsername(cached.username);
+      setRecipientsCount(cached.recipientsCount);
+      setUpcomingCount(cached.upcomingCount);
+      setLoading(false);
+      setLoadingRecipients(false);
+      setLoadingUpcoming(false);
+    } else {
+      // No cache, show loading states
       setLoading(true);
+      setLoadingRecipients(true);
+      setLoadingUpcoming(true);
+    }
+
+    // Always fetch fresh data in background
+    fetchUserData(userId, userEmail, !!cached);
+  }
+
+  async function fetchUserData(
+    userId: string,
+    userEmail?: string,
+    hasCache = false
+  ) {
+    try {
+      if (!hasCache) {
+        setLoading(true);
+      }
 
       // Fetch username from profiles table
       const { data: profileData, error: profileError } = await supabase
@@ -157,15 +189,20 @@ export default function Dashboard() {
         console.error("Error fetching profile:", profileError);
       }
 
+      let fetchedUsername = "";
       if (profileData?.username) {
-        setUsername(profileData.username);
+        fetchedUsername = profileData.username;
+        setUsername(fetchedUsername);
       } else if (userEmail) {
         // Fallback to email if no username
-        const emailName = userEmail.split("@")[0];
-        setUsername(emailName);
+        fetchedUsername = userEmail.split("@")[0];
+        setUsername(fetchedUsername);
       }
 
       // Fetch recipients count
+      if (!hasCache) {
+        setLoadingRecipients(true);
+      }
       const { count: recipientsCount, error: recipientsError } = await supabase
         .from("recipients")
         .select("*", { count: "exact", head: true })
@@ -173,11 +210,18 @@ export default function Dashboard() {
 
       if (recipientsError) {
         console.error("Error fetching recipients count:", recipientsError);
+        if (!hasCache) {
+          setRecipientsCount(0);
+        }
       } else {
         setRecipientsCount(recipientsCount || 0);
       }
+      setLoadingRecipients(false);
 
       // Fetch upcoming occasions count (next 90 days)
+      if (!hasCache) {
+        setLoadingUpcoming(true);
+      }
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const futureDate = new Date(today);
@@ -192,20 +236,39 @@ export default function Dashboard() {
 
       if (occasionsError) {
         console.error("Error fetching occasions count:", occasionsError);
-        // If occasions table doesn't exist yet, set to 0
-        setUpcomingCount(0);
+        if (!hasCache) {
+          setUpcomingCount(0);
+        }
       } else {
         setUpcomingCount(occasionsCount || 0);
       }
+      setLoadingUpcoming(false);
+
+      // Save to cache
+      await setCachedDashboardData(userId, {
+        recipientsCount: recipientsCount || 0,
+        upcomingCount: occasionsCount || 0,
+        username: fetchedUsername,
+      });
     } catch (error) {
       console.error("Error fetching user data:", error);
+      if (!hasCache) {
+        setRecipientsCount(0);
+        setUpcomingCount(0);
+      }
     } finally {
       setLoading(false);
+      setLoadingRecipients(false);
+      setLoadingUpcoming(false);
     }
   }
 
   async function handleSignOut() {
     try {
+      // Clear cache before signing out
+      if (session?.user?.id) {
+        await clearDashboardCache(session.user.id);
+      }
       const { error } = await supabase.auth.signOut();
       if (error) {
         Alert.alert("Error", error.message);
@@ -267,9 +330,13 @@ export default function Dashboard() {
                 <View style={[styles.iconContainer, styles.recipientsIcon]}>
                   <Ionicons name="people" size={32} color="#000000" />
                 </View>
-                <Text variant="displaySmall" style={styles.cardNumber}>
-                  {recipientsCount}
-                </Text>
+                {loadingRecipients && recipientsCount === null ? (
+                  <ActivityIndicator size="small" style={styles.loader} />
+                ) : (
+                  <Text variant="displaySmall" style={styles.cardNumber}>
+                    {recipientsCount ?? 0}
+                  </Text>
+                )}
                 <Text variant="titleLarge" style={styles.cardTitle}>
                   Recipients
                 </Text>
@@ -287,9 +354,13 @@ export default function Dashboard() {
                 <View style={[styles.iconContainer, styles.upcomingIcon]}>
                   <Ionicons name="calendar" size={32} color="#000000" />
                 </View>
-                <Text variant="displaySmall" style={styles.cardNumber}>
-                  {upcomingCount}
-                </Text>
+                {loadingUpcoming && upcomingCount === null ? (
+                  <ActivityIndicator size="small" style={styles.loader} />
+                ) : (
+                  <Text variant="displaySmall" style={styles.cardNumber}>
+                    {upcomingCount ?? 0}
+                  </Text>
+                )}
                 <Text variant="titleLarge" style={styles.cardTitle}>
                   Upcoming
                 </Text>
@@ -399,5 +470,8 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: "#666",
+  },
+  loader: {
+    marginBottom: 8,
   },
 });
