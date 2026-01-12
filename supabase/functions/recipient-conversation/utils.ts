@@ -21,17 +21,21 @@ export function parseOpenAIJSON(content: string): any {
 export function getNextOccurrenceDate(month: number, day: number): string {
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
-  
+
   // Create date for this year (normalized to midnight)
   const dateForThisYear = new Date(currentYear, month - 1, day);
-  const todayNormalized = new Date(currentYear, currentDate.getMonth(), currentDate.getDate());
-  
+  const todayNormalized = new Date(
+    currentYear,
+    currentDate.getMonth(),
+    currentDate.getDate()
+  );
+
   // If the date has already passed this year, use next year
   let targetYear = currentYear;
   if (dateForThisYear < todayNormalized) {
     targetYear = currentYear + 1;
   }
-  
+
   const nextDate = new Date(targetYear, month - 1, day);
   return nextDate.toISOString().split("T")[0];
 }
