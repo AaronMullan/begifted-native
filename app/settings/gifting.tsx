@@ -309,33 +309,8 @@ export default function GiftingPreferences() {
                   ))}
                 </View>
               )}
-            </View>
-
-            {/* Automatic Gift Suggestions */}
-            <View style={styles.switchSection}>
-              <View style={styles.switchContent}>
-                <Text style={styles.switchLabel}>
-                  Automatic Gift Suggestions
-                </Text>
-                <Text style={styles.switchDescription}>
-                  Enable automatic gift suggestions as backup when manual
-                  selection isn't made
-                </Text>
               </View>
-              <Switch
-                value={formData.autoFallbackEnabled}
-                onValueChange={(checked) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    autoFallbackEnabled: checked,
-                  }))
-                }
-                trackColor={{ false: "#E0E0E0", true: "#333333" }}
-                thumbColor="#fff"
-              />
             </View>
-          </View>
-
           {/* Save Button */}
           <TouchableOpacity
             style={[
