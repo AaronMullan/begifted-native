@@ -225,16 +225,13 @@ export default function Calendar() {
                   View all your upcoming occasions
                 </Text>
               </View>
-              <View style={styles.backButtonContainer}>
-                <IconButton
-                  icon="arrow-left"
-                  size={20}
-                  iconColor="#000000"
-                  onPress={() => router.back()}
-                  style={styles.backButton}
-                />
-                <Text style={styles.backText}>Back</Text>
-              </View>
+              <IconButton
+                icon="arrow-left"
+                size={20}
+                iconColor="#000000"
+                onPress={() => router.back()}
+                style={styles.backButton}
+              />
             </View>
 
             {/* Summary section */}
@@ -372,18 +369,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#666",
   },
-  backButtonContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
   backButton: {
     margin: 0,
-  },
-  backText: {
-    fontSize: 14,
-    color: "#000000",
-    marginLeft: 4,
-    fontWeight: "500",
   },
   summarySection: {
     flexDirection: "row",

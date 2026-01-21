@@ -1,15 +1,17 @@
 import {
-  Text,
   View,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
 import { useState } from "react";
+import { useRouter } from "expo-router";
+import { IconButton, Text } from "react-native-paper";
 import { faqs } from "../data/faqs";
 
 export default function FAQ() {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const router = useRouter();
 
   const toggleFAQ = (index: number) => {
     setExpandedIndex(expandedIndex === index ? null : index);
@@ -18,7 +20,24 @@ export default function FAQ() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>BeGifted FAQ</Text>
+        {/* Header section */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Text variant="headlineMedium" style={styles.title}>
+              BeGifted FAQ
+            </Text>
+            <Text variant="bodyLarge" style={styles.subtitle}>
+              Frequently asked questions about BeGifted
+            </Text>
+          </View>
+          <IconButton
+            icon="arrow-left"
+            size={20}
+            iconColor="#000000"
+            onPress={() => router.back()}
+            style={styles.backButton}
+          />
+        </View>
         <View style={styles.list}>
           {faqs.map((faq, i) => (
             <View key={i} style={styles.faqItem}>
@@ -45,16 +64,28 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   content: {
-    maxWidth: 768,
+    maxWidth: 800,
     alignSelf: "center",
     width: "100%",
-    paddingHorizontal: 16,
-    paddingVertical: 40,
+    padding: 20,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 32,
+  },
+  headerLeft: {
+    flex: 1,
   },
   title: {
-    fontSize: 30,
-    fontWeight: "600",
-    marginBottom: 24,
+    marginBottom: 8,
+  },
+  subtitle: {
+    color: "#666",
+  },
+  backButton: {
+    margin: 0,
   },
   list: {
     gap: 12,

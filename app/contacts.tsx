@@ -2,7 +2,7 @@ import { Session } from "@supabase/supabase-js";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Alert, Platform, ScrollView, StyleSheet, View } from "react-native";
-import { Text, Button } from "react-native-paper";
+import { Text, Button, IconButton } from "react-native-paper";
 import ContactFileImport from "../components/ContactFileImport";
 import ContactPicker from "../components/ContactPicker";
 import RecipientCard from "../components/RecipientCard";
@@ -314,12 +314,24 @@ export default function Contacts() {
     <View style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
-          <Text variant="headlineMedium" style={styles.title}>
-            My Contacts
-          </Text>
-          <Text variant="bodyLarge" style={styles.subtitle}>
-            Manage the people you want to send gifts to.
-          </Text>
+          {/* Header section */}
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <Text variant="headlineMedium" style={styles.title}>
+                My Contacts
+              </Text>
+              <Text variant="bodyLarge" style={styles.subtitle}>
+                Manage the people you want to send gifts to.
+              </Text>
+            </View>
+            <IconButton
+              icon="arrow-left"
+              size={20}
+              iconColor="#000000"
+              onPress={() => router.back()}
+              style={styles.backButton}
+            />
+          </View>
 
           {!formVisible && (
             <>
@@ -436,11 +448,23 @@ const styles = StyleSheet.create({
     width: "100%",
     padding: 20,
   },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 24,
+  },
+  headerLeft: {
+    flex: 1,
+  },
   title: {
     marginBottom: 8,
   },
   subtitle: {
-    marginBottom: 24,
+    color: "#666",
+  },
+  backButton: {
+    margin: 0,
   },
   addButton: {
     marginBottom: 20,
