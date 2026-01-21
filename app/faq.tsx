@@ -1,9 +1,4 @@
-import {
-  View,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
+import { View, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { IconButton, Text } from "react-native-paper";

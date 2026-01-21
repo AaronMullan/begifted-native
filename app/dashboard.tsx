@@ -323,7 +323,11 @@ export default function Dashboard() {
             <Card style={styles.card}>
               <Card.Content style={styles.cardContent}>
                 <View style={[styles.iconContainer, styles.upcomingIcon]}>
-                  <MaterialIcons name="calendar-today" size={32} color="#000000" />
+                  <MaterialIcons
+                    name="calendar-today"
+                    size={32}
+                    color="#000000"
+                  />
                 </View>
                 {loadingUpcoming && upcomingCount === null ? (
                   <ActivityIndicator size="small" style={styles.loader} />

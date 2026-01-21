@@ -1,6 +1,12 @@
 import { Session } from "@supabase/supabase-js";
 import { useState, useEffect } from "react";
-import { StyleSheet, ScrollView, View, ActivityIndicator, Platform } from "react-native";
+import {
+  StyleSheet,
+  ScrollView,
+  View,
+  ActivityIndicator,
+  Platform,
+} from "react-native";
 import { useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { supabase } from "../lib/supabase";
@@ -18,10 +24,11 @@ export default function Index() {
     let isMounted = true;
 
     // Check auth session
-    supabase.auth.getSession()
+    supabase.auth
+      .getSession()
       .then(({ data: { session } }) => {
         if (!isMounted) return;
-        
+
         setSession(session);
         setLoading(false);
 
@@ -33,7 +40,7 @@ export default function Index() {
       .catch((error) => {
         console.error("Error checking auth session:", error);
         if (!isMounted) return;
-        
+
         // On error, still show auth screen
         setSession(null);
         setLoading(false);
@@ -44,7 +51,7 @@ export default function Index() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!isMounted) return;
       setSession(session);
-      
+
       // Redirect to dashboard if logged in
       if (session?.user) {
         router.replace("/dashboard");
@@ -75,7 +82,10 @@ export default function Index() {
   // Show auth component if not logged in
   if (!session || !session.user) {
     return (
-      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+      >
         <Auth />
       </ScrollView>
     );

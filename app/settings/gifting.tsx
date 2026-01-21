@@ -309,8 +309,8 @@ export default function GiftingPreferences() {
                   ))}
                 </View>
               )}
-              </View>
             </View>
+          </View>
           {/* Save Button */}
           <TouchableOpacity
             style={[
@@ -330,8 +330,8 @@ export default function GiftingPreferences() {
               {saving
                 ? "Saving..."
                 : hasChanges
-                ? "Save Preferences"
-                : "No Changes"}
+                  ? "Save Preferences"
+                  : "No Changes"}
             </Text>
           </TouchableOpacity>
         </View>

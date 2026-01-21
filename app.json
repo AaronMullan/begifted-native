@@ -25,9 +25,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "READ_CONTACTS"
-      ]
+      "permissions": ["READ_CONTACTS"]
     },
     "web": {
       "output": "static",

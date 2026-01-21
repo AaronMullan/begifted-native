@@ -52,7 +52,11 @@ export default function PreferenceCard({
                   </Text>
                 </View>
                 {isSelected && (
-                  <MaterialIcons name="check-circle" size={24} color="#000000" />
+                  <MaterialIcons
+                    name="check-circle"
+                    size={24}
+                    color="#000000"
+                  />
                 )}
               </Card.Content>
             </Card>

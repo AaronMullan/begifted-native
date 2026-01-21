@@ -40,7 +40,9 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
   const [showOccasionsSelection, setShowOccasionsSelection] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [savedRecipientName, setSavedRecipientName] = useState<string | null>(null);
+  const [savedRecipientName, setSavedRecipientName] = useState<string | null>(
+    null
+  );
 
   // Use the generic conversation flow hook
   const {
@@ -265,12 +267,12 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
           }
           return occasion;
         });
-        
+
         // Only update if we actually enriched any occasions
-        const hasChanges = enrichedOccasions.some((occ, idx) => 
-          occ.date !== extractedData.occasions![idx].date
+        const hasChanges = enrichedOccasions.some(
+          (occ, idx) => occ.date !== extractedData.occasions![idx].date
         );
-        
+
         if (hasChanges) {
           genericSetExtractedData({
             ...extractedData,
@@ -278,7 +280,7 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
           });
         }
       };
-      
+
       enrichOccasions();
     }
   }, [extractedData, genericSetExtractedData]);
@@ -319,4 +321,3 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
 
 // Re-export types for backward compatibility
 export type { ExtractedData, Message };
-
