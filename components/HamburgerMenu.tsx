@@ -122,6 +122,16 @@ export default function HamburgerMenu() {
                 FAQ
               </Button>
             </Link>
+            <Link href="/settings" asChild>
+              <Button
+                mode="text"
+                onPress={handleMenuToggle}
+                style={styles.menuItem}
+                textColor="#333"
+              >
+                Settings
+              </Button>
+            </Link>
 
             {/* Conditional Sign In / Sign Out */}
             {session && session.user ? (
