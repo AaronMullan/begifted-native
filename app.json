@@ -9,9 +9,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "bundleIdentifier": "com.begifted.app",
       "supportsTablet": true,
       "infoPlist": {
-        "NSContactsUsageDescription": "This app would like to access your contacts to help you import gift recipients."
+        "NSContactsUsageDescription": "This app would like to access your contacts to help you import gift recipients.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -22,7 +24,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false, 
+      "predictiveBackGestureEnabled": false,
       "permissions": [
         "READ_CONTACTS"
       ]
@@ -50,6 +52,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "16c0ca90-545c-4ff3-be91-227aae28dbe5"
+      }
+    },
+    "owner": "aaronmullan"
   }
 }

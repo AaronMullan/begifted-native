@@ -220,7 +220,7 @@ export default function Notifications() {
               onPress={() => router.back()}
               style={styles.backButton}
             >
-              <Ionicons name="arrow-back" size={20} color="#000000" />
+              <Ionicons name="arrow-left" size={20} color="#000000" />
             </TouchableOpacity>
           </View>
 

@@ -230,7 +230,7 @@ export default function ProfileSettings() {
               </Text>
             </View>
             <IconButton
-              icon="arrow-back"
+              icon="arrow-left"
               size={20}
               iconColor="#000000"
               onPress={() => router.back()}

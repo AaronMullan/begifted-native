@@ -61,7 +61,7 @@ export function DataReviewView({
       {/* Header */}
       <View style={styles.header}>
         <IconButton
-          icon="arrow-back"
+          icon="arrow-left"
           size={24}
           iconColor="#000000"
           onPress={onBack}
