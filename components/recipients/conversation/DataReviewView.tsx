@@ -7,7 +7,6 @@ import {
   Button,
   ActivityIndicator,
 } from "react-native-paper";
-import { Ionicons } from "@expo/vector-icons";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
 
 interface DataReviewViewProps {

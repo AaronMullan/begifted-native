@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { View, ScrollView, StyleSheet } from "react-native";
 import { Text, IconButton, Button } from "react-native-paper";
-import { Ionicons } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
 import { OccasionItem } from "./OccasionItem";
 import { OccasionEditor } from "./OccasionEditor";
@@ -123,7 +123,7 @@ export function OccasionsSelectionView({
 
         {selectedOccasions.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="calendar-outline" size={48} color="#999" />
+            <MaterialIcons name="calendar-today" size={48} color="#999" />
             <Text variant="titleLarge" style={styles.emptyText}>
               No occasions found
             </Text>

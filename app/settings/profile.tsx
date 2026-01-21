@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { Session } from "@supabase/supabase-js";
-import { Ionicons } from "@expo/vector-icons";
 
 export default function ProfileSettings() {
   const [session, setSession] = useState<Session | null>(null);

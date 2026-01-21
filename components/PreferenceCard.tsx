@@ -1,7 +1,7 @@
 import { View, StyleSheet } from "react-native";
 import { Text, Card } from "react-native-paper";
 import { PreferenceOption } from "../constants/gifting-preferences";
-import { Ionicons } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 
 interface PreferenceCardProps {
   title: string;
@@ -52,7 +52,7 @@ export default function PreferenceCard({
                   </Text>
                 </View>
                 {isSelected && (
-                  <Ionicons name="checkmark-circle" size={24} color="#000000" />
+                  <MaterialIcons name="check-circle" size={24} color="#000000" />
                 )}
               </Card.Content>
             </Card>

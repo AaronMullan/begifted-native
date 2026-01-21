@@ -10,7 +10,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { Session } from "@supabase/supabase-js";
-import { Ionicons } from "@expo/vector-icons";
+import { IconButton } from "react-native-paper";
+import { MaterialIcons } from "@expo/vector-icons";
 
 interface NotificationPreferences {
   push_notifications_enabled: boolean;
@@ -216,12 +217,13 @@ export default function Notifications() {
                 Manage your communication preferences
               </Text>
             </View>
-            <TouchableOpacity
+            <IconButton
+              icon="arrow-left"
+              size={20}
+              iconColor="#000000"
               onPress={() => router.back()}
               style={styles.backButton}
-            >
-              <Ionicons name="arrow-left" size={20} color="#000000" />
-            </TouchableOpacity>
+            />
           </View>
 
           {/* Notification Methods Section */}
@@ -393,8 +395,8 @@ export default function Notifications() {
                 <Text style={styles.settingLabel}>Timezone</Text>
                 <Text style={styles.timezoneValue}>{currentTimezoneLabel}</Text>
               </View>
-              <Ionicons
-                name={showTimezonePicker ? "chevron-up" : "chevron-down"}
+              <MaterialIcons
+                name={showTimezonePicker ? "expand-less" : "expand-more"}
                 size={20}
                 color="#666"
               />
@@ -422,7 +424,7 @@ export default function Notifications() {
                       {tz.label}
                     </Text>
                     {preferences.timezone === tz.value && (
-                      <Ionicons name="checkmark" size={20} color="#000000" />
+                      <MaterialIcons name="check" size={20} color="#000000" />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -502,8 +504,7 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   backButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    margin: 0,
   },
   section: {
     marginBottom: 32,

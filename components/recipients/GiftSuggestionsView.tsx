@@ -7,7 +7,7 @@ import {
   Card,
   List,
 } from "react-native-paper";
-import { Ionicons } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 import type { GiftSuggestion } from "../../types/recipient";
 
 type GiftSuggestionsViewProps = {
@@ -184,7 +184,7 @@ export const GiftSuggestionsView: React.FC<GiftSuggestionsViewProps> = ({
   if (suggestions.length === 0 && !isGenerating) {
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="gift-outline" size={64} color="#ccc" />
+        <MaterialIcons name="card-giftcard" size={64} color="#ccc" />
         <Text variant="titleLarge" style={styles.emptyTitle}>
           No Gift Ideas Yet
         </Text>

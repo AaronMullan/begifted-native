@@ -13,7 +13,6 @@ import {
   Button,
   ActivityIndicator,
 } from "react-native-paper";
-import { Ionicons } from "@expo/vector-icons";
 import { Message } from "@/hooks/use-add-recipient-flow";
 
 interface ConversationViewProps {

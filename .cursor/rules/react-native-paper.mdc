@@ -148,12 +148,23 @@ const theme = {
 
 ## Icons
 
-Continue using `@expo/vector-icons` (Ionicons) for icons, but integrate with Paper components using the `icon` prop where supported:
+Use **Material Icons** from `@expo/vector-icons` for all icons. This ensures consistency across the app. For direct icon usage, import and use `MaterialIcons`:
+
+```typescript
+import { MaterialIcons } from "@expo/vector-icons";
+
+<MaterialIcons name="check" size={24} color="#000000" />
+<MaterialIcons name="add" size={20} color="white" />
+```
+
+For Paper components, use the `icon` prop which supports Material Community Icons (compatible with Material Icons):
 
 ```typescript
 <Button icon="check" onPress={handleSubmit}>Save</Button>
 <IconButton icon="close" onPress={onClose} />
 ```
+
+**Important**: Do not use Ionicons. Always use Material Icons (`MaterialIcons` from `@expo/vector-icons`) for direct icon rendering.
 
 ## Prohibited Patterns
 

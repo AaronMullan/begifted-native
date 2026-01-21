@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 import { Session } from "@supabase/supabase-js";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { IconButton } from "react-native-paper";
 import { supabase } from "../lib/supabase";
 import { Recipient } from "../types/recipient";
 import { useToast } from "../hooks/use-toast";
@@ -224,13 +225,16 @@ export default function Calendar() {
                   View all your upcoming occasions
                 </Text>
               </View>
-              <TouchableOpacity
-                onPress={() => router.back()}
-                style={styles.backButton}
-              >
-                <Ionicons name="arrow-left" size={20} color="#000000" />
+              <View style={styles.backButtonContainer}>
+                <IconButton
+                  icon="arrow-left"
+                  size={20}
+                  iconColor="#000000"
+                  onPress={() => router.back()}
+                  style={styles.backButton}
+                />
                 <Text style={styles.backText}>Back</Text>
-              </TouchableOpacity>
+              </View>
             </View>
 
             {/* Summary section */}
@@ -243,7 +247,7 @@ export default function Calendar() {
                 onPress={() => router.push("/contacts" as any)}
               >
                 <View style={styles.addButtonContent}>
-                  <Ionicons name="add" size={20} color="white" />
+                  <MaterialIcons name="add" size={20} color="white" />
                   <Text style={styles.addButtonText}>Add Recipient</Text>
                 </View>
               </TouchableOpacity>
@@ -276,8 +280,8 @@ export default function Calendar() {
                           activeOpacity={0.7}
                         >
                           <View style={styles.occasionIconContainer}>
-                            <Ionicons
-                              name="gift-outline"
+                            <MaterialIcons
+                              name="card-giftcard"
                               size={24}
                               color="white"
                             />
@@ -368,11 +372,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#666",
   },
-  backButton: {
+  backButtonContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+  },
+  backButton: {
+    margin: 0,
   },
   backText: {
     fontSize: 14,

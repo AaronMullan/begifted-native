@@ -10,7 +10,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { Session } from "@supabase/supabase-js";
-import { Ionicons } from "@expo/vector-icons";
+import { IconButton } from "react-native-paper";
+import { MaterialIcons } from "@expo/vector-icons";
 import PreferenceCard from "../../components/PreferenceCard";
 import {
   PHILOSOPHY_OPTIONS,
@@ -203,12 +204,13 @@ export default function GiftingPreferences() {
                 personal style and preferences.
               </Text>
             </View>
-            <TouchableOpacity
+            <IconButton
+              icon="arrow-left"
+              size={20}
+              iconColor="#000000"
               onPress={() => router.back()}
               style={styles.backButton}
-            >
-              <Ionicons name="arrow-left" size={20} color="#000000" />
-            </TouchableOpacity>
+            />
           </View>
 
           {/* Preference Cards */}
@@ -266,8 +268,8 @@ export default function GiftingPreferences() {
                 onPress={() => setShowReminderPicker(!showReminderPicker)}
               >
                 <Text style={styles.reminderValue}>{currentReminderLabel}</Text>
-                <Ionicons
-                  name={showReminderPicker ? "chevron-up" : "chevron-down"}
+                <MaterialIcons
+                  name={showReminderPicker ? "expand-less" : "expand-more"}
                   size={20}
                   color="#666"
                 />
@@ -301,7 +303,7 @@ export default function GiftingPreferences() {
                         {option.label}
                       </Text>
                       {formData.reminderDays === option.value && (
-                        <Ionicons name="checkmark" size={20} color="#000000" />
+                        <MaterialIcons name="check" size={20} color="#000000" />
                       )}
                     </TouchableOpacity>
                   ))}
@@ -406,8 +408,7 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   backButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    margin: 0,
   },
   preferencesContainer: {
     marginBottom: 24,

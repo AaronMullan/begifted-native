@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import { Session } from "@supabase/supabase-js";
-import { Ionicons } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -299,7 +299,7 @@ export default function Dashboard() {
             <Card style={styles.card}>
               <Card.Content style={styles.cardContent}>
                 <View style={[styles.iconContainer, styles.recipientsIcon]}>
-                  <Ionicons name="people" size={32} color="#000000" />
+                  <MaterialIcons name="people" size={32} color="#000000" />
                 </View>
                 {loadingRecipients && recipientsCount === null ? (
                   <ActivityIndicator size="small" style={styles.loader} />
@@ -323,7 +323,7 @@ export default function Dashboard() {
             <Card style={styles.card}>
               <Card.Content style={styles.cardContent}>
                 <View style={[styles.iconContainer, styles.upcomingIcon]}>
-                  <Ionicons name="calendar" size={32} color="#000000" />
+                  <MaterialIcons name="calendar-today" size={32} color="#000000" />
                 </View>
                 {loadingUpcoming && upcomingCount === null ? (
                   <ActivityIndicator size="small" style={styles.loader} />
@@ -349,7 +349,7 @@ export default function Dashboard() {
           >
             <Card.Content style={styles.cardContent}>
               <View style={[styles.iconContainer, styles.settingsIcon]}>
-                <Ionicons name="settings" size={32} color="#000000" />
+                <MaterialIcons name="settings" size={32} color="#000000" />
               </View>
               <Text variant="titleLarge" style={styles.settingsTitle}>
                 Settings

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import { Session } from "@supabase/supabase-js";
-import { Ionicons } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 
 export default function Settings() {
   const [session, setSession] = useState<Session | null>(null);
@@ -72,7 +72,7 @@ export default function Settings() {
       id: "gifting",
       title: "Gifting Preferences",
       description: "Customize how AI generates gift recommendations",
-      icon: "gift-outline",
+      icon: "card-giftcard",
       iconColor: "#000000",
       route: "/settings/gifting" as any,
     },
@@ -80,7 +80,7 @@ export default function Settings() {
       id: "notifications",
       title: "Notifications",
       description: "Control email and push notification settings",
-      icon: "notifications-outline",
+      icon: "notifications-none",
       iconColor: "#000000",
       route: "/settings/notifications" as any,
     },
@@ -88,7 +88,7 @@ export default function Settings() {
       id: "billing",
       title: "Billing & Subscription",
       description: "Manage your subscription plan and payment methods",
-      icon: "card-outline",
+      icon: "credit-card",
       iconColor: "#000000",
       route: "/settings/billing" as any,
     },
@@ -96,7 +96,7 @@ export default function Settings() {
       id: "support",
       title: "Support & Help",
       description: "Get help, contact support or report issues",
-      icon: "help-circle-outline",
+      icon: "help-outline",
       iconColor: "#000000",
       route: "/settings/support" as any,
     },
@@ -141,7 +141,7 @@ export default function Settings() {
                       { backgroundColor: "#F5F5F5" },
                     ]}
                   >
-                    <Ionicons
+                    <MaterialIcons
                       name={card.icon as any}
                       size={28}
                       color={card.iconColor}
@@ -155,8 +155,8 @@ export default function Settings() {
                       {card.description}
                     </Text>
                   </View>
-                  <Ionicons
-                    name="chevron-forward"
+                  <MaterialIcons
+                    name="chevron-right"
                     size={20}
                     color="#999"
                     style={styles.chevron}
