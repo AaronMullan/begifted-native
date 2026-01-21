@@ -1,4 +1,4 @@
-import { Stack, usePathname } from "expo-router";
+import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { Provider as PaperProvider, MD3LightTheme } from "react-native-paper";
 import Header from "../components/Header";
@@ -29,10 +29,9 @@ const customTheme = {
 };
 
 function HeaderWrapper() {
-  const pathname = usePathname();
-  // Index route is "/" or empty
-  const isIndexRoute = pathname === "/" || pathname === "";
-  return <Header colorful={isIndexRoute} />;
+  // Index route is now the app entry point, not marketing site
+  // Keep colorful mode disabled for index route
+  return <Header colorful={false} />;
 }
 
 export default function RootLayout() {

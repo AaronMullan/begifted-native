@@ -14,7 +14,7 @@ export default function Header({ colorful = false }: HeaderProps) {
     <View
       style={[
         styles.headerBackground,
-        { paddingTop: insets.top + 8, backgroundColor: headerBackgroundColor },
+        { paddingTop: insets.top + 4, backgroundColor: headerBackgroundColor },
       ]}
     >
       {/* Contained content at max 800px to match dashboard */}
@@ -33,7 +33,7 @@ export default function Header({ colorful = false }: HeaderProps) {
 const styles = StyleSheet.create({
   headerBackground: {
     width: "100%",
-    paddingBottom: 16,
+    paddingBottom: 8,
   },
   headerContent: {
     maxWidth: 800,

@@ -1,4 +1,4 @@
-import { View, StyleSheet, ScrollView, Alert } from "react-native";
+import { View, StyleSheet, ScrollView } from "react-native";
 import { Text, Button, Card, ActivityIndicator } from "react-native-paper";
 import { useState, useEffect, useRef } from "react";
 import { Link, useRouter } from "expo-router";
@@ -236,9 +236,8 @@ export default function Dashboard() {
 
       if (occasionsError) {
         console.error("Error fetching occasions count:", occasionsError);
-        if (!hasCache) {
-          setUpcomingCount(0);
-        }
+        // Always set a value, even if there's an error
+        setUpcomingCount(0);
       } else {
         setUpcomingCount(occasionsCount || 0);
       }
@@ -260,25 +259,6 @@ export default function Dashboard() {
       setLoading(false);
       setLoadingRecipients(false);
       setLoadingUpcoming(false);
-    }
-  }
-
-  async function handleSignOut() {
-    try {
-      // Clear cache before signing out
-      if (session?.user?.id) {
-        await clearDashboardCache(session.user.id);
-      }
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        Alert.alert("Error", error.message);
-      } else {
-        router.replace("/");
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        Alert.alert("Error", error.message);
-      }
     }
   }
 
@@ -304,21 +284,12 @@ export default function Dashboard() {
       <View style={styles.content}>
         {/* Header section */}
         <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text variant="headlineMedium" style={styles.greeting}>
-              Hello, {displayName}!
-            </Text>
-            <Text variant="bodyLarge" style={styles.tagline}>
-              Let's make someone's day special
-            </Text>
-          </View>
-          <Button
-            mode="text"
-            onPress={handleSignOut}
-            style={styles.signOutButton}
-          >
-            Sign Out
-          </Button>
+          <Text variant="headlineMedium" style={styles.greeting}>
+            Hello, {displayName}!
+          </Text>
+          <Text variant="bodyLarge" style={styles.tagline}>
+            Let's make someone's day special
+          </Text>
         </View>
 
         {/* Three cards */}
@@ -407,22 +378,13 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
     marginBottom: 32,
-  },
-  headerLeft: {
-    flex: 1,
   },
   greeting: {
     marginBottom: 8,
   },
   tagline: {
     color: "#666",
-  },
-  signOutButton: {
-    margin: 0,
   },
   cardsContainer: {
     gap: 20,
@@ -434,12 +396,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 12,
     backgroundColor: "#f8f8f8",
   },
   recipientsIcon: {
