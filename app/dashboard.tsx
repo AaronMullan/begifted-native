@@ -107,9 +107,13 @@ export default function Dashboard() {
   const [loadingUpcoming, setLoadingUpcoming] = useState(true);
   const router = useRouter();
   const currentUserIdRef = useRef<string | null>(null);
+  const fetchInProgressRef = useRef<boolean>(false);
 
   useEffect(() => {
+    let isMounted = true;
+    
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return;
       setSession(session);
       if (session) {
         currentUserIdRef.current = session.user.id;
@@ -124,6 +128,7 @@ export default function Dashboard() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
       setSession(session);
       if (session) {
         currentUserIdRef.current = session.user.id;
@@ -140,13 +145,25 @@ export default function Dashboard() {
         setLoading(false);
         setLoadingRecipients(false);
         setLoadingUpcoming(false);
+        fetchInProgressRef.current = false;
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   async function loadDashboardData(userId: string, userEmail?: string) {
+    // Prevent concurrent fetches - check and set immediately
+    if (fetchInProgressRef.current) {
+      return;
+    }
+    
+    // Mark as in progress immediately to prevent concurrent calls
+    fetchInProgressRef.current = true;
+    
     // First, try to load from cache
     const cached = await getCachedDashboardData(userId);
     if (cached) {
@@ -165,7 +182,13 @@ export default function Dashboard() {
     }
 
     // Always fetch fresh data in background
-    fetchUserData(userId, userEmail, !!cached);
+    fetchUserData(userId, userEmail, !!cached).catch((err) => {
+      // Ensure loading states are reset even if fetchUserData fails
+      setLoading(false);
+      setLoadingRecipients(false);
+      setLoadingUpcoming(false);
+      fetchInProgressRef.current = false;
+    });
   }
 
   async function fetchUserData(
@@ -173,17 +196,41 @@ export default function Dashboard() {
     userEmail?: string,
     hasCache = false
   ) {
+    // Set a global timeout to ensure finally block always executes
+    const globalTimeout = setTimeout(() => {
+      setLoading(false);
+      setLoadingRecipients(false);
+      setLoadingUpcoming(false);
+      fetchInProgressRef.current = false;
+    }, 15000); // 15 second global timeout
+    
     try {
       if (!hasCache) {
         setLoading(true);
       }
 
       // Fetch username from profiles table
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("username")
-        .eq("id", userId)
-        .single();
+      let profileData: any = null;
+      let profileError: any = null;
+      
+      try {
+        const profilePromise = supabase
+          .from("profiles")
+          .select("username")
+          .eq("id", userId)
+          .single();
+        
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Profile query timeout')), 10000)
+        );
+        
+        const result = await Promise.race([profilePromise, timeoutPromise]);
+        profileData = result.data;
+        profileError = result.error;
+      } catch (err) {
+        profileError = err instanceof Error ? err : new Error(String(err));
+      }
 
       if (profileError && profileError.code !== "PGRST116") {
         console.error("Error fetching profile:", profileError);
@@ -203,10 +250,26 @@ export default function Dashboard() {
       if (!hasCache) {
         setLoadingRecipients(true);
       }
-      const { count: recipientsCount, error: recipientsError } = await supabase
-        .from("recipients")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId);
+      let recipientsCount: number | null = null;
+      let recipientsError: any = null;
+      
+      try {
+        const recipientsPromise = supabase
+          .from("recipients")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", userId);
+        
+        const recipientsTimeoutPromise = new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Recipients query timeout')), 10000)
+        );
+        
+        const result = await Promise.race([recipientsPromise, recipientsTimeoutPromise]);
+        recipientsCount = result.count;
+        recipientsError = result.error;
+      } catch (err) {
+        recipientsError = err instanceof Error ? err : new Error(String(err));
+        recipientsCount = 0;
+      }
 
       if (recipientsError) {
         console.error("Error fetching recipients count:", recipientsError);
@@ -226,39 +289,70 @@ export default function Dashboard() {
       today.setHours(0, 0, 0, 0);
       const futureDate = new Date(today);
       futureDate.setDate(futureDate.getDate() + 90);
-
-      const { count: occasionsCount, error: occasionsError } = await supabase
-        .from("occasions")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .gte("date", today.toISOString().split("T")[0])
-        .lte("date", futureDate.toISOString().split("T")[0]);
+      let occasionsCount: number | null = null;
+      let occasionsError: any = null;
+      
+      try {
+        const occasionsPromise = supabase
+          .from("occasions")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", userId)
+          .gte("date", today.toISOString().split("T")[0])
+          .lte("date", futureDate.toISOString().split("T")[0]);
+        
+        const occasionsTimeoutPromise = new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Occasions query timeout')), 10000)
+        );
+        
+        const result = await Promise.race([occasionsPromise, occasionsTimeoutPromise]);
+        occasionsCount = result.count;
+        occasionsError = result.error;
+      } catch (err) {
+        occasionsError = err instanceof Error ? err : new Error(String(err));
+        occasionsCount = 0;
+      }
 
       if (occasionsError) {
         console.error("Error fetching occasions count:", occasionsError);
         // Always set a value, even if there's an error
-        setUpcomingCount(0);
+        if (!hasCache) {
+          setUpcomingCount(0);
+        }
       } else {
         setUpcomingCount(occasionsCount || 0);
       }
       setLoadingUpcoming(false);
 
-      // Save to cache
-      await setCachedDashboardData(userId, {
-        recipientsCount: recipientsCount || 0,
-        upcomingCount: occasionsCount || 0,
-        username: fetchedUsername,
-      });
+      // Save to cache (don't let cache errors prevent finally from running)
+      try {
+        await setCachedDashboardData(userId, {
+          recipientsCount: recipientsCount || 0,
+          upcomingCount: occasionsCount || 0,
+          username: fetchedUsername,
+        });
+      } catch (cacheError) {
+        console.error("Error saving cache:", cacheError);
+        // Continue - cache errors shouldn't block the UI
+      }
     } catch (error) {
       console.error("Error fetching user data:", error);
+      // Always set default values on error to ensure UI renders
       if (!hasCache) {
         setRecipientsCount(0);
         setUpcomingCount(0);
+        if (!username && userEmail) {
+          setUsername(userEmail.split("@")[0]);
+        }
       }
     } finally {
+      // Clear the global timeout since we're completing normally
+      clearTimeout(globalTimeout);
+      
+      // Always set loading to false to ensure UI renders
       setLoading(false);
       setLoadingRecipients(false);
       setLoadingUpcoming(false);
+      fetchInProgressRef.current = false;
     }
   }
 
@@ -278,6 +372,30 @@ export default function Dashboard() {
   }
 
   const displayName = username || session.user?.email?.split("@")[0] || "User";
+
+  // Show loading state if still loading initial data
+  if (loading && recipientsCount === null && upcomingCount === null) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Text variant="headlineMedium" style={styles.greeting}>
+              Hello, {displayName}!
+            </Text>
+            <Text variant="bodyLarge" style={styles.tagline}>
+              Let's make someone's day special
+            </Text>
+          </View>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#000000" />
+            <Text variant="bodyMedium" style={styles.loadingText}>
+              Loading dashboard...
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
@@ -439,5 +557,15 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginBottom: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 16,
+    color: "#666",
   },
 });

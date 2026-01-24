@@ -8,7 +8,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 
 export default function Settings() {
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+      const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {

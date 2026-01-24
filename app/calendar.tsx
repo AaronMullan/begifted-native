@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { IconButton } from "react-native-paper";
+import { LinearGradient } from "expo-linear-gradient";
 import { supabase } from "../lib/supabase";
 import { Recipient } from "../types/recipient";
 import { useToast } from "../hooks/use-toast";
@@ -200,19 +201,29 @@ export default function Calendar() {
 
   if (!session) {
     return (
-      <View style={styles.container}>
+      <LinearGradient
+        colors={["#432013", "#5d8997", "#ebdfbd"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.container}
+      >
         <View style={styles.content}>
           <Text style={styles.title}>Occasions Calendar</Text>
           <Text style={styles.subtitle}>
             Please sign in to view your occasions.
           </Text>
         </View>
-      </View>
+      </LinearGradient>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <LinearGradient
+      colors={["#432013", "#5d8997", "#ebdfbd"]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.container}
+    >
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
           {/* Main white card container */}
@@ -320,15 +331,16 @@ export default function Calendar() {
         </View>
       </ScrollView>
       {toast}
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF", // White background
-  },
+    backgroundImage: "radial-gradient(50% 40% at 20% 60%, #ac8b3f 0%, #073AFF00 100%),linear-gradient(342deg, #432013 0%, #5d8997 40%, #ebdfbd 100%)",
+    backgroundSize: "100% 100%",
+    backgroundPosition: "0px 0px,0px 0px",  },
   scrollView: {
     flex: 1,
   },
@@ -340,7 +352,8 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   mainCard: {
-    backgroundColor: "white",
+    // backgroundColor: "red",
+   
     borderRadius: 16,
     padding: 24,
     marginTop: 20,

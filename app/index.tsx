@@ -91,8 +91,13 @@ export default function Index() {
     );
   }
 
-  // This shouldn't render if redirect works, but just in case
-  return null;
+  // If logged in, show loading while redirecting to dashboard
+  // The redirect should happen quickly, but show something in case of delay
+  return (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color="#000000" />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({

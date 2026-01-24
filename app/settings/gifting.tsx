@@ -224,7 +224,7 @@ export default function GiftingPreferences() {
               }
             />
 
-            <PreferenceCard
+                <PreferenceCard
               title="Gifting Tone"
               value={formData.giftingTone}
               options={TONE_OPTIONS}
