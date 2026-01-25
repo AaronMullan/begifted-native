@@ -1,17 +1,9 @@
 import { useState, useEffect } from "react";
-import { StyleSheet, View, AppState } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { TextInput, Button, Text } from "react-native-paper";
 import { useForm, Controller } from "react-hook-form";
 import { supabase } from "../lib/supabase";
 import { Session } from "@supabase/supabase-js";
-
-AppState.addEventListener("change", (state) => {
-  if (state === "active") {
-    supabase.auth.startAutoRefresh();
-  } else {
-    supabase.auth.stopAutoRefresh();
-  }
-});
 
 type FormData = {
   email: string;

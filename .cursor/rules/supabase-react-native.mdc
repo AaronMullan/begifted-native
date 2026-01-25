@@ -1,0 +1,110 @@
+---
+description: Supabase React Native setup requirements and best practices
+globs: **/supabase.ts,**/lib/supabase.ts,**/*supabase*.ts
+---
+
+# Supabase React Native Setup Rules
+
+## Critical Requirements
+
+### 1. URL Polyfill Import (MANDATORY)
+
+When setting up Supabase in React Native/Expo projects:
+
+- **MUST** import `react-native-url-polyfill/auto` as a standard import statement
+- **MUST** import it at the very top of the file, before Supabase client creation
+- **MUST NOT** use `require()` in a try/catch block for the polyfill
+- **MUST** ensure the package is installed: `npm install react-native-url-polyfill`
+
+```typescript
+// ✅ CORRECT - Standard import at top
+import { AppState, Platform } from "react-native";
+import "react-native-url-polyfill/auto";  // Must be before Supabase imports
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createClient, processLock } from "@supabase/supabase-js";
+
+// ❌ WRONG - Don't use require() in try/catch
+try {
+  require("react-native-url-polyfill/auto");
+} catch (e) {
+  // This will fail silently and break Supabase
+}
+```
+
+### 2. Supabase Client Configuration
+
+Follow the official Supabase React Native pattern:
+
+```typescript
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    ...(Platform.OS !== "web" ? { storage: AsyncStorage } : {}),
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+    lock: processLock,  // Import from @supabase/supabase-js
+  },
+});
+```
+
+### 3. Auto-Refresh Management
+
+Add AppState listener for token refresh management:
+
+```typescript
+if (Platform.OS !== "web") {
+  AppState.addEventListener("change", (state) => {
+    if (state === "active") {
+      supabase.auth.startAutoRefresh();
+    } else {
+      supabase.auth.stopAutoRefresh();
+    }
+  });
+}
+```
+
+### 4. DO NOT Override Global Fetch
+
+- **DO NOT** provide a custom `fetch` in the `global` config unless absolutely necessary
+- The URL polyfill handles fetch/URL compatibility automatically
+- Custom fetch wrappers can interfere with Supabase's internal networking
+
+```typescript
+// ❌ WRONG - Don't override fetch unnecessarily
+export const supabase = createClient(url, key, {
+  global: {
+    fetch: async (url, options) => {
+      // Custom fetch wrapper - can break things
+    },
+  },
+});
+
+// ✅ CORRECT - Let Supabase use native fetch after polyfill
+export const supabase = createClient(url, key, {
+  // No global.fetch override needed
+});
+```
+
+## Common Mistakes to Avoid
+
+1. **Missing URL polyfill import** - Causes "Network request failed" errors
+2. **Using require() instead of import** - Polyfill may not load in time
+3. **Importing polyfill after Supabase client** - Too late, client already initialized
+4. **Overriding global.fetch unnecessarily** - Can break Supabase's internal networking
+5. **Not installing react-native-url-polyfill package** - Import will fail
+
+## Verification Checklist
+
+When setting up or modifying Supabase configuration:
+
+- [ ] `react-native-url-polyfill` is in package.json dependencies
+- [ ] Polyfill is imported as `import "react-native-url-polyfill/auto"` (standard import)
+- [ ] Polyfill import is at the top of the file, before Supabase imports
+- [ ] Using `processLock` from `@supabase/supabase-js`
+- [ ] AppState listener is set up for auto-refresh (non-web platforms)
+- [ ] No custom fetch wrapper unless absolutely necessary
+- [ ] Storage is conditionally set: `...(Platform.OS !== "web" ? { storage: AsyncStorage } : {})`
+
+## Reference
+
+See `lib/SUPABASE_REACT_NATIVE_SETUP.md` for detailed problem documentation and resolution.

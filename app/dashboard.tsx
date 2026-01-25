@@ -203,6 +203,7 @@ export default function Dashboard() {
       if (!hasCache) {
         setLoadingRecipients(true);
       }
+
       const { count: recipientsCount, error: recipientsError } = await supabase
         .from("recipients")
         .select("*", { count: "exact", head: true })
@@ -227,12 +228,15 @@ export default function Dashboard() {
       const futureDate = new Date(today);
       futureDate.setDate(futureDate.getDate() + 90);
 
+      const dateFrom = today.toISOString().split("T")[0];
+      const dateTo = futureDate.toISOString().split("T")[0];
+
       const { count: occasionsCount, error: occasionsError } = await supabase
         .from("occasions")
         .select("*", { count: "exact", head: true })
         .eq("user_id", userId)
-        .gte("date", today.toISOString().split("T")[0])
-        .lte("date", futureDate.toISOString().split("T")[0]);
+        .gte("date", dateFrom)
+        .lte("date", dateTo);
 
       if (occasionsError) {
         console.error("Error fetching occasions count:", occasionsError);
