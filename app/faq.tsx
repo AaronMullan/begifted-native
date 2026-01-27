@@ -95,9 +95,10 @@ const styles = StyleSheet.create({
     gap: 24,
   },
   faqItem: {
+    backgroundColor: Colors.neutrals.light + "30", // Low opacity (~19%) – match dashboard cards
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: Colors.white,
-    borderRadius: 18,
     overflow: "hidden",
     position: "relative",
     marginBottom: 0,
@@ -108,7 +109,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   faqContent: {
-    backgroundColor: Colors.neutrals.light + "30", // Low opacity
     padding: 20,
     position: "relative",
     zIndex: 1,
