@@ -83,8 +83,8 @@ export default function Dashboard() {
         <View style={styles.cardsContainer}>
           {/* Recipients Card */}
           <Link href="/contacts" asChild>
-            <View style={styles.card}>
-              <BlurView intensity={20} style={styles.blurBackground} />
+            <Pressable style={styles.card}>
+              <BlurView intensity={20} style={styles.blurBackground} pointerEvents="none" />
               <View style={styles.cardContent}>
                 <View style={[styles.iconContainer, styles.recipientsIcon]}>
                   <MaterialIcons name="people" size={32} color={Colors.pinks.dark} />
@@ -103,44 +103,45 @@ export default function Dashboard() {
                   Tap to view, edit, or add recipients
                 </Text>
               </View>
-            </View>
+            </Pressable>
           </Link>
 
           {/* Upcoming Card */}
-          <Link href="/calendar" asChild>
-            <View style={styles.card}>
-              <BlurView intensity={20} style={styles.blurBackground} />
-              <View style={styles.cardContent}>
-                <View style={[styles.iconContainer, styles.upcomingIcon]}>
-                  <MaterialIcons
-                    name="calendar-today"
-                    size={32}
-                    color={Colors.pinks.medium}
-                  />
-                </View>
-                {loadingUpcoming ? (
-                  <ActivityIndicator size="small" style={styles.loader} />
-                ) : (
-                  <Text variant="displaySmall" style={styles.cardNumber}>
-                    {upcomingCount}
-                  </Text>
-                )}
-                <Text variant="titleLarge" style={styles.cardTitle}>
-                  Upcoming
-                </Text>
-                <Text variant="bodyMedium" style={styles.cardDescription}>
-                  Tap to view calendar
-                </Text>
+          <Pressable
+            style={styles.card}
+            onPress={() => router.push("/calendar")}
+          >
+            <BlurView intensity={20} style={styles.blurBackground} pointerEvents="none" />
+            <View style={styles.cardContent}>
+              <View style={[styles.iconContainer, styles.upcomingIcon]}>
+                <MaterialIcons
+                  name="calendar-today"
+                  size={32}
+                  color={Colors.pinks.medium}
+                />
               </View>
+              {loadingUpcoming ? (
+                <ActivityIndicator size="small" style={styles.loader} />
+              ) : (
+                <Text variant="displaySmall" style={styles.cardNumber}>
+                  {upcomingCount}
+                </Text>
+              )}
+              <Text variant="titleLarge" style={styles.cardTitle}>
+                Upcoming
+              </Text>
+              <Text variant="bodyMedium" style={styles.cardDescription}>
+                Tap to view calendar
+              </Text>
             </View>
-          </Link>
+          </Pressable>
 
           {/* Settings Card */}
           <Pressable
             style={styles.card}
             onPress={() => router.push("/settings" as any)}
           >
-            <BlurView intensity={20} style={styles.blurBackground} />
+            <BlurView intensity={20} style={styles.blurBackground} pointerEvents="none" />
             <View style={styles.cardContent}>
               <View style={[styles.iconContainer, styles.settingsIcon]}>
                 <MaterialIcons name="settings" size={32} color={Colors.pinks.dark} />

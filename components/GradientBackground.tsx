@@ -1,10 +1,11 @@
 import { useWindowDimensions } from "react-native";
 import Svg, { Defs, LinearGradient, RadialGradient, Rect, Stop } from "react-native-svg";
-import { Colors } from "../lib/colors";
 
 /**
  * Global gradient background using react-native-svg.
- * Matches the design: brown → blue → neutral linear gradient plus a gold radial overlay.
+ * Equivalent to:
+ *   radial-gradient(50% 40% at 20% 60%, #ac8b3f 0%, transparent 100%),
+ *   linear-gradient(342deg, #432013 0%, #5d8997 40%, #ebdfbd 100%)
  * Uses SVG gradients to avoid native "Unimplemented component" issues in TestFlight.
  */
 export default function GradientBackground() {
@@ -18,42 +19,36 @@ export default function GradientBackground() {
       pointerEvents="none"
     >
       <Defs>
-        {/* Main linear gradient: brown → blue → neutral, diagonal (0.2,0.6) to (0.8,0.4) */}
+        {/* linear-gradient(342deg, #432013 0%, #5d8997 40%, #ebdfbd 100%) */}
         <LinearGradient
           id="mainGradient"
-          x1="20%"
-          y1="60%"
-          x2="80%"
-          y2="40%"
+          x1="65%"
+          y1="98%"
+          x2="35%"
+          y2="2%"
           gradientUnits="objectBoundingBox"
         >
-          <Stop offset="0" stopColor={Colors.darks.brown} />
-          <Stop offset="0.5" stopColor={Colors.blues.medium} />
-          <Stop offset="1" stopColor={Colors.neutrals.medium} />
+          <Stop offset="0" stopColor="#432013" />
+          <Stop offset="0.4" stopColor="#5d8997" />
+          <Stop offset="1" stopColor="#ebdfbd" />
         </LinearGradient>
-        {/* Gold radial overlay centered at (0.2, 0.6), fading to transparent */}
+        {/* radial-gradient(50% 40% at 20% 60%, #ac8b3f 0%, #073AFF00 100%) */}
         <RadialGradient
           id="goldOverlay"
           cx="20%"
           cy="60%"
-          r="80%"
+          rx="50%"
+          ry="40%"
           fx="20%"
           fy="60%"
           gradientUnits="objectBoundingBox"
         >
-          <Stop offset="0" stopColor={Colors.yellows.gold} stopOpacity={0.15} />
-          <Stop offset="1" stopColor={Colors.yellows.gold} stopOpacity={0} />
+          <Stop offset="0" stopColor="#ac8b3f" />
+          <Stop offset="1" stopColor="#073AFF" stopOpacity={0} />
         </RadialGradient>
       </Defs>
       <Rect x={0} y={0} width={width} height={height} fill="url(#mainGradient)" />
-      <Rect
-        x={0}
-        y={0}
-        width={width}
-        height={height}
-        fill="url(#goldOverlay)"
-        opacity={0.6}
-      />
+      <Rect x={0} y={0} width={width} height={height} fill="url(#goldOverlay)" />
     </Svg>
   );
 }
