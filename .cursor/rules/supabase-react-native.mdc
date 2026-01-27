@@ -15,6 +15,8 @@ When setting up Supabase in React Native/Expo projects:
 - **MUST** import it at the very top of the file, before Supabase client creation
 - **MUST NOT** use `require()` in a try/catch block for the polyfill
 - **MUST** ensure the package is installed: `npm install react-native-url-polyfill`
+- **MUST** import it ONLY in the Supabase client file (`lib/supabase.ts`), NOT in root layouts or other files
+- **DO NOT** duplicate the polyfill import in multiple files - it only needs to be in the Supabase client file
 
 ```typescript
 // ✅ CORRECT - Standard import at top
@@ -90,8 +92,10 @@ export const supabase = createClient(url, key, {
 1. **Missing URL polyfill import** - Causes "Network request failed" errors
 2. **Using require() instead of import** - Polyfill may not load in time
 3. **Importing polyfill after Supabase client** - Too late, client already initialized
-4. **Overriding global.fetch unnecessarily** - Can break Supabase's internal networking
-5. **Not installing react-native-url-polyfill package** - Import will fail
+4. **Duplicating polyfill import in multiple files** - Should only be in `lib/supabase.ts`, not in root layouts
+5. **Overriding global.fetch unnecessarily** - Can break Supabase's internal networking
+6. **Not installing react-native-url-polyfill package** - Import will fail
+7. **Wrapping Supabase queries in Promise.race with timeouts** - Supabase queries always resolve (never reject), so Promise.race can cause issues. Use simple `await` instead.
 
 ## Verification Checklist
 

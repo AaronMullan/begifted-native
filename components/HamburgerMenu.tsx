@@ -71,7 +71,7 @@ export default function HamburgerMenu() {
           source={require("../assets/images/hamburger.png")}
           style={styles.hamburgerIcon}
           resizeMode="contain"
-          tintColor="#FFFFFF"
+          tintColor="#000000"
         />
       </TouchableOpacity>
 
@@ -196,9 +196,9 @@ const styles = StyleSheet.create({
   backdrop: {
     position: "absolute",
     top: 0,
-    left: -10000,
-    right: -10000,
-    bottom: -10000,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "transparent",
     zIndex: 999,
     cursor: "auto",
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   menuContainer: {
     position: "absolute",
     top: 45,
-    right: 0,
+    left: 0,
     backgroundColor: "white",
     borderRadius: 8,
     padding: 8,

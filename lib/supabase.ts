@@ -1,5 +1,8 @@
-import { AppState, Platform } from "react-native";
+// CRITICAL: Polyfill MUST be imported first, before any other imports
+// This ensures URL/fetch polyfills are available before Supabase initializes
 import "react-native-url-polyfill/auto";
+
+import { AppState, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient, processLock } from "@supabase/supabase-js";
 

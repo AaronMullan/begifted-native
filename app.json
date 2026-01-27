@@ -2,13 +2,14 @@
   "expo": {
     "name": "begifted",
     "slug": "begifted",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/begifted-logo.png",
     "scheme": "begifted",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "buildNumber": "5",
       "bundleIdentifier": "com.begifted.app",
       "supportsTablet": true,
       "infoPlist": {

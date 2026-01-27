@@ -2,14 +2,16 @@ import { View, ScrollView, StyleSheet, Alert } from "react-native";
 import { Text, TextInput, IconButton, Button } from "react-native-paper";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
-import { supabase } from "../../lib/supabase";
-import { Session } from "@supabase/supabase-js";
+import { HEADER_HEIGHT } from "../../lib/constants";
+import { useAuth } from "../../hooks/use-auth";
+import { useProfile } from "../../hooks/use-profile";
+import { useUpdateProfile } from "../../hooks/use-profile-mutations";
 
 export default function ProfileSettings() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const router = useRouter();
+  const { user } = useAuth();
+  const { data: profile, isLoading: loading } = useProfile();
+  const updateProfile = useUpdateProfile();
 
   // Form fields
   const [fullName, setFullName] = useState("");
@@ -30,135 +32,64 @@ export default function ProfileSettings() {
   });
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) {
-        fetchProfile(session.user.id);
-      } else {
-        setLoading(false);
-        router.replace("/");
-      }
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session) {
-        fetchProfile(session.user.id);
-      } else {
-        setLoading(false);
-        router.replace("/");
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  async function fetchProfile(userId: string) {
-    try {
-      setLoading(true);
-      // Fetch all available profile fields
-      const { data, error, status } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
-
-      if (error && status !== 406) {
-        console.error("Error fetching profile:", error);
-        // If profile doesn't exist, that's okay - we'll create it on save
-      }
-
-      if (data) {
-        // Set username (we know this field exists)
-        const fetchedUsername = data.username || "";
-        setUsername(fetchedUsername);
-
-        // Set full_name if it exists (might be stored as full_name or name)
-        const fetchedFullName = data.full_name || data.name || "";
-        setFullName(fetchedFullName);
-
-        // Set billing address fields if they exist
-        const fetchedStreet = data.billing_address_street || "";
-        const fetchedCity = data.billing_address_city || "";
-        const fetchedState = data.billing_address_state || "";
-        const fetchedZip = data.billing_address_zip || "";
-
-        setStreetAddress(fetchedStreet);
-        setCity(fetchedCity);
-        setState(fetchedState);
-        setZipCode(fetchedZip);
-
-        // Store original values to track changes
-        setOriginalValues({
-          fullName: fetchedFullName,
-          username: fetchedUsername,
-          streetAddress: fetchedStreet,
-          city: fetchedCity,
-          state: fetchedState,
-          zipCode: fetchedZip,
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching profile:", error);
-    } finally {
-      setLoading(false);
+    if (!user) {
+      router.replace("/");
     }
-  }
+  }, [user, router]);
+
+  // Sync form state when profile loads
+  useEffect(() => {
+    if (profile) {
+      const fetchedUsername = profile.username || "";
+      const fetchedFullName = profile.full_name || profile.name || "";
+      const fetchedStreet = profile.billing_address_street || "";
+      const fetchedCity = profile.billing_address_city || "";
+      const fetchedState = profile.billing_address_state || "";
+      const fetchedZip = profile.billing_address_zip || "";
+
+      setUsername(fetchedUsername);
+      setFullName(fetchedFullName);
+      setStreetAddress(fetchedStreet);
+      setCity(fetchedCity);
+      setState(fetchedState);
+      setZipCode(fetchedZip);
+      setOriginalValues({
+        fullName: fetchedFullName,
+        username: fetchedUsername,
+        streetAddress: fetchedStreet,
+        city: fetchedCity,
+        state: fetchedState,
+        zipCode: fetchedZip,
+      });
+    }
+  }, [profile]);
 
   async function handleSave() {
-    if (!session?.user) {
+    if (!user) {
       Alert.alert("Error", "You must be logged in to save changes");
       return;
     }
 
+    const trimmedUsername = username.trim();
+    const trimmedFullName = fullName.trim();
+    const trimmedStreet = streetAddress.trim();
+    const trimmedCity = city.trim();
+    const trimmedState = state.trim();
+    const trimmedZip = zipCode.trim();
+
     try {
-      setSaving(true);
+      await updateProfile.mutateAsync({
+        userId: user.id,
+        data: {
+          username: trimmedUsername || null,
+          full_name: trimmedFullName || null,
+          billing_address_street: trimmedStreet || null,
+          billing_address_city: trimmedCity || null,
+          billing_address_state: trimmedState || null,
+          billing_address_zip: trimmedZip || null,
+        },
+      });
 
-      // Prepare updates object
-      const trimmedUsername = username.trim();
-      const trimmedFullName = fullName.trim();
-      const trimmedStreet = streetAddress.trim();
-      const trimmedCity = city.trim();
-      const trimmedState = state.trim();
-      const trimmedZip = zipCode.trim();
-
-      // Build updates object - try to save all fields
-      // If a field doesn't exist, Supabase will return an error which we'll handle
-      const updates: any = {
-        id: session.user.id,
-        username: trimmedUsername || null,
-        updated_at: new Date().toISOString(),
-      };
-
-      // Include all fields that exist in the schema
-      updates.full_name = trimmedFullName || null;
-      updates.billing_address_street = trimmedStreet || null;
-      updates.billing_address_city = trimmedCity || null;
-      updates.billing_address_state = trimmedState || null;
-      updates.billing_address_zip = trimmedZip || null;
-
-      console.log("Saving profile updates:", updates);
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .upsert(updates)
-        .select();
-
-      if (error) {
-        console.error("Supabase error details:", {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-        });
-        throw error;
-      }
-
-      console.log("Profile saved successfully:", data);
-
-      // Update original values after successful save
       setOriginalValues({
         fullName: trimmedFullName,
         username: trimmedUsername,
@@ -176,8 +107,6 @@ export default function ProfileSettings() {
       } else {
         Alert.alert("Error", "Failed to save profile. Please try again.");
       }
-    } finally {
-      setSaving(false);
     }
   }
 
@@ -200,7 +129,7 @@ export default function ProfileSettings() {
     );
   }
 
-  if (!session) {
+  if (!user) {
     return (
       <View style={styles.container}>
         <View style={styles.content}>
@@ -352,8 +281,8 @@ export default function ProfileSettings() {
             mode="contained"
             buttonColor="#000000"
             onPress={handleSave}
-            disabled={saving || !hasChanges}
-            loading={saving}
+            disabled={updateProfile.isPending || !hasChanges}
+            loading={updateProfile.isPending}
             style={styles.saveButton}
           >
             {hasChanges ? "Save Changes" : "No Changes"}
@@ -367,7 +296,7 @@ export default function ProfileSettings() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF", // White background
+    backgroundColor: "transparent",
   },
   content: {
     flex: 1,
@@ -375,9 +304,10 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: "100%",
     padding: 20,
+    paddingTop: HEADER_HEIGHT, // Account for header height
   },
   mainCard: {
-    backgroundColor: "white",
+    backgroundColor: "transparent",
     borderRadius: 16,
     padding: 24,
     marginTop: 20,

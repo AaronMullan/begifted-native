@@ -9,6 +9,7 @@ import {
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { supabase } from "../../lib/supabase";
+import { HEADER_HEIGHT } from "../../lib/constants";
 import { Session } from "@supabase/supabase-js";
 import { IconButton } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -343,7 +344,7 @@ export default function GiftingPreferences() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF", // White background
+    backgroundColor: "transparent",
   },
   content: {
     flex: 1,
@@ -351,9 +352,10 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: "100%",
     padding: 20,
+    paddingTop: HEADER_HEIGHT, // Account for header height
   },
   mainCard: {
-    backgroundColor: "white",
+    backgroundColor: "transparent",
     borderRadius: 16,
     padding: 24,
     marginTop: 20,

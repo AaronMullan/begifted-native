@@ -1,26 +1,33 @@
-import { Session } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { Alert, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { useState } from "react";
+import { Alert, Platform, ScrollView, StyleSheet, View, Pressable } from "react-native";
 import { Text, Button, IconButton } from "react-native-paper";
+import { BlurView } from "expo-blur";
+import { Colors } from "../lib/colors";
 import ContactFileImport from "../components/ContactFileImport";
 import ContactPicker from "../components/ContactPicker";
 import RecipientCard from "../components/RecipientCard";
 import RecipientForm from "../components/RecipientForm";
 import { DeviceContact, useDeviceContacts } from "../hooks/use-device-contacts";
 import { useToast } from "../hooks/use-toast";
+import { useAuth } from "../hooks/use-auth";
+import { useRecipients } from "../hooks/use-recipients";
+import { queryKeys } from "../lib/query-keys";
 import { supabase } from "../lib/supabase";
 import { Recipient } from "../types/recipient";
+import { HEADER_HEIGHT } from "../lib/constants";
 
 export default function Contacts() {
   const router = useRouter();
-  const [session, setSession] = useState<Session | null>(null);
-  const [recipients, setRecipients] = useState<Recipient[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { data: recipients = [], isLoading: loading } = useRecipients();
   const [formVisible, setFormVisible] = useState(false);
   const [editingRecipient, setEditingRecipient] = useState<Recipient | null>(
     null
   );
+  const [saving, setSaving] = useState(false);
 
   // Form state
   const [name, setName] = useState("");
@@ -40,54 +47,6 @@ export default function Contacts() {
   const [deviceContacts, setDeviceContacts] = useState<DeviceContact[]>([]);
   const { loading: contactsLoading, getDeviceContacts } = useDeviceContacts();
   const { showToast, toast } = useToast();
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) {
-        fetchRecipients(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session) {
-        fetchRecipients(session.user.id);
-      } else {
-        setRecipients([]);
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  async function fetchRecipients(userId: string) {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("recipients")
-        .select(
-          "id, name, relationship_type, interests, birthday, emotional_tone_preference, gift_budget_min, gift_budget_max, address, address_line_2, city, state, zip_code, country, created_at"
-        )
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setRecipients(data || []);
-    } catch (error) {
-      console.error("Error fetching recipients:", error);
-      if (error instanceof Error) {
-        Alert.alert("Error fetching recipients", error.message);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
 
   function openAddForm() {
     setEditingRecipient(null);
@@ -130,7 +89,7 @@ export default function Contacts() {
   }
 
   async function saveRecipient() {
-    if (!session?.user) {
+    if (!user) {
       Alert.alert("Error", "You must be logged in to manage recipients");
       return;
     }
@@ -146,7 +105,7 @@ export default function Contacts() {
     }
 
     try {
-      setLoading(true);
+      setSaving(true);
 
       const interestsArray = interests
         .split(",")
@@ -154,7 +113,7 @@ export default function Contacts() {
         .filter((i) => i.length > 0);
 
       if (editingRecipient) {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from("recipients")
           .update({
             name: name.trim(),
@@ -173,22 +132,18 @@ export default function Contacts() {
             updated_at: new Date().toISOString(),
           })
           .eq("id", editingRecipient.id)
-          .eq("user_id", session.user.id)
-          .select()
-          .single();
+          .eq("user_id", user.id);
 
         if (error) throw error;
 
-        setRecipients(
-          recipients.map((r) => (r.id === editingRecipient.id ? data : r))
-        );
+        await queryClient.invalidateQueries({ queryKey: queryKeys.recipients(user.id) });
         Alert.alert("Success", "Recipient updated successfully!");
       } else {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from("recipients")
           .insert([
             {
-              user_id: session.user.id,
+              user_id: user.id,
               name: name.trim(),
               relationship_type: relationshipType.trim(),
               interests: interestsArray.length > 0 ? interestsArray : null,
@@ -203,13 +158,11 @@ export default function Contacts() {
               zip_code: zipCode.trim() || null,
               country: country.trim() || null,
             },
-          ])
-          .select()
-          .single();
+          ]);
 
         if (error) throw error;
 
-        setRecipients([data, ...recipients]);
+        await queryClient.invalidateQueries({ queryKey: queryKeys.recipients(user.id) });
         Alert.alert("Success", "Recipient added successfully!");
       }
 
@@ -220,23 +173,23 @@ export default function Contacts() {
         Alert.alert("Error saving recipient", error.message);
       }
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   }
 
   async function deleteRecipient(id: string) {
-    if (!session?.user) return;
+    if (!user) return;
 
     try {
       const { error } = await supabase
         .from("recipients")
         .delete()
         .eq("id", id)
-        .eq("user_id", session.user.id);
+        .eq("user_id", user.id);
 
       if (error) throw error;
 
-      setRecipients(recipients.filter((r) => r.id !== id));
+      await queryClient.invalidateQueries({ queryKey: queryKeys.recipients(user.id) });
       Alert.alert("Success", "Recipient deleted");
     } catch (error) {
       if (error instanceof Error) {
@@ -295,7 +248,7 @@ export default function Contacts() {
     }, 100);
   }
 
-  if (!session) {
+  if (!user) {
     return (
       <View style={styles.container}>
         <View style={styles.content}>
@@ -437,31 +390,35 @@ export default function Contacts() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "transparent",
   },
   scrollView: {
     flex: 1,
+    backgroundColor: "transparent",
   },
   content: {
     maxWidth: 800,
     alignSelf: "center",
     width: "100%",
     padding: 20,
+    paddingTop: HEADER_HEIGHT, // Account for header height
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 24,
+    marginBottom: 32,
   },
   headerLeft: {
     flex: 1,
   },
   title: {
     marginBottom: 8,
+    color: Colors.darks.black,
   },
   subtitle: {
-    color: "#666",
+    color: Colors.darks.black,
+    opacity: 0.9,
   },
   backButton: {
     margin: 0,
@@ -476,12 +433,16 @@ const styles = StyleSheet.create({
     padding: 40,
     alignItems: "center",
   },
+  list: {
+    gap: 24,
+  },
   emptyText: {
     marginBottom: 8,
+    color: Colors.darks.black,
   },
-  emptySubtext: {},
-  list: {
-    gap: 12,
+  emptySubtext: {
+    color: Colors.darks.black,
+    opacity: 0.8,
   },
   importButton: {
     marginBottom: 20,

@@ -1,5 +1,4 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import { Session } from "@supabase/supabase-js";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -9,11 +8,17 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Pressable,
 } from "react-native";
 import { IconButton } from "react-native-paper";
+import { BlurView } from "expo-blur";
+import { Colors } from "../lib/colors";
 import { supabase } from "../lib/supabase";
 import { Recipient } from "../types/recipient";
 import { useToast } from "../hooks/use-toast";
+import { useAuth } from "../hooks/use-auth";
+import { useOccasions } from "../hooks/use-occasions";
+import { HEADER_HEIGHT } from "../lib/constants";
 
 interface Occasion {
   id: string;
@@ -31,110 +36,16 @@ interface GroupedOccasions {
 }
 
 export default function Calendar() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [occasions, setOccasions] = useState<Occasion[]>([]);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { user } = useAuth();
+  const { data: occasions = [], isLoading: loading } = useOccasions();
   const { showToast, toast } = useToast();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) {
-        fetchOccasions(session.user.id);
-      } else {
-        setLoading(false);
-        router.replace("/");
-      }
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session) {
-        fetchOccasions(session.user.id);
-      } else {
-        setOccasions([]);
-        setLoading(false);
-        router.replace("/");
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  async function fetchOccasions(userId: string) {
-    try {
-      setLoading(true);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      // Fetch occasions
-      const { data: occasionsData, error: occasionsError } = await supabase
-        .from("occasions")
-        .select("id, date, occasion_type, recipient_id")
-        .eq("user_id", userId)
-        .gte("date", today.toISOString().split("T")[0])
-        .order("date", { ascending: true });
-
-      if (occasionsError) {
-        console.error("Error fetching occasions:", occasionsError);
-        // If occasions table doesn't exist, set empty array
-        setOccasions([]);
-        return;
-      }
-
-      if (!occasionsData || occasionsData.length === 0) {
-        setOccasions([]);
-        return;
-      }
-
-      // Fetch recipients for the occasions
-      const recipientIds = [
-        ...new Set(occasionsData.map((o) => o.recipient_id)),
-      ];
-      const { data: recipientsData, error: recipientsError } = await supabase
-        .from("recipients")
-        .select("id, name, relationship_type")
-        .in("id", recipientIds);
-
-      if (recipientsError) {
-        console.error("Error fetching recipients:", recipientsError);
-      }
-
-      // Create a map of recipients for quick lookup
-      const recipientsMap = new Map(
-        (recipientsData || []).map((r) => [r.id, r])
-      );
-
-      // Transform the data to include recipient info
-      const transformedOccasions: Occasion[] = occasionsData.map(
-        (occasion: any) => {
-          const recipient = recipientsMap.get(occasion.recipient_id);
-          return {
-            id: occasion.id,
-            date: occasion.date,
-            occasion_type: occasion.occasion_type || "birthday",
-            recipient_id: occasion.recipient_id,
-            recipient: recipient
-              ? {
-                  name: recipient.name,
-                  relationship_type: recipient.relationship_type,
-                }
-              : undefined,
-          };
-        }
-      );
-
-      setOccasions(transformedOccasions);
-    } catch (error) {
-      console.error("Error fetching occasions:", error);
-      setOccasions([]);
-    } finally {
-      setLoading(false);
+    if (!user) {
+      router.replace("/");
     }
-  }
+  }, [user, router]);
 
   function groupOccasionsByMonth(occasions: Occasion[]): GroupedOccasions {
     const grouped: GroupedOccasions = {};
@@ -198,7 +109,7 @@ export default function Calendar() {
     );
   });
 
-  if (!session) {
+  if (!user) {
     return (
       <View style={styles.container}>
         <View style={styles.content}>
@@ -215,8 +126,9 @@ export default function Calendar() {
     <View style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
-          {/* Main white card container */}
-          <View style={styles.mainCard}>
+          {/* Main card container */}
+          <Pressable style={styles.mainCard}>
+            <BlurView intensity={20} style={styles.blurBackground} />
             {/* Header section */}
             <View style={styles.header}>
               <View style={styles.headerLeft}>
@@ -270,12 +182,12 @@ export default function Calendar() {
                       const isCustom = occasion.occasion_type === "custom";
 
                       return (
-                        <TouchableOpacity
+                        <Pressable
                           key={occasion.id}
                           style={styles.occasionCard}
                           onPress={() => handleOccasionPress(occasion)}
-                          activeOpacity={0.7}
                         >
+                          <BlurView intensity={20} style={styles.occasionBlurBackground} />
                           <View style={styles.occasionIconContainer}>
                             <MaterialIcons
                               name="card-giftcard"
@@ -309,14 +221,14 @@ export default function Calendar() {
                               <Text style={styles.customLabel}>Custom</Text>
                             )}
                           </View>
-                        </TouchableOpacity>
+                        </Pressable>
                       );
                     })}
                   </View>
                 ))}
               </View>
             )}
-          </View>
+          </Pressable>
         </View>
       </ScrollView>
       {toast}
@@ -327,10 +239,11 @@ export default function Calendar() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF", // White background
+    backgroundColor: "transparent",
   },
   scrollView: {
     flex: 1,
+    backgroundColor: "transparent",
   },
   content: {
     flex: 1,
@@ -338,23 +251,29 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: "100%",
     padding: 20,
+    paddingTop: HEADER_HEIGHT, // Account for header height
   },
   mainCard: {
-    backgroundColor: "white",
-    borderRadius: 16,
+    backgroundColor: Colors.neutrals.light + "30", // Low opacity (~19%)
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Colors.white,
+    overflow: "hidden",
+    position: "relative",
     padding: 24,
-    marginTop: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+  },
+  blurBackground: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 18,
+    overflow: "hidden",
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 24,
+    marginBottom: 32,
+    position: "relative",
+    zIndex: 1,
   },
   headerLeft: {
     flex: 1,
@@ -362,12 +281,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#000000",
+    color: Colors.darks.black,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: "#666",
+    color: Colors.darks.black,
+    opacity: 0.9,
   },
   backButton: {
     margin: 0,
@@ -377,11 +297,13 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 24,
+    position: "relative",
+    zIndex: 1,
   },
   occasionsCount: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#000000",
+    color: Colors.darks.black,
   },
   addButton: {
     borderRadius: 8,
@@ -402,25 +324,33 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     textAlign: "center",
-    color: "#666",
+    color: Colors.darks.black,
+    opacity: 0.8,
     fontSize: 16,
     padding: 40,
+    position: "relative",
+    zIndex: 1,
   },
   emptyState: {
     padding: 40,
     alignItems: "center",
+    position: "relative",
+    zIndex: 1,
   },
   emptyText: {
     fontSize: 18,
-    color: "#666",
+    color: Colors.darks.black,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: "#999",
+    color: Colors.darks.black,
+    opacity: 0.8,
   },
   occasionsList: {
     gap: 24,
+    position: "relative",
+    zIndex: 1,
   },
   monthSection: {
     marginBottom: 24,
@@ -428,23 +358,25 @@ const styles = StyleSheet.create({
   monthHeader: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#000000",
+    color: Colors.darks.black,
     marginBottom: 12,
   },
   occasionCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "white",
-    borderRadius: 12,
+    backgroundColor: Colors.neutrals.light + "30", // Low opacity
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Colors.white,
     padding: 16,
     marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: "#f0f0f0",
+    overflow: "hidden",
+    position: "relative",
+  },
+  occasionBlurBackground: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 18,
+    overflow: "hidden",
   },
   occasionIconContainer: {
     width: 48,
@@ -461,20 +393,24 @@ const styles = StyleSheet.create({
   occasionTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#000000",
+    color: Colors.darks.black,
     marginBottom: 4,
   },
   occasionDate: {
     fontSize: 14,
-    color: "#666",
+    color: Colors.darks.black,
+    opacity: 0.8,
     marginBottom: 4,
   },
   occasionRelationship: {
     fontSize: 14,
-    color: "#999",
+    color: Colors.darks.black,
+    opacity: 0.7,
   },
   occasionRight: {
     alignItems: "flex-end",
+    position: "relative",
+    zIndex: 1,
   },
   daysUntil: {
     fontSize: 14,
@@ -482,10 +418,11 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   daysUntilOrange: {
-    color: "#333333",
+    color: Colors.darks.black,
   },
   daysUntilGreen: {
-    color: "#666666",
+    color: Colors.darks.black,
+    opacity: 0.8,
   },
   customLabel: {
     fontSize: 12,

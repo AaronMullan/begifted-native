@@ -1,4 +1,4 @@
-import { View, Image, StyleSheet } from "react-native";
+import { View, StyleSheet, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import HamburgerMenu from "./HamburgerMenu";
 
@@ -8,23 +8,18 @@ type HeaderProps = {
 
 export default function Header({ colorful = false }: HeaderProps) {
   const insets = useSafeAreaInsets();
-  const headerBackgroundColor = colorful ? "#52A78B" : "#000000";
 
   return (
     <View
       style={[
         styles.headerBackground,
-        { paddingTop: insets.top + 4, backgroundColor: headerBackgroundColor },
+        { paddingTop: insets.top + 4, backgroundColor: "transparent" },
       ]}
     >
       {/* Contained content at max 800px to match dashboard */}
       <View style={styles.headerContent}>
-        <Image
-          source={require("../assets/images/begifted-logo.png")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
         <HamburgerMenu />
+        <Text style={styles.logoText}>BEGIFTED</Text>
       </View>
     </View>
   );
@@ -44,7 +39,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
   },
-  logo: {
-    // height: 40,
+  logoText: {
+    fontFamily: "AzeretMono_400Regular",
+    fontSize: 18,
+    fontWeight: "400",
+    color: "#000000",
+    letterSpacing: 0.5,
   },
 });

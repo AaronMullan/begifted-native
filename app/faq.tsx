@@ -1,8 +1,11 @@
-import { View, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
+import { View, ScrollView, StyleSheet, TouchableOpacity, Pressable } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { IconButton, Text } from "react-native-paper";
+import { BlurView } from "expo-blur";
+import { Colors } from "../lib/colors";
 import { faqs } from "../data/faqs";
+import { HEADER_HEIGHT } from "../lib/constants";
 
 export default function FAQ() {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
@@ -35,17 +38,20 @@ export default function FAQ() {
         </View>
         <View style={styles.list}>
           {faqs.map((faq, i) => (
-            <View key={i} style={styles.faqItem}>
-              <TouchableOpacity
-                onPress={() => toggleFAQ(i)}
-                style={styles.question}
-              >
-                <Text style={styles.questionText}>{faq.q}</Text>
-              </TouchableOpacity>
-              {expandedIndex === i && (
-                <Text style={styles.answer}>{faq.a}</Text>
-              )}
-            </View>
+            <Pressable key={i} style={styles.faqItem}>
+              <BlurView intensity={20} style={styles.blurBackground} />
+              <View style={styles.faqContent}>
+                <TouchableOpacity
+                  onPress={() => toggleFAQ(i)}
+                  style={styles.question}
+                >
+                  <Text style={styles.questionText}>{faq.q}</Text>
+                </TouchableOpacity>
+                {expandedIndex === i && (
+                  <Text style={styles.answer}>{faq.a}</Text>
+                )}
+              </View>
+            </Pressable>
           ))}
         </View>
       </View>
@@ -56,13 +62,14 @@ export default function FAQ() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "transparent",
   },
   content: {
     maxWidth: 800,
     alignSelf: "center",
     width: "100%",
     padding: 20,
+    paddingTop: HEADER_HEIGHT, // Account for header height
   },
   header: {
     flexDirection: "row",
@@ -75,33 +82,51 @@ const styles = StyleSheet.create({
   },
   title: {
     marginBottom: 8,
+    color: Colors.darks.black,
   },
   subtitle: {
-    color: "#666",
+    color: Colors.darks.black,
+    opacity: 0.9,
   },
   backButton: {
     margin: 0,
   },
   list: {
-    gap: 12,
+    gap: 24,
   },
   faqItem: {
     borderWidth: 1,
-    borderColor: "#e5e5e5",
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
+    borderColor: Colors.white,
+    borderRadius: 18,
+    overflow: "hidden",
+    position: "relative",
+    marginBottom: 0,
+  },
+  blurBackground: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 18,
+    overflow: "hidden",
+  },
+  faqContent: {
+    backgroundColor: Colors.neutrals.light + "30", // Low opacity
+    padding: 20,
+    position: "relative",
+    zIndex: 1,
   },
   question: {
     cursor: "pointer",
   },
   questionText: {
-    fontWeight: "500",
+    fontWeight: "700",
     fontSize: 16,
+    color: Colors.darks.black,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   answer: {
-    marginTop: 8,
-    color: "#737373",
+    marginTop: 12,
+    color: Colors.darks.black,
+    opacity: 0.8,
     lineHeight: 22,
   },
 });
