@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "../lib/query-keys";
+import { STALE_TIME_SHORT_MS } from "../lib/query-defaults";
 import { fetchGiftSuggestions } from "../lib/api";
 
 /**
@@ -10,5 +11,6 @@ export function useGiftSuggestions(recipientId: string | undefined) {
     queryKey: queryKeys.giftSuggestions(recipientId || ""),
     queryFn: () => fetchGiftSuggestions(recipientId!),
     enabled: !!recipientId,
+    staleTime: STALE_TIME_SHORT_MS,
   });
 }

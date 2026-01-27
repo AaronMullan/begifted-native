@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "../lib/query-keys";
+import { STALE_TIME_MS } from "../lib/query-defaults";
 import { fetchDashboardStats } from "../lib/api";
 import { useAuth } from "./use-auth";
 
@@ -23,6 +24,6 @@ export function useDashboardStats() {
       }
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME_MS,
   });
 }

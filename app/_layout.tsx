@@ -6,8 +6,13 @@ import { View, StyleSheet } from "react-native";
 import Header from "../components/Header";
 import GradientBackground from "../components/GradientBackground";
 import { useFontsLoader } from "../hooks/use-fonts-loader";
+import { defaultQueryOptions } from "../lib/query-defaults";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: defaultQueryOptions,
+  },
+});
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
