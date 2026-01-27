@@ -9,8 +9,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json}\"",
+    "format": "npx prettier --write \"**/*.{ts,tsx,js,jsx,json}\"",
+    "format:check": "npx prettier --check \"**/*.{ts,tsx,js,jsx,json}\"",
     "export": "expo export --platform web",
     "build": "expo export --platform web"
   },
@@ -19,7 +19,7 @@
     "@expo-google-fonts/roboto-flex": "^0.4.1",
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "^2.2.0",
-    "@react-navigation/bottom-tabs": "^7.4.0",
+        "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",
     "@supabase/supabase-js": "^2.75.0",
@@ -31,6 +31,7 @@
     "expo-font": "~14.0.8",
     "expo-haptics": "~15.0.7",
     "expo-image": "~3.0.8",
+    "expo-linear-gradient": "~15.0.8",
     "expo-linking": "~8.0.8",
     "expo-router": "~6.0.12",
     "expo-splash-screen": "~31.0.10",
@@ -60,5 +61,8 @@
     "prettier": "^3.2.5",
     "typescript": "~5.9.2"
   },
+  "plugins": [
+    "prettier"
+  ],
   "private": true
 }

@@ -111,19 +111,29 @@ export default function Calendar() {
 
   if (!user) {
     return (
-      <View style={styles.container}>
+      <LinearGradient
+        colors={["#432013", "#5d8997", "#ebdfbd"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.container}
+      >
         <View style={styles.content}>
           <Text style={styles.title}>Occasions Calendar</Text>
           <Text style={styles.subtitle}>
             Please sign in to view your occasions.
           </Text>
         </View>
-      </View>
+      </LinearGradient>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <LinearGradient
+      colors={["#432013", "#5d8997", "#ebdfbd"]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.container}
+    >
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
           {/* Main card container */}
@@ -232,7 +242,7 @@ export default function Calendar() {
         </View>
       </ScrollView>
       {toast}
-    </View>
+    </LinearGradient>
   );
 }
 

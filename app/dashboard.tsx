@@ -34,6 +34,30 @@ export default function Dashboard() {
   const loadingRecipients = isLoading;
   const loadingUpcoming = isLoading;
 
+  // Show loading state if still loading initial data
+  if (loading && recipientsCount === null && upcomingCount === null) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Text variant="headlineMedium" style={styles.greeting}>
+              Hello, {displayName}!
+            </Text>
+            <Text variant="bodyLarge" style={styles.tagline}>
+              Let's make someone's day special
+            </Text>
+          </View>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#000000" />
+            <Text variant="bodyMedium" style={styles.loadingText}>
+              Loading dashboard...
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <ScrollView 
@@ -252,5 +276,15 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginBottom: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 16,
+    color: "#666",
   },
 });
