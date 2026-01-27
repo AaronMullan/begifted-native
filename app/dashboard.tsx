@@ -35,7 +35,7 @@ export default function Dashboard() {
   const loadingUpcoming = isLoading;
 
   // Show loading state if still loading initial data
-  if (loading && recipientsCount === null && upcomingCount === null) {
+  if (isLoading && !stats) {
     return (
       <View style={styles.container}>
         <View style={styles.content}>
