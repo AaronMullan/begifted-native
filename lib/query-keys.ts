@@ -24,4 +24,7 @@ export const queryKeys = {
   // Gift Suggestions
   giftSuggestions: (recipientId: string) =>
     ["giftSuggestions", recipientId] as const,
+
+  // FAQ (from Google Sheet or fallback)
+  faqs: () => ["faqs"] as const,
 };

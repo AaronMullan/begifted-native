@@ -1,15 +1,16 @@
 import { View, ScrollView, StyleSheet, TouchableOpacity, Pressable } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
-import { IconButton, Text } from "react-native-paper";
+import { IconButton, Text, ActivityIndicator } from "react-native-paper";
 import { BlurView } from "expo-blur";
 import { Colors } from "../lib/colors";
-import { faqs } from "../data/faqs";
 import { HEADER_HEIGHT } from "../lib/constants";
+import { useFaqs } from "../hooks/use-faqs";
 
 export default function FAQ() {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const router = useRouter();
+  const { data: faqs = [], isLoading, isError } = useFaqs();
 
   const toggleFAQ = (index: number) => {
     setExpandedIndex(expandedIndex === index ? null : index);
@@ -36,24 +37,37 @@ export default function FAQ() {
             style={styles.backButton}
           />
         </View>
-        <View style={styles.list}>
-          {faqs.map((faq, i) => (
-            <Pressable key={i} style={styles.faqItem}>
-              <BlurView intensity={20} style={styles.blurBackground} />
-              <View style={styles.faqContent}>
-                <TouchableOpacity
-                  onPress={() => toggleFAQ(i)}
-                  style={styles.question}
-                >
-                  <Text style={styles.questionText}>{faq.q}</Text>
-                </TouchableOpacity>
-                {expandedIndex === i && (
-                  <Text style={styles.answer}>{faq.a}</Text>
-                )}
-              </View>
-            </Pressable>
-          ))}
-        </View>
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#000000" />
+            <Text variant="bodyMedium" style={styles.loadingText}>
+              Loading FAQ…
+            </Text>
+          </View>
+        ) : isError ? (
+          <Text variant="bodyMedium" style={styles.errorText}>
+            Could not load FAQs. Please try again later.
+          </Text>
+        ) : (
+          <View style={styles.list}>
+            {faqs.map((faq, i) => (
+              <Pressable key={i} style={styles.faqItem}>
+                <BlurView intensity={20} style={styles.blurBackground} />
+                <View style={styles.faqContent}>
+                  <TouchableOpacity
+                    onPress={() => toggleFAQ(i)}
+                    style={styles.question}
+                  >
+                    <Text style={styles.questionText}>{faq.q}</Text>
+                  </TouchableOpacity>
+                  {expandedIndex === i && (
+                    <Text style={styles.answer}>{faq.a}</Text>
+                  )}
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        )}
       </View>
     </ScrollView>
   );
@@ -128,5 +142,18 @@ const styles = StyleSheet.create({
     color: Colors.darks.black,
     opacity: 0.8,
     lineHeight: 22,
+  },
+  loadingContainer: {
+    paddingVertical: 40,
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 16,
+    color: Colors.darks.black,
+    opacity: 0.8,
+  },
+  errorText: {
+    color: Colors.darks.black,
+    opacity: 0.8,
   },
 });
