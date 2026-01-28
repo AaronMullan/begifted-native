@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { StyleSheet, View, Linking } from "react-native";
+import { StyleSheet, View, Linking, Image } from "react-native";
 import {
   ActivityIndicator,
   Text,
@@ -99,10 +99,15 @@ const SuggestionCard: React.FC<{ suggestion: GiftSuggestion }> = ({
       disabled={!suggestion.link}
     >
       {suggestion.image_url && (
-        <Card.Cover
-          source={{ uri: suggestion.image_url }}
-          style={styles.suggestionImage}
-        />
+        <View style={styles.suggestionImageContainer}>
+          <View style={styles.suggestionImageInner}>
+            <Image
+              source={{ uri: suggestion.image_url }}
+              style={styles.suggestionImage}
+              resizeMode="contain"
+            />
+          </View>
+        </View>
       )}
       <Card.Content>
         <Text variant="titleMedium" style={styles.suggestionTitle}>
@@ -291,10 +296,22 @@ const styles = StyleSheet.create({
   suggestionCard: {
     marginBottom: 12,
   },
-  suggestionImage: {
+  suggestionImageContainer: {
     width: "100%",
     aspectRatio: 1,
     backgroundColor: "#f0f0f0",
+    paddingTop: 28,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+  },
+  suggestionImageInner: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  suggestionImage: {
+    width: "100%",
+    height: "100%",
   },
   suggestionTitle: {
     marginBottom: 6,

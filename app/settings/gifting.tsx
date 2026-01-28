@@ -4,12 +4,14 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Switch,
+  Pressable,
 } from "react-native";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
+import { BlurView } from "expo-blur";
 import { supabase } from "../../lib/supabase";
 import { HEADER_HEIGHT } from "../../lib/constants";
+import { Colors } from "../../lib/colors";
 import { Session } from "@supabase/supabase-js";
 import { IconButton } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -54,19 +56,28 @@ export default function GiftingPreferences() {
   const [showReminderPicker, setShowReminderPicker] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) {
-        fetchPreferences(session.user.id);
-      } else {
-        setLoading(false);
-        router.replace("/");
-      }
-    });
+    let cancelled = false;
+
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        if (cancelled) return;
+        setSession(session);
+        if (session) {
+          fetchPreferences(session.user.id);
+        } else {
+          setLoading(false);
+          router.replace("/");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false);
+      });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (cancelled) return;
       setSession(session);
       if (session) {
         fetchPreferences(session.user.id);
@@ -76,17 +87,25 @@ export default function GiftingPreferences() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   async function fetchPreferences(userId: string) {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("user_preferences")
-        .select("*")
-        .eq("user_id", userId)
-        .maybeSingle();
+      const { data, error } = await Promise.race([
+        supabase
+          .from("user_preferences")
+          .select("*")
+          .eq("user_id", userId)
+          .maybeSingle(),
+        new Promise<{ data: null; error: { code: string } }>((_, rej) =>
+          setTimeout(() => rej(new Error("timeout")), 10000)
+        ),
+      ]);
 
       if (error && error.code !== "PGRST116") {
         console.error("Error fetching preferences:", error);
@@ -111,6 +130,7 @@ export default function GiftingPreferences() {
       }
     } catch (error) {
       console.error("Error fetching preferences:", error);
+      // Show form with defaults on timeout or network error
     } finally {
       setLoading(false);
     }
@@ -143,7 +163,7 @@ export default function GiftingPreferences() {
 
       const { data, error } = await supabase
         .from("user_preferences")
-        .upsert(updates)
+        .upsert(updates, { onConflict: "user_id" })
         .select()
         .single();
 
@@ -171,6 +191,7 @@ export default function GiftingPreferences() {
   if (loading) {
     return (
       <View style={styles.container}>
+        <View style={styles.headerSpacer} />
         <View style={styles.content}>
           <Text style={styles.loadingText}>Loading...</Text>
         </View>
@@ -181,6 +202,7 @@ export default function GiftingPreferences() {
   if (!session) {
     return (
       <View style={styles.container}>
+        <View style={styles.headerSpacer} />
         <View style={styles.content}>
           <Text style={styles.title}>Gifting Preferences</Text>
           <Text style={styles.subtitle}>
@@ -192,10 +214,14 @@ export default function GiftingPreferences() {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={styles.container}>
+      <View style={styles.headerSpacer} />
+      <ScrollView style={styles.scrollView}>
       <View style={styles.content}>
-        {/* Main white card container */}
-        <View style={styles.mainCard}>
+        {/* Main card container – match dashboard/settings card style */}
+        <Pressable style={styles.mainCard}>
+          <BlurView intensity={20} style={styles.blurBackground} pointerEvents="none" />
+          <View style={styles.mainCardContent}>
           {/* Header section */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
@@ -335,14 +361,24 @@ export default function GiftingPreferences() {
                   : "No Changes"}
             </Text>
           </TouchableOpacity>
-        </View>
+          </View>
+        </Pressable>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+  headerSpacer: {
+    height: HEADER_HEIGHT,
+    backgroundColor: "transparent",
+  },
+  scrollView: {
     flex: 1,
     backgroundColor: "transparent",
   },
@@ -352,18 +388,25 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: "100%",
     padding: 20,
-    paddingTop: HEADER_HEIGHT, // Account for header height
   },
   mainCard: {
-    backgroundColor: "transparent",
-    borderRadius: 16,
-    padding: 24,
+    backgroundColor: Colors.neutrals.light + "30",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Colors.white,
+    overflow: "hidden",
+    position: "relative",
     marginTop: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+  },
+  blurBackground: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 18,
+    overflow: "hidden",
+  },
+  mainCardContent: {
+    padding: 24,
+    position: "relative",
+    zIndex: 1,
   },
   header: {
     flexDirection: "row",
@@ -377,12 +420,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#000000",
+    color: Colors.darks.black,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: "#666",
+    color: Colors.darks.black,
+    opacity: 0.8,
   },
   backButton: {
     margin: 0,
@@ -396,7 +440,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#000000",
+    color: Colors.darks.black,
     marginBottom: 12,
   },
   reminderSelector: {
@@ -404,19 +448,21 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
-    backgroundColor: "#fff",
+    borderColor: Colors.white,
+    backgroundColor: Colors.neutrals.light + "30",
   },
   reminderValue: {
     fontSize: 16,
-    color: "#000000",
+    color: Colors.darks.black,
   },
   reminderPicker: {
     marginTop: 8,
-    backgroundColor: "#f8f8f8",
-    borderRadius: 8,
+    backgroundColor: Colors.neutrals.light + "30",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Colors.white,
     overflow: "hidden",
   },
   reminderOption: {
@@ -426,18 +472,18 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    borderBottomColor: Colors.white,
   },
   reminderOptionSelected: {
-    backgroundColor: "#fff",
+    backgroundColor: Colors.neutrals.light + "50",
   },
   reminderOptionText: {
     fontSize: 16,
-    color: "#000000",
+    color: Colors.darks.black,
   },
   reminderOptionTextSelected: {
     fontWeight: "600",
-    color: "#000000",
+    color: Colors.darks.black,
   },
   switchSection: {
     flexDirection: "row",

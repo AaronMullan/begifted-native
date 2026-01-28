@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Alert, ScrollView, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, Button, IconButton } from "react-native-paper";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { supabase } from "../../lib/supabase";
+import { HEADER_HEIGHT } from "../../lib/constants";
 import type { GiftSuggestion, Recipient } from "../../types/recipient";
 import { useRecipientForm } from "../../hooks/use-recipient-form";
 import { RecipientDetailsForm } from "../../components/recipients/RecipientDetailsForm";
@@ -10,6 +12,8 @@ import { GiftSuggestionsView } from "../../components/recipients/GiftSuggestions
 import { useToast } from "../../hooks/use-toast";
 
 export default function RecipientEditPage() {
+  const insets = useSafeAreaInsets();
+  const headerSpacerHeight = Math.max(HEADER_HEIGHT, insets.top + 60);
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string; tab?: string }>();
   const recipientId = params.id;
@@ -288,7 +292,10 @@ export default function RecipientEditPage() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text>Loading...</Text>
+        <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
+        <View style={styles.loadingPlaceholder}>
+          <Text>Loading...</Text>
+        </View>
       </View>
     );
   }
@@ -296,13 +303,17 @@ export default function RecipientEditPage() {
   if (!recipient) {
     return (
       <View style={styles.container}>
-        <Text>Recipient not found</Text>
+        <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
+        <View style={styles.loadingPlaceholder}>
+          <Text>Recipient not found</Text>
+        </View>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
       {/* Header */}
       <View style={styles.header}>
         <IconButton
@@ -402,6 +413,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
+  },
+  headerSpacer: {
+    backgroundColor: "transparent",
+  },
+  loadingPlaceholder: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   header: {
     flexDirection: "row",

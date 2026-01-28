@@ -40,6 +40,8 @@ export function lookupOccasionDate(
     makar_sankranti: { month: 1, day: 14 }, // Hindu fixed date
     vaisakhi: { month: 4, day: 14 }, // Sikh/Hindu fixed date
     baisakhi: { month: 4, day: 14 },
+    national_bbq_day: { month: 5, day: 16 },
+    national_country_music_day: { month: 9, day: 17 }, // observed in US
   };
 
   // Check fixed holidays first
@@ -93,6 +95,8 @@ export function lookupOccasionDate(
     case "hanukkah":
     case "chanukah":
       return calculateHanukkahDate(targetYear);
+    case "record_store_day":
+      return calculateThirdSaturdayOfMonth(targetYear, 4); // April
     default:
       // User-specific occasions (anniversary, custom events) return null
       // These require user input
@@ -143,6 +147,19 @@ function calculateThanksgivingDate(year: number): string {
     return calculateThanksgivingDate(year + 1);
   }
   return thanksgiving.toISOString().split("T")[0];
+}
+
+// Internal helper: Calculate Nth Saturday of month (e.g. Record Store Day = 3rd Saturday of April)
+function calculateThirdSaturdayOfMonth(year: number, month: number): string {
+  const first = new Date(year, month - 1, 1);
+  const dayOfWeek = first.getDay(); // 0 Sun .. 6 Sat
+  const daysToFirstSat = (6 - dayOfWeek + 7) % 7;
+  const thirdSaturday = new Date(year, month - 1, 1 + daysToFirstSat + 14);
+  const currentDate = new Date();
+  if (thirdSaturday < currentDate) {
+    return calculateThirdSaturdayOfMonth(year + 1, month);
+  }
+  return thirdSaturday.toISOString().split("T")[0];
 }
 
 // Internal helper: Calculate Mother's Day (2nd Sunday of May)

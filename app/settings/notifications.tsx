@@ -6,10 +6,12 @@ import {
   TouchableOpacity,
   Switch,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { HEADER_HEIGHT } from "../../lib/constants";
+import { Colors } from "../../lib/colors";
 import { Session } from "@supabase/supabase-js";
 import { IconButton } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -36,6 +38,8 @@ const TIMEZONES = [
 ];
 
 export default function Notifications() {
+  const insets = useSafeAreaInsets();
+  const headerSpacerHeight = Math.max(HEADER_HEIGHT, insets.top + 60);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -142,7 +146,7 @@ export default function Notifications() {
 
       const { data, error } = await supabase
         .from("user_preferences")
-        .upsert(updates)
+        .upsert(updates, { onConflict: "user_id" })
         .select()
         .single();
 
@@ -185,6 +189,7 @@ export default function Notifications() {
   if (loading) {
     return (
       <View style={styles.container}>
+        <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
         <View style={styles.content}>
           <Text style={styles.loadingText}>Loading...</Text>
         </View>
@@ -195,6 +200,7 @@ export default function Notifications() {
   if (!session) {
     return (
       <View style={styles.container}>
+        <View style={styles.headerSpacer} />
         <View style={styles.content}>
           <Text style={styles.title}>Notifications</Text>
           <Text style={styles.subtitle}>
@@ -206,7 +212,9 @@ export default function Notifications() {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={styles.container}>
+      <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
+      <ScrollView style={styles.scrollView}>
       <View style={styles.content}>
         {/* Main white card container */}
         <View style={styles.mainCard}>
@@ -388,23 +396,12 @@ export default function Notifications() {
               Set your timezone for accurate notification timing.
             </Text>
 
-            <TouchableOpacity
-              style={styles.timezoneSelector}
-              onPress={() => setShowTimezonePicker(!showTimezonePicker)}
-            >
-              <View style={styles.timezoneInfo}>
-                <Text style={styles.settingLabel}>Timezone</Text>
-                <Text style={styles.timezoneValue}>{currentTimezoneLabel}</Text>
-              </View>
-              <MaterialIcons
-                name={showTimezonePicker ? "expand-less" : "expand-more"}
-                size={20}
-                color="#666"
-              />
-            </TouchableOpacity>
-
             {showTimezonePicker && (
-              <View style={styles.timezonePicker}>
+              <ScrollView
+                style={styles.timezonePicker}
+                nestedScrollEnabled
+                keyboardShouldPersistTaps="handled"
+              >
                 {TIMEZONES.map((tz) => (
                   <TouchableOpacity
                     key={tz.value}
@@ -413,7 +410,10 @@ export default function Notifications() {
                       preferences.timezone === tz.value &&
                         styles.timezoneOptionSelected,
                     ]}
-                    onPress={() => setTimezone(tz.value)}
+                    onPress={() => {
+                      setTimezone(tz.value);
+                      setShowTimezonePicker(false);
+                    }}
                   >
                     <Text
                       style={[
@@ -429,8 +429,23 @@ export default function Notifications() {
                     )}
                   </TouchableOpacity>
                 ))}
-              </View>
+              </ScrollView>
             )}
+
+            <TouchableOpacity
+              style={styles.timezoneSelector}
+              onPress={() => setShowTimezonePicker(!showTimezonePicker)}
+            >
+              <View style={styles.timezoneInfo}>
+                <Text style={styles.settingLabel}>Timezone</Text>
+                <Text style={styles.timezoneValue}>{currentTimezoneLabel}</Text>
+              </View>
+              <MaterialIcons
+                name={showTimezonePicker ? "expand-less" : "expand-more"}
+                size={20}
+                color="#666"
+              />
+            </TouchableOpacity>
           </View>
 
           {/* Save Button */}
@@ -458,12 +473,21 @@ export default function Notifications() {
           </TouchableOpacity>
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+  headerSpacer: {
+    height: HEADER_HEIGHT,
+    backgroundColor: "transparent",
+  },
+  scrollView: {
     flex: 1,
     backgroundColor: "transparent",
   },
@@ -473,7 +497,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: "100%",
     padding: 20,
-    paddingTop: HEADER_HEIGHT, // Account for header height
   },
   mainCard: {
     backgroundColor: "transparent",
@@ -503,7 +526,8 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: "#666",
+    color: Colors.darks.black,
+    opacity: 0.9,
   },
   backButton: {
     margin: 0,
@@ -519,7 +543,8 @@ const styles = StyleSheet.create({
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: "#666",
+    color: Colors.darks.black,
+    opacity: 0.85,
     marginBottom: 20,
   },
   settingRow: {
@@ -542,7 +567,8 @@ const styles = StyleSheet.create({
   },
   settingDescription: {
     fontSize: 14,
-    color: "#666",
+    color: Colors.darks.black,
+    opacity: 0.9,
     lineHeight: 20,
   },
   timezoneSelector: {
@@ -562,7 +588,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   timezonePicker: {
-    marginTop: 8,
+    marginBottom: 8,
+    maxHeight: 220,
     backgroundColor: "#f8f8f8",
     borderRadius: 8,
     overflow: "hidden",
@@ -611,7 +638,8 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     textAlign: "center",
-    color: "#666",
+    color: Colors.darks.black,
+    opacity: 0.9,
     fontSize: 16,
   },
 });

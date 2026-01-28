@@ -6,6 +6,7 @@ import type {
   RecipientData,
   ExtractionResponse,
   ConversationResponse,
+  ExtractedData,
 } from "../types.ts";
 // @ts-ignore - Deno environment variables are resolved at runtime
 const openAiApiKey = Deno.env.get("OPENAI_API_KEY");
@@ -709,4 +710,137 @@ export async function extractField(
   existingData?: RecipientData
 ): Promise<ExtractionResponse> {
   return extractFields(messages, [field], existingData);
+}
+
+// Occasion recommendation types for suggest-occasions-from-interests
+export interface OccasionRecommendation {
+  type: string;
+  name: string;
+  suggestedDate: string | null;
+  isMilestone: boolean;
+  reasoning: string;
+}
+
+export interface OccasionRecommendations {
+  primaryOccasions: OccasionRecommendation[];
+  additionalSuggestions: string[];
+}
+
+/**
+ * Recommend occasions based on the recipient's interests, relationship, and birthday.
+ * Leans into hobbies and interests (e.g. running → race day, music → Record Store Day).
+ */
+export async function recommendOccasions(
+  extractedData: ExtractedData | RecipientData
+): Promise<OccasionRecommendations> {
+  const name = extractedData.name || "this person";
+  const relationship = extractedData.relationship_type || "";
+  const birthday = extractedData.birthday || null;
+  const interests =
+    (extractedData as ExtractedData).interests ||
+    (extractedData as RecipientData).interests ||
+    [];
+
+  const prompt = `You are a creative gift-planning assistant. Suggest occasions that feel personalized to THIS person's interests—not generic holidays.
+
+RECIPIENT:
+- Name: ${name}
+- Relationship: ${relationship}
+${birthday ? `- Birthday: ${birthday}` : ""}
+${interests.length > 0 ? `- Interests: ${interests.join(", ")}` : "- Interests: (none specified)"}
+
+CRITICAL: At least 2–3 of your primaryOccasions MUST be clearly tied to their interests. Be specific to the hobbies they listed.
+
+EXAMPLES BY INTEREST (use these as inspiration, not a script):
+- Country music → "CMA Awards night", "National Country Music Day" (or a festival/concert weekend), "Grand Ole Opry anniversary", "favorite artist's album release day"
+- BBQ / grilling → "National BBQ Day" (May 16), "first cookout of the season", "Father's Day BBQ", "Memorial Day / July 4th / Labor Day cookout", "smoker upgrade day" or "annual backyard BBQ"
+- Running → "race day" or "first 10K", "marathon anniversary", "National Running Day"
+- Cooking / food → "hosting a dinner party", "recipe milestone", "local food festival", "anniversary of their favorite restaurant"
+- Music (general) → "Record Store Day" (April), "concert anniversary", "album release day", "band's anniversary tour"
+- Sports → "opening day", "playoffs", "fantasy draft day", "super bowl party"
+- Gardening → "first harvest", "seed-starting weekend", "garden tour day"
+If you don't know an exact date for an interest-based occasion, use null for suggestedDate or the next occurrence of a real observance (e.g. National BBQ Day = 05-16, Record Store Day is usually April; look up if unsure).
+
+RULES:
+- Include birthday if provided; for ages 30, 40, 50, etc. set isMilestone true.
+- Prefer interest-driven occasions over generic holidays. Add 1–2 broad holidays (Christmas, Thanksgiving, etc.) only in additionalSuggestions or as 1 primary if it really fits (e.g. "Christmas" for someone who loves family traditions).
+- type: lowercase snake_case (e.g. national_bbq_day, cma_awards_night, first_cookout_of_season).
+- reasoning: one short sentence tying the occasion to their interests.
+
+Return JSON only, no markdown:
+{
+  "primaryOccasions": [
+    {
+      "type": "snake_case_type",
+      "name": "Human-readable name",
+      "suggestedDate": "YYYY-MM-DD or null",
+      "isMilestone": false,
+      "reasoning": "Why this fits their interests"
+    }
+  ],
+  "additionalSuggestions": ["A few more ideas as strings"]
+}`;
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${openAiApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 900,
+      temperature: 0.75,
+      response_format: { type: "json_object" },
+    }),
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.choices?.[0]?.message?.content) {
+    console.error("recommendOccasions OpenAI error:", data);
+    return getFallbackOccasionRecommendations(birthday);
+  }
+
+  try {
+    const parsed = parseOpenAIJSON(data.choices[0].message.content);
+    const primary = Array.isArray(parsed.primaryOccasions)
+      ? parsed.primaryOccasions
+      : [];
+    const additional = Array.isArray(parsed.additionalSuggestions)
+      ? parsed.additionalSuggestions
+      : [];
+    return {
+      primaryOccasions: primary.map((o: any) => ({
+        type: String(o.type || "custom").replace(/\s+/g, "_").toLowerCase(),
+        name: String(o.name || o.type || "Occasion"),
+        suggestedDate: o.suggestedDate ?? null,
+        isMilestone: Boolean(o.isMilestone),
+        reasoning: String(o.reasoning || ""),
+      })),
+      additionalSuggestions: additional.map((s: any) => String(s)),
+    };
+  } catch (e) {
+    console.error("recommendOccasions parse error:", e);
+    return getFallbackOccasionRecommendations(birthday);
+  }
+}
+
+function getFallbackOccasionRecommendations(
+  birthday: string | null
+): OccasionRecommendations {
+  const primary: OccasionRecommendation[] = [];
+  if (birthday) {
+    primary.push({
+      type: "birthday",
+      name: "Birthday",
+      suggestedDate: birthday,
+      isMilestone: false,
+      reasoning: "Everyone deserves to feel special on their birthday.",
+    });
+  }
+  return {
+    primaryOccasions: primary,
+    additionalSuggestions: ["Christmas", "New Year", "Thanksgiving"],
+  };
 }
