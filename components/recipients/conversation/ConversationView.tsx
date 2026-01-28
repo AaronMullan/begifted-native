@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
 } from "react-native-paper";
 import { Message } from "@/hooks/use-add-recipient-flow";
+import { HEADER_HEIGHT } from "@/lib/constants";
 
 interface ConversationViewProps {
   messages: Message[];
@@ -69,6 +70,7 @@ export function ConversationView({
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
+      <View style={styles.appHeaderSpacer} />
       {/* Header */}
       <View style={styles.header}>
         <IconButton
@@ -186,6 +188,10 @@ export function ConversationView({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#fff",
+  },
+  appHeaderSpacer: {
+    height: HEADER_HEIGHT,
     backgroundColor: "#fff",
   },
   header: {

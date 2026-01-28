@@ -7,6 +7,7 @@ import { BlurView } from "expo-blur";
 import { Colors } from "../lib/colors";
 import ContactFileImport from "../components/ContactFileImport";
 import ContactPicker from "../components/ContactPicker";
+import ContactsAccessIntro from "../components/ContactsAccessIntro";
 import RecipientCard from "../components/RecipientCard";
 import RecipientForm from "../components/RecipientForm";
 import { DeviceContact, useDeviceContacts } from "../hooks/use-device-contacts";
@@ -44,6 +45,8 @@ export default function Contacts() {
   const [zipCode, setZipCode] = useState("");
   const [country, setCountry] = useState("US");
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [contactsAccessIntroVisible, setContactsAccessIntroVisible] =
+    useState(false);
   const [deviceContacts, setDeviceContacts] = useState<DeviceContact[]>([]);
   const { loading: contactsLoading, getDeviceContacts } = useDeviceContacts();
   const { showToast, toast } = useToast();
@@ -198,7 +201,12 @@ export default function Contacts() {
     }
   }
 
-  async function handleImportFromDevice() {
+  function openContactsAccessIntro() {
+    setContactsAccessIntroVisible(true);
+  }
+
+  async function handleContinueContactsAccess() {
+    setContactsAccessIntroVisible(false);
     const contacts = await getDeviceContacts();
     setDeviceContacts(contacts);
     if (contacts.length > 0) {
@@ -214,38 +222,11 @@ export default function Contacts() {
   }
 
   function handleSelectContact(contact: DeviceContact) {
-    // Don't close picker here - let ContactPicker handle it
-
-    // Pre-fill the form with contact data
-    setName(contact.name);
-
-    // Format birthday if available
-    if (contact.birthday) {
-      const { month, day, year } = contact.birthday;
-      const formattedBirthday = year
-        ? `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(
-            2,
-            "0"
-          )}`
-        : `${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-      setBirthday(formattedBirthday);
-    }
-
-    // Pre-fill address if available
-    if (contact.addresses && contact.addresses.length > 0) {
-      const addr = contact.addresses[0];
-      setAddress(addr.street || "");
-      setCity(addr.city || "");
-      setState(addr.region || "");
-      setZipCode(addr.postalCode || "");
-      setCountry(addr.country || "US");
-    }
-
-    // Use setTimeout to ensure modal closes before form opens
-    setTimeout(() => {
-      setPickerVisible(false);
-      openAddForm();
-    }, 100);
+    setPickerVisible(false);
+    router.push({
+      pathname: "/contacts/add",
+      params: { name: contact.name },
+    });
   }
 
   if (!user) {
@@ -303,7 +284,7 @@ export default function Contacts() {
               ) : (
                 <Button
                   mode="outlined"
-                  onPress={handleImportFromDevice}
+                  onPress={openContactsAccessIntro}
                   disabled={contactsLoading}
                   loading={contactsLoading}
                   style={styles.importButton}
@@ -376,6 +357,12 @@ export default function Contacts() {
             </View>
           )}
         </View>
+        <ContactsAccessIntro
+          visible={contactsAccessIntroVisible}
+          onContinue={handleContinueContactsAccess}
+          onClose={() => setContactsAccessIntroVisible(false)}
+          isLoading={contactsLoading}
+        />
         <ContactPicker
           visible={pickerVisible}
           contacts={deviceContacts}

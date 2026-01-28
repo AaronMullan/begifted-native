@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, ActivityIndicator, StyleSheet, Text } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "../../hooks/use-auth";
 import { useAddRecipientFlow } from "../../hooks/use-add-recipient-flow";
 import { ConversationView } from "../../components/recipients/conversation/ConversationView";
@@ -12,6 +12,9 @@ import { SuccessView } from "../../components/recipients/conversation/SuccessVie
 const AddRecipient = () => {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const params = useLocalSearchParams<{ name?: string }>();
+  const initialContactName =
+    typeof params.name === "string" ? params.name : undefined;
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [partialData, setPartialData] = useState<any>(null);
 
@@ -39,7 +42,7 @@ const AddRecipient = () => {
     setShowDataReview,
     setShowOccasionsSelection,
     setExtractedData,
-  } = useAddRecipientFlow(user?.id || "");
+  } = useAddRecipientFlow(user?.id || "", initialContactName);
 
   // Enhanced finish conversation handler with proper error handling
   const handleFinishConversationWithFallback = async () => {

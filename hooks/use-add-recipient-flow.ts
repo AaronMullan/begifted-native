@@ -34,7 +34,10 @@ interface UseAddRecipientFlowReturn {
   setExtractedData: (data: ExtractedData | null) => void;
 }
 
-export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
+export function useAddRecipientFlow(
+  userId: string,
+  initialContactName?: string
+): UseAddRecipientFlowReturn {
   const router = useRouter();
   const [showDataReview, setShowDataReview] = useState(false);
   const [showOccasionsSelection, setShowOccasionsSelection] = useState(false);
@@ -43,6 +46,10 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
   const [savedRecipientName, setSavedRecipientName] = useState<string | null>(
     null
   );
+
+  const initialUserMessage = initialContactName?.trim()
+    ? `I'd like to add ${initialContactName.trim()}`
+    : undefined;
 
   // Use the generic conversation flow hook
   const {
@@ -57,6 +64,7 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
     setExtractedData: genericSetExtractedData,
   } = useConversationFlow({
     conversationType: "add_recipient",
+    initialUserMessage,
     onExtractSuccess: (data) => {
       // Validate that we have required fields
       if (data.name && data.relationship_type) {
