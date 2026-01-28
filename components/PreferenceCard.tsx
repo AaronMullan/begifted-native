@@ -1,7 +1,9 @@
-import { View, StyleSheet } from "react-native";
-import { Text, Card } from "react-native-paper";
+import { View, StyleSheet, Pressable } from "react-native";
+import { Text } from "react-native-paper";
+import { BlurView } from "expo-blur";
 import { PreferenceOption } from "../constants/gifting-preferences";
-import { Ionicons } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
+import { Colors } from "../lib/colors";
 
 interface PreferenceCardProps {
   title: string;
@@ -25,13 +27,14 @@ export default function PreferenceCard({
         {options.map((option) => {
           const isSelected = value === option.value;
           return (
-            <Card
+            <Pressable
               key={option.value}
               style={[styles.option, isSelected && styles.optionSelected]}
               onPress={() => onValueChange(option.value)}
             >
-              <Card.Content>
-                <View style={styles.optionContent}>
+              <BlurView intensity={20} style={styles.optionBlur} pointerEvents="none" />
+              <View style={styles.optionContent}>
+                <View style={styles.optionTextWrap}>
                   <Text
                     variant="titleSmall"
                     style={[
@@ -52,10 +55,14 @@ export default function PreferenceCard({
                   </Text>
                 </View>
                 {isSelected && (
-                  <Ionicons name="checkmark-circle" size={24} color="#000000" />
+                  <MaterialIcons
+                    name="check-circle"
+                    size={24}
+                    color={Colors.darks.black}
+                  />
                 )}
-              </Card.Content>
-            </Card>
+              </View>
+            </Pressable>
           );
         })}
       </View>
@@ -69,30 +76,54 @@ const styles = StyleSheet.create({
   },
   title: {
     marginBottom: 12,
+    color: Colors.darks.black,
   },
   optionsContainer: {
     gap: 12,
   },
   option: {
     marginBottom: 0,
+    backgroundColor: Colors.neutrals.light + "30",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Colors.white,
+    overflow: "hidden",
+    position: "relative",
+  },
+  optionBlur: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 18,
+    overflow: "hidden",
   },
   optionSelected: {
-    borderColor: "#000000",
+    borderColor: Colors.darks.black,
     borderWidth: 2,
-    backgroundColor: "#F5F5F5",
   },
   optionContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    position: "relative",
+    zIndex: 1,
+  },
+  optionTextWrap: {
     flex: 1,
     marginRight: 12,
   },
   optionLabel: {
     marginBottom: 4,
+    color: Colors.darks.black,
   },
   optionLabelSelected: {
-    color: "#000000",
+    color: Colors.darks.black,
+    fontWeight: "600",
   },
-  optionDescription: {},
+  optionDescription: {
+    color: Colors.darks.black,
+    opacity: 0.8,
+  },
   optionDescriptionSelected: {
-    color: "#888",
+    color: Colors.darks.black,
+    opacity: 0.7,
   },
 });

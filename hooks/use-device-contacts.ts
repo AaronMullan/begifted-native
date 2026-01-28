@@ -1,5 +1,6 @@
 import { useState } from "react";
 import * as Contacts from "expo-contacts";
+import * as Linking from "expo-linking";
 import { Alert, Platform } from "react-native";
 
 export interface DeviceContact {
@@ -30,7 +31,11 @@ export function useDeviceContacts() {
     if (status !== "granted") {
       Alert.alert(
         "Permission Required",
-        "Please enable contacts access in your device settings to import contacts."
+        "Please enable contacts access in your device settings to import contacts.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Open Settings", onPress: () => Linking.openSettings() },
+        ]
       );
       return false;
     }

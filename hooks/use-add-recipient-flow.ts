@@ -34,13 +34,22 @@ interface UseAddRecipientFlowReturn {
   setExtractedData: (data: ExtractedData | null) => void;
 }
 
-export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
+export function useAddRecipientFlow(
+  userId: string,
+  initialContactName?: string
+): UseAddRecipientFlowReturn {
   const router = useRouter();
   const [showDataReview, setShowDataReview] = useState(false);
   const [showOccasionsSelection, setShowOccasionsSelection] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [savedRecipientName, setSavedRecipientName] = useState<string | null>(null);
+  const [savedRecipientName, setSavedRecipientName] = useState<string | null>(
+    null
+  );
+
+  const initialUserMessage = initialContactName?.trim()
+    ? `I'd like to add ${initialContactName.trim()}`
+    : undefined;
 
   // Use the generic conversation flow hook
   const {
@@ -55,6 +64,7 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
     setExtractedData: genericSetExtractedData,
   } = useConversationFlow({
     conversationType: "add_recipient",
+    initialUserMessage,
     onExtractSuccess: (data) => {
       // Validate that we have required fields
       if (data.name && data.relationship_type) {
@@ -265,12 +275,12 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
           }
           return occasion;
         });
-        
+
         // Only update if we actually enriched any occasions
-        const hasChanges = enrichedOccasions.some((occ, idx) => 
-          occ.date !== extractedData.occasions![idx].date
+        const hasChanges = enrichedOccasions.some(
+          (occ, idx) => occ.date !== extractedData.occasions![idx].date
         );
-        
+
         if (hasChanges) {
           genericSetExtractedData({
             ...extractedData,
@@ -278,7 +288,7 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
           });
         }
       };
-      
+
       enrichOccasions();
     }
   }, [extractedData, genericSetExtractedData]);
@@ -319,4 +329,3 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
 
 // Re-export types for backward compatibility
 export type { ExtractedData, Message };
-

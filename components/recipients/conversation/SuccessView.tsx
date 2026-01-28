@@ -10,7 +10,7 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated";
-import { Ionicons } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 
 type SuccessViewProps = {
   recipientName: string;
@@ -92,7 +92,7 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
           <Animated.View
             style={[styles.checkmarkWrapper, checkmarkAnimatedStyle]}
           >
-            <Ionicons name="checkmark" size={48} color="#fff" />
+            <MaterialIcons name="check" size={48} color="#fff" />
           </Animated.View>
         </View>
 

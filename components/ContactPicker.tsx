@@ -38,6 +38,14 @@ export default function ContactPicker({
           </Button>
         </View>
 
+        <View style={styles.disclaimer}>
+          <Text variant="bodySmall" style={styles.disclaimerText}>
+            Choose one contact to add as a recipient. If you select "all," you're
+            only adding the contacts shown in this list — we don't import your
+            entire address book.
+          </Text>
+        </View>
+
         <TextInput
           mode="outlined"
           placeholder="Search contacts..."
@@ -106,6 +114,14 @@ const styles = StyleSheet.create({
   },
   title: {
     flex: 1,
+  },
+  disclaimer: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+  },
+  disclaimerText: {
+    color: "#666",
+    lineHeight: 20,
   },
   searchInput: {
     margin: 16,

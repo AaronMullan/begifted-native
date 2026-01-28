@@ -136,5 +136,3 @@ export const REMINDER_OPTIONS = [
   { value: "1", label: "1 day before" },
   { value: "0", label: "Day of event" },
 ];
-
-

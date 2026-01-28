@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { View, Modal, StyleSheet, Alert } from "react-native";
 import { Text, TextInput, IconButton, Button } from "react-native-paper";
-import { Ionicons } from "@expo/vector-icons";
 
 interface OccasionEditorProps {
   occasion: {

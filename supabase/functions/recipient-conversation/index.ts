@@ -5,6 +5,7 @@ import {
   extractFullRecipient,
   extractFields,
   extractField,
+  recommendOccasions,
 } from "./data-extractor.ts";
 
 const corsHeaders = {
@@ -23,14 +24,37 @@ serve(async (req) => {
   try {
     // Parse request body
     const requestBody = await req.json();
-    const { action, conversationType, messages, targetFields, existingData } =
+    const { action, conversationType, messages, targetFields, existingData, extractedData } =
       requestBody;
-    // Validate required fields
-    if (!action || !conversationType || !messages) {
+
+    if (!action) {
+      return new Response(
+        JSON.stringify({ error: "Missing required field: action" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
+    // Handle recommend_occasions (interest-based occasion suggestions)
+    if (action === "recommend_occasions") {
+      const data = extractedData ?? requestBody.extractedData;
+      if (!data || typeof data !== "object") {
+        return new Response(
+          JSON.stringify({ error: "recommend_occasions requires extractedData" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+        );
+      }
+      const result = await recommendOccasions(data);
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // All other actions require conversationType and messages
+    if (!conversationType || !messages) {
       return new Response(
         JSON.stringify({
-          error:
-            "Missing required fields: action, conversationType, and messages are required",
+          error: "Missing required fields: conversationType and messages are required",
         }),
         {
           headers: {
@@ -41,7 +65,6 @@ serve(async (req) => {
         }
       );
     }
-    // Validate messages array
     if (!Array.isArray(messages) || messages.length === 0) {
       return new Response(
         JSON.stringify({

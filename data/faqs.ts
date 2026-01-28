@@ -1,3 +1,4 @@
+/** Fallback when EXPO_PUBLIC_FAQ_SHEET_ID is not set. See lib/faq-sheet.ts. */
 export const faqs = [
   {
     q: "What is BeGifted?",

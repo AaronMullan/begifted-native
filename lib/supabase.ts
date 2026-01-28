@@ -1,40 +1,35 @@
+// CRITICAL: Polyfill MUST be imported first, before any other imports
+// This ensures URL/fetch polyfills are available before Supabase initializes
+import "react-native-url-polyfill/auto";
+
+import { AppState, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { createClient } from "@supabase/supabase-js";
-import { Platform } from "react-native";
+import { createClient, processLock } from "@supabase/supabase-js";
 
 const supabaseUrl = "https://qgcyndtymegkobgfcpdh.supabase.co";
-const supabasePublishableKey = "sb_publishable_zQoX48Kvts7b8XOViU-JXg_QNpr35lp";
+const supabaseAnonKey = "sb_publishable_zQoX48Kvts7b8XOViU-JXg_QNpr35lp";
 
-// Use different storage for web vs mobile
-const storage =
-  Platform.OS === "web"
-    ? {
-        getItem: (key: string) => {
-          if (typeof window !== "undefined") {
-            return Promise.resolve(window.localStorage.getItem(key));
-          }
-          return Promise.resolve(null);
-        },
-        setItem: (key: string, value: string) => {
-          if (typeof window !== "undefined") {
-            window.localStorage.setItem(key, value);
-          }
-          return Promise.resolve();
-        },
-        removeItem: (key: string) => {
-          if (typeof window !== "undefined") {
-            window.localStorage.removeItem(key);
-          }
-          return Promise.resolve();
-        },
-      }
-    : AsyncStorage;
-
-export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: storage,
+    ...(Platform.OS !== "web" ? { storage: AsyncStorage } : {}),
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    lock: processLock,
   },
 });
+
+// Tells Supabase Auth to continuously refresh the session automatically
+// if the app is in the foreground. When this is added, you will continue
+// to receive `onAuthStateChange` events with the `TOKEN_REFRESHED` or
+// `SIGNED_OUT` event if the user's session is terminated. This should
+// only be registered once.
+if (Platform.OS !== "web") {
+  AppState.addEventListener("change", (state) => {
+    if (state === "active") {
+      supabase.auth.startAutoRefresh();
+    } else {
+      supabase.auth.stopAutoRefresh();
+    }
+  });
+}

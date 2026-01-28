@@ -1,16 +1,26 @@
-import { Stack, usePathname } from "expo-router";
+import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Provider as PaperProvider, MD3LightTheme } from "react-native-paper";
+import { View, StyleSheet } from "react-native";
 import Header from "../components/Header";
+import GradientBackground from "../components/GradientBackground";
 import { useFontsLoader } from "../hooks/use-fonts-loader";
+import { defaultQueryOptions } from "../lib/query-defaults";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: defaultQueryOptions,
+  },
+});
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-// Custom theme with reduced border radius for buttons and black/white color scheme
+// Custom theme with 18px border radius for buttons and color scheme
 const customTheme = {
   ...MD3LightTheme,
-  roundness: 2, // Reduced from default (typically 8 or 12) to make buttons less rounded
+  roundness: 18, // 18px rounded corners for buttons and other components
   colors: {
     ...MD3LightTheme.colors,
     primary: "#000000", // Black for primary actions
@@ -29,10 +39,9 @@ const customTheme = {
 };
 
 function HeaderWrapper() {
-  const pathname = usePathname();
-  // Index route is "/" or empty
-  const isIndexRoute = pathname === "/" || pathname === "";
-  return <Header colorful={isIndexRoute} />;
+  // Index route is now the app entry point, not marketing site
+  // Keep colorful mode disabled for index route
+  return <Header colorful={false} />;
 }
 
 export default function RootLayout() {
@@ -44,12 +53,35 @@ export default function RootLayout() {
   }
 
   return (
-    <PaperProvider theme={customTheme}>
-      <Stack
-        screenOptions={{
-          header: () => <HeaderWrapper />,
-        }}
-      />
-    </PaperProvider>
+    <QueryClientProvider client={queryClient}>
+      <PaperProvider theme={customTheme}>
+        <View style={styles.container}>
+          <GradientBackground />
+          <Stack
+            screenOptions={{
+              header: () => <HeaderWrapper />,
+              headerTransparent: true,
+              headerStyle: {
+                backgroundColor: "transparent",
+              },
+              contentStyle: {
+                backgroundColor: "transparent",
+              },
+              gestureEnabled: false,
+            }}
+          />
+        </View>
+      </PaperProvider>
+    </QueryClientProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    overflow: "hidden",
+    left: 0,
+    right: 0,
+    width: "100%",
+  },
+});

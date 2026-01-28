@@ -2,16 +2,19 @@
   "expo": {
     "name": "begifted",
     "slug": "begifted",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/begifted-logo.png",
     "scheme": "begifted",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "buildNumber": "5",
+      "bundleIdentifier": "com.begifted.app",
       "supportsTablet": true,
       "infoPlist": {
-        "NSContactsUsageDescription": "This app would like to access your contacts to help you import gift recipients."
+        "NSContactsUsageDescription": "This app would like to access your contacts to help you import gift recipients.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -22,10 +25,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false, 
-      "permissions": [
-        "READ_CONTACTS"
-      ]
+      "predictiveBackGestureEnabled": false,
+      "permissions": ["READ_CONTACTS"]
     },
     "web": {
       "output": "static",
@@ -36,7 +37,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/begifted-logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
@@ -50,6 +51,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "16c0ca90-545c-4ff3-be91-227aae28dbe5"
+      }
+    },
+    "owner": "aaronmullan"
   }
 }

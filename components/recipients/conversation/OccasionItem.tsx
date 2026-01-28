@@ -1,6 +1,6 @@
 import { View, StyleSheet, Switch } from "react-native";
 import { Text, Card } from "react-native-paper";
-import { Ionicons } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 
 interface OccasionItemProps {
   occasion: {
@@ -58,7 +58,7 @@ export function OccasionItem({
       <Card.Content>
         <View style={styles.occasionContent}>
           <View style={styles.occasionIcon}>
-            <Ionicons name="gift-outline" size={24} color="#000000" />
+            <MaterialIcons name="card-giftcard" size={24} color="#000000" />
           </View>
           <View style={styles.occasionDetails}>
             <Text variant="titleSmall" style={styles.occasionType}>

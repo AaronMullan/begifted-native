@@ -1,8 +1,12 @@
 import { useState, useEffect } from "react";
-import { View, ScrollView, StyleSheet } from "react-native";
+import { View, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
 import { Text, IconButton, Button } from "react-native-paper";
-import { Ionicons } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
+import {
+  useOccasionRecommendations,
+  mapRecommendationsToOccasions,
+} from "../../../hooks/use-occasion-recommendations";
 import { OccasionItem } from "./OccasionItem";
 import { OccasionEditor } from "./OccasionEditor";
 
@@ -21,6 +25,9 @@ export function OccasionsSelectionView({
   onContinue,
   onSkip,
 }: OccasionsSelectionViewProps) {
+  const { recommendations, isLoading: isLoadingRecommendations } =
+    useOccasionRecommendations(extractedData);
+
   const [selectedOccasions, setSelectedOccasions] = useState<
     Array<{ date: string; occasion_type: string; enabled: boolean }>
   >([]);
@@ -29,25 +36,35 @@ export function OccasionsSelectionView({
     number | null
   >(null);
 
+  // Merge conversation-extracted occasions with interest-based AI recommendations
   useEffect(() => {
-    const initialOccasions: Array<{
+    const merged: Array<{
       date: string;
       occasion_type: string;
       enabled: boolean;
     }> = [];
 
-    if (extractedData.occasions && extractedData.occasions.length > 0) {
-      extractedData.occasions.forEach((occasion) => {
-        initialOccasions.push({
-          date: occasion.date,
-          occasion_type: occasion.occasion_type || "custom",
-          enabled: true,
-        });
-      });
-    }
+    const fromConversation = (extractedData.occasions ?? []).map((occ) => ({
+      date: occ.date,
+      occasion_type: occ.occasion_type || "custom",
+      enabled: true,
+    }));
+    const seen = new Set<string>();
+    fromConversation.forEach((o) => {
+      merged.push(o);
+      seen.add(o.occasion_type);
+    });
 
-    setSelectedOccasions(initialOccasions);
-  }, [extractedData.occasions]);
+    const fromRecommendations = mapRecommendationsToOccasions(recommendations);
+    fromRecommendations.forEach((o) => {
+      if (!seen.has(o.occasion_type)) {
+        merged.push(o);
+        seen.add(o.occasion_type);
+      }
+    });
+
+    setSelectedOccasions(merged);
+  }, [extractedData.occasions, recommendations]);
 
   const toggleOccasion = (index: number) => {
     setSelectedOccasions((prev) =>
@@ -100,7 +117,7 @@ export function OccasionsSelectionView({
     <View style={styles.container}>
       <View style={styles.header}>
         <IconButton
-          icon="arrow-back"
+          icon="arrow-left"
           size={24}
           iconColor="#000000"
           onPress={onBack}
@@ -117,19 +134,26 @@ export function OccasionsSelectionView({
         contentContainerStyle={styles.content}
       >
         <Text variant="bodyMedium" style={styles.description}>
-          Select which occasions you'd like to track for this recipient. We've
-          automatically added occasions based on your conversation.
+          We've suggested occasions based on your conversation and their
+          interests. Add or remove any you'd like to track.
         </Text>
 
-        {selectedOccasions.length === 0 ? (
+        {selectedOccasions.length === 0 && isLoadingRecommendations ? (
           <View style={styles.emptyState}>
-            <Ionicons name="calendar-outline" size={48} color="#999" />
+            <ActivityIndicator size="large" color="#000" />
+            <Text variant="bodyMedium" style={[styles.emptySubtext, { marginTop: 16 }]}>
+              Finding occasions that match their interests…
+            </Text>
+          </View>
+        ) : selectedOccasions.length === 0 ? (
+          <View style={styles.emptyState}>
+            <MaterialIcons name="calendar-today" size={48} color="#999" />
             <Text variant="titleLarge" style={styles.emptyText}>
               No occasions found
             </Text>
             <Text variant="bodyMedium" style={styles.emptySubtext}>
-              Occasions will be automatically created from the birthday and
-              holidays you mentioned.
+              Occasions will be added from birthday and holidays you mentioned, or
+              add your own after continuing.
             </Text>
           </View>
         ) : (

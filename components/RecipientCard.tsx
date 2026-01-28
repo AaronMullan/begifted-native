@@ -1,6 +1,8 @@
-import { Alert, StyleSheet, View } from "react-native";
-import { Card, Text, Button } from "react-native-paper";
+import { Alert, StyleSheet, View, Pressable } from "react-native";
+import { Text, Button } from "react-native-paper";
+import { BlurView } from "expo-blur";
 import { Recipient } from "../types/recipient";
+import { Colors } from "../lib/colors";
 
 interface RecipientCardProps {
   recipient: Recipient;
@@ -44,59 +46,72 @@ export default function RecipientCard({
   };
 
   return (
-    <Card style={styles.card}>
-      <Card.Content>
-        <View style={styles.cardContent}>
-          <View style={styles.info}>
-            <Text variant="titleMedium" style={styles.name}>
-              {recipient.name}
+    <Pressable style={styles.card}>
+      <BlurView intensity={20} style={styles.blurBackground} />
+      <View style={styles.cardContent}>
+        <View style={styles.info}>
+          <Text variant="titleMedium" style={styles.name}>
+            {recipient.name}
+          </Text>
+          <Text variant="bodyMedium" style={styles.relationship}>
+            {recipient.relationship_type}
+          </Text>
+          {recipient.birthday && (
+            <Text variant="bodySmall" style={styles.birthday}>
+              Birthday: {formatBirthday(recipient.birthday)}
             </Text>
-            <Text variant="bodyMedium" style={styles.relationship}>
-              {recipient.relationship_type}
+          )}
+          {recipient.interests && recipient.interests.length > 0 && (
+            <Text variant="bodySmall" style={styles.interests}>
+              Interests: {recipient.interests.join(", ")}
             </Text>
-            {recipient.birthday && (
-              <Text variant="bodySmall" style={styles.birthday}>
-                Birthday: {formatBirthday(recipient.birthday)}
-              </Text>
-            )}
-            {recipient.interests && recipient.interests.length > 0 && (
-              <Text variant="bodySmall" style={styles.interests}>
-                Interests: {recipient.interests.join(", ")}
-              </Text>
-            )}
-          </View>
-          <View style={styles.actions}>
-            <Button
-              mode="contained"
-              onPress={() => onEdit(recipient)}
-              style={styles.editButton}
-              compact
-            >
-              View
-            </Button>
-            <Button
-              mode="outlined"
-              onPress={handleDelete}
-              style={styles.deleteButton}
-              compact
-            >
-              Delete
-            </Button>
-          </View>
+          )}
         </View>
-      </Card.Content>
-    </Card>
+        <View style={styles.actions}>
+          <Button
+            mode="contained"
+            onPress={() => onEdit(recipient)}
+            style={styles.editButton}
+            compact
+          >
+            View
+          </Button>
+          <Button
+            mode="outlined"
+            onPress={handleDelete}
+            style={styles.deleteButton}
+            compact
+          >
+            Delete
+          </Button>
+        </View>
+      </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
     marginBottom: 12,
+    backgroundColor: Colors.neutrals.light + "30", // Low opacity (~19%)
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Colors.white,
+    overflow: "hidden",
+    position: "relative",
+  },
+  blurBackground: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 18,
+    overflow: "hidden",
   },
   cardContent: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    padding: 20,
+    position: "relative",
+    zIndex: 1,
   },
   info: {
     flex: 1,
@@ -104,16 +119,22 @@ const styles = StyleSheet.create({
   },
   name: {
     marginBottom: 4,
+    color: Colors.darks.black,
   },
   relationship: {
     marginBottom: 4,
+    color: Colors.darks.black,
+    opacity: 0.8,
   },
   birthday: {
-    color: "#666666",
+    color: Colors.darks.black,
+    opacity: 0.7,
     marginBottom: 4,
   },
   interests: {
     fontStyle: "italic",
+    color: Colors.darks.black,
+    opacity: 0.7,
   },
   actions: {
     flexDirection: "row",

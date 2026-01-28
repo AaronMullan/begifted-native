@@ -60,7 +60,10 @@ interface UseConversationFlowOptions {
   conversationType: ConversationType;
   targetFields?: string[];
   existingData?: RecipientData;
+  /** Assistant's welcome message (defaults by conversationType) */
   initialMessage?: string;
+  /** If set, added as a user message and sent automatically after the welcome */
+  initialUserMessage?: string;
   onExtractSuccess?: (data: ExtractedData) => void;
   onExtractError?: (error: Error) => void;
 }
@@ -109,11 +112,13 @@ export function useConversationFlow(
     targetFields,
     existingData,
     initialMessage,
+    initialUserMessage,
     onExtractSuccess,
     onExtractError,
   } = options;
 
   const messagesEndRef = useRef<any>(null);
+  const initialUserMessageSentRef = useRef(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(
@@ -241,6 +246,18 @@ export function useConversationFlow(
       existingData,
     ]
   );
+
+  // When initialUserMessage is set, send it once after the welcome message is shown
+  useEffect(() => {
+    if (
+      initialUserMessage?.trim() &&
+      messages.length === 1 &&
+      !initialUserMessageSentRef.current
+    ) {
+      initialUserMessageSentRef.current = true;
+      sendMessage(initialUserMessage.trim());
+    }
+  }, [initialUserMessage, messages.length, sendMessage]);
 
   const handleFinishConversation =
     useCallback(async (): Promise<ExtractedData | null> => {

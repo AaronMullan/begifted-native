@@ -1,288 +1,19 @@
-import { View, StyleSheet, ScrollView, Alert } from "react-native";
-import { Text, Button, Card, ActivityIndicator } from "react-native-paper";
-import { useState, useEffect, useRef } from "react";
+import { View, StyleSheet, ScrollView, Pressable } from "react-native";
+import { Text, ActivityIndicator } from "react-native-paper";
 import { Link, useRouter } from "expo-router";
-import { supabase } from "../lib/supabase";
-import { Session } from "@supabase/supabase-js";
-import { Ionicons } from "@expo/vector-icons";
-import { Platform } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
-// Cache utility functions
-const CACHE_EXPIRATION_MS = 10 * 60 * 1000; // 10 minutes
-
-const getStorage = () => {
-  if (Platform.OS === "web") {
-    return {
-      getItem: (key: string) => {
-        if (typeof window !== "undefined") {
-          return Promise.resolve(window.localStorage.getItem(key));
-        }
-        return Promise.resolve(null);
-      },
-      setItem: (key: string, value: string) => {
-        if (typeof window !== "undefined") {
-          window.localStorage.setItem(key, value);
-        }
-        return Promise.resolve();
-      },
-      removeItem: (key: string) => {
-        if (typeof window !== "undefined") {
-          window.localStorage.removeItem(key);
-        }
-        return Promise.resolve();
-      },
-    };
-  }
-  return AsyncStorage;
-};
-
-type CachedDashboardData = {
-  recipientsCount: number;
-  upcomingCount: number;
-  username: string;
-  timestamp: number;
-};
-
-async function getCachedDashboardData(
-  userId: string
-): Promise<CachedDashboardData | null> {
-  try {
-    const storage = getStorage();
-    const cacheKey = `dashboard:${userId}`;
-    const cached = await storage.getItem(cacheKey);
-    if (!cached) return null;
-
-    const data: CachedDashboardData = JSON.parse(cached);
-    const now = Date.now();
-    const isExpired = now - data.timestamp > CACHE_EXPIRATION_MS;
-
-    if (isExpired) {
-      // Cache expired, remove it
-      await storage.removeItem(cacheKey);
-      return null;
-    }
-
-    return data;
-  } catch (error) {
-    console.error("Error reading dashboard cache:", error);
-    return null;
-  }
-}
-
-async function setCachedDashboardData(
-  userId: string,
-  data: Omit<CachedDashboardData, "timestamp">
-): Promise<void> {
-  try {
-    const storage = getStorage();
-    const cacheKey = `dashboard:${userId}`;
-    const cacheData: CachedDashboardData = {
-      ...data,
-      timestamp: Date.now(),
-    };
-    await storage.setItem(cacheKey, JSON.stringify(cacheData));
-  } catch (error) {
-    console.error("Error saving dashboard cache:", error);
-  }
-}
-
-async function clearDashboardCache(userId: string): Promise<void> {
-  try {
-    const storage = getStorage();
-    const cacheKey = `dashboard:${userId}`;
-    await storage.removeItem(cacheKey);
-  } catch (error) {
-    console.error("Error clearing dashboard cache:", error);
-  }
-}
+import { MaterialIcons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
+import { Colors } from "../lib/colors";
+import { HEADER_HEIGHT } from "../lib/constants";
+import { useAuth } from "../hooks/use-auth";
+import { useDashboardStats } from "../hooks/use-dashboard-stats";
 
 export default function Dashboard() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [username, setUsername] = useState<string>("");
-  const [recipientsCount, setRecipientsCount] = useState<number | null>(null);
-  const [upcomingCount, setUpcomingCount] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadingRecipients, setLoadingRecipients] = useState(true);
-  const [loadingUpcoming, setLoadingUpcoming] = useState(true);
   const router = useRouter();
-  const currentUserIdRef = useRef<string | null>(null);
+  const { user } = useAuth();
+  const { data: stats, isLoading } = useDashboardStats();
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) {
-        currentUserIdRef.current = session.user.id;
-        loadDashboardData(session.user.id, session.user.email);
-      } else {
-        setLoading(false);
-        setLoadingRecipients(false);
-        setLoadingUpcoming(false);
-      }
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session) {
-        currentUserIdRef.current = session.user.id;
-        loadDashboardData(session.user.id, session.user.email);
-      } else {
-        // Clear cache on sign out using stored userId
-        if (currentUserIdRef.current) {
-          clearDashboardCache(currentUserIdRef.current);
-          currentUserIdRef.current = null;
-        }
-        setRecipientsCount(null);
-        setUpcomingCount(null);
-        setUsername("");
-        setLoading(false);
-        setLoadingRecipients(false);
-        setLoadingUpcoming(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  async function loadDashboardData(userId: string, userEmail?: string) {
-    // First, try to load from cache
-    const cached = await getCachedDashboardData(userId);
-    if (cached) {
-      // Show cached data immediately
-      setUsername(cached.username);
-      setRecipientsCount(cached.recipientsCount);
-      setUpcomingCount(cached.upcomingCount);
-      setLoading(false);
-      setLoadingRecipients(false);
-      setLoadingUpcoming(false);
-    } else {
-      // No cache, show loading states
-      setLoading(true);
-      setLoadingRecipients(true);
-      setLoadingUpcoming(true);
-    }
-
-    // Always fetch fresh data in background
-    fetchUserData(userId, userEmail, !!cached);
-  }
-
-  async function fetchUserData(
-    userId: string,
-    userEmail?: string,
-    hasCache = false
-  ) {
-    try {
-      if (!hasCache) {
-        setLoading(true);
-      }
-
-      // Fetch username from profiles table
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("username")
-        .eq("id", userId)
-        .single();
-
-      if (profileError && profileError.code !== "PGRST116") {
-        console.error("Error fetching profile:", profileError);
-      }
-
-      let fetchedUsername = "";
-      if (profileData?.username) {
-        fetchedUsername = profileData.username;
-        setUsername(fetchedUsername);
-      } else if (userEmail) {
-        // Fallback to email if no username
-        fetchedUsername = userEmail.split("@")[0];
-        setUsername(fetchedUsername);
-      }
-
-      // Fetch recipients count
-      if (!hasCache) {
-        setLoadingRecipients(true);
-      }
-      const { count: recipientsCount, error: recipientsError } = await supabase
-        .from("recipients")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId);
-
-      if (recipientsError) {
-        console.error("Error fetching recipients count:", recipientsError);
-        if (!hasCache) {
-          setRecipientsCount(0);
-        }
-      } else {
-        setRecipientsCount(recipientsCount || 0);
-      }
-      setLoadingRecipients(false);
-
-      // Fetch upcoming occasions count (next 90 days)
-      if (!hasCache) {
-        setLoadingUpcoming(true);
-      }
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const futureDate = new Date(today);
-      futureDate.setDate(futureDate.getDate() + 90);
-
-      const { count: occasionsCount, error: occasionsError } = await supabase
-        .from("occasions")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .gte("date", today.toISOString().split("T")[0])
-        .lte("date", futureDate.toISOString().split("T")[0]);
-
-      if (occasionsError) {
-        console.error("Error fetching occasions count:", occasionsError);
-        if (!hasCache) {
-          setUpcomingCount(0);
-        }
-      } else {
-        setUpcomingCount(occasionsCount || 0);
-      }
-      setLoadingUpcoming(false);
-
-      // Save to cache
-      await setCachedDashboardData(userId, {
-        recipientsCount: recipientsCount || 0,
-        upcomingCount: occasionsCount || 0,
-        username: fetchedUsername,
-      });
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-      if (!hasCache) {
-        setRecipientsCount(0);
-        setUpcomingCount(0);
-      }
-    } finally {
-      setLoading(false);
-      setLoadingRecipients(false);
-      setLoadingUpcoming(false);
-    }
-  }
-
-  async function handleSignOut() {
-    try {
-      // Clear cache before signing out
-      if (session?.user?.id) {
-        await clearDashboardCache(session.user.id);
-      }
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        Alert.alert("Error", error.message);
-      } else {
-        router.replace("/");
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        Alert.alert("Error", error.message);
-      }
-    }
-  }
-
-  if (!session) {
+  if (!user) {
     return (
       <View style={styles.container}>
         <View style={styles.content}>
@@ -297,14 +28,18 @@ export default function Dashboard() {
     );
   }
 
-  const displayName = username || session.user?.email?.split("@")[0] || "User";
+  const displayName = stats?.username || user.email?.split("@")[0] || "User";
+  const recipientsCount = stats?.recipientsCount ?? 0;
+  const upcomingCount = stats?.upcomingCount ?? 0;
+  const loadingRecipients = isLoading;
+  const loadingUpcoming = isLoading;
 
-  return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        {/* Header section */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
+  // Show loading state if still loading initial data
+  if (isLoading && !stats) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <View style={styles.header}>
             <Text variant="headlineMedium" style={styles.greeting}>
               Hello, {displayName}!
             </Text>
@@ -312,29 +47,53 @@ export default function Dashboard() {
               Let's make someone's day special
             </Text>
           </View>
-          <Button
-            mode="text"
-            onPress={handleSignOut}
-            style={styles.signOutButton}
-          >
-            Sign Out
-          </Button>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#000000" />
+            <Text variant="bodyMedium" style={styles.loadingText}>
+              Loading dashboard...
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="never"
+        bounces={false}
+      >
+        <View style={styles.content}>
+        {/* Header section */}
+        <View style={styles.header}>
+          <Text variant="headlineMedium" style={styles.greeting}>
+            Hello, {displayName}!
+          </Text>
+          <Text variant="bodyLarge" style={styles.tagline}>
+            Let's make someone's day special
+          </Text>
         </View>
 
         {/* Three cards */}
         <View style={styles.cardsContainer}>
           {/* Recipients Card */}
           <Link href="/contacts" asChild>
-            <Card style={styles.card}>
-              <Card.Content style={styles.cardContent}>
+            <Pressable style={styles.card}>
+              <BlurView intensity={20} style={styles.blurBackground} pointerEvents="none" />
+              <View style={styles.cardContent}>
                 <View style={[styles.iconContainer, styles.recipientsIcon]}>
-                  <Ionicons name="people" size={32} color="#000000" />
+                  <MaterialIcons name="people" size={32} color={Colors.pinks.dark} />
                 </View>
-                {loadingRecipients && recipientsCount === null ? (
+                {loadingRecipients ? (
                   <ActivityIndicator size="small" style={styles.loader} />
                 ) : (
                   <Text variant="displaySmall" style={styles.cardNumber}>
-                    {recipientsCount ?? 0}
+                    {recipientsCount}
                   </Text>
                 )}
                 <Text variant="titleLarge" style={styles.cardTitle}>
@@ -343,42 +102,49 @@ export default function Dashboard() {
                 <Text variant="bodyMedium" style={styles.cardDescription}>
                   Tap to view, edit, or add recipients
                 </Text>
-              </Card.Content>
-            </Card>
+              </View>
+            </Pressable>
           </Link>
 
           {/* Upcoming Card */}
-          <Link href="/calendar" asChild>
-            <Card style={styles.card}>
-              <Card.Content style={styles.cardContent}>
-                <View style={[styles.iconContainer, styles.upcomingIcon]}>
-                  <Ionicons name="calendar" size={32} color="#000000" />
-                </View>
-                {loadingUpcoming && upcomingCount === null ? (
-                  <ActivityIndicator size="small" style={styles.loader} />
-                ) : (
-                  <Text variant="displaySmall" style={styles.cardNumber}>
-                    {upcomingCount ?? 0}
-                  </Text>
-                )}
-                <Text variant="titleLarge" style={styles.cardTitle}>
-                  Upcoming
+          <Pressable
+            style={styles.card}
+            onPress={() => router.push("/calendar")}
+          >
+            <BlurView intensity={20} style={styles.blurBackground} pointerEvents="none" />
+            <View style={styles.cardContent}>
+              <View style={[styles.iconContainer, styles.upcomingIcon]}>
+                <MaterialIcons
+                  name="calendar-today"
+                  size={32}
+                  color={Colors.pinks.medium}
+                />
+              </View>
+              {loadingUpcoming ? (
+                <ActivityIndicator size="small" style={styles.loader} />
+              ) : (
+                <Text variant="displaySmall" style={styles.cardNumber}>
+                  {upcomingCount}
                 </Text>
-                <Text variant="bodyMedium" style={styles.cardDescription}>
-                  Tap to view calendar
-                </Text>
-              </Card.Content>
-            </Card>
-          </Link>
+              )}
+              <Text variant="titleLarge" style={styles.cardTitle}>
+                Upcoming
+              </Text>
+              <Text variant="bodyMedium" style={styles.cardDescription}>
+                Tap to view calendar
+              </Text>
+            </View>
+          </Pressable>
 
           {/* Settings Card */}
-          <Card
+          <Pressable
             style={styles.card}
             onPress={() => router.push("/settings" as any)}
           >
-            <Card.Content style={styles.cardContent}>
+            <BlurView intensity={20} style={styles.blurBackground} pointerEvents="none" />
+            <View style={styles.cardContent}>
               <View style={[styles.iconContainer, styles.settingsIcon]}>
-                <Ionicons name="settings" size={32} color="#000000" />
+                <MaterialIcons name="settings" size={32} color={Colors.pinks.dark} />
               </View>
               <Text variant="titleLarge" style={styles.settingsTitle}>
                 Settings
@@ -386,52 +152,71 @@ export default function Dashboard() {
               <Text variant="bodyMedium" style={styles.cardDescription}>
                 Manage your account and preferences
               </Text>
-            </Card.Content>
-          </Card>
+            </View>
+          </Pressable>
         </View>
-      </View>
-    </ScrollView>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF", // White background
+    backgroundColor: "transparent",
+  },
+  scrollView: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+  scrollContent: {
+    flexGrow: 1,
+    backgroundColor: "transparent",
+    alignItems: "center",
   },
   content: {
-    flex: 1,
     maxWidth: 800,
-    alignSelf: "center",
     width: "100%",
     padding: 20,
+    paddingTop: HEADER_HEIGHT, // Account for header height
+    backgroundColor: "transparent",
+    alignSelf: "stretch",
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
     marginBottom: 32,
-  },
-  headerLeft: {
-    flex: 1,
   },
   greeting: {
     marginBottom: 8,
+    color: Colors.darks.black,
   },
   tagline: {
-    color: "#666",
-  },
-  signOutButton: {
-    margin: 0,
+    color: Colors.darks.black,
+    opacity: 0.9,
   },
   cardsContainer: {
-    gap: 20,
+    gap: 40,
   },
   card: {
     marginBottom: 0,
+    backgroundColor: Colors.neutrals.light + "30", // Low opacity (~19%)
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Colors.white,
+    overflow: "visible",
+    position: "relative",
+  },
+  blurBackground: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 18,
+    overflow: "hidden",
   },
   cardContent: {
     alignItems: "center",
+    padding: 20,
+    paddingTop: 40, // Extra padding to account for icon
+    position: "relative",
+    zIndex: 1,
   },
   iconContainer: {
     width: 64,
@@ -439,39 +224,68 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
-    backgroundColor: "#f8f8f8",
+    backgroundColor: Colors.white,
+    borderWidth: 2,
+    borderColor: Colors.white,
+    position: "absolute",
+    top: -32, // Half out (icon is 64px, so -32px puts it exactly half in/half out)
+    left: 20,
+    zIndex: 2,
   },
   recipientsIcon: {
-    backgroundColor: "#F5F5F5",
+    backgroundColor: Colors.white,
   },
   upcomingIcon: {
-    backgroundColor: "#F5F5F5",
+    backgroundColor: Colors.white,
   },
   settingsIcon: {
-    backgroundColor: "#F5F5F5",
+    backgroundColor: Colors.white,
   },
   cardNumber: {
     marginBottom: 8,
+    marginTop: 16,
+    color: Colors.darks.black,
   },
   cardTitle: {
+    marginTop: 0,
     marginBottom: 8,
+    color: Colors.darks.black,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   settingsTitle: {
     marginBottom: 8,
+    color: Colors.darks.black,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   cardDescription: {
     textAlign: "center",
     marginTop: 4,
-    color: "#666",
+    color: Colors.darks.black,
+    opacity: 0.8,
   },
   title: {
     marginBottom: 8,
+    color: Colors.darks.black,
   },
   subtitle: {
-    color: "#666",
+    color: Colors.darks.black,
+    opacity: 0.9,
   },
   loader: {
     marginBottom: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 16,
+    color: "#666",
   },
 });

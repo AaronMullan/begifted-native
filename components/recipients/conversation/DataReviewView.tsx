@@ -7,7 +7,6 @@ import {
   Button,
   ActivityIndicator,
 } from "react-native-paper";
-import { Ionicons } from "@expo/vector-icons";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
 
 interface DataReviewViewProps {
@@ -61,7 +60,7 @@ export function DataReviewView({
       {/* Header */}
       <View style={styles.header}>
         <IconButton
-          icon="arrow-back"
+          icon="arrow-left"
           size={24}
           iconColor="#000000"
           onPress={onBack}
