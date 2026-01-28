@@ -38,6 +38,7 @@ export default function Settings() {
   if (loading) {
     return (
       <View style={styles.container}>
+        <View style={styles.headerSpacer} />
         <View style={styles.content}>
           <Text variant="bodyLarge" style={styles.loadingText}>
             Loading...
@@ -50,6 +51,7 @@ export default function Settings() {
   if (!session) {
     return (
       <View style={styles.container}>
+        <View style={styles.headerSpacer} />
         <View style={styles.content}>
           <Text variant="headlineMedium" style={styles.title}>
             Settings
@@ -106,8 +108,10 @@ export default function Settings() {
   ];
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
+    <View style={styles.container}>
+      <View style={styles.headerSpacer} />
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.content}>
         {/* Main card container */}
         <Pressable style={styles.mainCard}>
           <BlurView intensity={20} style={styles.blurBackground} />
@@ -173,12 +177,21 @@ export default function Settings() {
           </View>
         </Pressable>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+  headerSpacer: {
+    height: HEADER_HEIGHT,
+    backgroundColor: "transparent",
+  },
+  scrollView: {
     flex: 1,
     backgroundColor: "transparent",
   },
@@ -188,7 +201,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: "100%",
     padding: 20,
-    paddingTop: HEADER_HEIGHT, // Account for header height
   },
   mainCard: {
     backgroundColor: Colors.neutrals.light + "30", // Low opacity (~19%)

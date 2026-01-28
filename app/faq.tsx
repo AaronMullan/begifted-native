@@ -17,8 +17,10 @@ export default function FAQ() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
+    <View style={styles.container}>
+      <View style={styles.headerSpacer} />
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.content}>
         {/* Header section */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
@@ -69,7 +71,8 @@ export default function FAQ() {
           </View>
         )}
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -78,12 +81,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "transparent",
   },
+  headerSpacer: {
+    height: HEADER_HEIGHT,
+    backgroundColor: "transparent",
+  },
+  scrollView: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
   content: {
     maxWidth: 800,
     alignSelf: "center",
     width: "100%",
     padding: 20,
-    paddingTop: HEADER_HEIGHT, // Account for header height
   },
   header: {
     flexDirection: "row",

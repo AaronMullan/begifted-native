@@ -128,6 +128,7 @@ export default function Auth() {
               onBlur={onBlur}
               placeholder="email@address.com"
               autoCapitalize="none"
+              autoCorrect={false}
               keyboardType="email-address"
               error={!!errors.email}
               style={styles.input}

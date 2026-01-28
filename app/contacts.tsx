@@ -265,6 +265,7 @@ export default function Contacts() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.headerSpacer} />
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
           {/* Header section */}
@@ -392,6 +393,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "transparent",
   },
+  headerSpacer: {
+    height: HEADER_HEIGHT,
+    backgroundColor: "transparent",
+  },
   scrollView: {
     flex: 1,
     backgroundColor: "transparent",
@@ -401,7 +406,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: "100%",
     padding: 20,
-    paddingTop: HEADER_HEIGHT, // Account for header height
   },
   header: {
     flexDirection: "row",

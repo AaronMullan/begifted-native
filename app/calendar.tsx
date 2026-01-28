@@ -112,6 +112,7 @@ export default function Calendar() {
   if (authLoading) {
     return (
       <View style={styles.container}>
+        <View style={styles.headerSpacer} />
         <View style={styles.content}>
           <Text style={styles.loadingText}>Loading...</Text>
         </View>
@@ -122,6 +123,7 @@ export default function Calendar() {
   if (!user) {
     return (
       <View style={styles.container}>
+        <View style={styles.headerSpacer} />
         <View style={styles.content}>
           <Text style={styles.title}>Occasions Calendar</Text>
           <Text style={styles.subtitle}>
@@ -134,6 +136,7 @@ export default function Calendar() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.headerSpacer} />
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
           {/* Main card container */}
@@ -251,6 +254,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "transparent",
   },
+  headerSpacer: {
+    height: HEADER_HEIGHT,
+    backgroundColor: "transparent",
+  },
   scrollView: {
     flex: 1,
     backgroundColor: "transparent",
@@ -261,7 +268,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: "100%",
     padding: 20,
-    paddingTop: HEADER_HEIGHT, // Account for header height
   },
   mainCard: {
     backgroundColor: Colors.neutrals.light + "30", // Low opacity (~19%)
