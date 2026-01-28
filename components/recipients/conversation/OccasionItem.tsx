@@ -18,32 +18,36 @@ export function OccasionItem({
   onEdit,
 }: OccasionItemProps) {
   const formatDate = (dateString: string): string => {
-    if (!dateString || dateString.includes("01-01")) {
+    if (!dateString || typeof dateString !== "string" || dateString.includes("01-01")) {
       return "Add Date";
     }
 
-    const parts = dateString.split("-");
-    if (parts.length !== 3) {
-      const date = new Date(dateString);
-      return date.toLocaleDateString("en-US", {
+    const parts = dateString.trim().split("-");
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      const date = new Date(year, month, day);
+      if (!Number.isNaN(date.getTime())) {
+        return date.toLocaleDateString("en-US", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+      }
+    }
+
+    const fallback = new Date(dateString);
+    if (!Number.isNaN(fallback.getTime())) {
+      return fallback.toLocaleDateString("en-US", {
         weekday: "long",
         year: "numeric",
         month: "long",
         day: "numeric",
       });
     }
-
-    const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    const day = parseInt(parts[2], 10);
-    const date = new Date(year, month, day);
-
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    return "Add Date";
   };
 
   const formatOccasionType = (type: string): string => {

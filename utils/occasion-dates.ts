@@ -1,3 +1,31 @@
+/** Match YYYY-MM-DD so we only treat explicit ISO dates as valid. */
+const ISO_DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Return the next occurrence of a calendar date (month/day). If the given
+ * date is today or in the future, return it; otherwise return the same
+ * month/day in the next year. Input must be YYYY-MM-DD.
+ */
+export function getNextOccurrence(isoDateStr: string): string {
+  if (!ISO_DATE_ONLY.test(isoDateStr)) {
+    return isoDateStr;
+  }
+  const [y, m, d] = isoDateStr.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  if (Number.isNaN(date.getTime())) {
+    return isoDateStr;
+  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  date.setHours(0, 0, 0, 0);
+  if (date >= today) {
+    return isoDateStr;
+  }
+  const nextYear = today.getFullYear() + 1;
+  const next = new Date(nextYear, m - 1, d);
+  return next.toISOString().split("T")[0];
+}
+
 /**
  * Lookup the date for an occasion type. Handles both fixed-date holidays
  * and variable holidays (Easter, Thanksgiving, Kwanzaa, etc.)
