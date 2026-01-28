@@ -741,7 +741,11 @@ export async function recommendOccasions(
     (extractedData as RecipientData).interests ||
     [];
 
+  const today = new Date().toISOString().split("T")[0];
+
   const prompt = `You are a creative gift-planning assistant. Suggest occasions that feel personalized to THIS person's interests—not generic holidays.
+
+TODAY'S DATE (all suggestedDate values must be on or after this date): ${today}
 
 RECIPIENT:
 - Name: ${name}
@@ -759,9 +763,10 @@ EXAMPLES BY INTEREST (use these as inspiration, not a script):
 - Music (general) → "Record Store Day" (April), "concert anniversary", "album release day", "band's anniversary tour"
 - Sports → "opening day", "playoffs", "fantasy draft day", "super bowl party"
 - Gardening → "first harvest", "seed-starting weekend", "garden tour day"
-If you don't know an exact date for an interest-based occasion, use null for suggestedDate or the next occurrence of a real observance (e.g. National BBQ Day = 05-16, Record Store Day is usually April; look up if unsure).
+If you don't know an exact date for an interest-based occasion, use null for suggestedDate or the next occurrence of a real observance.
 
 RULES:
+- DATES MUST BE IN THE FUTURE: suggestedDate must always be today or a future date (YYYY-MM-DD). For annual events (holidays, observance days), use the next upcoming occurrence—e.g. if the holiday has already passed this year, use next year's date. For birthday, use their next upcoming birthday. Never use past years (e.g. do not use 2023 or 2024 if we're in 2026).
 - Include birthday if provided; for ages 30, 40, 50, etc. set isMilestone true.
 - Prefer interest-driven occasions over generic holidays. Add 1–2 broad holidays (Christmas, Thanksgiving, etc.) only in additionalSuggestions or as 1 primary if it really fits (e.g. "Christmas" for someone who loves family traditions).
 - type: lowercase snake_case (e.g. national_bbq_day, cma_awards_night, first_cookout_of_season).
@@ -773,7 +778,7 @@ Return JSON only, no markdown:
     {
       "type": "snake_case_type",
       "name": "Human-readable name",
-      "suggestedDate": "YYYY-MM-DD or null",
+      "suggestedDate": "YYYY-MM-DD (must be today or future; use next occurrence for annual events) or null",
       "isMilestone": false,
       "reasoning": "Why this fits their interests"
     }

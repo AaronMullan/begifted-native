@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import type { ExtractedData } from "./use-conversation-flow";
-import { lookupOccasionDate } from "../utils/occasion-dates";
+import {
+  lookupOccasionDate,
+  getNextOccurrence,
+} from "../utils/occasion-dates";
 
 export interface OccasionRecommendation {
   type: string;
@@ -124,10 +127,13 @@ function checkIfMilestoneBirthday(birthday: string | null): boolean {
   return age > 0 && age % 10 === 0 && age >= 30;
 }
 
+const ISO_DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
 /**
  * Map AI occasion recommendations into the shape used by OccasionsSelectionView:
  * { date: string, occasion_type: string, enabled: boolean }.
- * Uses suggestedDate when present, otherwise lookupOccasionDate(type).
+ * Uses suggestedDate only when it's YYYY-MM-DD; otherwise lookupOccasionDate(type).
+ * Past dates are shifted to the next occurrence (same month/day, future year).
  */
 export function mapRecommendationsToOccasions(
   recs: OccasionRecommendations | null
@@ -135,19 +141,17 @@ export function mapRecommendationsToOccasions(
   if (!recs?.primaryOccasions?.length) return [];
 
   return recs.primaryOccasions.map((o) => {
-    const date =
-      o.suggestedDate && isValidDate(o.suggestedDate)
-        ? o.suggestedDate
-        : lookupOccasionDate(o.type) ?? "2025-01-01";
+    const type = o.type || "custom";
+    let date: string;
+    if (o.suggestedDate && ISO_DATE_ONLY.test(o.suggestedDate.trim())) {
+      date = getNextOccurrence(o.suggestedDate.trim());
+    } else {
+      date = lookupOccasionDate(type) ?? "2025-01-01";
+    }
     return {
       date,
-      occasion_type: o.type || "custom",
+      occasion_type: type,
       enabled: true,
     };
   });
-}
-
-function isValidDate(s: string): boolean {
-  const d = new Date(s);
-  return !Number.isNaN(d.getTime()) && s.length >= 10;
 }

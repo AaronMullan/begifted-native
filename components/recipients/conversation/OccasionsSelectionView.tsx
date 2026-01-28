@@ -7,6 +7,10 @@ import {
   useOccasionRecommendations,
   mapRecommendationsToOccasions,
 } from "../../../hooks/use-occasion-recommendations";
+import {
+  lookupOccasionDate,
+  getNextOccurrence,
+} from "../../../utils/occasion-dates";
 import { OccasionItem } from "./OccasionItem";
 import { OccasionEditor } from "./OccasionEditor";
 
@@ -44,11 +48,23 @@ export function OccasionsSelectionView({
       enabled: boolean;
     }> = [];
 
-    const fromConversation = (extractedData.occasions ?? []).map((occ) => ({
-      date: occ.date,
-      occasion_type: occ.occasion_type || "custom",
-      enabled: true,
-    }));
+    const isoDateRe = /^\d{4}-\d{2}-\d{2}$/;
+    const fromConversation = (extractedData.occasions ?? []).map((occ) => {
+      const type = occ.occasion_type || "custom";
+      let date = occ.date?.trim() || "";
+      const useLookup =
+        !date ||
+        date.includes("01-01") ||
+        !isoDateRe.test(date) ||
+        new Date(date).getTime() < new Date().setHours(0, 0, 0, 0);
+      if (useLookup) {
+        const lookedUp = lookupOccasionDate(type);
+        date = lookedUp ?? "2025-01-01";
+      } else {
+        date = getNextOccurrence(date);
+      }
+      return { date, occasion_type: type, enabled: true };
+    });
     const seen = new Set<string>();
     fromConversation.forEach((o) => {
       merged.push(o);
