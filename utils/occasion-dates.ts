@@ -68,8 +68,6 @@ export function lookupOccasionDate(
     makar_sankranti: { month: 1, day: 14 }, // Hindu fixed date
     vaisakhi: { month: 4, day: 14 }, // Sikh/Hindu fixed date
     baisakhi: { month: 4, day: 14 },
-    national_bbq_day: { month: 5, day: 16 },
-    national_country_music_day: { month: 9, day: 17 }, // observed in US
   };
 
   // Check fixed holidays first

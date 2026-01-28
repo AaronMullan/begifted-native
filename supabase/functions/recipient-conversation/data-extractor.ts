@@ -743,7 +743,9 @@ export async function recommendOccasions(
 
   const today = new Date().toISOString().split("T")[0];
 
-  const prompt = `You are a creative gift-planning assistant. Suggest occasions that feel personalized to THIS person's interests—not generic holidays.
+  const prompt = `You are a gift-planning assistant. Suggest ONLY real, verifiable occasions—no invented or creative-but-fake ones.
+
+NO HALLUCINATION: Every primaryOccasion MUST be a real observance day, official holiday, or the recipient's birthday. Do NOT invent occasions (e.g. no "Skateboarding video release day", "Hair dye experimentation day", or similar). If you are not certain an occasion exists on an official or widely recognized calendar (national/international observance, public holiday), do not include it. Prefer fewer, real occasions over more, made-up ones.
 
 TODAY'S DATE (all suggestedDate values must be on or after this date): ${today}
 
@@ -753,24 +755,17 @@ RECIPIENT:
 ${birthday ? `- Birthday: ${birthday}` : ""}
 ${interests.length > 0 ? `- Interests: ${interests.join(", ")}` : "- Interests: (none specified)"}
 
-CRITICAL: At least 2–3 of your primaryOccasions MUST be clearly tied to their interests. Be specific to the hobbies they listed.
-
-EXAMPLES BY INTEREST (use these as inspiration, not a script):
-- Country music → "CMA Awards night", "National Country Music Day" (or a festival/concert weekend), "Grand Ole Opry anniversary", "favorite artist's album release day"
-- BBQ / grilling → "National BBQ Day" (May 16), "first cookout of the season", "Father's Day BBQ", "Memorial Day / July 4th / Labor Day cookout", "smoker upgrade day" or "annual backyard BBQ"
-- Running → "race day" or "first 10K", "marathon anniversary", "National Running Day"
-- Cooking / food → "hosting a dinner party", "recipe milestone", "local food festival", "anniversary of their favorite restaurant"
-- Music (general) → "Record Store Day" (April), "concert anniversary", "album release day", "band's anniversary tour"
-- Sports → "opening day", "playoffs", "fantasy draft day", "super bowl party"
-- Gardening → "first harvest", "seed-starting weekend", "garden tour day"
-If you don't know an exact date for an interest-based occasion, use null for suggestedDate or the next occurrence of a real observance.
+ALLOWED SOURCES (only these):
+- Birthday (use their next upcoming birthday date).
+- Official or widely recognized national/international observance days, e.g.: National Bird Day (Jan 5), National BBQ Day (May 16), National Country Music Day (Sep 17), Record Store Day (3rd Saturday in April), National Running Day (1st Wed in June), Earth Day (Apr 22), etc.
+- Major holidays: Christmas, Thanksgiving, New Year's Day, Valentine's Day, Mother's Day, Father's Day, Halloween, etc.
+Do not suggest fictional, invented, or "creative" occasions that are not real calendar events.
 
 RULES:
-- DATES MUST BE IN THE FUTURE: suggestedDate must always be today or a future date (YYYY-MM-DD). For annual events (holidays, observance days), use the next upcoming occurrence—e.g. if the holiday has already passed this year, use next year's date. For birthday, use their next upcoming birthday. Never use past years (e.g. do not use 2023 or 2024 if we're in 2026).
+- DATES MUST BE IN THE FUTURE: suggestedDate must be today or a future date (YYYY-MM-DD). Use the next occurrence for annual events. For birthday, use next upcoming birthday. Never use past years.
 - Include birthday if provided; for ages 30, 40, 50, etc. set isMilestone true.
-- Prefer interest-driven occasions over generic holidays. Add 1–2 broad holidays (Christmas, Thanksgiving, etc.) only in additionalSuggestions or as 1 primary if it really fits (e.g. "Christmas" for someone who loves family traditions).
-- type: lowercase snake_case (e.g. national_bbq_day, cma_awards_night, first_cookout_of_season).
-- reasoning: one short sentence tying the occasion to their interests.
+- type: lowercase snake_case (e.g. national_bird_day, national_bbq_day, record_store_day).
+- reasoning: one short sentence tying the occasion to their interests (only for real occasions).
 
 Return JSON only, no markdown:
 {
@@ -778,12 +773,12 @@ Return JSON only, no markdown:
     {
       "type": "snake_case_type",
       "name": "Human-readable name",
-      "suggestedDate": "YYYY-MM-DD (must be today or future; use next occurrence for annual events) or null",
+      "suggestedDate": "YYYY-MM-DD or null",
       "isMilestone": false,
       "reasoning": "Why this fits their interests"
     }
   ],
-  "additionalSuggestions": ["A few more ideas as strings"]
+  "additionalSuggestions": ["Real holiday/observance names only"]
 }`;
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {

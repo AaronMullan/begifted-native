@@ -158,7 +158,7 @@ export function OccasionsSelectionView({
           <View style={styles.emptyState}>
             <ActivityIndicator size="large" color="#000" />
             <Text variant="bodyMedium" style={[styles.emptySubtext, { marginTop: 16 }]}>
-              Finding occasions that match their interests…
+              Loading additional occasion ideas…
             </Text>
           </View>
         ) : selectedOccasions.length === 0 ? (
@@ -173,16 +173,26 @@ export function OccasionsSelectionView({
             </Text>
           </View>
         ) : (
-          <View style={styles.occasionsList}>
-            {selectedOccasions.map((occasion, index) => (
-              <OccasionItem
-                key={index}
-                occasion={occasion}
-                onToggle={() => toggleOccasion(index)}
-                onEdit={() => handleEditOccasion(index)}
-              />
-            ))}
-          </View>
+          <>
+            {isLoadingRecommendations && (
+              <View style={styles.loadingMoreRow}>
+                <ActivityIndicator size="small" color="#000" />
+                <Text variant="bodyMedium" style={styles.loadingMoreText}>
+                  Loading additional occasion ideas…
+                </Text>
+              </View>
+            )}
+            <View style={styles.occasionsList}>
+              {selectedOccasions.map((occasion, index) => (
+                <OccasionItem
+                  key={index}
+                  occasion={occasion}
+                  onToggle={() => toggleOccasion(index)}
+                  onEdit={() => handleEditOccasion(index)}
+                />
+              ))}
+            </View>
+          </>
         )}
       </ScrollView>
 
@@ -264,6 +274,15 @@ const styles = StyleSheet.create({
   },
   emptySubtext: {
     textAlign: "center",
+    color: "#666",
+  },
+  loadingMoreRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 16,
+  },
+  loadingMoreText: {
     color: "#666",
   },
   occasionsList: {
