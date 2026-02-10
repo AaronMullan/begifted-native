@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { View, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, IconButton, Button } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
+import { HEADER_HEIGHT } from "../../../lib/constants";
 import {
   useOccasionRecommendations,
   mapRecommendationsToOccasions,
@@ -29,6 +31,8 @@ export function OccasionsSelectionView({
   onContinue,
   onSkip,
 }: OccasionsSelectionViewProps) {
+  const insets = useSafeAreaInsets();
+  const headerSpacerHeight = Math.max(HEADER_HEIGHT, insets.top + 60);
   const { recommendations, isLoading: isLoadingRecommendations } =
     useOccasionRecommendations(extractedData);
 
@@ -131,6 +135,7 @@ export function OccasionsSelectionView({
 
   return (
     <View style={styles.container}>
+      <View style={[styles.appHeaderSpacer, { height: headerSpacerHeight }]} />
       <View style={styles.header}>
         <IconButton
           icon="arrow-left"
@@ -174,14 +179,6 @@ export function OccasionsSelectionView({
           </View>
         ) : (
           <>
-            {isLoadingRecommendations && (
-              <View style={styles.loadingMoreRow}>
-                <ActivityIndicator size="small" color="#000" />
-                <Text variant="bodyMedium" style={styles.loadingMoreText}>
-                  Loading additional occasion ideas…
-                </Text>
-              </View>
-            )}
             <View style={styles.occasionsList}>
               {selectedOccasions.map((occasion, index) => (
                 <OccasionItem
@@ -192,6 +189,14 @@ export function OccasionsSelectionView({
                 />
               ))}
             </View>
+            {isLoadingRecommendations && (
+              <View style={styles.loadingMoreRow}>
+                <ActivityIndicator size="small" color="#000" />
+                <Text variant="bodyMedium" style={styles.loadingMoreText}>
+                  Loading additional occasion ideas…
+                </Text>
+              </View>
+            )}
           </>
         )}
       </ScrollView>
@@ -234,6 +239,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  appHeaderSpacer: {
+    backgroundColor: "transparent",
   },
   header: {
     flexDirection: "row",
@@ -280,7 +288,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginBottom: 16,
+    marginTop: 16,
   },
   loadingMoreText: {
     color: "#666",
