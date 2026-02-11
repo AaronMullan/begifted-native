@@ -3,21 +3,21 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, Platform, ScrollView, StyleSheet, View } from "react-native";
 import { Text, Button } from "react-native-paper";
-import { Colors } from "../lib/colors";
-import ContactFileImport from "../components/ContactFileImport";
-import ContactPicker from "../components/ContactPicker";
-import ContactsAccessIntro from "../components/ContactsAccessIntro";
-import RecipientCard from "../components/RecipientCard";
-import RecipientForm from "../components/RecipientForm";
-import { DeviceContact, useDeviceContacts } from "../hooks/use-device-contacts";
-import { useToast } from "../hooks/use-toast";
-import { useAuth } from "../hooks/use-auth";
-import { useRecipients } from "../hooks/use-recipients";
-import { queryKeys } from "../lib/query-keys";
-import { supabase } from "../lib/supabase";
-import { Recipient } from "../types/recipient";
-import { BOTTOM_NAV_HEIGHT } from "../lib/constants";
-import { useBottomNavScrollVisibility } from "../hooks/use-bottom-nav-scroll-visibility";
+import { Colors } from "../../../lib/colors";
+import ContactFileImport from "../../../components/ContactFileImport";
+import ContactPicker from "../../../components/ContactPicker";
+import ContactsAccessIntro from "../../../components/ContactsAccessIntro";
+import RecipientCard from "../../../components/RecipientCard";
+import RecipientForm from "../../../components/RecipientForm";
+import { DeviceContact, useDeviceContacts } from "../../../hooks/use-device-contacts";
+import { useToast } from "../../../hooks/use-toast";
+import { useAuth } from "../../../hooks/use-auth";
+import { useRecipients } from "../../../hooks/use-recipients";
+import { queryKeys } from "../../../lib/query-keys";
+import { supabase } from "../../../lib/supabase";
+import { Recipient } from "../../../types/recipient";
+import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
+import { useBottomNavScrollVisibility } from "../../../hooks/use-bottom-nav-scroll-visibility";
 
 export default function Contacts() {
   const router = useRouter();
@@ -122,9 +122,12 @@ export default function Contacts() {
 
         if (error) throw error;
 
-        await queryClient.invalidateQueries({ queryKey: queryKeys.recipients(user.id) });
-        await queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats(user.id) });
-        await queryClient.invalidateQueries({ queryKey: queryKeys.occasions(user.id) });
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.recipients(user.id),
+        });
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.occasions(user.id),
+        });
         Alert.alert("Success", "Recipient updated successfully!");
       } else {
         const { error } = await supabase
@@ -150,9 +153,12 @@ export default function Contacts() {
 
         if (error) throw error;
 
-        await queryClient.invalidateQueries({ queryKey: queryKeys.recipients(user.id) });
-        await queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats(user.id) });
-        await queryClient.invalidateQueries({ queryKey: queryKeys.occasions(user.id) });
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.recipients(user.id),
+        });
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.occasions(user.id),
+        });
         Alert.alert("Success", "Recipient added successfully!");
       }
 
@@ -179,9 +185,12 @@ export default function Contacts() {
 
       if (error) throw error;
 
-      await queryClient.invalidateQueries({ queryKey: queryKeys.recipients(user.id) });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats(user.id) });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.occasions(user.id) });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.recipients(user.id),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.occasions(user.id),
+      });
       Alert.alert("Success", "Recipient deleted");
     } catch (error) {
       if (error instanceof Error) {

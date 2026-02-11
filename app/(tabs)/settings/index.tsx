@@ -2,12 +2,12 @@ import { View, ScrollView, StyleSheet, Pressable } from "react-native";
 import { Text } from "react-native-paper";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
-import { supabase } from "../lib/supabase";
+import { supabase } from "../../../lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
-import { Colors } from "../lib/colors";
-import { BOTTOM_NAV_HEIGHT } from "../lib/constants";
+import { Colors } from "../../../lib/colors";
+import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 
 export default function Settings() {
   const [session, setSession] = useState<Session | null>(null);
@@ -110,66 +110,69 @@ export default function Settings() {
   return (
     <View style={styles.container}>
       <View style={styles.headerSpacer} />
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+      >
         <View style={styles.content}>
-        {/* Main card container */}
-        <Pressable style={styles.mainCard}>
-          <BlurView intensity={20} style={styles.blurBackground} />
-          {/* Header section */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text variant="headlineMedium" style={styles.title}>
-                Settings
-              </Text>
-              <Text variant="bodyLarge" style={styles.subtitle}>
-                Manage your account and preferences
-              </Text>
+          {/* Main card container */}
+          <Pressable style={styles.mainCard}>
+            <BlurView intensity={20} style={styles.blurBackground} />
+            {/* Header section */}
+            <View style={styles.header}>
+              <View style={styles.headerLeft}>
+                <Text variant="headlineMedium" style={styles.title}>
+                  Settings
+                </Text>
+                <Text variant="bodyLarge" style={styles.subtitle}>
+                  Manage your account and preferences
+                </Text>
+              </View>
             </View>
-          </View>
 
-          {/* Settings cards */}
-          <View style={styles.cardsContainer}>
-            {settingsCards.map((card) => (
-              <Pressable
-                key={card.id}
-                style={styles.settingsCard}
-                onPress={() => router.push(card.route)}
-              >
-                <BlurView intensity={20} style={styles.cardBlurBackground} />
-                <View style={styles.cardContentWrapper}>
-                  <View
-                    style={[
-                      styles.iconContainer,
-                      { backgroundColor: Colors.white },
-                    ]}
-                  >
+            {/* Settings cards */}
+            <View style={styles.cardsContainer}>
+              {settingsCards.map((card) => (
+                <Pressable
+                  key={card.id}
+                  style={styles.settingsCard}
+                  onPress={() => router.push(card.route)}
+                >
+                  <BlurView intensity={20} style={styles.cardBlurBackground} />
+                  <View style={styles.cardContentWrapper}>
+                    <View
+                      style={[
+                        styles.iconContainer,
+                        { backgroundColor: Colors.white },
+                      ]}
+                    >
+                      <MaterialIcons
+                        name={card.icon as any}
+                        size={28}
+                        color={card.iconColor}
+                      />
+                    </View>
+                    <View style={styles.cardContent}>
+                      <Text variant="titleMedium" style={styles.cardTitle}>
+                        {card.title}
+                      </Text>
+                      <Text variant="bodyMedium" style={styles.cardDescription}>
+                        {card.description}
+                      </Text>
+                    </View>
                     <MaterialIcons
-                      name={card.icon as any}
-                      size={28}
-                      color={card.iconColor}
+                      name="chevron-right"
+                      size={20}
+                      color={Colors.darks.black}
+                      opacity={0.6}
+                      style={styles.chevron}
                     />
                   </View>
-                  <View style={styles.cardContent}>
-                    <Text variant="titleMedium" style={styles.cardTitle}>
-                      {card.title}
-                    </Text>
-                    <Text variant="bodyMedium" style={styles.cardDescription}>
-                      {card.description}
-                    </Text>
-                  </View>
-                  <MaterialIcons
-                    name="chevron-right"
-                    size={20}
-                    color={Colors.darks.black}
-                    opacity={0.6}
-                    style={styles.chevron}
-                  />
-                </View>
-              </Pressable>
-            ))}
-          </View>
-        </Pressable>
-      </View>
+                </Pressable>
+              ))}
+            </View>
+          </Pressable>
+        </View>
       </ScrollView>
     </View>
   );

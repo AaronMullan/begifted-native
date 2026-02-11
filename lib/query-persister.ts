@@ -1,6 +1,6 @@
 /**
  * TanStack Query persistence to AsyncStorage
- * Keeps recipients, occasions, profile, dashboard stats, and FAQs
+ * Keeps recipients, occasions, profile, and FAQs
  * across app restarts for faster loads on slow networks.
  */
 
@@ -12,12 +12,11 @@ const PERSIST_KEY = "BEGIFTED_QUERY_CACHE";
 /** How long persisted data is considered valid (24 hours) */
 const PERSIST_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
-/** Query key prefixes we persist (recipients, occasions, profile, dashboardStats, faqs, giftSuggestions) */
+/** Query key prefixes we persist (recipients, occasions, profile, faqs, giftSuggestions) */
 const PERSISTED_QUERY_KEYS = new Set([
   "profile",
   "recipients",
   "occasions",
-  "dashboardStats",
   "faqs",
   "giftSuggestions",
 ]);

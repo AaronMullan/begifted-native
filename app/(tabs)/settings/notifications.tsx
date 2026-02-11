@@ -9,9 +9,9 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
-import { supabase } from "../../lib/supabase";
-import { HEADER_HEIGHT } from "../../lib/constants";
-import { Colors } from "../../lib/colors";
+import { supabase } from "../../../lib/supabase";
+import { HEADER_HEIGHT } from "../../../lib/constants";
+import { Colors } from "../../../lib/colors";
 import { Session } from "@supabase/supabase-js";
 import { IconButton } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";

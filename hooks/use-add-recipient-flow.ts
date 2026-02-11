@@ -135,9 +135,8 @@ export function useAddRecipientFlow(
           }
         }
 
-        // Invalidate cache so dashboard and contacts show the new recipient
+        // Invalidate cache so dashboard, contacts, and calendar show the new recipient
         await queryClient.invalidateQueries({ queryKey: queryKeys.recipients(userId) });
-        await queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats(userId) });
         await queryClient.invalidateQueries({ queryKey: queryKeys.occasions(userId) });
 
         // Trigger success haptic feedback

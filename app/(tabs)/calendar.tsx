@@ -10,11 +10,11 @@ import {
   Pressable,
 } from "react-native";
 import { BlurView } from "expo-blur";
-import { Colors } from "../lib/colors";
-import { useAuth } from "../hooks/use-auth";
-import { useOccasions } from "../hooks/use-occasions";
-import { useToast } from "../hooks/use-toast";
-import { useBottomNavScrollVisibility } from "../hooks/use-bottom-nav-scroll-visibility";
+import { Colors } from "../../lib/colors";
+import { useAuth } from "../../hooks/use-auth";
+import { useOccasions } from "../../hooks/use-occasions";
+import { useToast } from "../../hooks/use-toast";
+import { useBottomNavScrollVisibility } from "../../hooks/use-bottom-nav-scroll-visibility";
 
 interface Occasion {
   id: string;
@@ -194,7 +194,10 @@ export default function Calendar() {
                           style={styles.occasionCard}
                           onPress={() => handleOccasionPress(occasion)}
                         >
-                          <BlurView intensity={20} style={styles.occasionBlurBackground} />
+                          <BlurView
+                            intensity={20}
+                            style={styles.occasionBlurBackground}
+                          />
                           <View style={styles.occasionIconContainer}>
                             <MaterialIcons
                               name="card-giftcard"

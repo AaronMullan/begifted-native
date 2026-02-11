@@ -3,13 +3,13 @@ import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, Button, IconButton } from "react-native-paper";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { supabase } from "../../lib/supabase";
-import { HEADER_HEIGHT } from "../../lib/constants";
-import type { GiftSuggestion, Recipient } from "../../types/recipient";
-import { useRecipientForm } from "../../hooks/use-recipient-form";
-import { RecipientDetailsForm } from "../../components/recipients/RecipientDetailsForm";
-import { GiftSuggestionsView } from "../../components/recipients/GiftSuggestionsView";
-import { useToast } from "../../hooks/use-toast";
+import { supabase } from "../../../lib/supabase";
+import { HEADER_HEIGHT } from "../../../lib/constants";
+import type { GiftSuggestion, Recipient } from "../../../types/recipient";
+import { useRecipientForm } from "../../../hooks/use-recipient-form";
+import { RecipientDetailsForm } from "../../../components/recipients/RecipientDetailsForm";
+import { GiftSuggestionsView } from "../../../components/recipients/GiftSuggestionsView";
+import { useToast } from "../../../hooks/use-toast";
 
 export default function RecipientEditPage() {
   const insets = useSafeAreaInsets();

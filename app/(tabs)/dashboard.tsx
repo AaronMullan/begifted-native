@@ -3,17 +3,44 @@ import { Text, ActivityIndicator } from "react-native-paper";
 import { Link, useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
-import { Colors } from "../lib/colors";
-import { BOTTOM_NAV_HEIGHT } from "../lib/constants";
-import { useBottomNavScrollVisibility } from "../hooks/use-bottom-nav-scroll-visibility";
-import { useAuth } from "../hooks/use-auth";
-import { useDashboardStats } from "../hooks/use-dashboard-stats";
+import { Colors } from "../../lib/colors";
+import { BOTTOM_NAV_HEIGHT } from "../../lib/constants";
+import { useBottomNavScrollVisibility } from "../../hooks/use-bottom-nav-scroll-visibility";
+import { useAuth } from "../../hooks/use-auth";
+import { useRecipients } from "../../hooks/use-recipients";
+import { useOccasions } from "../../hooks/use-occasions";
+import { useProfile } from "../../hooks/use-profile";
 
 export default function Dashboard() {
   const router = useRouter();
-  const { user } = useAuth();
-  const { data: stats, isLoading } = useDashboardStats();
+  const { user, loading: authLoading } = useAuth();
+  const { data: recipients = [], isLoading: loadingRecipients } = useRecipients();
+  const { data: occasions = [], isLoading: loadingOccasions } = useOccasions();
+  const { data: profile } = useProfile();
   const { handleScroll } = useBottomNavScrollVisibility();
+
+  // Single source of truth: derive stats from the same data Contacts and Calendar use
+  const recipientsCount = recipients.length;
+  const upcomingCount = occasions.length;
+  const displayName =
+    profile?.username || user?.email?.split("@")[0] || "User";
+  const isLoading = loadingRecipients || loadingOccasions;
+
+  // Show loading while auth is being checked
+  if (authLoading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.content}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#000000" />
+            <Text variant="bodyMedium" style={styles.loadingText}>
+              Loading...
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   if (!user) {
     return (
@@ -30,14 +57,8 @@ export default function Dashboard() {
     );
   }
 
-  const displayName = stats?.username || user.email?.split("@")[0] || "User";
-  const recipientsCount = stats?.recipientsCount ?? 0;
-  const upcomingCount = stats?.upcomingCount ?? 0;
-  const loadingRecipients = isLoading;
-  const loadingUpcoming = isLoading;
-
-  // Show loading state if still loading initial data
-  if (isLoading && !stats) {
+  // Show loading only when we have no data yet (avoids spinner when we have cached data from Contacts/Calendar)
+  if (isLoading && recipients.length === 0 && occasions.length === 0) {
     return (
       <View style={styles.container}>
         <View style={styles.content}>
@@ -62,8 +83,8 @@ export default function Dashboard() {
 
   return (
     <View style={styles.container}>
-      <ScrollView 
-        style={styles.scrollView} 
+      <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
@@ -73,92 +94,112 @@ export default function Dashboard() {
         scrollEventThrottle={16}
       >
         <View style={styles.content}>
-        {/* Header section */}
-        <View style={styles.header}>
-          <Text variant="headlineMedium" style={styles.greeting}>
-            Hello, {displayName}!
-          </Text>
-          <Text variant="bodyLarge" style={styles.tagline}>
-            Let&apos;s make someone&apos;s day special
-          </Text>
-        </View>
+          {/* Header section */}
+          <View style={styles.header}>
+            <Text variant="headlineMedium" style={styles.greeting}>
+              Hello, {displayName}!
+            </Text>
+            <Text variant="bodyLarge" style={styles.tagline}>
+              Let&apos;s make someone&apos;s day special
+            </Text>
+          </View>
 
-        {/* Three cards */}
-        <View style={styles.cardsContainer}>
-          {/* Recipients Card */}
-          <Link href="/contacts" asChild>
-            <Pressable style={styles.card}>
-              <BlurView intensity={20} style={styles.blurBackground} pointerEvents="none" />
-              <View style={styles.cardContent}>
-                <View style={[styles.iconContainer, styles.recipientsIcon]}>
-                  <MaterialIcons name="people" size={32} color={Colors.pinks.dark} />
+          {/* Three cards */}
+          <View style={styles.cardsContainer}>
+            {/* Recipients Card */}
+            <Link href="/contacts" asChild>
+              <Pressable style={styles.card}>
+                <BlurView
+                  intensity={20}
+                  style={styles.blurBackground}
+                  pointerEvents="none"
+                />
+                <View style={styles.cardContent}>
+                  <View style={[styles.iconContainer, styles.recipientsIcon]}>
+                    <MaterialIcons
+                      name="people"
+                      size={32}
+                      color={Colors.pinks.dark}
+                    />
+                  </View>
+                  {loadingRecipients ? (
+                    <ActivityIndicator size="small" style={styles.loader} />
+                  ) : (
+                    <Text variant="displaySmall" style={styles.cardNumber}>
+                      {recipientsCount}
+                    </Text>
+                  )}
+                  <Text variant="titleLarge" style={styles.cardTitle}>
+                    Recipients
+                  </Text>
+                  <Text variant="bodyMedium" style={styles.cardDescription}>
+                    Tap to view, edit, or add recipients
+                  </Text>
                 </View>
-                {loadingRecipients ? (
+              </Pressable>
+            </Link>
+
+            {/* Upcoming Card */}
+            <Pressable
+              style={styles.card}
+              onPress={() => router.push("/calendar")}
+            >
+              <BlurView
+                intensity={20}
+                style={styles.blurBackground}
+                pointerEvents="none"
+              />
+              <View style={styles.cardContent}>
+                <View style={[styles.iconContainer, styles.upcomingIcon]}>
+                  <MaterialIcons
+                    name="calendar-today"
+                    size={32}
+                    color={Colors.pinks.medium}
+                  />
+                </View>
+                {loadingOccasions ? (
                   <ActivityIndicator size="small" style={styles.loader} />
                 ) : (
                   <Text variant="displaySmall" style={styles.cardNumber}>
-                    {recipientsCount}
+                    {upcomingCount}
                   </Text>
                 )}
                 <Text variant="titleLarge" style={styles.cardTitle}>
-                  Recipients
+                  Upcoming
                 </Text>
                 <Text variant="bodyMedium" style={styles.cardDescription}>
-                  Tap to view, edit, or add recipients
+                  Tap to view calendar
                 </Text>
               </View>
             </Pressable>
-          </Link>
 
-          {/* Upcoming Card */}
-          <Pressable
-            style={styles.card}
-            onPress={() => router.push("/calendar")}
-          >
-            <BlurView intensity={20} style={styles.blurBackground} pointerEvents="none" />
-            <View style={styles.cardContent}>
-              <View style={[styles.iconContainer, styles.upcomingIcon]}>
-                <MaterialIcons
-                  name="calendar-today"
-                  size={32}
-                  color={Colors.pinks.medium}
-                />
-              </View>
-              {loadingUpcoming ? (
-                <ActivityIndicator size="small" style={styles.loader} />
-              ) : (
-                <Text variant="displaySmall" style={styles.cardNumber}>
-                  {upcomingCount}
+            {/* Settings Card */}
+            <Pressable
+              style={styles.card}
+              onPress={() => router.push("/settings" as any)}
+            >
+              <BlurView
+                intensity={20}
+                style={styles.blurBackground}
+                pointerEvents="none"
+              />
+              <View style={styles.cardContent}>
+                <View style={[styles.iconContainer, styles.settingsIcon]}>
+                  <MaterialIcons
+                    name="settings"
+                    size={32}
+                    color={Colors.pinks.dark}
+                  />
+                </View>
+                <Text variant="titleLarge" style={styles.settingsTitle}>
+                  Settings
                 </Text>
-              )}
-              <Text variant="titleLarge" style={styles.cardTitle}>
-                Upcoming
-              </Text>
-              <Text variant="bodyMedium" style={styles.cardDescription}>
-                Tap to view calendar
-              </Text>
-            </View>
-          </Pressable>
-
-          {/* Settings Card */}
-          <Pressable
-            style={styles.card}
-            onPress={() => router.push("/settings" as any)}
-          >
-            <BlurView intensity={20} style={styles.blurBackground} pointerEvents="none" />
-            <View style={styles.cardContent}>
-              <View style={[styles.iconContainer, styles.settingsIcon]}>
-                <MaterialIcons name="settings" size={32} color={Colors.pinks.dark} />
+                <Text variant="bodyMedium" style={styles.cardDescription}>
+                  Manage your account and preferences
+                </Text>
               </View>
-              <Text variant="titleLarge" style={styles.settingsTitle}>
-                Settings
-              </Text>
-              <Text variant="bodyMedium" style={styles.cardDescription}>
-                Manage your account and preferences
-              </Text>
-            </View>
-          </Pressable>
-        </View>
+            </Pressable>
+          </View>
         </View>
       </ScrollView>
     </View>

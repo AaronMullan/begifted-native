@@ -2,10 +2,10 @@ import { View, ScrollView, StyleSheet, Alert } from "react-native";
 import { Text, TextInput, IconButton, Button } from "react-native-paper";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
-import { HEADER_HEIGHT } from "../../lib/constants";
-import { useAuth } from "../../hooks/use-auth";
-import { useProfile } from "../../hooks/use-profile";
-import { useUpdateProfile } from "../../hooks/use-profile-mutations";
+import { HEADER_HEIGHT } from "../../../lib/constants";
+import { useAuth } from "../../../hooks/use-auth";
+import { useProfile } from "../../../hooks/use-profile";
+import { useUpdateProfile } from "../../../hooks/use-profile-mutations";
 
 export default function ProfileSettings() {
   const router = useRouter();

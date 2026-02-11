@@ -50,9 +50,6 @@ export function useUpdateProfile() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.profile(variables.userId),
       });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.dashboardStats(variables.userId),
-      });
     },
   });
 }

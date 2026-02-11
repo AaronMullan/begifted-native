@@ -9,13 +9,13 @@ import {
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { BlurView } from "expo-blur";
-import { supabase } from "../../lib/supabase";
-import { HEADER_HEIGHT } from "../../lib/constants";
-import { Colors } from "../../lib/colors";
+import { supabase } from "../../../lib/supabase";
+import { HEADER_HEIGHT } from "../../../lib/constants";
+import { Colors } from "../../../lib/colors";
 import { Session } from "@supabase/supabase-js";
 import { IconButton } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
-import PreferenceCard from "../../components/PreferenceCard";
+import PreferenceCard from "../../../components/PreferenceCard";
 import {
   PHILOSOPHY_OPTIONS,
   TONE_OPTIONS,
@@ -23,7 +23,7 @@ import {
   BUDGET_OPTIONS,
   PLANNING_OPTIONS,
   REMINDER_OPTIONS,
-} from "../../constants/gifting-preferences";
+} from "../../../constants/gifting-preferences";
 
 interface GiftingPreferencesFormData {
   giftingPhilosophy: string;
