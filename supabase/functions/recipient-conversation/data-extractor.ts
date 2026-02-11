@@ -1,13 +1,13 @@
-import { parseOpenAIJSON } from "./utils.ts";
 import type {
   ContextInfo,
-  Message,
-  ConversationType,
-  RecipientData,
-  ExtractionResponse,
   ConversationResponse,
+  ConversationType,
   ExtractedData,
+  ExtractionResponse,
+  Message,
+  RecipientData,
 } from "../types.ts";
+import { parseOpenAIJSON } from "./utils.ts";
 // @ts-ignore - Deno environment variables are resolved at runtime
 const openAiApiKey = Deno.env.get("OPENAI_API_KEY");
 // Generalized conversation handler - supports different conversation types
@@ -753,7 +753,11 @@ RECIPIENT:
 - Name: ${name}
 - Relationship: ${relationship}
 ${birthday ? `- Birthday: ${birthday}` : ""}
-${interests.length > 0 ? `- Interests: ${interests.join(", ")}` : "- Interests: (none specified)"}
+${
+  interests.length > 0
+    ? `- Interests: ${interests.join(", ")}`
+    : "- Interests: (none specified)"
+}
 
 ALLOWED SOURCES (only these):
 - Birthday (use their next upcoming birthday date).
