@@ -188,8 +188,8 @@ export default function Auth() {
           Sign In / Sign Up
         </Button>
         <Text variant="bodySmall" style={styles.hint}>
-          Don&apos;t have an account? Just enter your email and a password to create
-          one.
+          Don&apos;t have an account? Just enter your email and a password to
+          create one.
         </Text>
       </View>
 

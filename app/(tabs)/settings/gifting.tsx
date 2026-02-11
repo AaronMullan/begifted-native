@@ -217,153 +217,166 @@ export default function GiftingPreferences() {
     <View style={styles.container}>
       <View style={styles.headerSpacer} />
       <ScrollView style={styles.scrollView}>
-      <View style={styles.content}>
-        {/* Main card container – match dashboard/settings card style */}
-        <Pressable style={styles.mainCard}>
-          <BlurView intensity={20} style={styles.blurBackground} pointerEvents="none" />
-          <View style={styles.mainCardContent}>
-          {/* Header section */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.title}>Gifting Preferences</Text>
-              <Text style={styles.subtitle}>
-                Customize how AI generates gift recommendations based on your
-                personal style and preferences.
-              </Text>
-            </View>
-            <IconButton
-              icon="arrow-left"
-              size={20}
-              iconColor="#000000"
-              onPress={() => router.back()}
-              style={styles.backButton}
+        <View style={styles.content}>
+          {/* Main card container – match dashboard/settings card style */}
+          <Pressable style={styles.mainCard}>
+            <BlurView
+              intensity={20}
+              style={styles.blurBackground}
+              pointerEvents="none"
             />
-          </View>
-
-          {/* Preference Cards */}
-          <View style={styles.preferencesContainer}>
-            <PreferenceCard
-              title="Gifting Philosophy"
-              value={formData.giftingPhilosophy}
-              options={PHILOSOPHY_OPTIONS}
-              onValueChange={(value) =>
-                setFormData((prev) => ({ ...prev, giftingPhilosophy: value }))
-              }
-            />
-
-            <PreferenceCard
-              title="Gifting Tone"
-              value={formData.giftingTone}
-              options={TONE_OPTIONS}
-              onValueChange={(value) =>
-                setFormData((prev) => ({ ...prev, giftingTone: value }))
-              }
-            />
-
-            <PreferenceCard
-              title="Creativity Level"
-              value={formData.creativityLevel}
-              options={CREATIVITY_OPTIONS}
-              onValueChange={(value) =>
-                setFormData((prev) => ({ ...prev, creativityLevel: value }))
-              }
-            />
-
-            <PreferenceCard
-              title="Budget Style"
-              value={formData.budgetStyle}
-              options={BUDGET_OPTIONS}
-              onValueChange={(value) =>
-                setFormData((prev) => ({ ...prev, budgetStyle: value }))
-              }
-            />
-
-            <PreferenceCard
-              title="Planning Style"
-              value={formData.planningStyle}
-              options={PLANNING_OPTIONS}
-              onValueChange={(value) =>
-                setFormData((prev) => ({ ...prev, planningStyle: value }))
-              }
-            />
-
-            {/* Default Reminder Time */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Default Reminder Time</Text>
-              <TouchableOpacity
-                style={styles.reminderSelector}
-                onPress={() => setShowReminderPicker(!showReminderPicker)}
-              >
-                <Text style={styles.reminderValue}>{currentReminderLabel}</Text>
-                <MaterialIcons
-                  name={showReminderPicker ? "expand-less" : "expand-more"}
-                  size={20}
-                  color="#666"
-                />
-              </TouchableOpacity>
-
-              {showReminderPicker && (
-                <View style={styles.reminderPicker}>
-                  {REMINDER_OPTIONS.map((option) => (
-                    <TouchableOpacity
-                      key={option.value}
-                      style={[
-                        styles.reminderOption,
-                        formData.reminderDays === option.value &&
-                          styles.reminderOptionSelected,
-                      ]}
-                      onPress={() => {
-                        setFormData((prev) => ({
-                          ...prev,
-                          reminderDays: option.value,
-                        }));
-                        setShowReminderPicker(false);
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.reminderOptionText,
-                          formData.reminderDays === option.value &&
-                            styles.reminderOptionTextSelected,
-                        ]}
-                      >
-                        {option.label}
-                      </Text>
-                      {formData.reminderDays === option.value && (
-                        <MaterialIcons name="check" size={20} color="#000000" />
-                      )}
-                    </TouchableOpacity>
-                  ))}
+            <View style={styles.mainCardContent}>
+              {/* Header section */}
+              <View style={styles.header}>
+                <View style={styles.headerLeft}>
+                  <Text style={styles.title}>Gifting Preferences</Text>
+                  <Text style={styles.subtitle}>
+                    Customize how AI generates gift recommendations based on
+                    your personal style and preferences.
+                  </Text>
                 </View>
-              )}
+                <IconButton
+                  icon="arrow-left"
+                  size={20}
+                  iconColor="#000000"
+                  onPress={() => router.back()}
+                  style={styles.backButton}
+                />
+              </View>
+
+              {/* Preference Cards */}
+              <View style={styles.preferencesContainer}>
+                <PreferenceCard
+                  title="Gifting Philosophy"
+                  value={formData.giftingPhilosophy}
+                  options={PHILOSOPHY_OPTIONS}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      giftingPhilosophy: value,
+                    }))
+                  }
+                />
+
+                <PreferenceCard
+                  title="Gifting Tone"
+                  value={formData.giftingTone}
+                  options={TONE_OPTIONS}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, giftingTone: value }))
+                  }
+                />
+
+                <PreferenceCard
+                  title="Creativity Level"
+                  value={formData.creativityLevel}
+                  options={CREATIVITY_OPTIONS}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, creativityLevel: value }))
+                  }
+                />
+
+                <PreferenceCard
+                  title="Budget Style"
+                  value={formData.budgetStyle}
+                  options={BUDGET_OPTIONS}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, budgetStyle: value }))
+                  }
+                />
+
+                <PreferenceCard
+                  title="Planning Style"
+                  value={formData.planningStyle}
+                  options={PLANNING_OPTIONS}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, planningStyle: value }))
+                  }
+                />
+
+                {/* Default Reminder Time */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Default Reminder Time</Text>
+                  <TouchableOpacity
+                    style={styles.reminderSelector}
+                    onPress={() => setShowReminderPicker(!showReminderPicker)}
+                  >
+                    <Text style={styles.reminderValue}>
+                      {currentReminderLabel}
+                    </Text>
+                    <MaterialIcons
+                      name={showReminderPicker ? "expand-less" : "expand-more"}
+                      size={20}
+                      color="#666"
+                    />
+                  </TouchableOpacity>
+
+                  {showReminderPicker && (
+                    <View style={styles.reminderPicker}>
+                      {REMINDER_OPTIONS.map((option) => (
+                        <TouchableOpacity
+                          key={option.value}
+                          style={[
+                            styles.reminderOption,
+                            formData.reminderDays === option.value &&
+                              styles.reminderOptionSelected,
+                          ]}
+                          onPress={() => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              reminderDays: option.value,
+                            }));
+                            setShowReminderPicker(false);
+                          }}
+                        >
+                          <Text
+                            style={[
+                              styles.reminderOptionText,
+                              formData.reminderDays === option.value &&
+                                styles.reminderOptionTextSelected,
+                            ]}
+                          >
+                            {option.label}
+                          </Text>
+                          {formData.reminderDays === option.value && (
+                            <MaterialIcons
+                              name="check"
+                              size={20}
+                              color="#000000"
+                            />
+                          )}
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              </View>
+              {/* Save Button */}
+              <TouchableOpacity
+                style={[
+                  styles.saveButton,
+                  !hasChanges && styles.saveButtonDisabled,
+                  saving && styles.saveButtonSaving,
+                ]}
+                onPress={handleSave}
+                disabled={saving || !hasChanges}
+              >
+                <Text
+                  style={[
+                    styles.saveButtonText,
+                    !hasChanges && styles.saveButtonTextDisabled,
+                  ]}
+                >
+                  {saving
+                    ? "Saving..."
+                    : hasChanges
+                      ? "Save Preferences"
+                      : "No Changes"}
+                </Text>
+              </TouchableOpacity>
             </View>
-          </View>
-          {/* Save Button */}
-          <TouchableOpacity
-            style={[
-              styles.saveButton,
-              !hasChanges && styles.saveButtonDisabled,
-              saving && styles.saveButtonSaving,
-            ]}
-            onPress={handleSave}
-            disabled={saving || !hasChanges}
-          >
-            <Text
-              style={[
-                styles.saveButtonText,
-                !hasChanges && styles.saveButtonTextDisabled,
-              ]}
-            >
-              {saving
-                ? "Saving..."
-                : hasChanges
-                  ? "Save Preferences"
-                  : "No Changes"}
-            </Text>
-          </TouchableOpacity>
-          </View>
-        </Pressable>
-      </View>
+          </Pressable>
+        </View>
       </ScrollView>
     </View>
   );

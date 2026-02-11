@@ -87,9 +87,9 @@ export default function SupportSettings() {
               Coming Soon
             </Text>
             <Text variant="bodyMedium" style={styles.placeholderText}>
-              Support and help resources will be available here soon. You&apos;ll be
-              able to contact our support team, browse FAQs, and report issues
-              directly from this page.
+              Support and help resources will be available here soon.
+              You&apos;ll be able to contact our support team, browse FAQs, and
+              report issues directly from this page.
             </Text>
           </View>
         </Card>

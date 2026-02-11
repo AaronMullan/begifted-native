@@ -60,4 +60,3 @@ export function hideBottomNav() {
     useNativeDriver: true,
   }).start();
 }
-

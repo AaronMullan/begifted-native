@@ -32,7 +32,11 @@ export default function PreferenceCard({
               style={[styles.option, isSelected && styles.optionSelected]}
               onPress={() => onValueChange(option.value)}
             >
-              <BlurView intensity={20} style={styles.optionBlur} pointerEvents="none" />
+              <BlurView
+                intensity={20}
+                style={styles.optionBlur}
+                pointerEvents="none"
+              />
               <View style={styles.optionContent}>
                 <View style={styles.optionTextWrap}>
                   <Text

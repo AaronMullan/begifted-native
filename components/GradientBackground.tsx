@@ -1,5 +1,11 @@
 import { useWindowDimensions } from "react-native";
-import Svg, { Defs, LinearGradient, RadialGradient, Rect, Stop } from "react-native-svg";
+import Svg, {
+  Defs,
+  LinearGradient,
+  RadialGradient,
+  Rect,
+  Stop,
+} from "react-native-svg";
 
 /**
  * Global gradient background using react-native-svg.
@@ -47,8 +53,20 @@ export default function GradientBackground() {
           <Stop offset="1" stopColor="#073AFF" stopOpacity={0} />
         </RadialGradient>
       </Defs>
-      <Rect x={0} y={0} width={width} height={height} fill="url(#mainGradient)" />
-      <Rect x={0} y={0} width={width} height={height} fill="url(#goldOverlay)" />
+      <Rect
+        x={0}
+        y={0}
+        width={width}
+        height={height}
+        fill="url(#mainGradient)"
+      />
+      <Rect
+        x={0}
+        y={0}
+        width={width}
+        height={height}
+        fill="url(#goldOverlay)"
+      />
     </Svg>
   );
 }

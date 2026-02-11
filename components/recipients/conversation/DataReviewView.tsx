@@ -1,12 +1,7 @@
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import {
-  Button,
-  IconButton,
-  Text,
-  TextInput,
-} from "react-native-paper";
+import { Button, IconButton, Text, TextInput } from "react-native-paper";
 
 interface DataReviewViewProps {
   extractedData: ExtractedData;

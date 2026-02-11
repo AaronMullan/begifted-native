@@ -40,7 +40,6 @@ export default function ContactsAccessIntro({
             We&apos;ll ask for permission to read your contacts so you can add
             recipients from your address book.
           </Text>
-       
 
           <Button
             mode="contained"
@@ -57,7 +56,10 @@ export default function ContactsAccessIntro({
 
           <Pressable
             onPress={handleOpenSettings}
-            style={({ pressed }) => [styles.settingsLink, pressed && styles.settingsLinkPressed]}
+            style={({ pressed }) => [
+              styles.settingsLink,
+              pressed && styles.settingsLinkPressed,
+            ]}
           >
             <Text variant="bodySmall" style={styles.settingsLinkText}>
               Open Settings to change contacts permission

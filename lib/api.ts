@@ -35,9 +35,7 @@ export interface Occasion {
 /**
  * Fetch all recipients for a user
  */
-export async function fetchRecipients(
-  userId: string
-): Promise<Recipient[]> {
+export async function fetchRecipients(userId: string): Promise<Recipient[]> {
   const { data, error } = await supabase
     .from("recipients")
     .select(
@@ -99,9 +97,7 @@ export async function fetchOccasions(userId: string): Promise<Occasion[]> {
   }
 
   // Fetch recipients for the occasions
-  const recipientIds = [
-    ...new Set(occasionsData.map((o) => o.recipient_id)),
-  ];
+  const recipientIds = [...new Set(occasionsData.map((o) => o.recipient_id))];
   const { data: recipientsData, error: recipientsError } = await supabase
     .from("recipients")
     .select("id, name, relationship_type")
@@ -118,9 +114,7 @@ export async function fetchOccasions(userId: string): Promise<Occasion[]> {
   }
 
   // Create a map of recipients for quick lookup
-  const recipientsMap = new Map(
-    (recipientsData || []).map((r) => [r.id, r])
-  );
+  const recipientsMap = new Map((recipientsData || []).map((r) => [r.id, r]));
 
   // Transform the data to include recipient info
   const transformedOccasions: Occasion[] = occasionsData.map(

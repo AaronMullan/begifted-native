@@ -9,7 +9,10 @@ import ContactPicker from "../../../components/ContactPicker";
 import ContactsAccessIntro from "../../../components/ContactsAccessIntro";
 import RecipientCard from "../../../components/RecipientCard";
 import RecipientForm from "../../../components/RecipientForm";
-import { DeviceContact, useDeviceContacts } from "../../../hooks/use-device-contacts";
+import {
+  DeviceContact,
+  useDeviceContacts,
+} from "../../../hooks/use-device-contacts";
 import { useToast } from "../../../hooks/use-toast";
 import { useAuth } from "../../../hooks/use-auth";
 import { useRecipients } from "../../../hooks/use-recipients";
@@ -130,26 +133,24 @@ export default function Contacts() {
         });
         Alert.alert("Success", "Recipient updated successfully!");
       } else {
-        const { error } = await supabase
-          .from("recipients")
-          .insert([
-            {
-              user_id: user.id,
-              name: name.trim(),
-              relationship_type: relationshipType.trim(),
-              interests: interestsArray.length > 0 ? interestsArray : null,
-              birthday: birthday.trim() || null,
-              emotional_tone_preference: emotionalTone.trim() || null,
-              gift_budget_min: budgetMin ? parseInt(budgetMin) : null,
-              gift_budget_max: budgetMax ? parseInt(budgetMax) : null,
-              address: address.trim() || null,
-              address_line_2: addressLine2.trim() || null,
-              city: city.trim() || null,
-              state: state.trim() || null,
-              zip_code: zipCode.trim() || null,
-              country: country.trim() || null,
-            },
-          ]);
+        const { error } = await supabase.from("recipients").insert([
+          {
+            user_id: user.id,
+            name: name.trim(),
+            relationship_type: relationshipType.trim(),
+            interests: interestsArray.length > 0 ? interestsArray : null,
+            birthday: birthday.trim() || null,
+            emotional_tone_preference: emotionalTone.trim() || null,
+            gift_budget_min: budgetMin ? parseInt(budgetMin) : null,
+            gift_budget_max: budgetMax ? parseInt(budgetMax) : null,
+            address: address.trim() || null,
+            address_line_2: addressLine2.trim() || null,
+            city: city.trim() || null,
+            state: state.trim() || null,
+            zip_code: zipCode.trim() || null,
+            country: country.trim() || null,
+          },
+        ]);
 
         if (error) throw error;
 

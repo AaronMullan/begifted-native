@@ -812,7 +812,9 @@ Return JSON only, no markdown:
       : [];
     return {
       primaryOccasions: primary.map((o: any) => ({
-        type: String(o.type || "custom").replace(/\s+/g, "_").toLowerCase(),
+        type: String(o.type || "custom")
+          .replace(/\s+/g, "_")
+          .toLowerCase(),
         name: String(o.name || o.type || "Occasion"),
         suggestedDate: o.suggestedDate ?? null,
         isMilestone: Boolean(o.isMilestone),

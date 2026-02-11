@@ -162,7 +162,10 @@ export function OccasionsSelectionView({
         {selectedOccasions.length === 0 && isLoadingRecommendations ? (
           <View style={styles.emptyState}>
             <ActivityIndicator size="large" color="#000" />
-            <Text variant="bodyMedium" style={[styles.emptySubtext, { marginTop: 16 }]}>
+            <Text
+              variant="bodyMedium"
+              style={[styles.emptySubtext, { marginTop: 16 }]}
+            >
               Loading additional occasion ideas…
             </Text>
           </View>
@@ -173,8 +176,8 @@ export function OccasionsSelectionView({
               No occasions found
             </Text>
             <Text variant="bodyMedium" style={styles.emptySubtext}>
-              Occasions will be added from birthday and holidays you mentioned, or
-              add your own after continuing.
+              Occasions will be added from birthday and holidays you mentioned,
+              or add your own after continuing.
             </Text>
           </View>
         ) : (

@@ -40,9 +40,9 @@ export default function ContactPicker({
 
         <View style={styles.disclaimer}>
           <Text variant="bodySmall" style={styles.disclaimerText}>
-            Choose one contact to add as a recipient. If you select &quot;all,&quot; you&apos;re
-            only adding the contacts shown in this list — we don&apos;t import your
-            entire address book.
+            Choose one contact to add as a recipient. If you select
+            &quot;all,&quot; you&apos;re only adding the contacts shown in this
+            list — we don&apos;t import your entire address book.
           </Text>
         </View>
 

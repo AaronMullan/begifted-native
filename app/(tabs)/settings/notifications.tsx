@@ -215,264 +215,273 @@ export default function Notifications() {
     <View style={styles.container}>
       <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
       <ScrollView style={styles.scrollView}>
-      <View style={styles.content}>
-        {/* Main white card container */}
-        <View style={styles.mainCard}>
-          {/* Header section */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.title}>Notifications</Text>
-              <Text style={styles.subtitle}>
-                Manage your communication preferences
-              </Text>
-            </View>
-            <IconButton
-              icon="arrow-left"
-              size={20}
-              iconColor="#000000"
-              onPress={() => router.back()}
-              style={styles.backButton}
-            />
-          </View>
-
-          {/* Notification Methods Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Notification Methods</Text>
-            <Text style={styles.sectionSubtitle}>
-              Choose how you&apos;d like to receive notifications.
-            </Text>
-
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Push Notifications</Text>
-                <Text style={styles.settingDescription}>
-                  Receive notifications directly in your browser.
+        <View style={styles.content}>
+          {/* Main white card container */}
+          <View style={styles.mainCard}>
+            {/* Header section */}
+            <View style={styles.header}>
+              <View style={styles.headerLeft}>
+                <Text style={styles.title}>Notifications</Text>
+                <Text style={styles.subtitle}>
+                  Manage your communication preferences
                 </Text>
               </View>
-              <Switch
-                value={preferences.push_notifications_enabled}
-                onValueChange={() =>
-                  togglePreference("push_notifications_enabled")
-                }
-                trackColor={{ false: "#E0E0E0", true: "#333333" }}
-                thumbColor="#fff"
-              />
-            </View>
-
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Email Notifications</Text>
-                <Text style={styles.settingDescription}>
-                  Receive notifications via email.
-                </Text>
-              </View>
-              <Switch
-                value={preferences.email_notifications_enabled}
-                onValueChange={() =>
-                  togglePreference("email_notifications_enabled")
-                }
-                trackColor={{ false: "#E0E0E0", true: "#333333" }}
-                thumbColor="#fff"
-              />
-            </View>
-          </View>
-
-          {/* Reminder Preferences Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Reminder Preferences</Text>
-            <Text style={styles.sectionSubtitle}>
-              Configure when you&apos;d like to be reminded about upcoming occasions.
-            </Text>
-
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>2 Weeks Before</Text>
-                <Text style={styles.settingDescription}>
-                  Get reminded 2 weeks before an occasion.
-                </Text>
-              </View>
-              <Switch
-                value={preferences.reminder_2_weeks_before}
-                onValueChange={() =>
-                  togglePreference("reminder_2_weeks_before")
-                }
-                trackColor={{ false: "#E0E0E0", true: "#333333" }}
-                thumbColor="#fff"
-              />
-            </View>
-
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>1 Week Before</Text>
-                <Text style={styles.settingDescription}>
-                  Get reminded 1 week before an occasion.
-                </Text>
-              </View>
-              <Switch
-                value={preferences.reminder_1_week_before}
-                onValueChange={() => togglePreference("reminder_1_week_before")}
-                trackColor={{ false: "#E0E0E0", true: "#333333" }}
-                thumbColor="#fff"
-              />
-            </View>
-
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Day of Event</Text>
-                <Text style={styles.settingDescription}>
-                  Get reminded on the day of the occasion.
-                </Text>
-              </View>
-              <Switch
-                value={preferences.reminder_day_of_event}
-                onValueChange={() => togglePreference("reminder_day_of_event")}
-                trackColor={{ false: "#E0E0E0", true: "#333333" }}
-                thumbColor="#fff"
-              />
-            </View>
-          </View>
-
-          {/* Communication Types Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Communication Types</Text>
-            <Text style={styles.sectionSubtitle}>
-              Choose what types of communications you&apos;d like to receive.
-            </Text>
-
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Feedback Requests</Text>
-                <Text style={styles.settingDescription}>
-                  Get asked for feedback after sending gifts.
-                </Text>
-              </View>
-              <Switch
-                value={preferences.feedback_requests_enabled}
-                onValueChange={() =>
-                  togglePreference("feedback_requests_enabled")
-                }
-                trackColor={{ false: "#E0E0E0", true: "#333333" }}
-                thumbColor="#fff"
-              />
-            </View>
-
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>System Updates</Text>
-                <Text style={styles.settingDescription}>
-                  Receive important app updates and announcements.
-                </Text>
-              </View>
-              <Switch
-                value={preferences.system_updates_enabled}
-                onValueChange={() => togglePreference("system_updates_enabled")}
-                trackColor={{ false: "#E0E0E0", true: "#333333" }}
-                thumbColor="#fff"
-              />
-            </View>
-
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Promotional Emails</Text>
-                <Text style={styles.settingDescription}>
-                  Receive tips, feature highlights, and special offers.
-                </Text>
-              </View>
-              <Switch
-                value={preferences.promotional_emails_enabled}
-                onValueChange={() =>
-                  togglePreference("promotional_emails_enabled")
-                }
-                trackColor={{ false: "#E0E0E0", true: "#333333" }}
-                thumbColor="#fff"
-              />
-            </View>
-          </View>
-
-          {/* Timezone Settings Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Timezone Settings</Text>
-            <Text style={styles.sectionSubtitle}>
-              Set your timezone for accurate notification timing.
-            </Text>
-
-            {showTimezonePicker && (
-              <ScrollView
-                style={styles.timezonePicker}
-                nestedScrollEnabled
-                keyboardShouldPersistTaps="handled"
-              >
-                {TIMEZONES.map((tz) => (
-                  <TouchableOpacity
-                    key={tz.value}
-                    style={[
-                      styles.timezoneOption,
-                      preferences.timezone === tz.value &&
-                        styles.timezoneOptionSelected,
-                    ]}
-                    onPress={() => {
-                      setTimezone(tz.value);
-                      setShowTimezonePicker(false);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.timezoneOptionText,
-                        preferences.timezone === tz.value &&
-                          styles.timezoneOptionTextSelected,
-                      ]}
-                    >
-                      {tz.label}
-                    </Text>
-                    {preferences.timezone === tz.value && (
-                      <MaterialIcons name="check" size={20} color="#000000" />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
-
-            <TouchableOpacity
-              style={styles.timezoneSelector}
-              onPress={() => setShowTimezonePicker(!showTimezonePicker)}
-            >
-              <View style={styles.timezoneInfo}>
-                <Text style={styles.settingLabel}>Timezone</Text>
-                <Text style={styles.timezoneValue}>{currentTimezoneLabel}</Text>
-              </View>
-              <MaterialIcons
-                name={showTimezonePicker ? "expand-less" : "expand-more"}
+              <IconButton
+                icon="arrow-left"
                 size={20}
-                color="#666"
+                iconColor="#000000"
+                onPress={() => router.back()}
+                style={styles.backButton}
               />
+            </View>
+
+            {/* Notification Methods Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Notification Methods</Text>
+              <Text style={styles.sectionSubtitle}>
+                Choose how you&apos;d like to receive notifications.
+              </Text>
+
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>Push Notifications</Text>
+                  <Text style={styles.settingDescription}>
+                    Receive notifications directly in your browser.
+                  </Text>
+                </View>
+                <Switch
+                  value={preferences.push_notifications_enabled}
+                  onValueChange={() =>
+                    togglePreference("push_notifications_enabled")
+                  }
+                  trackColor={{ false: "#E0E0E0", true: "#333333" }}
+                  thumbColor="#fff"
+                />
+              </View>
+
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>Email Notifications</Text>
+                  <Text style={styles.settingDescription}>
+                    Receive notifications via email.
+                  </Text>
+                </View>
+                <Switch
+                  value={preferences.email_notifications_enabled}
+                  onValueChange={() =>
+                    togglePreference("email_notifications_enabled")
+                  }
+                  trackColor={{ false: "#E0E0E0", true: "#333333" }}
+                  thumbColor="#fff"
+                />
+              </View>
+            </View>
+
+            {/* Reminder Preferences Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Reminder Preferences</Text>
+              <Text style={styles.sectionSubtitle}>
+                Configure when you&apos;d like to be reminded about upcoming
+                occasions.
+              </Text>
+
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>2 Weeks Before</Text>
+                  <Text style={styles.settingDescription}>
+                    Get reminded 2 weeks before an occasion.
+                  </Text>
+                </View>
+                <Switch
+                  value={preferences.reminder_2_weeks_before}
+                  onValueChange={() =>
+                    togglePreference("reminder_2_weeks_before")
+                  }
+                  trackColor={{ false: "#E0E0E0", true: "#333333" }}
+                  thumbColor="#fff"
+                />
+              </View>
+
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>1 Week Before</Text>
+                  <Text style={styles.settingDescription}>
+                    Get reminded 1 week before an occasion.
+                  </Text>
+                </View>
+                <Switch
+                  value={preferences.reminder_1_week_before}
+                  onValueChange={() =>
+                    togglePreference("reminder_1_week_before")
+                  }
+                  trackColor={{ false: "#E0E0E0", true: "#333333" }}
+                  thumbColor="#fff"
+                />
+              </View>
+
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>Day of Event</Text>
+                  <Text style={styles.settingDescription}>
+                    Get reminded on the day of the occasion.
+                  </Text>
+                </View>
+                <Switch
+                  value={preferences.reminder_day_of_event}
+                  onValueChange={() =>
+                    togglePreference("reminder_day_of_event")
+                  }
+                  trackColor={{ false: "#E0E0E0", true: "#333333" }}
+                  thumbColor="#fff"
+                />
+              </View>
+            </View>
+
+            {/* Communication Types Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Communication Types</Text>
+              <Text style={styles.sectionSubtitle}>
+                Choose what types of communications you&apos;d like to receive.
+              </Text>
+
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>Feedback Requests</Text>
+                  <Text style={styles.settingDescription}>
+                    Get asked for feedback after sending gifts.
+                  </Text>
+                </View>
+                <Switch
+                  value={preferences.feedback_requests_enabled}
+                  onValueChange={() =>
+                    togglePreference("feedback_requests_enabled")
+                  }
+                  trackColor={{ false: "#E0E0E0", true: "#333333" }}
+                  thumbColor="#fff"
+                />
+              </View>
+
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>System Updates</Text>
+                  <Text style={styles.settingDescription}>
+                    Receive important app updates and announcements.
+                  </Text>
+                </View>
+                <Switch
+                  value={preferences.system_updates_enabled}
+                  onValueChange={() =>
+                    togglePreference("system_updates_enabled")
+                  }
+                  trackColor={{ false: "#E0E0E0", true: "#333333" }}
+                  thumbColor="#fff"
+                />
+              </View>
+
+              <View style={styles.settingRow}>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingLabel}>Promotional Emails</Text>
+                  <Text style={styles.settingDescription}>
+                    Receive tips, feature highlights, and special offers.
+                  </Text>
+                </View>
+                <Switch
+                  value={preferences.promotional_emails_enabled}
+                  onValueChange={() =>
+                    togglePreference("promotional_emails_enabled")
+                  }
+                  trackColor={{ false: "#E0E0E0", true: "#333333" }}
+                  thumbColor="#fff"
+                />
+              </View>
+            </View>
+
+            {/* Timezone Settings Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Timezone Settings</Text>
+              <Text style={styles.sectionSubtitle}>
+                Set your timezone for accurate notification timing.
+              </Text>
+
+              {showTimezonePicker && (
+                <ScrollView
+                  style={styles.timezonePicker}
+                  nestedScrollEnabled
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {TIMEZONES.map((tz) => (
+                    <TouchableOpacity
+                      key={tz.value}
+                      style={[
+                        styles.timezoneOption,
+                        preferences.timezone === tz.value &&
+                          styles.timezoneOptionSelected,
+                      ]}
+                      onPress={() => {
+                        setTimezone(tz.value);
+                        setShowTimezonePicker(false);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.timezoneOptionText,
+                          preferences.timezone === tz.value &&
+                            styles.timezoneOptionTextSelected,
+                        ]}
+                      >
+                        {tz.label}
+                      </Text>
+                      {preferences.timezone === tz.value && (
+                        <MaterialIcons name="check" size={20} color="#000000" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+
+              <TouchableOpacity
+                style={styles.timezoneSelector}
+                onPress={() => setShowTimezonePicker(!showTimezonePicker)}
+              >
+                <View style={styles.timezoneInfo}>
+                  <Text style={styles.settingLabel}>Timezone</Text>
+                  <Text style={styles.timezoneValue}>
+                    {currentTimezoneLabel}
+                  </Text>
+                </View>
+                <MaterialIcons
+                  name={showTimezonePicker ? "expand-less" : "expand-more"}
+                  size={20}
+                  color="#666"
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Save Button */}
+            <TouchableOpacity
+              style={[
+                styles.saveButton,
+                !hasChanges && styles.saveButtonDisabled,
+                saving && styles.saveButtonSaving,
+              ]}
+              onPress={handleSave}
+              disabled={saving || !hasChanges}
+            >
+              <Text
+                style={[
+                  styles.saveButtonText,
+                  !hasChanges && styles.saveButtonTextDisabled,
+                ]}
+              >
+                {saving
+                  ? "Saving..."
+                  : hasChanges
+                    ? "Save Changes"
+                    : "No Changes"}
+              </Text>
             </TouchableOpacity>
           </View>
-
-          {/* Save Button */}
-          <TouchableOpacity
-            style={[
-              styles.saveButton,
-              !hasChanges && styles.saveButtonDisabled,
-              saving && styles.saveButtonSaving,
-            ]}
-            onPress={handleSave}
-            disabled={saving || !hasChanges}
-          >
-            <Text
-              style={[
-                styles.saveButtonText,
-                !hasChanges && styles.saveButtonTextDisabled,
-              ]}
-            >
-              {saving
-                ? "Saving..."
-                : hasChanges
-                  ? "Save Changes"
-                  : "No Changes"}
-            </Text>
-          </TouchableOpacity>
         </View>
-      </View>
       </ScrollView>
     </View>
   );

@@ -1,8 +1,5 @@
 import { useRef } from "react";
-import {
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-} from "react-native";
+import { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
 import { hideBottomNav, showBottomNav } from "./use-bottom-nav-visibility";
 
 /**
@@ -43,4 +40,3 @@ export function useBottomNavScrollVisibility() {
 
   return { handleScroll };
 }
-

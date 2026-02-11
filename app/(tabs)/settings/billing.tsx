@@ -88,8 +88,8 @@ export default function BillingSettings() {
             </Text>
             <Text variant="bodyMedium" style={styles.placeholderText}>
               Billing and subscription management will be available here soon.
-              You&apos;ll be able to view your current plan, update payment methods,
-              and manage your subscription.
+              You&apos;ll be able to view your current plan, update payment
+              methods, and manage your subscription.
             </Text>
           </View>
         </Card>

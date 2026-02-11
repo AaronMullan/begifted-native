@@ -14,7 +14,8 @@ import { useProfile } from "../../hooks/use-profile";
 export default function Dashboard() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { data: recipients = [], isLoading: loadingRecipients } = useRecipients();
+  const { data: recipients = [], isLoading: loadingRecipients } =
+    useRecipients();
   const { data: occasions = [], isLoading: loadingOccasions } = useOccasions();
   const { data: profile } = useProfile();
   const { handleScroll } = useBottomNavScrollVisibility();
@@ -22,8 +23,7 @@ export default function Dashboard() {
   // Single source of truth: derive stats from the same data Contacts and Calendar use
   const recipientsCount = recipients.length;
   const upcomingCount = occasions.length;
-  const displayName =
-    profile?.username || user?.email?.split("@")[0] || "User";
+  const displayName = profile?.username || user?.email?.split("@")[0] || "User";
   const isLoading = loadingRecipients || loadingOccasions;
 
   // Show loading while auth is being checked
