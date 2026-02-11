@@ -33,7 +33,7 @@ export default function Index() {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [router]);
 
   // Show loading state while checking session
   if (loading) {

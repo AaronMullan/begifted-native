@@ -8,12 +8,8 @@ import {
   Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
 import { supabase } from "../lib/supabase";
 import Auth from "../components/Auth";
-
-// Minimum splash screen duration (in milliseconds)
-const MIN_SPLASH_DURATION = 1500;
 
 export default function Index() {
   const [session, setSession] = useState<Session | null>(null);
@@ -62,7 +58,7 @@ export default function Index() {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [router]);
 
   // Show loading screen while checking auth - splash screen should be visible
   // On web, we also show a fallback loading screen since splash screens work differently

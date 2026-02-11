@@ -194,7 +194,7 @@ export const GiftSuggestionsView: React.FC<GiftSuggestionsViewProps> = ({
           No Gift Ideas Yet
         </Text>
         <Text variant="bodyMedium" style={styles.emptyText}>
-          Gift suggestions will appear here once they're generated for{" "}
+          Gift suggestions will appear here once they&apos;re generated for{" "}
           {recipientName}.
         </Text>
       </View>

@@ -37,7 +37,7 @@ export default function ContactsAccessIntro({
             Access your contacts
           </Text>
           <Text variant="bodyLarge" style={styles.body}>
-            We'll ask for permission to read your contacts so you can add
+            We&apos;ll ask for permission to read your contacts so you can add
             recipients from your address book.
           </Text>
        

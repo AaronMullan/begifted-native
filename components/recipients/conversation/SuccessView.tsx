@@ -53,6 +53,7 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
       600,
       withTiming(0, { duration: 300, easing: Easing.out(Easing.cubic) })
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- animation values are stable refs, run once on mount
   }, []);
 
   // Auto-redirect after 3 seconds

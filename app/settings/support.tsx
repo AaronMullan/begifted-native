@@ -30,7 +30,7 @@ export default function SupportSettings() {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [router]);
 
   if (loading) {
     return (
@@ -87,7 +87,7 @@ export default function SupportSettings() {
               Coming Soon
             </Text>
             <Text variant="bodyMedium" style={styles.placeholderText}>
-              Support and help resources will be available here soon. You'll be
+              Support and help resources will be available here soon. You&apos;ll be
               able to contact our support team, browse FAQs, and report issues
               directly from this page.
             </Text>

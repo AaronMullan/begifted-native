@@ -85,7 +85,7 @@ export default function Notifications() {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [router]);
 
   async function fetchPreferences(userId: string) {
     try {
@@ -144,7 +144,7 @@ export default function Notifications() {
         updated_at: new Date().toISOString(),
       };
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("user_preferences")
         .upsert(updates, { onConflict: "user_id" })
         .select()
@@ -239,7 +239,7 @@ export default function Notifications() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Notification Methods</Text>
             <Text style={styles.sectionSubtitle}>
-              Choose how you'd like to receive notifications.
+              Choose how you&apos;d like to receive notifications.
             </Text>
 
             <View style={styles.settingRow}>
@@ -281,7 +281,7 @@ export default function Notifications() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Reminder Preferences</Text>
             <Text style={styles.sectionSubtitle}>
-              Configure when you'd like to be reminded about upcoming occasions.
+              Configure when you&apos;d like to be reminded about upcoming occasions.
             </Text>
 
             <View style={styles.settingRow}>
@@ -336,7 +336,7 @@ export default function Notifications() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Communication Types</Text>
             <Text style={styles.sectionSubtitle}>
-              Choose what types of communications you'd like to receive.
+              Choose what types of communications you&apos;d like to receive.
             </Text>
 
             <View style={styles.settingRow}>

@@ -8,7 +8,7 @@ type HeaderProps = {
   colorful?: boolean;
 };
 
-export default function Header({ colorful = false }: HeaderProps) {
+export default function Header({ colorful: _colorful = false }: HeaderProps) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
 

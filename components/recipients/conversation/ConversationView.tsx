@@ -35,7 +35,7 @@ export function ConversationView({
   onSendMessage,
   onFinishConversation,
   shouldShowNextStepButton,
-  conversationContext,
+  conversationContext: _conversationContext,
 }: ConversationViewProps) {
   const [inputMessage, setInputMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -147,7 +147,7 @@ export function ConversationView({
             disabled={isLoading || isSending}
             style={styles.nextStepButton}
           >
-            Let's Move to the Next Step
+            Let&apos;s Move to the Next Step
           </Button>
         )}
 

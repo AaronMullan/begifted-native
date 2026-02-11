@@ -20,7 +20,7 @@ interface OccasionsSelectionViewProps {
   extractedData: ExtractedData;
   onBack: () => void;
   onContinue: (
-    occasions: Array<{ date: string; occasion_type: string }>
+    occasions: { date: string; occasion_type: string }[]
   ) => Promise<void>;
   onSkip: () => Promise<void>;
 }
@@ -37,7 +37,7 @@ export function OccasionsSelectionView({
     useOccasionRecommendations(extractedData);
 
   const [selectedOccasions, setSelectedOccasions] = useState<
-    Array<{ date: string; occasion_type: string; enabled: boolean }>
+    { date: string; occasion_type: string; enabled: boolean }[]
   >([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [editingOccasionIndex, setEditingOccasionIndex] = useState<
@@ -46,11 +46,11 @@ export function OccasionsSelectionView({
 
   // Merge conversation-extracted occasions with interest-based AI recommendations
   useEffect(() => {
-    const merged: Array<{
+    const merged: {
       date: string;
       occasion_type: string;
       enabled: boolean;
-    }> = [];
+    }[] = [];
 
     const isoDateRe = /^\d{4}-\d{2}-\d{2}$/;
     const fromConversation = (extractedData.occasions ?? []).map((occ) => {
@@ -155,8 +155,8 @@ export function OccasionsSelectionView({
         contentContainerStyle={styles.content}
       >
         <Text variant="bodyMedium" style={styles.description}>
-          We've suggested occasions based on your conversation and their
-          interests. Add or remove any you'd like to track.
+          We&apos;ve suggested occasions based on your conversation and their
+          interests. Add or remove any you&apos;d like to track.
         </Text>
 
         {selectedOccasions.length === 0 && isLoadingRecommendations ? (

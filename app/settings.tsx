@@ -1,5 +1,5 @@
 import { View, ScrollView, StyleSheet, Pressable } from "react-native";
-import { Text, IconButton } from "react-native-paper";
+import { Text } from "react-native-paper";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
@@ -33,7 +33,7 @@ export default function Settings() {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [router]);
 
   if (loading) {
     return (
@@ -125,13 +125,6 @@ export default function Settings() {
                 Manage your account and preferences
               </Text>
             </View>
-            <IconButton
-              icon="arrow-left"
-              size={20}
-              iconColor={Colors.darks.black}
-              onPress={() => router.back()}
-              style={styles.backButton}
-            />
           </View>
 
           {/* Settings cards */}
@@ -236,9 +229,6 @@ const styles = StyleSheet.create({
   subtitle: {
     color: Colors.darks.black,
     opacity: 0.9,
-  },
-  backButton: {
-    margin: 0,
   },
   cardsContainer: {
     gap: 24,

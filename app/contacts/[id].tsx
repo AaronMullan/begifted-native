@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, Button, IconButton } from "react-native-paper";
-import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import { HEADER_HEIGHT } from "../../lib/constants";
 import type { GiftSuggestion, Recipient } from "../../types/recipient";
@@ -183,7 +183,7 @@ export default function RecipientEditPage() {
     return () => {
       clearInterval(pollInterval);
     };
-  }, [isGenerating, recipient?.id, fetchSuggestions]);
+  }, [isGenerating, recipient, fetchSuggestions]);
 
   const handleSave = async () => {
     if (!recipient || !name.trim() || !relationshipType.trim()) {

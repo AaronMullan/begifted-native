@@ -1,8 +1,7 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,15 +9,11 @@ import {
   View,
   Pressable,
 } from "react-native";
-import { IconButton } from "react-native-paper";
 import { BlurView } from "expo-blur";
 import { Colors } from "../lib/colors";
-import { supabase } from "../lib/supabase";
-import { Recipient } from "../types/recipient";
-import { useToast } from "../hooks/use-toast";
 import { useAuth } from "../hooks/use-auth";
 import { useOccasions } from "../hooks/use-occasions";
-import { HEADER_HEIGHT, BOTTOM_NAV_HEIGHT } from "../lib/constants";
+import { useToast } from "../hooks/use-toast";
 import { useBottomNavScrollVisibility } from "../hooks/use-bottom-nav-scroll-visibility";
 
 interface Occasion {
@@ -40,7 +35,7 @@ export default function Calendar() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { data: occasions = [], isLoading: loading } = useOccasions();
-  const { showToast, toast } = useToast();
+  const { toast } = useToast();
   const { handleScroll } = useBottomNavScrollVisibility();
 
   useEffect(() => {
@@ -156,13 +151,6 @@ export default function Calendar() {
                   View all your upcoming occasions
                 </Text>
               </View>
-              <IconButton
-                icon="arrow-left"
-                size={20}
-                iconColor="#000000"
-                onPress={() => router.back()}
-                style={styles.backButton}
-              />
             </View>
 
             {/* Summary section */}
@@ -309,9 +297,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.darks.black,
     opacity: 0.9,
-  },
-  backButton: {
-    margin: 0,
   },
   summarySection: {
     flexDirection: "row",

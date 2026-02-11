@@ -46,7 +46,7 @@ export default function Dashboard() {
               Hello, {displayName}!
             </Text>
             <Text variant="bodyLarge" style={styles.tagline}>
-              Let's make someone's day special
+              Let&apos;s make someone&apos;s day special
             </Text>
           </View>
           <View style={styles.loadingContainer}>
@@ -79,7 +79,7 @@ export default function Dashboard() {
             Hello, {displayName}!
           </Text>
           <Text variant="bodyLarge" style={styles.tagline}>
-            Let's make someone's day special
+            Let&apos;s make someone&apos;s day special
           </Text>
         </View>
 

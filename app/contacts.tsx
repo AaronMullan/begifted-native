@@ -1,9 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, Platform, ScrollView, StyleSheet, View, Pressable } from "react-native";
-import { Text, Button, IconButton } from "react-native-paper";
-import { BlurView } from "expo-blur";
+import { Alert, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { Text, Button } from "react-native-paper";
 import { Colors } from "../lib/colors";
 import ContactFileImport from "../components/ContactFileImport";
 import ContactPicker from "../components/ContactPicker";
@@ -50,26 +49,8 @@ export default function Contacts() {
     useState(false);
   const [deviceContacts, setDeviceContacts] = useState<DeviceContact[]>([]);
   const { loading: contactsLoading, getDeviceContacts } = useDeviceContacts();
-  const { showToast, toast } = useToast();
+  const { toast } = useToast();
   const { handleScroll } = useBottomNavScrollVisibility();
-
-  function openAddForm() {
-    setEditingRecipient(null);
-    setName("");
-    setRelationshipType("");
-    setInterests("");
-    setBirthday("");
-    setEmotionalTone("");
-    setBudgetMin("");
-    setBudgetMax("");
-    setAddress("");
-    setAddressLine2("");
-    setCity("");
-    setState("");
-    setZipCode("");
-    setCountry("US");
-    setFormVisible(true);
-  }
 
   function openEditForm(recipient: Recipient) {
     router.push(`/contacts/${recipient.id}?tab=details`);
@@ -272,13 +253,6 @@ export default function Contacts() {
                 Manage the people you want to send gifts to.
               </Text>
             </View>
-            <IconButton
-              icon="arrow-left"
-              size={20}
-              iconColor="#000000"
-              onPress={() => router.back()}
-              style={styles.backButton}
-            />
           </View>
 
           {!formVisible && (
@@ -325,7 +299,7 @@ export default function Contacts() {
               state={state}
               zipCode={zipCode}
               country={country}
-              loading={loading}
+              loading={loading || saving}
               onNameChange={setName}
               onRelationshipTypeChange={setRelationshipType}
               onInterestsChange={setInterests}
@@ -425,9 +399,6 @@ const styles = StyleSheet.create({
   subtitle: {
     color: Colors.darks.black,
     opacity: 0.9,
-  },
-  backButton: {
-    margin: 0,
   },
   addButton: {
     marginBottom: 20,

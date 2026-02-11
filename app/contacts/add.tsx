@@ -40,7 +40,6 @@ const AddRecipient = () => {
     handleOccasionsSkip,
     handleViewRecipients,
     setShowDataReview,
-    setShowOccasionsSelection,
     setExtractedData,
   } = useAddRecipientFlow(user?.id || "", initialContactName);
 

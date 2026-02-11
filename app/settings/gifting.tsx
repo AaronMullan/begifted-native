@@ -25,7 +25,7 @@ import {
   REMINDER_OPTIONS,
 } from "../../constants/gifting-preferences";
 
-interface GiftingPreferences {
+interface GiftingPreferencesFormData {
   giftingPhilosophy: string;
   giftingTone: string;
   creativityLevel: string;
@@ -41,7 +41,7 @@ export default function GiftingPreferences() {
   const [saving, setSaving] = useState(false);
   const router = useRouter();
 
-  const [formData, setFormData] = useState<GiftingPreferences>({
+  const [formData, setFormData] = useState<GiftingPreferencesFormData>({
     giftingPhilosophy: "",
     giftingTone: "",
     creativityLevel: "",
@@ -52,7 +52,7 @@ export default function GiftingPreferences() {
   });
 
   const [originalFormData, setOriginalFormData] =
-    useState<GiftingPreferences>(formData);
+    useState<GiftingPreferencesFormData>(formData);
   const [showReminderPicker, setShowReminderPicker] = useState(false);
 
   useEffect(() => {
@@ -91,7 +91,7 @@ export default function GiftingPreferences() {
       cancelled = true;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [router]);
 
   async function fetchPreferences(userId: string) {
     try {
@@ -115,7 +115,7 @@ export default function GiftingPreferences() {
         // Extract values from user_stack JSON
         const userStack = (data.user_stack as any) || {};
 
-        const prefs: GiftingPreferences = {
+        const prefs: GiftingPreferencesFormData = {
           giftingPhilosophy: userStack.philosophy || "",
           giftingTone: data.default_gifting_tone || "",
           creativityLevel: userStack.creativity || "",
@@ -161,7 +161,7 @@ export default function GiftingPreferences() {
         updated_at: new Date().toISOString(),
       };
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("user_preferences")
         .upsert(updates, { onConflict: "user_id" })
         .select()

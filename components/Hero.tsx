@@ -1,6 +1,4 @@
 import { View, Text, Image, useWindowDimensions } from "react-native";
-import { useState } from "react";
-import Auth from "./Auth";
 
 export default function Hero() {
   const { width } = useWindowDimensions();

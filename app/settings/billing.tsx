@@ -30,7 +30,7 @@ export default function BillingSettings() {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [router]);
 
   if (loading) {
     return (
@@ -88,7 +88,7 @@ export default function BillingSettings() {
             </Text>
             <Text variant="bodyMedium" style={styles.placeholderText}>
               Billing and subscription management will be available here soon.
-              You'll be able to view your current plan, update payment methods,
+              You&apos;ll be able to view your current plan, update payment methods,
               and manage your subscription.
             </Text>
           </View>

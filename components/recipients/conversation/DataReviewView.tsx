@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { View, ScrollView, StyleSheet } from "react-native";
+import { ExtractedData } from "@/hooks/use-add-recipient-flow";
+import { useEffect, useState } from "react";
+import { ScrollView, StyleSheet, View } from "react-native";
 import {
+  Button,
+  IconButton,
   Text,
   TextInput,
-  IconButton,
-  Button,
-  ActivityIndicator,
 } from "react-native-paper";
-import { ExtractedData } from "@/hooks/use-add-recipient-flow";
 
 interface DataReviewViewProps {
   extractedData: ExtractedData;
