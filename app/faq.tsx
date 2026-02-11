@@ -1,10 +1,16 @@
-import { View, ScrollView, StyleSheet, TouchableOpacity, Pressable } from "react-native";
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  Pressable,
+} from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { IconButton, Text, ActivityIndicator } from "react-native-paper";
 import { BlurView } from "expo-blur";
 import { Colors } from "../lib/colors";
-import { HEADER_HEIGHT } from "../lib/constants";
+import { BOTTOM_NAV_HEIGHT } from "../lib/constants";
 import { useFaqs } from "../hooks/use-faqs";
 
 export default function FAQ() {
@@ -19,58 +25,61 @@ export default function FAQ() {
   return (
     <View style={styles.container}>
       <View style={styles.headerSpacer} />
-      <ScrollView style={styles.scrollView}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+      >
         <View style={styles.content}>
-        {/* Header section */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text variant="headlineMedium" style={styles.title}>
-              BeGifted FAQ
-            </Text>
-            <Text variant="bodyLarge" style={styles.subtitle}>
-              Frequently asked questions about BeGifted
-            </Text>
+          {/* Header section */}
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <Text variant="headlineMedium" style={styles.title}>
+                BeGifted FAQ
+              </Text>
+              <Text variant="bodyLarge" style={styles.subtitle}>
+                Frequently asked questions about BeGifted
+              </Text>
+            </View>
+            <IconButton
+              icon="arrow-left"
+              size={20}
+              iconColor="#000000"
+              onPress={() => router.back()}
+              style={styles.backButton}
+            />
           </View>
-          <IconButton
-            icon="arrow-left"
-            size={20}
-            iconColor="#000000"
-            onPress={() => router.back()}
-            style={styles.backButton}
-          />
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#000000" />
+              <Text variant="bodyMedium" style={styles.loadingText}>
+                Loading FAQ…
+              </Text>
+            </View>
+          ) : isError ? (
+            <Text variant="bodyMedium" style={styles.errorText}>
+              Could not load FAQs. Please try again later.
+            </Text>
+          ) : (
+            <View style={styles.list}>
+              {faqs.map((faq, i) => (
+                <Pressable key={i} style={styles.faqItem}>
+                  <BlurView intensity={20} style={styles.blurBackground} />
+                  <View style={styles.faqContent}>
+                    <TouchableOpacity
+                      onPress={() => toggleFAQ(i)}
+                      style={styles.question}
+                    >
+                      <Text style={styles.questionText}>{faq.q}</Text>
+                    </TouchableOpacity>
+                    {expandedIndex === i && (
+                      <Text style={styles.answer}>{faq.a}</Text>
+                    )}
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          )}
         </View>
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#000000" />
-            <Text variant="bodyMedium" style={styles.loadingText}>
-              Loading FAQ…
-            </Text>
-          </View>
-        ) : isError ? (
-          <Text variant="bodyMedium" style={styles.errorText}>
-            Could not load FAQs. Please try again later.
-          </Text>
-        ) : (
-          <View style={styles.list}>
-            {faqs.map((faq, i) => (
-              <Pressable key={i} style={styles.faqItem}>
-                <BlurView intensity={20} style={styles.blurBackground} />
-                <View style={styles.faqContent}>
-                  <TouchableOpacity
-                    onPress={() => toggleFAQ(i)}
-                    style={styles.question}
-                  >
-                    <Text style={styles.questionText}>{faq.q}</Text>
-                  </TouchableOpacity>
-                  {expandedIndex === i && (
-                    <Text style={styles.answer}>{faq.a}</Text>
-                  )}
-                </View>
-              </Pressable>
-            ))}
-          </View>
-        )}
-      </View>
       </ScrollView>
     </View>
   );
@@ -82,8 +91,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   headerSpacer: {
-    height: HEADER_HEIGHT,
-    backgroundColor: "transparent",
+    height: 0,
   },
   scrollView: {
     flex: 1,
@@ -94,6 +102,9 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: "100%",
     padding: 20,
+  },
+  scrollContent: {
+    paddingBottom: BOTTOM_NAV_HEIGHT,
   },
   header: {
     flexDirection: "row",

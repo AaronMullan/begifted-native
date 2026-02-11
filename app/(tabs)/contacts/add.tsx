@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { View, ActivityIndicator, StyleSheet, Text } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useAuth } from "../../hooks/use-auth";
-import { useAddRecipientFlow } from "../../hooks/use-add-recipient-flow";
-import { ConversationView } from "../../components/recipients/conversation/ConversationView";
-import { DataReviewView } from "../../components/recipients/conversation/DataReviewView";
-import { OccasionsSelectionView } from "../../components/recipients/conversation/OccasionsSelectionView";
-import { ManualDataEntry } from "../../components/recipients/conversation/ManualDataEntry";
-import { SuccessView } from "../../components/recipients/conversation/SuccessView";
+import { useAuth } from "../../../hooks/use-auth";
+import { useAddRecipientFlow } from "../../../hooks/use-add-recipient-flow";
+import { ConversationView } from "../../../components/recipients/conversation/ConversationView";
+import { DataReviewView } from "../../../components/recipients/conversation/DataReviewView";
+import { OccasionsSelectionView } from "../../../components/recipients/conversation/OccasionsSelectionView";
+import { ManualDataEntry } from "../../../components/recipients/conversation/ManualDataEntry";
+import { SuccessView } from "../../../components/recipients/conversation/SuccessView";
 
 const AddRecipient = () => {
   const { user, loading: authLoading } = useAuth();
@@ -40,7 +40,6 @@ const AddRecipient = () => {
     handleOccasionsSkip,
     handleViewRecipients,
     setShowDataReview,
-    setShowOccasionsSelection,
     setExtractedData,
   } = useAddRecipientFlow(user?.id || "", initialContactName);
 

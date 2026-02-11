@@ -54,14 +54,10 @@ export function useCreateRecipient() {
       return recipient;
     },
     onSuccess: (_, variables) => {
-      // Invalidate recipients list and dashboard stats
+      // Invalidate recipients and occasions (dashboard derives from these)
       queryClient.invalidateQueries({
         queryKey: queryKeys.recipients(variables.user_id),
       });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.dashboardStats(variables.user_id),
-      });
-      // Also invalidate occasions in case occasions were created
       queryClient.invalidateQueries({
         queryKey: queryKeys.occasions(variables.user_id),
       });
@@ -100,15 +96,12 @@ export function useUpdateRecipient() {
       return recipient;
     },
     onSuccess: (_, variables) => {
-      // Invalidate recipients list, detail, dashboard stats, and occasions
+      // Invalidate recipients, detail, and occasions (dashboard derives from these)
       queryClient.invalidateQueries({
         queryKey: queryKeys.recipients(variables.userId),
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.recipient(variables.userId, variables.recipientId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.dashboardStats(variables.userId),
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.occasions(variables.userId),
@@ -140,15 +133,12 @@ export function useDeleteRecipient() {
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
-      // Invalidate recipients list, detail, dashboard stats, and occasions
+      // Invalidate recipients, detail, and occasions (dashboard derives from these)
       queryClient.invalidateQueries({
         queryKey: queryKeys.recipients(variables.userId),
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.recipient(variables.userId, variables.recipientId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.dashboardStats(variables.userId),
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.occasions(variables.userId),

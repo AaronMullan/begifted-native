@@ -1,10 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import type { ExtractedData } from "./use-conversation-flow";
-import {
-  lookupOccasionDate,
-  getNextOccurrence,
-} from "../utils/occasion-dates";
+import { lookupOccasionDate, getNextOccurrence } from "../utils/occasion-dates";
 
 export interface OccasionRecommendation {
   type: string;
@@ -34,8 +31,11 @@ export type OccasionRecommendationsInput = Pick<
  * the recommend_occasions action. If the function returns non-2xx, we
  * fall back to birthday + common holidays and log a warning.
  */
-export function useOccasionRecommendations(extractedData: OccasionRecommendationsInput | null) {
-  const [recommendations, setRecommendations] = useState<OccasionRecommendations | null>(null);
+export function useOccasionRecommendations(
+  extractedData: OccasionRecommendationsInput | null
+) {
+  const [recommendations, setRecommendations] =
+    useState<OccasionRecommendations | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -47,17 +47,20 @@ export function useOccasionRecommendations(extractedData: OccasionRecommendation
     const fetchRecommendations = async () => {
       setIsLoading(true);
       try {
-        const { data, error } = await supabase.functions.invoke("recipient-conversation", {
-          body: {
-            action: "recommend_occasions",
-            extractedData: {
-              name: extractedData.name,
-              relationship_type: extractedData.relationship_type,
-              birthday: extractedData.birthday ?? null,
-              interests: extractedData.interests ?? [],
+        const { data, error } = await supabase.functions.invoke(
+          "recipient-conversation",
+          {
+            body: {
+              action: "recommend_occasions",
+              extractedData: {
+                name: extractedData.name,
+                relationship_type: extractedData.relationship_type,
+                birthday: extractedData.birthday ?? null,
+                interests: extractedData.interests ?? [],
+              },
             },
-          },
-        });
+          }
+        );
 
         if (error) {
           if (typeof (error as any).context?.json === "function") {
@@ -69,22 +72,41 @@ export function useOccasionRecommendations(extractedData: OccasionRecommendation
                 body
               );
             } catch {
-              console.warn("[occasion-recommendations] Edge Function error:", error);
+              console.warn(
+                "[occasion-recommendations] Edge Function error:",
+                error
+              );
             }
           } else {
-            console.warn("[occasion-recommendations] Edge Function error:", error);
+            console.warn(
+              "[occasion-recommendations] Edge Function error:",
+              error
+            );
           }
-          setRecommendations(getFallbackRecommendations(extractedData.birthday ?? null));
+          setRecommendations(
+            getFallbackRecommendations(extractedData.birthday ?? null)
+          );
           return;
         }
-        if (data && typeof data === "object" && Array.isArray(data.primaryOccasions)) {
+        if (
+          data &&
+          typeof data === "object" &&
+          Array.isArray(data.primaryOccasions)
+        ) {
           setRecommendations(data as OccasionRecommendations);
         } else {
-          setRecommendations(getFallbackRecommendations(extractedData.birthday ?? null));
+          setRecommendations(
+            getFallbackRecommendations(extractedData.birthday ?? null)
+          );
         }
       } catch (err) {
-        console.warn("Error fetching occasion recommendations (using fallback):", err);
-        setRecommendations(getFallbackRecommendations(extractedData.birthday ?? null));
+        console.warn(
+          "Error fetching occasion recommendations (using fallback):",
+          err
+        );
+        setRecommendations(
+          getFallbackRecommendations(extractedData.birthday ?? null)
+        );
       } finally {
         setIsLoading(false);
       }
@@ -102,7 +124,9 @@ export function useOccasionRecommendations(extractedData: OccasionRecommendation
   return { recommendations, isLoading };
 }
 
-function getFallbackRecommendations(birthday: string | null): OccasionRecommendations {
+function getFallbackRecommendations(
+  birthday: string | null
+): OccasionRecommendations {
   const primaryOccasions: OccasionRecommendation[] = [];
   if (birthday) {
     primaryOccasions.push({

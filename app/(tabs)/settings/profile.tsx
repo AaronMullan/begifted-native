@@ -2,64 +2,40 @@ import { View, ScrollView, StyleSheet, Alert } from "react-native";
 import { Text, TextInput, IconButton, Button } from "react-native-paper";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
-import { HEADER_HEIGHT } from "../../lib/constants";
-import { useAuth } from "../../hooks/use-auth";
-import { useProfile } from "../../hooks/use-profile";
-import { useUpdateProfile } from "../../hooks/use-profile-mutations";
+import { HEADER_HEIGHT, BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
+import { useAuth } from "../../../hooks/use-auth";
+import { useProfile } from "../../../hooks/use-profile";
+import { useUpdateProfile } from "../../../hooks/use-profile-mutations";
 
 export default function ProfileSettings() {
   const router = useRouter();
-  const { user } = useAuth();
-  const { data: profile, isLoading: loading } = useProfile();
+  const { user, loading: authLoading } = useAuth();
+  const { data: profile, isLoading: profileLoading } = useProfile();
   const updateProfile = useUpdateProfile();
+  const loading = authLoading;
 
   // Form fields
   const [fullName, setFullName] = useState("");
-  const [username, setUsername] = useState("");
-  const [streetAddress, setStreetAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
-  const [zipCode, setZipCode] = useState("");
 
   // Original values to track changes
   const [originalValues, setOriginalValues] = useState({
     fullName: "",
-    username: "",
-    streetAddress: "",
-    city: "",
-    state: "",
-    zipCode: "",
   });
 
   useEffect(() => {
-    if (!user) {
+    if (!authLoading && !user) {
       router.replace("/");
     }
-  }, [user, router]);
+  }, [authLoading, user, router]);
 
   // Sync form state when profile loads
   useEffect(() => {
     if (profile) {
-      const fetchedUsername = profile.username || "";
       const fetchedFullName = profile.full_name || profile.name || "";
-      const fetchedStreet = profile.billing_address_street || "";
-      const fetchedCity = profile.billing_address_city || "";
-      const fetchedState = profile.billing_address_state || "";
-      const fetchedZip = profile.billing_address_zip || "";
 
-      setUsername(fetchedUsername);
       setFullName(fetchedFullName);
-      setStreetAddress(fetchedStreet);
-      setCity(fetchedCity);
-      setState(fetchedState);
-      setZipCode(fetchedZip);
       setOriginalValues({
         fullName: fetchedFullName,
-        username: fetchedUsername,
-        streetAddress: fetchedStreet,
-        city: fetchedCity,
-        state: fetchedState,
-        zipCode: fetchedZip,
       });
     }
   }, [profile]);
@@ -70,54 +46,49 @@ export default function ProfileSettings() {
       return;
     }
 
-    const trimmedUsername = username.trim();
     const trimmedFullName = fullName.trim();
-    const trimmedStreet = streetAddress.trim();
-    const trimmedCity = city.trim();
-    const trimmedState = state.trim();
-    const trimmedZip = zipCode.trim();
 
     try {
       await updateProfile.mutateAsync({
         userId: user.id,
         data: {
-          username: trimmedUsername || null,
           full_name: trimmedFullName || null,
-          billing_address_street: trimmedStreet || null,
-          billing_address_city: trimmedCity || null,
-          billing_address_state: trimmedState || null,
-          billing_address_zip: trimmedZip || null,
         },
       });
 
       setOriginalValues({
         fullName: trimmedFullName,
-        username: trimmedUsername,
-        streetAddress: trimmedStreet,
-        city: trimmedCity,
-        state: trimmedState,
-        zipCode: trimmedZip,
       });
 
       Alert.alert("Success", "Profile updated successfully!");
-    } catch (error) {
-      console.error("Error saving profile:", error);
+    } catch (error: unknown) {
+      let message = "Unknown error";
       if (error instanceof Error) {
-        Alert.alert("Error", `Failed to save profile: ${error.message}`);
-      } else {
-        Alert.alert("Error", "Failed to save profile. Please try again.");
+        message = error.message;
+      } else if (error && typeof error === "object") {
+        const supabaseError = error as {
+          message?: string;
+          details?: string;
+          code?: string;
+        };
+        message = supabaseError.message || message;
+        if (supabaseError.details) {
+          message += `\n\n${supabaseError.details}`;
+        }
       }
+      const isNetworkError = /network request failed/i.test(message);
+      console.error("Error saving profile:", error);
+      Alert.alert(
+        "Error",
+        isNetworkError
+          ? "Network request failed. Check your internet connection and try again."
+          : `Failed to save profile: ${message}`
+      );
     }
   }
 
   // Check if there are unsaved changes
-  const hasChanges =
-    fullName.trim() !== originalValues.fullName ||
-    username.trim() !== originalValues.username ||
-    streetAddress.trim() !== originalValues.streetAddress ||
-    city.trim() !== originalValues.city ||
-    state.trim() !== originalValues.state ||
-    zipCode.trim() !== originalValues.zipCode;
+  const hasChanges = fullName.trim() !== originalValues.fullName;
 
   if (loading) {
     return (
@@ -143,7 +114,10 @@ export default function ProfileSettings() {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+    >
       <View style={styles.content}>
         {/* Main white card container */}
         <View style={styles.mainCard}>
@@ -172,7 +146,7 @@ export default function ProfileSettings() {
               Personal Information
             </Text>
             <Text variant="bodyMedium" style={styles.sectionSubtitle}>
-              Update your personal details and billing address.
+              Update your personal details.
             </Text>
 
             {/* Full Name */}
@@ -188,25 +162,12 @@ export default function ProfileSettings() {
               />
             </View>
 
-            {/* Username */}
-            <View style={styles.fieldContainer}>
-              <TextInput
-                mode="outlined"
-                label="Username"
-                value={username}
-                onChangeText={setUsername}
-                placeholder="Choose a username"
-                right={<TextInput.Icon icon="ellipsis-horizontal" />}
-                style={styles.input}
-              />
-            </View>
-
             {/* Email */}
             <View style={styles.fieldContainer}>
               <TextInput
                 mode="outlined"
                 label="Email"
-                value={session.user?.email || ""}
+                value={user?.email || ""}
                 editable={false}
                 style={styles.input}
               />
@@ -214,65 +175,6 @@ export default function ProfileSettings() {
                 Email cannot be changed. Contact support if you need to update
                 it.
               </Text>
-            </View>
-          </View>
-
-          {/* Billing Address Section */}
-          <View style={styles.section}>
-            <Text variant="titleLarge" style={styles.sectionTitle}>
-              Billing Address
-            </Text>
-
-            {/* Street Address */}
-            <View style={styles.fieldContainer}>
-              <TextInput
-                mode="outlined"
-                label="Street Address"
-                value={streetAddress}
-                onChangeText={setStreetAddress}
-                placeholder="Enter street address"
-                style={styles.input}
-              />
-            </View>
-
-            {/* City */}
-            <View style={styles.fieldContainer}>
-              <TextInput
-                mode="outlined"
-                label="City"
-                value={city}
-                onChangeText={setCity}
-                placeholder="Enter city"
-                style={styles.input}
-              />
-            </View>
-
-            {/* State and ZIP in a row */}
-            <View style={styles.row}>
-              <View style={[styles.fieldContainer, styles.halfWidth]}>
-                <TextInput
-                  mode="outlined"
-                  label="State"
-                  value={state}
-                  onChangeText={setState}
-                  placeholder="State"
-                  maxLength={2}
-                  autoCapitalize="characters"
-                  style={styles.input}
-                />
-              </View>
-              <View style={[styles.fieldContainer, styles.halfWidth]}>
-                <TextInput
-                  mode="outlined"
-                  label="ZIP Code"
-                  value={zipCode}
-                  onChangeText={setZipCode}
-                  placeholder="ZIP"
-                  keyboardType="numeric"
-                  maxLength={10}
-                  style={styles.input}
-                />
-              </View>
             </View>
           </View>
 
@@ -297,6 +199,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "transparent",
+  },
+  scrollContent: {
+    paddingBottom: BOTTOM_NAV_HEIGHT + 40,
   },
   content: {
     flex: 1,
@@ -352,13 +257,6 @@ const styles = StyleSheet.create({
   emailNote: {
     marginTop: 4,
     color: "#999",
-  },
-  row: {
-    flexDirection: "row",
-    gap: 16,
-  },
-  halfWidth: {
-    flex: 1,
   },
   saveButton: {
     marginTop: 8,

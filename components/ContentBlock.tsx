@@ -81,8 +81,8 @@ export default function ContentBlock() {
               },
             ]}
           >
-            Just sign up. We'll take care of the rest. Picked. Purchased. Sent.
-            For everyone on your list.
+            Just sign up. We&apos;ll take care of the rest. Picked. Purchased.
+            Sent. For everyone on your list.
           </Text>
 
           <Button

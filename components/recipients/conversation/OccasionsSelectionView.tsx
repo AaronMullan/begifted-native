@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { View, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, IconButton, Button } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
+import { HEADER_HEIGHT } from "../../../lib/constants";
 import {
   useOccasionRecommendations,
   mapRecommendationsToOccasions,
@@ -18,7 +20,7 @@ interface OccasionsSelectionViewProps {
   extractedData: ExtractedData;
   onBack: () => void;
   onContinue: (
-    occasions: Array<{ date: string; occasion_type: string }>
+    occasions: { date: string; occasion_type: string }[]
   ) => Promise<void>;
   onSkip: () => Promise<void>;
 }
@@ -29,11 +31,13 @@ export function OccasionsSelectionView({
   onContinue,
   onSkip,
 }: OccasionsSelectionViewProps) {
+  const insets = useSafeAreaInsets();
+  const headerSpacerHeight = Math.max(HEADER_HEIGHT, insets.top + 60);
   const { recommendations, isLoading: isLoadingRecommendations } =
     useOccasionRecommendations(extractedData);
 
   const [selectedOccasions, setSelectedOccasions] = useState<
-    Array<{ date: string; occasion_type: string; enabled: boolean }>
+    { date: string; occasion_type: string; enabled: boolean }[]
   >([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [editingOccasionIndex, setEditingOccasionIndex] = useState<
@@ -42,11 +46,11 @@ export function OccasionsSelectionView({
 
   // Merge conversation-extracted occasions with interest-based AI recommendations
   useEffect(() => {
-    const merged: Array<{
+    const merged: {
       date: string;
       occasion_type: string;
       enabled: boolean;
-    }> = [];
+    }[] = [];
 
     const isoDateRe = /^\d{4}-\d{2}-\d{2}$/;
     const fromConversation = (extractedData.occasions ?? []).map((occ) => {
@@ -131,6 +135,7 @@ export function OccasionsSelectionView({
 
   return (
     <View style={styles.container}>
+      <View style={[styles.appHeaderSpacer, { height: headerSpacerHeight }]} />
       <View style={styles.header}>
         <IconButton
           icon="arrow-left"
@@ -150,15 +155,18 @@ export function OccasionsSelectionView({
         contentContainerStyle={styles.content}
       >
         <Text variant="bodyMedium" style={styles.description}>
-          We've suggested occasions based on your conversation and their
-          interests. Add or remove any you'd like to track.
+          We&apos;ve suggested occasions based on your conversation and their
+          interests. Add or remove any you&apos;d like to track.
         </Text>
 
         {selectedOccasions.length === 0 && isLoadingRecommendations ? (
           <View style={styles.emptyState}>
             <ActivityIndicator size="large" color="#000" />
-            <Text variant="bodyMedium" style={[styles.emptySubtext, { marginTop: 16 }]}>
-              Finding occasions that match their interests…
+            <Text
+              variant="bodyMedium"
+              style={[styles.emptySubtext, { marginTop: 16 }]}
+            >
+              Loading additional occasion ideas…
             </Text>
           </View>
         ) : selectedOccasions.length === 0 ? (
@@ -168,21 +176,31 @@ export function OccasionsSelectionView({
               No occasions found
             </Text>
             <Text variant="bodyMedium" style={styles.emptySubtext}>
-              Occasions will be added from birthday and holidays you mentioned, or
-              add your own after continuing.
+              Occasions will be added from birthday and holidays you mentioned,
+              or add your own after continuing.
             </Text>
           </View>
         ) : (
-          <View style={styles.occasionsList}>
-            {selectedOccasions.map((occasion, index) => (
-              <OccasionItem
-                key={index}
-                occasion={occasion}
-                onToggle={() => toggleOccasion(index)}
-                onEdit={() => handleEditOccasion(index)}
-              />
-            ))}
-          </View>
+          <>
+            <View style={styles.occasionsList}>
+              {selectedOccasions.map((occasion, index) => (
+                <OccasionItem
+                  key={index}
+                  occasion={occasion}
+                  onToggle={() => toggleOccasion(index)}
+                  onEdit={() => handleEditOccasion(index)}
+                />
+              ))}
+            </View>
+            {isLoadingRecommendations && (
+              <View style={styles.loadingMoreRow}>
+                <ActivityIndicator size="small" color="#000" />
+                <Text variant="bodyMedium" style={styles.loadingMoreText}>
+                  Loading additional occasion ideas…
+                </Text>
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
 
@@ -225,6 +243,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
+  appHeaderSpacer: {
+    backgroundColor: "transparent",
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -264,6 +285,15 @@ const styles = StyleSheet.create({
   },
   emptySubtext: {
     textAlign: "center",
+    color: "#666",
+  },
+  loadingMoreRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 16,
+  },
+  loadingMoreText: {
     color: "#666",
   },
   occasionsList: {

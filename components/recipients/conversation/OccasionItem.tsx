@@ -18,7 +18,11 @@ export function OccasionItem({
   onEdit,
 }: OccasionItemProps) {
   const formatDate = (dateString: string): string => {
-    if (!dateString || typeof dateString !== "string" || dateString.includes("01-01")) {
+    if (
+      !dateString ||
+      typeof dateString !== "string" ||
+      dateString.includes("01-01")
+    ) {
       return "Add Date";
     }
 

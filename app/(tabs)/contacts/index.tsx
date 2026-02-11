@@ -1,23 +1,26 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, Platform, ScrollView, StyleSheet, View, Pressable } from "react-native";
-import { Text, Button, IconButton } from "react-native-paper";
-import { BlurView } from "expo-blur";
-import { Colors } from "../lib/colors";
-import ContactFileImport from "../components/ContactFileImport";
-import ContactPicker from "../components/ContactPicker";
-import ContactsAccessIntro from "../components/ContactsAccessIntro";
-import RecipientCard from "../components/RecipientCard";
-import RecipientForm from "../components/RecipientForm";
-import { DeviceContact, useDeviceContacts } from "../hooks/use-device-contacts";
-import { useToast } from "../hooks/use-toast";
-import { useAuth } from "../hooks/use-auth";
-import { useRecipients } from "../hooks/use-recipients";
-import { queryKeys } from "../lib/query-keys";
-import { supabase } from "../lib/supabase";
-import { Recipient } from "../types/recipient";
-import { HEADER_HEIGHT } from "../lib/constants";
+import { Alert, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { Text, Button } from "react-native-paper";
+import { Colors } from "../../../lib/colors";
+import ContactFileImport from "../../../components/ContactFileImport";
+import ContactPicker from "../../../components/ContactPicker";
+import ContactsAccessIntro from "../../../components/ContactsAccessIntro";
+import RecipientCard from "../../../components/RecipientCard";
+import RecipientForm from "../../../components/RecipientForm";
+import {
+  DeviceContact,
+  useDeviceContacts,
+} from "../../../hooks/use-device-contacts";
+import { useToast } from "../../../hooks/use-toast";
+import { useAuth } from "../../../hooks/use-auth";
+import { useRecipients } from "../../../hooks/use-recipients";
+import { queryKeys } from "../../../lib/query-keys";
+import { supabase } from "../../../lib/supabase";
+import { Recipient } from "../../../types/recipient";
+import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
+import { useBottomNavScrollVisibility } from "../../../hooks/use-bottom-nav-scroll-visibility";
 
 export default function Contacts() {
   const router = useRouter();
@@ -49,25 +52,8 @@ export default function Contacts() {
     useState(false);
   const [deviceContacts, setDeviceContacts] = useState<DeviceContact[]>([]);
   const { loading: contactsLoading, getDeviceContacts } = useDeviceContacts();
-  const { showToast, toast } = useToast();
-
-  function openAddForm() {
-    setEditingRecipient(null);
-    setName("");
-    setRelationshipType("");
-    setInterests("");
-    setBirthday("");
-    setEmotionalTone("");
-    setBudgetMin("");
-    setBudgetMax("");
-    setAddress("");
-    setAddressLine2("");
-    setCity("");
-    setState("");
-    setZipCode("");
-    setCountry("US");
-    setFormVisible(true);
-  }
+  const { toast } = useToast();
+  const { handleScroll } = useBottomNavScrollVisibility();
 
   function openEditForm(recipient: Recipient) {
     router.push(`/contacts/${recipient.id}?tab=details`);
@@ -139,33 +125,41 @@ export default function Contacts() {
 
         if (error) throw error;
 
-        await queryClient.invalidateQueries({ queryKey: queryKeys.recipients(user.id) });
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.recipients(user.id),
+        });
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.occasions(user.id),
+        });
         Alert.alert("Success", "Recipient updated successfully!");
       } else {
-        const { error } = await supabase
-          .from("recipients")
-          .insert([
-            {
-              user_id: user.id,
-              name: name.trim(),
-              relationship_type: relationshipType.trim(),
-              interests: interestsArray.length > 0 ? interestsArray : null,
-              birthday: birthday.trim() || null,
-              emotional_tone_preference: emotionalTone.trim() || null,
-              gift_budget_min: budgetMin ? parseInt(budgetMin) : null,
-              gift_budget_max: budgetMax ? parseInt(budgetMax) : null,
-              address: address.trim() || null,
-              address_line_2: addressLine2.trim() || null,
-              city: city.trim() || null,
-              state: state.trim() || null,
-              zip_code: zipCode.trim() || null,
-              country: country.trim() || null,
-            },
-          ]);
+        const { error } = await supabase.from("recipients").insert([
+          {
+            user_id: user.id,
+            name: name.trim(),
+            relationship_type: relationshipType.trim(),
+            interests: interestsArray.length > 0 ? interestsArray : null,
+            birthday: birthday.trim() || null,
+            emotional_tone_preference: emotionalTone.trim() || null,
+            gift_budget_min: budgetMin ? parseInt(budgetMin) : null,
+            gift_budget_max: budgetMax ? parseInt(budgetMax) : null,
+            address: address.trim() || null,
+            address_line_2: addressLine2.trim() || null,
+            city: city.trim() || null,
+            state: state.trim() || null,
+            zip_code: zipCode.trim() || null,
+            country: country.trim() || null,
+          },
+        ]);
 
         if (error) throw error;
 
-        await queryClient.invalidateQueries({ queryKey: queryKeys.recipients(user.id) });
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.recipients(user.id),
+        });
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.occasions(user.id),
+        });
         Alert.alert("Success", "Recipient added successfully!");
       }
 
@@ -192,7 +186,12 @@ export default function Contacts() {
 
       if (error) throw error;
 
-      await queryClient.invalidateQueries({ queryKey: queryKeys.recipients(user.id) });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.recipients(user.id),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.occasions(user.id),
+      });
       Alert.alert("Success", "Recipient deleted");
     } catch (error) {
       if (error instanceof Error) {
@@ -247,7 +246,12 @@ export default function Contacts() {
   return (
     <View style={styles.container}>
       <View style={styles.headerSpacer} />
-      <ScrollView style={styles.scrollView}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
         <View style={styles.content}>
           {/* Header section */}
           <View style={styles.header}>
@@ -259,13 +263,6 @@ export default function Contacts() {
                 Manage the people you want to send gifts to.
               </Text>
             </View>
-            <IconButton
-              icon="arrow-left"
-              size={20}
-              iconColor="#000000"
-              onPress={() => router.back()}
-              style={styles.backButton}
-            />
           </View>
 
           {!formVisible && (
@@ -312,7 +309,7 @@ export default function Contacts() {
               state={state}
               zipCode={zipCode}
               country={country}
-              loading={loading}
+              loading={loading || saving}
               onNameChange={setName}
               onRelationshipTypeChange={setRelationshipType}
               onInterestsChange={setInterests}
@@ -381,8 +378,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   headerSpacer: {
-    height: HEADER_HEIGHT,
-    backgroundColor: "transparent",
+    height: 0,
   },
   scrollView: {
     flex: 1,
@@ -393,6 +389,9 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: "100%",
     padding: 20,
+  },
+  scrollContent: {
+    paddingBottom: BOTTOM_NAV_HEIGHT,
   },
   header: {
     flexDirection: "row",
@@ -410,9 +409,6 @@ const styles = StyleSheet.create({
   subtitle: {
     color: Colors.darks.black,
     opacity: 0.9,
-  },
-  backButton: {
-    margin: 0,
   },
   addButton: {
     marginBottom: 20,

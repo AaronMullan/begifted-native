@@ -21,12 +21,6 @@ export interface Profile {
   billing_address_zip?: string;
 }
 
-export interface DashboardStats {
-  username: string;
-  recipientsCount: number;
-  upcomingCount: number;
-}
-
 export interface Occasion {
   id: string;
   date: string;
@@ -41,9 +35,7 @@ export interface Occasion {
 /**
  * Fetch all recipients for a user
  */
-export async function fetchRecipients(
-  userId: string
-): Promise<Recipient[]> {
+export async function fetchRecipients(userId: string): Promise<Recipient[]> {
   const { data, error } = await supabase
     .from("recipients")
     .select(
@@ -90,7 +82,13 @@ export async function fetchOccasions(userId: string): Promise<Occasion[]> {
     .order("date", { ascending: true });
 
   if (occasionsError) {
-    console.error("Error fetching occasions:", occasionsError);
+    const msg =
+      occasionsError instanceof Error
+        ? occasionsError.message
+        : String(occasionsError);
+    if (!msg.includes("Network request failed") && !msg.includes("timed out")) {
+      console.error("Error fetching occasions:", occasionsError);
+    }
     return [];
   }
 
@@ -99,22 +97,24 @@ export async function fetchOccasions(userId: string): Promise<Occasion[]> {
   }
 
   // Fetch recipients for the occasions
-  const recipientIds = [
-    ...new Set(occasionsData.map((o) => o.recipient_id)),
-  ];
+  const recipientIds = [...new Set(occasionsData.map((o) => o.recipient_id))];
   const { data: recipientsData, error: recipientsError } = await supabase
     .from("recipients")
     .select("id, name, relationship_type")
     .in("id", recipientIds);
 
   if (recipientsError) {
-    console.error("Error fetching recipients:", recipientsError);
+    const msg =
+      recipientsError instanceof Error
+        ? recipientsError.message
+        : String(recipientsError);
+    if (!msg.includes("Network request failed") && !msg.includes("timed out")) {
+      console.error("Error fetching recipients:", recipientsError);
+    }
   }
 
   // Create a map of recipients for quick lookup
-  const recipientsMap = new Map(
-    (recipientsData || []).map((r) => [r.id, r])
-  );
+  const recipientsMap = new Map((recipientsData || []).map((r) => [r.id, r]));
 
   // Transform the data to include recipient info
   const transformedOccasions: Occasion[] = occasionsData.map(
@@ -155,119 +155,6 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
   }
 
   return data || null;
-}
-
-const FETCH_TIMEOUT_MS = 12_000;
-
-function withTimeout<T>(p: PromiseLike<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    Promise.resolve(p),
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
-    ),
-  ]);
-}
-
-function fallbackStats(userEmail?: string): DashboardStats {
-  return {
-    username: userEmail ? userEmail.split("@")[0] : "",
-    recipientsCount: 0,
-    upcomingCount: 0,
-  };
-}
-
-/**
- * Fetch dashboard statistics
- */
-export async function fetchDashboardStats(
-  userId: string,
-  userEmail?: string
-): Promise<DashboardStats> {
-  let username = userEmail ? userEmail.split("@")[0] : "";
-  let recipientsCount = 0;
-  let upcomingCount = 0;
-
-  try {
-    try {
-      const { data: profileData, error: profileError } = await withTimeout(
-        supabase
-          .from("profiles")
-          .select("username")
-          .eq("id", userId)
-          .single(),
-        FETCH_TIMEOUT_MS,
-        "profiles"
-      );
-
-      if (profileError && profileError.code !== "PGRST116") {
-        console.error("Error fetching profile:", profileError?.message ?? profileError);
-      }
-      if (profileData?.username) {
-        username = profileData.username;
-      }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      if (!msg.includes("Network request failed") && !msg.includes("timed out")) {
-        console.error("Error fetching profile for dashboard:", e);
-      }
-    }
-
-    try {
-      const { count: rc, error: recipientsError } = await withTimeout(
-        supabase
-          .from("recipients")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", userId),
-        FETCH_TIMEOUT_MS,
-        "recipients count"
-      );
-
-      if (recipientsError) {
-        console.error("Error fetching recipients count:", recipientsError?.message ?? recipientsError);
-      } else {
-        recipientsCount = rc ?? 0;
-      }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      if (!msg.includes("Network request failed") && !msg.includes("timed out")) {
-        console.error("Error fetching recipients count:", e);
-      }
-    }
-
-    try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const futureDate = new Date(today);
-      futureDate.setDate(futureDate.getDate() + 90);
-
-      const { count: oc, error: occasionsError } = await withTimeout(
-        supabase
-          .from("occasions")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", userId)
-          .gte("date", today.toISOString().split("T")[0])
-          .lte("date", futureDate.toISOString().split("T")[0]),
-        FETCH_TIMEOUT_MS,
-        "occasions count"
-      );
-
-      if (occasionsError) {
-        console.error("Error fetching occasions count:", occasionsError?.message ?? occasionsError);
-      } else {
-        upcomingCount = oc ?? 0;
-      }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      if (!msg.includes("Network request failed") && !msg.includes("timed out")) {
-        console.error("Error fetching occasions count:", e);
-      }
-    }
-
-    return { username, recipientsCount, upcomingCount };
-  } catch (e) {
-    console.error("fetchDashboardStats unexpected error:", e);
-    return fallbackStats(userEmail);
-  }
 }
 
 /**

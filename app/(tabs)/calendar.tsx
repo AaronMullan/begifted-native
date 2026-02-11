@@ -1,8 +1,7 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,15 +9,12 @@ import {
   View,
   Pressable,
 } from "react-native";
-import { IconButton } from "react-native-paper";
 import { BlurView } from "expo-blur";
-import { Colors } from "../lib/colors";
-import { supabase } from "../lib/supabase";
-import { Recipient } from "../types/recipient";
-import { useToast } from "../hooks/use-toast";
-import { useAuth } from "../hooks/use-auth";
-import { useOccasions } from "../hooks/use-occasions";
-import { HEADER_HEIGHT } from "../lib/constants";
+import { Colors } from "../../lib/colors";
+import { useAuth } from "../../hooks/use-auth";
+import { useOccasions } from "../../hooks/use-occasions";
+import { useToast } from "../../hooks/use-toast";
+import { useBottomNavScrollVisibility } from "../../hooks/use-bottom-nav-scroll-visibility";
 
 interface Occasion {
   id: string;
@@ -39,7 +35,8 @@ export default function Calendar() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { data: occasions = [], isLoading: loading } = useOccasions();
-  const { showToast, toast } = useToast();
+  const { toast } = useToast();
+  const { handleScroll } = useBottomNavScrollVisibility();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -137,7 +134,11 @@ export default function Calendar() {
   return (
     <View style={styles.container}>
       <View style={styles.headerSpacer} />
-      <ScrollView style={styles.scrollView}>
+      <ScrollView
+        style={styles.scrollView}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
         <View style={styles.content}>
           {/* Main card container */}
           <Pressable style={styles.mainCard}>
@@ -150,13 +151,6 @@ export default function Calendar() {
                   View all your upcoming occasions
                 </Text>
               </View>
-              <IconButton
-                icon="arrow-left"
-                size={20}
-                iconColor="#000000"
-                onPress={() => router.back()}
-                style={styles.backButton}
-              />
             </View>
 
             {/* Summary section */}
@@ -200,7 +194,10 @@ export default function Calendar() {
                           style={styles.occasionCard}
                           onPress={() => handleOccasionPress(occasion)}
                         >
-                          <BlurView intensity={20} style={styles.occasionBlurBackground} />
+                          <BlurView
+                            intensity={20}
+                            style={styles.occasionBlurBackground}
+                          />
                           <View style={styles.occasionIconContainer}>
                             <MaterialIcons
                               name="card-giftcard"
@@ -255,8 +252,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   headerSpacer: {
-    height: HEADER_HEIGHT,
-    backgroundColor: "transparent",
+    height: 0,
   },
   scrollView: {
     flex: 1,
@@ -304,9 +300,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.darks.black,
     opacity: 0.9,
-  },
-  backButton: {
-    margin: 0,
   },
   summarySection: {
     flexDirection: "row",

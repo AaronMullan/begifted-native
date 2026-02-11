@@ -2,11 +2,11 @@ import { View, ScrollView, StyleSheet } from "react-native";
 import { Text, IconButton, Card } from "react-native-paper";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
-import { supabase } from "../../lib/supabase";
-import { HEADER_HEIGHT } from "../../lib/constants";
+import { supabase } from "../../../lib/supabase";
+import { HEADER_HEIGHT } from "../../../lib/constants";
 import { Session } from "@supabase/supabase-js";
 
-export default function BillingSettings() {
+export default function SupportSettings() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -30,7 +30,7 @@ export default function BillingSettings() {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [router]);
 
   if (loading) {
     return (
@@ -47,10 +47,10 @@ export default function BillingSettings() {
       <View style={styles.container}>
         <View style={styles.content}>
           <Text variant="headlineMedium" style={styles.title}>
-            Billing & Subscription
+            Support & Help
           </Text>
           <Text variant="bodyLarge" style={styles.subtitle}>
-            Please sign in to manage your billing.
+            Please sign in to access support.
           </Text>
         </View>
       </View>
@@ -66,10 +66,10 @@ export default function BillingSettings() {
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <Text variant="headlineMedium" style={styles.title}>
-                Billing & Subscription
+                Support & Help
               </Text>
               <Text variant="bodyLarge" style={styles.subtitle}>
-                Manage your subscription plan and payment methods
+                Get help, contact support or report issues
               </Text>
             </View>
             <IconButton
@@ -87,9 +87,9 @@ export default function BillingSettings() {
               Coming Soon
             </Text>
             <Text variant="bodyMedium" style={styles.placeholderText}>
-              Billing and subscription management will be available here soon.
-              You'll be able to view your current plan, update payment methods,
-              and manage your subscription.
+              Support and help resources will be available here soon.
+              You&apos;ll be able to contact our support team, browse FAQs, and
+              report issues directly from this page.
             </Text>
           </View>
         </Card>

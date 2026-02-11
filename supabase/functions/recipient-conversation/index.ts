@@ -24,13 +24,22 @@ serve(async (req) => {
   try {
     // Parse request body
     const requestBody = await req.json();
-    const { action, conversationType, messages, targetFields, existingData, extractedData } =
-      requestBody;
+    const {
+      action,
+      conversationType,
+      messages,
+      targetFields,
+      existingData,
+      extractedData,
+    } = requestBody;
 
     if (!action) {
       return new Response(
         JSON.stringify({ error: "Missing required field: action" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        }
       );
     }
 
@@ -39,8 +48,13 @@ serve(async (req) => {
       const data = extractedData ?? requestBody.extractedData;
       if (!data || typeof data !== "object") {
         return new Response(
-          JSON.stringify({ error: "recommend_occasions requires extractedData" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+          JSON.stringify({
+            error: "recommend_occasions requires extractedData",
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 400,
+          }
         );
       }
       const result = await recommendOccasions(data);
@@ -54,7 +68,8 @@ serve(async (req) => {
     if (!conversationType || !messages) {
       return new Response(
         JSON.stringify({
-          error: "Missing required fields: conversationType and messages are required",
+          error:
+            "Missing required fields: conversationType and messages are required",
         }),
         {
           headers: {
