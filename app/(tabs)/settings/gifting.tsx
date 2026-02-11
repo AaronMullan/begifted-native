@@ -5,6 +5,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Pressable,
+  Platform,
+  Alert,
 } from "react-native";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
@@ -12,7 +14,7 @@ import { BlurView } from "expo-blur";
 import { supabase } from "../../../lib/supabase";
 import { HEADER_HEIGHT, BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { Colors } from "../../../lib/colors";
-import { Session } from "@supabase/supabase-js";
+import { useAuth } from "../../../hooks/use-auth";
 import { IconButton } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import PreferenceCard from "../../../components/PreferenceCard";
@@ -36,8 +38,8 @@ interface GiftingPreferencesFormData {
 }
 
 export default function GiftingPreferences() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth();
+  const [preferencesLoading, setPreferencesLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const router = useRouter();
 
@@ -56,51 +58,35 @@ export default function GiftingPreferences() {
   const [showReminderPicker, setShowReminderPicker] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
+    if (!authLoading && !user) {
+      router.replace("/");
+    }
+  }, [authLoading, user, router]);
 
-    supabase.auth
-      .getSession()
-      .then(({ data: { session } }) => {
-        if (cancelled) return;
-        setSession(session);
-        if (session) {
-          fetchPreferences(session.user.id);
-        } else {
-          setLoading(false);
-          router.replace("/");
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (cancelled) return;
-      setSession(session);
-      if (session) {
-        fetchPreferences(session.user.id);
-      } else {
-        setLoading(false);
-        router.replace("/");
-      }
-    });
-
-    return () => {
-      cancelled = true;
-      subscription.unsubscribe();
-    };
-  }, [router]);
+  useEffect(() => {
+    if (!user) {
+      setPreferencesLoading(false);
+      return;
+    }
+    fetchPreferences(user.id);
+  }, [user]);
 
   async function fetchPreferences(userId: string) {
     try {
-      setLoading(true);
-      const { data, error } = await supabase
+      setPreferencesLoading(true);
+      const FETCH_TIMEOUT_MS = 15_000;
+      const fetchPromise = supabase
         .from("user_preferences")
         .select("*")
         .eq("user_id", userId)
         .maybeSingle();
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Request timeout")), FETCH_TIMEOUT_MS)
+      );
+      const { data, error } = await Promise.race([
+        fetchPromise,
+        timeoutPromise,
+      ]);
 
       if (error && error.code !== "PGRST116") {
         console.error("Error fetching preferences:", error);
@@ -127,12 +113,12 @@ export default function GiftingPreferences() {
       console.error("Error fetching preferences:", error);
       // Show form with defaults on timeout or network error
     } finally {
-      setLoading(false);
+      setPreferencesLoading(false);
     }
   }
 
   async function handleSave() {
-    if (!session?.user) {
+    if (!user) {
       return;
     }
 
@@ -148,7 +134,7 @@ export default function GiftingPreferences() {
       };
 
       const updates = {
-        user_id: session.user.id,
+        user_id: user.id,
         user_stack: userStack,
         default_gifting_tone: formData.giftingTone,
         reminder_days: parseInt(formData.reminderDays),
@@ -167,11 +153,25 @@ export default function GiftingPreferences() {
       }
 
       setOriginalFormData(formData);
-    } catch (error) {
-      console.error("Error saving preferences:", error);
+    } catch (error: unknown) {
+      let message = "Unknown error";
       if (error instanceof Error) {
-        alert(`Failed to save preferences: ${error.message}`);
+        message = error.message;
+      } else if (error && typeof error === "object") {
+        const supabaseError = error as { message?: string; details?: string };
+        message = supabaseError.message || message;
+        if (supabaseError.details) {
+          message += `\n\n${supabaseError.details}`;
+        }
       }
+      console.error("Error saving preferences:", error);
+      const isNetworkError = /network request failed/i.test(message);
+      Alert.alert(
+        "Error",
+        isNetworkError
+          ? "Network request failed. Check your internet connection and try again."
+          : `Failed to save preferences: ${message}`
+      );
     } finally {
       setSaving(false);
     }
@@ -183,6 +183,7 @@ export default function GiftingPreferences() {
     REMINDER_OPTIONS.find((opt) => opt.value === formData.reminderDays)
       ?.label || "1 week before";
 
+  const loading = authLoading || preferencesLoading;
   if (loading) {
     return (
       <View style={styles.container}>
@@ -194,7 +195,7 @@ export default function GiftingPreferences() {
     );
   }
 
-  if (!session) {
+  if (!user) {
     return (
       <View style={styles.container}>
         <View style={styles.headerSpacer} />
@@ -349,33 +350,29 @@ export default function GiftingPreferences() {
                   )}
                 </View>
               </View>
-              {/* Save Button */}
-              <TouchableOpacity
-                style={[
-                  styles.saveButton,
-                  !hasChanges && styles.saveButtonDisabled,
-                  saving && styles.saveButtonSaving,
-                ]}
-                onPress={handleSave}
-                disabled={saving || !hasChanges}
-              >
-                <Text
-                  style={[
-                    styles.saveButtonText,
-                    !hasChanges && styles.saveButtonTextDisabled,
-                  ]}
-                >
-                  {saving
-                    ? "Saving..."
-                    : hasChanges
-                      ? "Save Preferences"
-                      : "No Changes"}
-                </Text>
-              </TouchableOpacity>
             </View>
           </Pressable>
         </View>
       </ScrollView>
+
+      {/* Floating Save Button - only shown when there are unsaved changes */}
+      {hasChanges && (
+        <View style={styles.floatingSaveContainer} pointerEvents="box-none">
+          <TouchableOpacity
+            style={[
+              styles.floatingSaveButton,
+              saving && styles.floatingSaveButtonSaving,
+            ]}
+            onPress={handleSave}
+            disabled={saving}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.floatingSaveButtonText}>
+              {saving ? "Saving..." : "Save Preferences"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -394,7 +391,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   scrollContent: {
-    paddingBottom: BOTTOM_NAV_HEIGHT + 40,
+    paddingBottom: BOTTOM_NAV_HEIGHT + 100, // Extra space for floating save button
   },
   content: {
     flex: 1,
@@ -524,27 +521,45 @@ const styles = StyleSheet.create({
     color: "#666",
     lineHeight: 20,
   },
-  saveButton: {
+  floatingSaveContainer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 20,
+    paddingBottom: BOTTOM_NAV_HEIGHT + 12,
+    paddingTop: 12,
+    alignItems: "center",
+    backgroundColor: "transparent",
+  },
+  floatingSaveButton: {
     backgroundColor: "#000000",
     paddingVertical: 16,
-    borderRadius: 8,
+    paddingHorizontal: 32,
+    borderRadius: 12,
     alignItems: "center",
-    marginTop: 8,
+    justifyContent: "center",
+    width: "100%",
+    maxWidth: 400,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
-  saveButtonDisabled: {
-    backgroundColor: "#E0E0E0",
-    opacity: 0.6,
-  },
-  saveButtonSaving: {
+  floatingSaveButtonSaving: {
     opacity: 0.7,
   },
-  saveButtonText: {
+  floatingSaveButtonText: {
     color: "white",
     fontSize: 16,
     fontWeight: "600",
-  },
-  saveButtonTextDisabled: {
-    color: "#666",
   },
   loadingText: {
     textAlign: "center",
