@@ -23,7 +23,8 @@ export default function Dashboard() {
   // Single source of truth: derive stats from the same data Contacts and Calendar use
   const recipientsCount = recipients.length;
   const upcomingCount = occasions.length;
-  const displayName = profile?.username || user?.email?.split("@")[0] || "User";
+  const displayName =
+    profile?.full_name || user?.email?.split("@")[0] || "User";
   const isLoading = loadingRecipients || loadingOccasions;
 
   // Show loading while auth is being checked

@@ -116,8 +116,12 @@ export default function Settings() {
       >
         <View style={styles.content}>
           {/* Main card container */}
-          <Pressable style={styles.mainCard}>
-            <BlurView intensity={20} style={styles.blurBackground} />
+          <View style={styles.mainCard}>
+            <BlurView
+              intensity={20}
+              style={styles.blurBackground}
+              pointerEvents="none"
+            />
             {/* Header section */}
             <View style={styles.header}>
               <View style={styles.headerLeft}>
@@ -138,7 +142,11 @@ export default function Settings() {
                   style={styles.settingsCard}
                   onPress={() => router.push(card.route)}
                 >
-                  <BlurView intensity={20} style={styles.cardBlurBackground} />
+                  <BlurView
+                    intensity={20}
+                    style={styles.cardBlurBackground}
+                    pointerEvents="none"
+                  />
                   <View style={styles.cardContentWrapper}>
                     <View
                       style={[
@@ -171,7 +179,7 @@ export default function Settings() {
                 </Pressable>
               ))}
             </View>
-          </Pressable>
+          </View>
         </View>
       </ScrollView>
     </View>

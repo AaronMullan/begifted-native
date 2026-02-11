@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { supabase } from "../../../lib/supabase";
-import { HEADER_HEIGHT } from "../../../lib/constants";
+import { HEADER_HEIGHT, BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { Colors } from "../../../lib/colors";
 import { Session } from "@supabase/supabase-js";
 import { IconButton } from "react-native-paper";
@@ -214,7 +214,10 @@ export default function Notifications() {
   return (
     <View style={styles.container}>
       <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
-      <ScrollView style={styles.scrollView}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+      >
         <View style={styles.content}>
           {/* Main white card container */}
           <View style={styles.mainCard}>
@@ -499,6 +502,9 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     backgroundColor: "transparent",
+  },
+  scrollContent: {
+    paddingBottom: BOTTOM_NAV_HEIGHT + 40,
   },
   content: {
     flex: 1,

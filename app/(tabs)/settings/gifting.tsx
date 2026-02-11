@@ -10,7 +10,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { BlurView } from "expo-blur";
 import { supabase } from "../../../lib/supabase";
-import { HEADER_HEIGHT } from "../../../lib/constants";
+import { HEADER_HEIGHT, BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { Colors } from "../../../lib/colors";
 import { Session } from "@supabase/supabase-js";
 import { IconButton } from "react-native-paper";
@@ -96,16 +96,11 @@ export default function GiftingPreferences() {
   async function fetchPreferences(userId: string) {
     try {
       setLoading(true);
-      const { data, error } = await Promise.race([
-        supabase
-          .from("user_preferences")
-          .select("*")
-          .eq("user_id", userId)
-          .maybeSingle(),
-        new Promise<{ data: null; error: { code: string } }>((_, rej) =>
-          setTimeout(() => rej(new Error("timeout")), 10000)
-        ),
-      ]);
+      const { data, error } = await supabase
+        .from("user_preferences")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
 
       if (error && error.code !== "PGRST116") {
         console.error("Error fetching preferences:", error);
@@ -216,7 +211,10 @@ export default function GiftingPreferences() {
   return (
     <View style={styles.container}>
       <View style={styles.headerSpacer} />
-      <ScrollView style={styles.scrollView}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+      >
         <View style={styles.content}>
           {/* Main card container – match dashboard/settings card style */}
           <Pressable style={styles.mainCard}>
@@ -394,6 +392,9 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     backgroundColor: "transparent",
+  },
+  scrollContent: {
+    paddingBottom: BOTTOM_NAV_HEIGHT + 40,
   },
   content: {
     flex: 1,

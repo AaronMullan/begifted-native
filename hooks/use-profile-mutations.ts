@@ -4,17 +4,7 @@ import { queryKeys } from "../lib/query-keys";
 import type { Profile } from "../lib/api";
 
 interface UpdateProfileData {
-  username?: string | null;
   full_name?: string | null;
-  name?: string | null;
-  billing_address_street?: string | null;
-  billing_address_city?: string | null;
-  billing_address_state?: string | null;
-  billing_address_zip?: string | null;
-  street_address?: string | null;
-  city?: string | null;
-  state?: string | null;
-  zip_code?: string | null;
   updated_at?: string;
 }
 
@@ -32,18 +22,22 @@ export function useUpdateProfile() {
       userId: string;
       data: UpdateProfileData;
     }): Promise<Profile> => {
+      // Use update instead of upsert - profile row should exist from signup trigger.
+      // Only send full_name (omit username to avoid min-3-char constraint).
+      const payload: Record<string, unknown> = {
+        full_name: data.full_name ?? null,
+        updated_at: new Date().toISOString(),
+      };
+
       const { data: profile, error } = await supabase
         .from("profiles")
-        .upsert({
-          id: userId,
-          ...data,
-          updated_at: new Date().toISOString(),
-        })
+        .update(payload)
+        .eq("id", userId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      return profile;
+      return profile as Profile;
     },
     onSuccess: (_, variables) => {
       // Invalidate profile and dashboard stats
