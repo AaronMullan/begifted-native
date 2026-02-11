@@ -17,7 +17,8 @@ import { useRecipients } from "../hooks/use-recipients";
 import { queryKeys } from "../lib/query-keys";
 import { supabase } from "../lib/supabase";
 import { Recipient } from "../types/recipient";
-import { HEADER_HEIGHT } from "../lib/constants";
+import { BOTTOM_NAV_HEIGHT } from "../lib/constants";
+import { useBottomNavScrollVisibility } from "../hooks/use-bottom-nav-scroll-visibility";
 
 export default function Contacts() {
   const router = useRouter();
@@ -50,6 +51,7 @@ export default function Contacts() {
   const [deviceContacts, setDeviceContacts] = useState<DeviceContact[]>([]);
   const { loading: contactsLoading, getDeviceContacts } = useDeviceContacts();
   const { showToast, toast } = useToast();
+  const { handleScroll } = useBottomNavScrollVisibility();
 
   function openAddForm() {
     setEditingRecipient(null);
@@ -140,6 +142,8 @@ export default function Contacts() {
         if (error) throw error;
 
         await queryClient.invalidateQueries({ queryKey: queryKeys.recipients(user.id) });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats(user.id) });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.occasions(user.id) });
         Alert.alert("Success", "Recipient updated successfully!");
       } else {
         const { error } = await supabase
@@ -166,6 +170,8 @@ export default function Contacts() {
         if (error) throw error;
 
         await queryClient.invalidateQueries({ queryKey: queryKeys.recipients(user.id) });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats(user.id) });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.occasions(user.id) });
         Alert.alert("Success", "Recipient added successfully!");
       }
 
@@ -193,6 +199,8 @@ export default function Contacts() {
       if (error) throw error;
 
       await queryClient.invalidateQueries({ queryKey: queryKeys.recipients(user.id) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats(user.id) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.occasions(user.id) });
       Alert.alert("Success", "Recipient deleted");
     } catch (error) {
       if (error instanceof Error) {
@@ -247,7 +255,12 @@ export default function Contacts() {
   return (
     <View style={styles.container}>
       <View style={styles.headerSpacer} />
-      <ScrollView style={styles.scrollView}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
         <View style={styles.content}>
           {/* Header section */}
           <View style={styles.header}>
@@ -381,8 +394,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   headerSpacer: {
-    height: HEADER_HEIGHT,
-    backgroundColor: "transparent",
+    height: 0,
   },
   scrollView: {
     flex: 1,
@@ -393,6 +405,9 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: "100%",
     padding: 20,
+  },
+  scrollContent: {
+    paddingBottom: BOTTOM_NAV_HEIGHT,
   },
   header: {
     flexDirection: "row",

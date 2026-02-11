@@ -18,7 +18,8 @@ import { Recipient } from "../types/recipient";
 import { useToast } from "../hooks/use-toast";
 import { useAuth } from "../hooks/use-auth";
 import { useOccasions } from "../hooks/use-occasions";
-import { HEADER_HEIGHT } from "../lib/constants";
+import { HEADER_HEIGHT, BOTTOM_NAV_HEIGHT } from "../lib/constants";
+import { useBottomNavScrollVisibility } from "../hooks/use-bottom-nav-scroll-visibility";
 
 interface Occasion {
   id: string;
@@ -40,6 +41,7 @@ export default function Calendar() {
   const { user, loading: authLoading } = useAuth();
   const { data: occasions = [], isLoading: loading } = useOccasions();
   const { showToast, toast } = useToast();
+  const { handleScroll } = useBottomNavScrollVisibility();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -137,7 +139,11 @@ export default function Calendar() {
   return (
     <View style={styles.container}>
       <View style={styles.headerSpacer} />
-      <ScrollView style={styles.scrollView}>
+      <ScrollView
+        style={styles.scrollView}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
         <View style={styles.content}>
           {/* Main card container */}
           <Pressable style={styles.mainCard}>
@@ -255,8 +261,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   headerSpacer: {
-    height: HEADER_HEIGHT,
-    backgroundColor: "transparent",
+    height: 0,
   },
   scrollView: {
     flex: 1,

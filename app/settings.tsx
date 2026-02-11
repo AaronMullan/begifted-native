@@ -7,7 +7,7 @@ import { Session } from "@supabase/supabase-js";
 import { MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { Colors } from "../lib/colors";
-import { HEADER_HEIGHT } from "../lib/constants";
+import { BOTTOM_NAV_HEIGHT } from "../lib/constants";
 
 export default function Settings() {
   const [session, setSession] = useState<Session | null>(null);
@@ -110,7 +110,7 @@ export default function Settings() {
   return (
     <View style={styles.container}>
       <View style={styles.headerSpacer} />
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
         {/* Main card container */}
         <Pressable style={styles.mainCard}>
@@ -188,8 +188,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   headerSpacer: {
-    height: HEADER_HEIGHT,
-    backgroundColor: "transparent",
+    height: 0,
   },
   scrollView: {
     flex: 1,
@@ -201,6 +200,9 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: "100%",
     padding: 20,
+  },
+  scrollContent: {
+    paddingBottom: BOTTOM_NAV_HEIGHT,
   },
   mainCard: {
     backgroundColor: Colors.neutrals.light + "30", // Low opacity (~19%)

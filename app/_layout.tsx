@@ -1,12 +1,15 @@
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { Provider as PaperProvider, MD3LightTheme } from "react-native-paper";
 import { View, StyleSheet } from "react-native";
 import Header from "../components/Header";
 import GradientBackground from "../components/GradientBackground";
+import BottomNav from "../components/BottomNav";
 import { useFontsLoader } from "../hooks/use-fonts-loader";
 import { defaultQueryOptions } from "../lib/query-defaults";
+import { persistOptions } from "../lib/query-persister";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -53,13 +56,20 @@ export default function RootLayout() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={persistOptions}
+    >
       <PaperProvider theme={customTheme}>
         <View style={styles.container}>
           <GradientBackground />
+          {/* Keep header static above animated views */}
+          <HeaderWrapper />
           <Stack
             screenOptions={{
-              header: () => <HeaderWrapper />,
+              // Disable stack-level fade/slide animations; let screens animate their own content
+              animation: "none",
+              headerShown: false,
               headerTransparent: true,
               headerStyle: {
                 backgroundColor: "transparent",
@@ -70,9 +80,10 @@ export default function RootLayout() {
               gestureEnabled: false,
             }}
           />
+          <BottomNav />
         </View>
       </PaperProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }
 

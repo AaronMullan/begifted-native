@@ -90,7 +90,13 @@ export async function fetchOccasions(userId: string): Promise<Occasion[]> {
     .order("date", { ascending: true });
 
   if (occasionsError) {
-    console.error("Error fetching occasions:", occasionsError);
+    const msg =
+      occasionsError instanceof Error
+        ? occasionsError.message
+        : String(occasionsError);
+    if (!msg.includes("Network request failed") && !msg.includes("timed out")) {
+      console.error("Error fetching occasions:", occasionsError);
+    }
     return [];
   }
 
@@ -108,7 +114,13 @@ export async function fetchOccasions(userId: string): Promise<Occasion[]> {
     .in("id", recipientIds);
 
   if (recipientsError) {
-    console.error("Error fetching recipients:", recipientsError);
+    const msg =
+      recipientsError instanceof Error
+        ? recipientsError.message
+        : String(recipientsError);
+    if (!msg.includes("Network request failed") && !msg.includes("timed out")) {
+      console.error("Error fetching recipients:", recipientsError);
+    }
   }
 
   // Create a map of recipients for quick lookup
@@ -200,7 +212,13 @@ export async function fetchDashboardStats(
       );
 
       if (profileError && profileError.code !== "PGRST116") {
-        console.error("Error fetching profile:", profileError?.message ?? profileError);
+        const msg =
+          profileError instanceof Error
+            ? profileError.message
+            : (profileError as any)?.message ?? String(profileError);
+        if (!msg.includes("Network request failed") && !msg.includes("timed out")) {
+          console.error("Error fetching profile:", msg);
+        }
       }
       if (profileData?.username) {
         username = profileData.username;
@@ -223,7 +241,13 @@ export async function fetchDashboardStats(
       );
 
       if (recipientsError) {
-        console.error("Error fetching recipients count:", recipientsError?.message ?? recipientsError);
+        const msg =
+          recipientsError instanceof Error
+            ? recipientsError.message
+            : (recipientsError as any)?.message ?? String(recipientsError);
+        if (!msg.includes("Network request failed") && !msg.includes("timed out")) {
+          console.error("Error fetching recipients count:", msg);
+        }
       } else {
         recipientsCount = rc ?? 0;
       }
@@ -252,7 +276,13 @@ export async function fetchDashboardStats(
       );
 
       if (occasionsError) {
-        console.error("Error fetching occasions count:", occasionsError?.message ?? occasionsError);
+        const msg =
+          occasionsError instanceof Error
+            ? occasionsError.message
+            : (occasionsError as any)?.message ?? String(occasionsError);
+        if (!msg.includes("Network request failed") && !msg.includes("timed out")) {
+          console.error("Error fetching occasions count:", msg);
+        }
       } else {
         upcomingCount = oc ?? 0;
       }

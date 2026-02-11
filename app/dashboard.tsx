@@ -4,7 +4,8 @@ import { Link, useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { Colors } from "../lib/colors";
-import { HEADER_HEIGHT } from "../lib/constants";
+import { BOTTOM_NAV_HEIGHT } from "../lib/constants";
+import { useBottomNavScrollVisibility } from "../hooks/use-bottom-nav-scroll-visibility";
 import { useAuth } from "../hooks/use-auth";
 import { useDashboardStats } from "../hooks/use-dashboard-stats";
 
@@ -12,6 +13,7 @@ export default function Dashboard() {
   const router = useRouter();
   const { user } = useAuth();
   const { data: stats, isLoading } = useDashboardStats();
+  const { handleScroll } = useBottomNavScrollVisibility();
 
   if (!user) {
     return (
@@ -67,6 +69,8 @@ export default function Dashboard() {
         showsHorizontalScrollIndicator={false}
         contentInsetAdjustmentBehavior="never"
         bounces={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
         <View style={styles.content}>
         {/* Header section */}
@@ -174,12 +178,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     backgroundColor: "transparent",
     alignItems: "center",
+    paddingBottom: BOTTOM_NAV_HEIGHT,
   },
   content: {
     maxWidth: 800,
     width: "100%",
     padding: 20,
-    paddingTop: HEADER_HEIGHT, // Account for header height
     backgroundColor: "transparent",
     alignSelf: "stretch",
   },

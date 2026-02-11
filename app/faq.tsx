@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { IconButton, Text, ActivityIndicator } from "react-native-paper";
 import { BlurView } from "expo-blur";
 import { Colors } from "../lib/colors";
-import { HEADER_HEIGHT } from "../lib/constants";
+import { BOTTOM_NAV_HEIGHT } from "../lib/constants";
 import { useFaqs } from "../hooks/use-faqs";
 
 export default function FAQ() {
@@ -19,7 +19,10 @@ export default function FAQ() {
   return (
     <View style={styles.container}>
       <View style={styles.headerSpacer} />
-      <ScrollView style={styles.scrollView}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+      >
         <View style={styles.content}>
         {/* Header section */}
         <View style={styles.header}>
@@ -82,8 +85,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   headerSpacer: {
-    height: HEADER_HEIGHT,
-    backgroundColor: "transparent",
+    height: 0,
   },
   scrollView: {
     flex: 1,
@@ -94,6 +96,9 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: "100%",
     padding: 20,
+  },
+  scrollContent: {
+    paddingBottom: BOTTOM_NAV_HEIGHT,
   },
   header: {
     flexDirection: "row",

@@ -1,7 +1,9 @@
 import * as Haptics from "expo-haptics";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Alert } from "react-native";
+import { queryKeys } from "../lib/query-keys";
 import { supabase } from "../lib/supabase";
 import {
   ExtractedData,
@@ -39,6 +41,7 @@ export function useAddRecipientFlow(
   initialContactName?: string
 ): UseAddRecipientFlowReturn {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [showDataReview, setShowDataReview] = useState(false);
   const [showOccasionsSelection, setShowOccasionsSelection] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -132,6 +135,11 @@ export function useAddRecipientFlow(
           }
         }
 
+        // Invalidate cache so dashboard and contacts show the new recipient
+        await queryClient.invalidateQueries({ queryKey: queryKeys.recipients(userId) });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats(userId) });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.occasions(userId) });
+
         // Trigger success haptic feedback
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
@@ -164,7 +172,7 @@ export function useAddRecipientFlow(
         setIsSaving(false);
       }
     },
-    [userId, router]
+    [userId, router, queryClient]
   );
 
   // Wrap generic sendMessage to maintain interface
