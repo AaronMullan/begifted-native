@@ -1,17 +1,17 @@
-# Gift-Generated Push Notifications Plan
+# Gift-Generated Push Notifications Plan (Revised)
 
 ## Overview
 
-Implement push notifications to alert users when gift suggestions have been generated for one of their recipients. The solution uses Supabase Database Webhooks to trigger an Edge Function when gift_suggestions rows are inserted, which sends notifications via the Expo Push API. The app will register for push, store tokens, and handle notification taps with deep linking.
+Push notifications alert users when gift suggestions have been generated for one of their recipients. The backend (`be-gifted`) sends notifications directly via the Expo Push API after successful gift generation — no database webhooks, Edge Functions, or deduplication tables needed.
 
 ---
 
 ## Current Architecture Summary
 
-- **Gift generation flow**: App calls `https://be-gifted.vercel.app/api/generate-gifts` with `recipientId` (fire-and-forget). The external backend fetches the recipient, generates AI suggestions, and writes rows to Supabase `gift_suggestions`.
+- **Gift generation flow**: App calls `https://be-gifted.vercel.app/api/generate-gifts` with `recipientId`. The backend generates AI suggestions, stores them in Supabase, and sends a push notification directly.
 - **Data model**: `recipients` (user_id, id, name...) → `gift_suggestions` (recipient_id, ...). User is reachable via `recipients.user_id`.
-- **Existing notification infrastructure**: [app/(tabs)/settings/notifications.tsx](app/(tabs)/settings/notifications.tsx) and [migrations/001_add_notification_preferences.sql](migrations/001_add_notification_preferences.sql) already define `user_preferences` with `push_notifications_enabled` and timezone.
-- **No push implementation yet**: No expo-notifications, no push token storage, no delivery pipeline.
+- **Notification preferences**: `user_preferences` table has `push_notifications_enabled` (checked server-side before sending).
+- **Push token storage**: `user_push_tokens` table stores Expo push tokens per user/device.
 
 ---
 
@@ -22,186 +22,138 @@ sequenceDiagram
     participant App as BeGifted App
     participant Backend as be-gifted.vercel.app
     participant Supabase as Supabase DB
-    participant Webhook as DB Webhook
-    participant EdgeFn as Edge Function
     participant Expo as Expo Push API
     participant Device as User Device
 
     App->>Backend: POST /api/generate-gifts {recipientId}
     Backend->>Supabase: INSERT gift_suggestions
-    Supabase->>Webhook: INSERT event
-    Webhook->>EdgeFn: POST payload (record)
-    EdgeFn->>Supabase: Get recipient, user_prefs, push_tokens
-    EdgeFn->>Supabase: Log notification (dedup)
-    EdgeFn->>Expo: Send push
+    Backend->>Supabase: Check user_preferences, fetch push_tokens
+    Backend->>Expo: POST /push/send
     Expo->>Device: Deliver notification
-    Device->>App: User taps → deep link to recipient gifts
+    Device->>App: User taps → deep link to /contacts/[id]
 ```
 
 ---
 
-## Phase 1: Foundation (Database and Push Token Storage)
+## Phase 1: Database (Push Token Storage)
 
-### 1.1 Push token storage
+### `user_push_tokens` table
 
-Create a migration for a `user_push_tokens` table:
+Migration: `be-gifted/supabase/migrations/009_create_user_push_tokens.sql`
 
-- `id` (uuid, primary key)
-- `user_id` (uuid, FK to auth.users)
-- `token` (text, unique) — Expo push token, e.g. `ExponentPushToken[xxx]`
-- `platform` (text) — `ios` or `android`
-- `created_at`, `updated_at`
-- RLS: users can only insert/update/delete their own tokens
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID | Primary key |
+| user_id | UUID | FK to auth.users, ON DELETE CASCADE |
+| token | TEXT | Expo push token, UNIQUE |
+| platform | TEXT | `ios` or `android` |
+| created_at | TIMESTAMPTZ | Default NOW() |
+| updated_at | TIMESTAMPTZ | Default NOW() |
 
-Users may have multiple devices; the Edge Function will send to all tokens for the user.
+RLS: Users can manage their own tokens.
 
-### 1.2 Deduplication / notification log
-
-To avoid multiple notifications for the same gift generation (one generation can create several `gift_suggestions` rows), add a simple log:
-
-- `gift_generation_notifications` table: `recipient_id`, `notified_at`, `user_id`
-- Or: in-memory/Redis cooldown in the Edge Function (simpler but less durable)
-
-Recommended: **DB-backed cooldown** — before sending, check if we notified for this `recipient_id` within the last N minutes (e.g. 10). If yes, skip.
+No deduplication table is needed — the backend calls the notification service once per generation, not per row.
 
 ---
 
-## Phase 2: Supabase Edge Function (send notification)
+## Phase 2: Backend Service (be-gifted)
 
-### 2.1 New Edge Function: `send-gift-generated-notification`
+### Push notification service
 
-**Trigger**: Supabase Database Webhook on `gift_suggestions` INSERT.
+`be-gifted/lib/services/push-notifications.ts`
 
-**Payload**: Webhook sends `{ type: 'INSERT', table: 'gift_suggestions', record: { recipient_id, ... } }`.
+- `sendGiftReadyNotification(userId, recipientName, recipientId)` — fire-and-forget
+- Checks `user_preferences.push_notifications_enabled` (defaults true if no row)
+- Fetches all tokens from `user_push_tokens` for the user
+- POSTs to Expo Push API
+- Handles `DeviceNotRegistered` by deleting invalid tokens
+- Never throws — logs errors only
 
-**Logic**:
+### Integration
 
-1. Extract `recipient_id` from the payload.
-2. Query `recipients` for `user_id` and `name` where `id = recipient_id`.
-3. If no recipient, exit.
-4. Query `user_preferences` for `push_notifications_enabled` for that `user_id`. If disabled, exit.
-5. Check cooldown: if we already notified this recipient in the last 10 minutes, exit.
-6. Query `user_push_tokens` for all tokens for this `user_id`.
-7. If no tokens, exit (optionally log).
-8. Build Expo push payload:
-   - `title`: "Gift ideas ready"
-   - `body`: "New gift suggestions for {recipientName}!"
-   - `data`: `{ recipientId, type: 'gift_generated' }` (for deep linking)
-9. POST to `https://exp.host/--/api/v2/push/send` with the message(s).
-10. On success, insert into `gift_generation_notifications` (recipient_id, user_id, notified_at) to enforce cooldown.
+- **Manual generation** (`app/api/generate-gifts/route.ts`): called after successful gift generation, guarded by `result.status === "ok"`
+- **Cron generation** (`app/api/cron/generate-gifts/route.ts`): called per recipient after successful generation, guarded by `status === "success"`
 
-**Dependencies**: Use `fetch` or a Deno-compatible HTTP client; no need for expo-server-sdk in Deno.
-
-**Error handling**: Log errors; do not retry webhook. Optionally handle `DeviceNotRegistered` by deleting or flagging invalid tokens when processing receipts.
+Both wrapped in try/catch to ensure notification failure never affects the response.
 
 ---
 
-## Phase 3: Database Webhook
+## Phase 3: Client — expo-notifications and Token Registration
 
-Create a Supabase Database Webhook (via Dashboard or SQL):
-
-- **Events**: INSERT
-- **Table**: `gift_suggestions`
-- **URL**: `https://<project-ref>.supabase.co/functions/v1/send-gift-generated-notification`
-
-If using SQL with `pg_net`, the trigger would call `supabase_functions.http_request` with the Edge Function URL. For production, use the project's real Supabase URL.
-
----
-
-## Phase 4: Client — expo-notifications and token registration
-
-### 4.1 Install dependencies
+### Dependencies
 
 ```bash
 npx expo install expo-notifications expo-device expo-constants
 ```
 
-### 4.2 Config
+### Config
 
-Add `expo-notifications` to the `plugins` array in [app.json](app.json).
+`expo-notifications` added to `plugins` array in `app.json`.
 
-### 4.3 Push registration
+### Push registration module
 
-Create a `lib/push-notifications.ts` (or `hooks/use-push-registration.ts`):
+`lib/push-notifications.ts`:
 
-- Request permission via `Notifications.requestPermissionsAsync()`.
-- Get `projectId` from `Constants.expoConfig?.extra?.eas?.projectId` (already set in [app.json](app.json): `16c0ca90-545c-4ff3-be91-227aae28dbe5`).
-- Call `Notifications.getExpoPushTokenAsync({ projectId })` and get the token string.
-- Upsert into `user_push_tokens` (user_id, token, platform) when the user is logged in.
+- `registerForPushNotifications(userId)`:
+  - Checks `Device.isDevice` (skips on simulator)
+  - Requests permissions via `Notifications.requestPermissionsAsync()`
+  - Gets token via `Notifications.getExpoPushTokenAsync({ projectId })`
+  - Upserts into `user_push_tokens` (token, platform, user_id)
+- `unregisterPushToken()`:
+  - Gets current token, deletes from `user_push_tokens`
+  - Called on sign-out
 
-Invoke this:
+### Notification handler hook
 
-- On app launch when the user is authenticated.
-- On login (e.g. in auth state listener).
+`hooks/use-push-notifications.ts`:
 
-Ensure registration runs only on a physical device (`expo-device`); skip or no-op on simulators.
+- `Notifications.setNotificationHandler` — show banner, play sound, set badge
+- Android notification channel (`gift-suggestions`, high importance)
+- `addNotificationResponseReceivedListener` → reads `data.recipientId`, navigates to `/contacts/[id]`
+- Registers for push when user authenticates
+- Unregisters on sign-out
+- Clears badge count when app foregrounds
 
-### 4.4 Notification handler
+### Layout integration
 
-Configure `Notifications.setNotificationHandler` in the root layout (e.g. [app/_layout.tsx](app/_layout.tsx)):
-
-- `shouldPlaySound`, `shouldSetBadge`, `shouldShowBanner`, `shouldShowList`: true.
-
-Add listeners:
-
-- `addNotificationReceivedListener` — optional; can show in-app UI.
-- `addNotificationResponseReceivedListener` — handle taps and route using `response.notification.request.content.data` (e.g. `recipientId`).
-
-### 4.5 Deep linking on tap
-
-When the user taps the notification:
-
-- Read `data.recipientId` (and optionally `data.type === 'gift_generated'`).
-- Navigate to the recipient's gift tab, e.g. `/contacts/[id]` with the Gifts tab selected (if your router supports tab params).
+`usePushNotifications()` called in `app/_layout.tsx` `RootLayout`.
 
 ---
 
-## Phase 5: Settings UX (optional refinement)
+## Phase 4: Settings UX
 
-The existing [app/(tabs)/settings/notifications.tsx](app/(tabs)/settings/notifications.tsx) toggle "Push Notifications" currently says "Receive notifications directly in your browser." Update copy to reflect mobile push, e.g.:
+The existing `app/(tabs)/settings/notifications.tsx` toggle controls `push_notifications_enabled`. Update copy to:
 
-- "Receive push notifications on your device (e.g. when gift ideas are ready)."
+- "Receive push notifications on your device when gift ideas are ready."
 
-Optionally add a dedicated toggle for "Gift suggestions ready" under `user_preferences` if you want finer control. For Phase 1, `push_notifications_enabled` is sufficient.
+The backend checks this preference server-side before sending.
 
 ---
 
-## Phase 6: EAS and credentials
+## Phase 5: EAS and Credentials
 
 Push requires:
 
-- **Android**: FCM v1 credentials (Firebase) uploaded to EAS (see [Expo FCM credentials](https://docs.expo.dev/push-notifications/fcm-credentials)).
 - **iOS**: APNs key configured via `eas credentials` and linked to the app.
+- **Android**: FCM v1 credentials (Firebase) uploaded to EAS.
 - **Build**: Use `eas build` for development and production; push does not work in Expo Go on Android from SDK 53+.
 
 ---
 
-## Implementation Order
+## Verification
 
-| Step | Task | Files / Location |
-| --- | --- | --- |
-| 1 | Create `user_push_tokens` migration | `migrations/002_user_push_tokens.sql` |
-| 2 | Create `gift_generation_notifications` (or equivalent) for cooldown | Same migration or separate |
-| 3 | Implement Edge Function `send-gift-generated-notification` | `supabase/functions/send-gift-generated-notification/index.ts` |
-| 4 | Create Database Webhook for `gift_suggestions` INSERT | Supabase Dashboard or migration |
-| 5 | Add expo-notifications + push registration | `lib/push-notifications.ts`, `app/_layout.tsx` |
-| 6 | Handle notification tap and deep link | `app/_layout.tsx` or a provider |
-| 7 | Update settings copy | `app/(tabs)/settings/notifications.tsx` |
-| 8 | Configure EAS credentials (FCM, APNs) | `eas.json`, EAS Dashboard |
+1. **Backend**: Insert a test push token into `user_push_tokens`, then call `POST /api/generate-gifts`. Check Vercel function logs for Expo Push API request.
+2. **Native app**: Build a dev client with `eas build --profile development`. Log in, verify token appears in `user_push_tokens`. Trigger gift generation and confirm notification arrives on device.
+3. **Deep link**: Tap notification and verify navigation to recipient screen.
+4. **Logout**: Sign out, verify token is deleted from `user_push_tokens`.
+5. **Settings**: Toggle `push_notifications_enabled` off, trigger generation, verify no notification is sent.
 
 ---
 
-## Edge cases and future work
+## Edge Cases
 
-- **Multiple inserts per generation**: Cooldown prevents multiple notifications for the same recipient in a short window.
-- **Invalid tokens**: Handle `DeviceNotRegistered` in push receipts and remove tokens from `user_push_tokens`.
-- **be-gifted backend**: If it moves or changes how it writes to `gift_suggestions`, the webhook will still fire as long as inserts happen in Supabase.
-- **Email notifications**: `email_notifications_enabled` exists; add an email path in the Edge Function or a separate worker later.
-
----
-
-## Out of scope for this plan
-
-- In-app notification center.
-- Occasion reminder notifications (schema exists; implementation is separate).
-- Web push (current UI copy suggests browser; this plan focuses on mobile).
+- **Invalid tokens**: Backend handles `DeviceNotRegistered` by deleting tokens automatically.
+- **Multiple devices**: All tokens for a user receive notifications.
+- **No tokens**: Backend silently skips (logs only).
+- **Simulator**: Registration is skipped via `Device.isDevice` check.
+- **Permission denied**: Registration exits early; no token stored.

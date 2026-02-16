@@ -8,6 +8,7 @@ import Header from "../components/Header";
 import GradientBackground from "../components/GradientBackground";
 import BottomNav from "../components/BottomNav";
 import { useFontsLoader } from "../hooks/use-fonts-loader";
+import { usePushNotifications } from "../hooks/use-push-notifications";
 import { defaultQueryOptions } from "../lib/query-defaults";
 import { persistOptions } from "../lib/query-persister";
 
@@ -50,6 +51,9 @@ function HeaderWrapper() {
 export default function RootLayout() {
   // Load fonts and handle splash screen
   const fontsLoaded = useFontsLoader();
+
+  // Set up push notification registration, handlers, and deep linking
+  usePushNotifications();
 
   if (!fontsLoaded) {
     return null;
