@@ -233,6 +233,7 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
 const styles = StyleSheet.create({
   form: {
     padding: 16,
+    paddingTop: 8,
   },
   sectionTitle: {
     marginTop: 24,

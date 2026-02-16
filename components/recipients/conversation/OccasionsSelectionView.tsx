@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, IconButton, Button } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
-import { HEADER_HEIGHT } from "../../../lib/constants";
+import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import {
   useOccasionRecommendations,
   mapRecommendationsToOccasions,
@@ -32,7 +32,7 @@ export function OccasionsSelectionView({
   onSkip,
 }: OccasionsSelectionViewProps) {
   const insets = useSafeAreaInsets();
-  const headerSpacerHeight = Math.max(HEADER_HEIGHT, insets.top + 60);
+  const footerBottomPadding = BOTTOM_NAV_HEIGHT + Math.max(insets.bottom, 0);
   const { recommendations, isLoading: isLoadingRecommendations } =
     useOccasionRecommendations(extractedData);
 
@@ -135,7 +135,6 @@ export function OccasionsSelectionView({
 
   return (
     <View style={styles.container}>
-      <View style={[styles.appHeaderSpacer, { height: headerSpacerHeight }]} />
       <View style={styles.header}>
         <IconButton
           icon="arrow-left"
@@ -204,7 +203,7 @@ export function OccasionsSelectionView({
         )}
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: footerBottomPadding }]}>
         <Button
           mode="outlined"
           onPress={onSkip}
@@ -243,9 +242,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
-  appHeaderSpacer: {
-    backgroundColor: "transparent",
-  },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -267,7 +263,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
   },
   description: {
     marginBottom: 24,
