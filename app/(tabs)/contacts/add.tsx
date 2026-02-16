@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { View, ActivityIndicator, StyleSheet, Text } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "../../../hooks/use-auth";

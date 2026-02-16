@@ -6,6 +6,17 @@
 import { supabase } from "./supabase";
 import type { Recipient, GiftSuggestion } from "../types/recipient";
 
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  body: string;
+  data: Record<string, string>;
+  read: boolean;
+  created_at: string;
+}
+
 export interface Profile {
   id: string;
   username?: string;
@@ -171,4 +182,64 @@ export async function fetchGiftSuggestions(
 
   if (error) throw error;
   return data || [];
+}
+
+/**
+ * Fetch notifications for a user (most recent 50)
+ */
+export async function fetchNotifications(
+  userId: string
+): Promise<AppNotification[]> {
+  const { data, error } = await supabase
+    .from("app_notifications")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) throw error;
+  return data || [];
+}
+
+/**
+ * Fetch unread notification count for a user
+ */
+export async function fetchUnreadCount(userId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from("app_notifications")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("read", false);
+
+  if (error) throw error;
+  return count || 0;
+}
+
+/**
+ * Mark a single notification as read
+ */
+export async function markNotificationRead(
+  notificationId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("app_notifications")
+    .update({ read: true })
+    .eq("id", notificationId);
+
+  if (error) throw error;
+}
+
+/**
+ * Mark all notifications as read for a user
+ */
+export async function markAllNotificationsRead(
+  userId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("app_notifications")
+    .update({ read: true })
+    .eq("user_id", userId)
+    .eq("read", false);
+
+  if (error) throw error;
 }

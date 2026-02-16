@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react";
 import { AppState, Platform } from "react-native";
 import * as Notifications from "expo-notifications";
+import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useAuth } from "./use-auth";
+import { queryKeys } from "../lib/query-keys";
 import {
   registerForPushNotifications,
   unregisterPushToken,
@@ -29,6 +31,7 @@ if (Platform.OS === "android") {
 
 export function usePushNotifications(): void {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const previousUserId = useRef<string | null>(null);
 
   // Register/unregister based on auth state
@@ -41,6 +44,22 @@ export function usePushNotifications(): void {
       previousUserId.current = null;
     }
   }, [user]);
+
+  // Invalidate notification cache when a push is received in foreground
+  useEffect(() => {
+    const subscription = Notifications.addNotificationReceivedListener(() => {
+      if (user?.id) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.notifications(user.id),
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.unreadNotificationCount(user.id),
+        });
+      }
+    });
+
+    return () => subscription.remove();
+  }, [user?.id, queryClient]);
 
   // Handle notification taps → deep link to recipient screen
   useEffect(() => {

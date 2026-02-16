@@ -22,6 +22,11 @@ export const queryKeys = {
   giftSuggestions: (recipientId: string) =>
     ["giftSuggestions", recipientId] as const,
 
+  // Notifications
+  notifications: (userId: string) => ["notifications", userId] as const,
+  unreadNotificationCount: (userId: string) =>
+    ["notifications", userId, "unreadCount"] as const,
+
   // FAQ (from Google Sheet or fallback)
   faqs: () => ["faqs"] as const,
 };
