@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "buildNumber": "7",
+      "buildNumber": "8",
       "bundleIdentifier": "com.begifted.app",
       "supportsTablet": true,
       "infoPlist": {
