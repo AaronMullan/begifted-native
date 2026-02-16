@@ -5,16 +5,17 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  TextInput as RNTextInput,
 } from "react-native";
 import {
   Text,
-  TextInput,
   IconButton,
   Button,
   ActivityIndicator,
 } from "react-native-paper";
 import { Message } from "@/hooks/use-add-recipient-flow";
-import { HEADER_HEIGHT } from "@/lib/constants";
+import { BOTTOM_NAV_HEIGHT } from "@/lib/constants";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface ConversationViewProps {
   messages: Message[];
@@ -40,6 +41,8 @@ export function ConversationView({
   const [inputMessage, setInputMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  const insets = useSafeAreaInsets();
+  const inputBottomPadding = BOTTOM_NAV_HEIGHT + Math.max(insets.bottom, 0);
 
   useEffect(() => {
     // Auto-scroll to bottom when new messages arrive
@@ -70,7 +73,6 @@ export function ConversationView({
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
-      <View style={styles.appHeaderSpacer} />
       {/* Header */}
       <View style={styles.header}>
         <IconButton
@@ -138,7 +140,7 @@ export function ConversationView({
       </ScrollView>
 
       {/* Input Area */}
-      <View style={styles.inputContainer}>
+      <View style={[styles.inputContainer, { paddingBottom: inputBottomPadding }]}>
         {shouldShowNextStepButton && (
           <Button
             mode="contained"
@@ -152,8 +154,7 @@ export function ConversationView({
         )}
 
         <View style={styles.inputRow}>
-          <TextInput
-            mode="outlined"
+          <RNTextInput
             value={inputMessage}
             onChangeText={setInputMessage}
             placeholder="Type your message..."
@@ -162,13 +163,18 @@ export function ConversationView({
             blurOnSubmit={false}
             maxLength={500}
             editable={!isLoading && !isSending}
+            autoComplete="off"
+            autoCorrect={false}
+            spellCheck={false}
+            textContentType="none"
+            importantForAutofill="no"
+            placeholderTextColor="#999"
             style={styles.textInput}
-            contentStyle={styles.textInputContent}
           />
           <IconButton
             icon="send"
             size={24}
-            iconColor="#fff"
+            iconColor="#000000"
             style={[
               styles.sendButton,
               (!inputMessage.trim() || isLoading || isSending) &&
@@ -176,7 +182,7 @@ export function ConversationView({
             ]}
             onPress={handleSend}
             disabled={!inputMessage.trim() || isLoading || isSending}
-            containerColor="#000000"
+            containerColor="#FFFFFF"
             loading={isSending}
           />
         </View>
@@ -188,10 +194,6 @@ export function ConversationView({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-  },
-  appHeaderSpacer: {
-    height: HEADER_HEIGHT,
     backgroundColor: "#fff",
   },
   header: {
@@ -215,7 +217,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   messagesContent: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 8,
     paddingBottom: 8,
   },
   messageContainer: {
@@ -278,12 +281,16 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-  },
-  textInputContent: {
     backgroundColor: "#f5f5f5",
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
   },
   sendButton: {
     margin: 0,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
   },
   sendButtonDisabled: {
     opacity: 0.6,

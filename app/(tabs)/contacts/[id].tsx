@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, Button, IconButton } from "react-native-paper";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { supabase } from "../../../lib/supabase";
-import { HEADER_HEIGHT } from "../../../lib/constants";
+import { HEADER_HEIGHT, BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import type { GiftSuggestion, Recipient } from "../../../types/recipient";
 import { useRecipientForm } from "../../../hooks/use-recipient-form";
 import { RecipientDetailsForm } from "../../../components/recipients/RecipientDetailsForm";
@@ -364,7 +364,13 @@ export default function RecipientEditPage() {
         </Button>
       </View>
 
-      <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={{
+          paddingBottom: BOTTOM_NAV_HEIGHT + Math.max(insets.bottom, 0),
+        }}
+        keyboardShouldPersistTaps="handled"
+      >
         {activeTab === "details" ? (
           <RecipientDetailsForm
             name={name}

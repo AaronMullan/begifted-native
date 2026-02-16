@@ -1,7 +1,9 @@
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, IconButton, Text, TextInput } from "react-native-paper";
+import { BOTTOM_NAV_HEIGHT } from "@/lib/constants";
 
 interface DataReviewViewProps {
   extractedData: ExtractedData;
@@ -36,6 +38,9 @@ export function DataReviewView({
       [field]: value,
     });
   };
+
+  const insets = useSafeAreaInsets();
+  const footerBottomPadding = BOTTOM_NAV_HEIGHT + Math.max(insets.bottom, 0);
 
   const updateInterests = (value: string) => {
     // Store raw text value for smooth editing
@@ -269,7 +274,7 @@ export function DataReviewView({
       </ScrollView>
 
       {/* Footer Actions */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: footerBottomPadding }]}>
         <Button
           mode="outlined"
           onPress={onBack}
@@ -322,7 +327,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
   },
   description: {
     marginBottom: 24,

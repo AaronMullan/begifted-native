@@ -10,7 +10,7 @@ import { useUpdateProfile } from "../../../hooks/use-profile-mutations";
 export default function ProfileSettings() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { data: profile, isLoading: profileLoading } = useProfile();
+  const { data: profile, isLoading: _profileLoading } = useProfile();
   const updateProfile = useUpdateProfile();
   const loading = authLoading;
 

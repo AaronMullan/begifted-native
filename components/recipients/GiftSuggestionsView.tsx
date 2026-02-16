@@ -253,6 +253,7 @@ export const GiftSuggestionsView: React.FC<GiftSuggestionsViewProps> = ({
 const styles = StyleSheet.create({
   giftsContainer: {
     padding: 16,
+    paddingTop: 8,
   },
   loadingContainer: {
     alignItems: "center",

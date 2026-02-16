@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { View, ScrollView, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, TextInput, Button } from "react-native-paper";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
+import { BOTTOM_NAV_HEIGHT } from "@/lib/constants";
 
 interface ManualDataEntryProps {
   partialData: ExtractedData | null;
@@ -48,6 +50,9 @@ export function ManualDataEntry({
       setCountry(partialData.country || "US");
     }
   }, [partialData]);
+
+  const insets = useSafeAreaInsets();
+  const footerBottomPadding = BOTTOM_NAV_HEIGHT + Math.max(insets.bottom, 0);
 
   const handleSave = () => {
     if (!name.trim() || !relationshipType.trim()) {
@@ -275,7 +280,7 @@ export function ManualDataEntry({
       </ScrollView>
 
       {/* Footer Actions */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: footerBottomPadding }]}>
         <Button mode="outlined" onPress={onCancel} style={styles.cancelButton}>
           Cancel
         </Button>
@@ -303,7 +308,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
   },
   title: {
     marginBottom: 8,
