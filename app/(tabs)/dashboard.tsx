@@ -245,10 +245,10 @@ const styles = StyleSheet.create({
   },
   card: {
     marginBottom: 0,
-    backgroundColor: Colors.neutrals.light + "30", // Low opacity (~19%)
+    backgroundColor: Colors.white + "18",
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: Colors.white,
+    borderColor: Colors.white + "40",
     overflow: "visible",
     position: "relative",
   },

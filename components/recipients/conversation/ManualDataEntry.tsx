@@ -302,15 +302,18 @@ export function ManualDataEntry({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "transparent",
   },
   scrollView: {
     flex: 1,
   },
   content: {
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 16,
     paddingBottom: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.92)",
+    borderRadius: 16,
+    marginHorizontal: 8,
   },
   title: {
     marginBottom: 8,
@@ -329,7 +332,9 @@ const styles = StyleSheet.create({
   fieldContainer: {
     marginBottom: 16,
   },
-  input: {},
+  input: {
+    backgroundColor: "#fff",
+  },
   row: {
     flexDirection: "row",
     gap: 16,
@@ -340,9 +345,6 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: "row",
     padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
-    backgroundColor: "#fff",
     gap: 12,
   },
   cancelButton: {

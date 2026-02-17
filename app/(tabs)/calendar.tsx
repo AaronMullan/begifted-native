@@ -140,105 +140,101 @@ export default function Calendar() {
         scrollEventThrottle={16}
       >
         <View style={styles.content}>
-          {/* Main card container */}
-          <Pressable style={styles.mainCard}>
-            <BlurView intensity={20} style={styles.blurBackground} />
-            {/* Header section */}
-            <View style={styles.header}>
-              <View style={styles.headerLeft}>
-                <Text style={styles.title}>Occasions Calendar</Text>
-                <Text style={styles.subtitle}>
-                  View all your upcoming occasions
-                </Text>
-              </View>
-            </View>
-
-            {/* Summary section */}
-            <View style={styles.summarySection}>
-              <Text style={styles.occasionsCount}>
-                {occasions.length} Occasion{occasions.length !== 1 ? "s" : ""}
+          {/* Header section */}
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.title}>Occasions Calendar</Text>
+              <Text style={styles.subtitle}>
+                View all your upcoming occasions
               </Text>
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => router.push("/contacts" as any)}
-              >
-                <View style={styles.addButtonContent}>
-                  <MaterialIcons name="add" size={20} color="white" />
-                  <Text style={styles.addButtonText}>Add Recipient</Text>
-                </View>
-              </TouchableOpacity>
             </View>
+          </View>
 
-            {/* Occasions list */}
-            {loading ? (
-              <Text style={styles.loadingText}>Loading...</Text>
-            ) : occasions.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>No upcoming occasions</Text>
-                <Text style={styles.emptySubtext}>
-                  Add recipients with birthdays to see occasions here
-                </Text>
+          {/* Summary section */}
+          <View style={styles.summarySection}>
+            <Text style={styles.occasionsCount}>
+              {occasions.length} Occasion{occasions.length !== 1 ? "s" : ""}
+            </Text>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => router.push("/contacts" as any)}
+            >
+              <View style={styles.addButtonContent}>
+                <MaterialIcons name="add" size={20} color="white" />
+                <Text style={styles.addButtonText}>Add Recipient</Text>
               </View>
-            ) : (
-              <View style={styles.occasionsList}>
-                {sortedMonths.map((monthKey) => (
-                  <View key={monthKey} style={styles.monthSection}>
-                    <Text style={styles.monthHeader}>{monthKey}</Text>
-                    {groupedOccasions[monthKey].map((occasion) => {
-                      const daysUntil = calculateDaysUntil(occasion.date);
-                      const isCustom = occasion.occasion_type === "custom";
+            </TouchableOpacity>
+          </View>
 
-                      return (
-                        <Pressable
-                          key={occasion.id}
-                          style={styles.occasionCard}
-                          onPress={() => handleOccasionPress(occasion)}
-                        >
-                          <BlurView
-                            intensity={20}
-                            style={styles.occasionBlurBackground}
+          {/* Occasions list */}
+          {loading ? (
+            <Text style={styles.loadingText}>Loading...</Text>
+          ) : occasions.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No upcoming occasions</Text>
+              <Text style={styles.emptySubtext}>
+                Add recipients with birthdays to see occasions here
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.occasionsList}>
+              {sortedMonths.map((monthKey) => (
+                <View key={monthKey} style={styles.monthSection}>
+                  <Text style={styles.monthHeader}>{monthKey}</Text>
+                  {groupedOccasions[monthKey].map((occasion) => {
+                    const daysUntil = calculateDaysUntil(occasion.date);
+                    const isCustom = occasion.occasion_type === "custom";
+
+                    return (
+                      <Pressable
+                        key={occasion.id}
+                        style={styles.occasionCard}
+                        onPress={() => handleOccasionPress(occasion)}
+                      >
+                        <BlurView
+                          intensity={20}
+                          style={styles.occasionBlurBackground}
+                        />
+                        <View style={styles.occasionIconContainer}>
+                          <MaterialIcons
+                            name="card-giftcard"
+                            size={24}
+                            color="white"
                           />
-                          <View style={styles.occasionIconContainer}>
-                            <MaterialIcons
-                              name="card-giftcard"
-                              size={24}
-                              color="white"
-                            />
-                          </View>
-                          <View style={styles.occasionInfo}>
-                            <Text style={styles.occasionTitle}>
-                              {formatOccasionTitle(occasion)}
-                            </Text>
-                            <Text style={styles.occasionDate}>
-                              {formatDate(occasion.date)}
-                            </Text>
-                            <Text style={styles.occasionRelationship}>
-                              {occasion.recipient?.relationship_type || ""}
-                            </Text>
-                          </View>
-                          <View style={styles.occasionRight}>
-                            <Text
-                              style={[
-                                styles.daysUntil,
-                                daysUntil <= 30
-                                  ? styles.daysUntilOrange
-                                  : styles.daysUntilGreen,
-                              ]}
-                            >
-                              {daysUntil} day{daysUntil !== 1 ? "s" : ""}
-                            </Text>
-                            {isCustom && (
-                              <Text style={styles.customLabel}>Custom</Text>
-                            )}
-                          </View>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                ))}
-              </View>
-            )}
-          </Pressable>
+                        </View>
+                        <View style={styles.occasionInfo}>
+                          <Text style={styles.occasionTitle}>
+                            {formatOccasionTitle(occasion)}
+                          </Text>
+                          <Text style={styles.occasionDate}>
+                            {formatDate(occasion.date)}
+                          </Text>
+                          <Text style={styles.occasionRelationship}>
+                            {occasion.recipient?.relationship_type || ""}
+                          </Text>
+                        </View>
+                        <View style={styles.occasionRight}>
+                          <Text
+                            style={[
+                              styles.daysUntil,
+                              daysUntil <= 30
+                                ? styles.daysUntilOrange
+                                : styles.daysUntilGreen,
+                            ]}
+                          >
+                            {daysUntil} day{daysUntil !== 1 ? "s" : ""}
+                          </Text>
+                          {isCustom && (
+                            <Text style={styles.customLabel}>Custom</Text>
+                          )}
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ))}
+            </View>
+          )}
         </View>
       </ScrollView>
       {toast}
@@ -264,20 +260,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: "100%",
     padding: 20,
-  },
-  mainCard: {
-    backgroundColor: Colors.neutrals.light + "30", // Low opacity (~19%)
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: Colors.white,
-    overflow: "hidden",
-    position: "relative",
-    padding: 24,
-  },
-  blurBackground: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 18,
-    overflow: "hidden",
   },
   header: {
     flexDirection: "row",
