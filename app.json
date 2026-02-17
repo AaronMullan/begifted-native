@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "buildNumber": "8",
+      "buildNumber": "9",
       "bundleIdentifier": "com.begifted.app",
       "supportsTablet": true,
       "infoPlist": {
@@ -26,7 +26,9 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "permissions": ["READ_CONTACTS"]
+      "permissions": [
+        "READ_CONTACTS"
+      ]
     },
     "web": {
       "output": "static",
@@ -59,6 +61,12 @@
         "projectId": "16c0ca90-545c-4ff3-be91-227aae28dbe5"
       }
     },
-    "owner": "aaronmullan"
+    "owner": "aaronmullan",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/16c0ca90-545c-4ff3-be91-227aae28dbe5"
+    }
   }
 }

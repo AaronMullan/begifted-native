@@ -42,18 +42,37 @@ const customTheme = {
   },
 };
 
-function HeaderWrapper() {
-  // Index route is now the app entry point, not marketing site
-  // Keep colorful mode disabled for index route
-  return <Header colorful={false} />;
+function AppShell() {
+  // Set up push notification registration, handlers, and deep linking
+  usePushNotifications();
+
+  return (
+    <View style={styles.container}>
+      <GradientBackground />
+      <Header colorful={false} />
+      <Stack
+        screenOptions={{
+          // Disable stack-level fade/slide animations; let screens animate their own content
+          animation: "none",
+          headerShown: false,
+          headerTransparent: true,
+          headerStyle: {
+            backgroundColor: "transparent",
+          },
+          contentStyle: {
+            backgroundColor: "transparent",
+          },
+          gestureEnabled: false,
+        }}
+      />
+      <BottomNav />
+    </View>
+  );
 }
 
 export default function RootLayout() {
   // Load fonts and handle splash screen
   const fontsLoaded = useFontsLoader();
-
-  // Set up push notification registration, handlers, and deep linking
-  usePushNotifications();
 
   if (!fontsLoaded) {
     return null;
@@ -65,27 +84,7 @@ export default function RootLayout() {
       persistOptions={persistOptions}
     >
       <PaperProvider theme={customTheme}>
-        <View style={styles.container}>
-          <GradientBackground />
-          {/* Keep header static above animated views */}
-          <HeaderWrapper />
-          <Stack
-            screenOptions={{
-              // Disable stack-level fade/slide animations; let screens animate their own content
-              animation: "none",
-              headerShown: false,
-              headerTransparent: true,
-              headerStyle: {
-                backgroundColor: "transparent",
-              },
-              contentStyle: {
-                backgroundColor: "transparent",
-              },
-              gestureEnabled: false,
-            }}
-          />
-          <BottomNav />
-        </View>
+        <AppShell />
       </PaperProvider>
     </PersistQueryClientProvider>
   );

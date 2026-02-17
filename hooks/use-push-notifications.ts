@@ -38,9 +38,13 @@ export function usePushNotifications(): void {
   useEffect(() => {
     if (user?.id && user.id !== previousUserId.current) {
       previousUserId.current = user.id;
-      registerForPushNotifications(user.id);
+      registerForPushNotifications(user.id).catch((err) =>
+        console.error("[push] Registration failed:", err),
+      );
     } else if (!user && previousUserId.current) {
-      unregisterPushToken();
+      unregisterPushToken().catch((err) =>
+        console.error("[push] Unregistration failed:", err),
+      );
       previousUserId.current = null;
     }
   }, [user]);

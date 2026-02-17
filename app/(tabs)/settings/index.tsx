@@ -1,5 +1,5 @@
 import { View, ScrollView, StyleSheet, Pressable } from "react-native";
-import { Text } from "react-native-paper";
+import { Text, Button } from "react-native-paper";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { supabase } from "../../../lib/supabase";
@@ -115,71 +115,74 @@ export default function Settings() {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.content}>
-          {/* Main card container */}
-          <View style={styles.mainCard}>
-            <BlurView
-              intensity={20}
-              style={styles.blurBackground}
-              pointerEvents="none"
-            />
-            {/* Header section */}
-            <View style={styles.header}>
-              <View style={styles.headerLeft}>
-                <Text variant="headlineMedium" style={styles.title}>
-                  Settings
-                </Text>
-                <Text variant="bodyLarge" style={styles.subtitle}>
-                  Manage your account and preferences
-                </Text>
-              </View>
-            </View>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text variant="headlineMedium" style={styles.title}>
+              Settings
+            </Text>
+            <Text variant="bodyLarge" style={styles.subtitle}>
+              Manage your account and preferences
+            </Text>
+          </View>
 
-            {/* Settings cards */}
-            <View style={styles.cardsContainer}>
-              {settingsCards.map((card) => (
-                <Pressable
-                  key={card.id}
-                  style={styles.settingsCard}
-                  onPress={() => router.push(card.route)}
-                >
-                  <BlurView
-                    intensity={20}
-                    style={styles.cardBlurBackground}
-                    pointerEvents="none"
-                  />
-                  <View style={styles.cardContentWrapper}>
-                    <View
-                      style={[
-                        styles.iconContainer,
-                        { backgroundColor: Colors.white },
-                      ]}
-                    >
-                      <MaterialIcons
-                        name={card.icon as any}
-                        size={28}
-                        color={card.iconColor}
-                      />
-                    </View>
-                    <View style={styles.cardContent}>
-                      <Text variant="titleMedium" style={styles.cardTitle}>
-                        {card.title}
-                      </Text>
-                      <Text variant="bodyMedium" style={styles.cardDescription}>
-                        {card.description}
-                      </Text>
-                    </View>
+          {/* Settings cards */}
+          <View style={styles.cardsContainer}>
+            {settingsCards.map((card) => (
+              <Pressable
+                key={card.id}
+                style={styles.settingsCard}
+                onPress={() => router.push(card.route)}
+              >
+                <BlurView
+                  intensity={20}
+                  style={styles.cardBlurBackground}
+                  pointerEvents="none"
+                />
+                <View style={styles.cardContentWrapper}>
+                  <View
+                    style={[
+                      styles.iconContainer,
+                      { backgroundColor: Colors.white },
+                    ]}
+                  >
                     <MaterialIcons
-                      name="chevron-right"
-                      size={20}
-                      color={Colors.darks.black}
-                      opacity={0.6}
-                      style={styles.chevron}
+                      name={card.icon as any}
+                      size={28}
+                      color={card.iconColor}
                     />
                   </View>
-                </Pressable>
-              ))}
-            </View>
+                  <View style={styles.cardContent}>
+                    <Text variant="titleMedium" style={styles.cardTitle}>
+                      {card.title}
+                    </Text>
+                    <Text variant="bodyMedium" style={styles.cardDescription}>
+                      {card.description}
+                    </Text>
+                  </View>
+                  <MaterialIcons
+                    name="chevron-right"
+                    size={20}
+                    color={Colors.darks.black}
+                    opacity={0.6}
+                    style={styles.chevron}
+                  />
+                </View>
+              </Pressable>
+            ))}
           </View>
+
+          {/* Sign Out */}
+          <Button
+            mode="text"
+            icon="logout"
+            textColor={Colors.darks.black}
+            onPress={async () => {
+              await supabase.auth.signOut();
+            }}
+            style={styles.signOutButton}
+          >
+            Sign Out
+          </Button>
         </View>
       </ScrollView>
     </View>
@@ -208,30 +211,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: BOTTOM_NAV_HEIGHT,
   },
-  mainCard: {
-    backgroundColor: Colors.neutrals.light + "30", // Low opacity (~19%)
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: Colors.white,
-    overflow: "hidden",
-    position: "relative",
-    padding: 24,
-  },
-  blurBackground: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 18,
-    overflow: "hidden",
-  },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 32,
-    position: "relative",
-    zIndex: 1,
-  },
-  headerLeft: {
-    flex: 1,
+    marginBottom: 24,
   },
   title: {
     marginBottom: 8,
@@ -289,6 +270,10 @@ const styles = StyleSheet.create({
   },
   chevron: {
     marginLeft: 12,
+  },
+  signOutButton: {
+    marginTop: 32,
+    alignSelf: "center",
   },
   loadingText: {
     textAlign: "center",

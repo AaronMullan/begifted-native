@@ -14,6 +14,7 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [message, setMessage] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
 
   const {
     control,
@@ -37,39 +38,41 @@ export default function Auth() {
     });
   }, []);
 
-  async function handleAuth(data: FormData) {
+  async function handleSignIn(data: FormData) {
     setLoading(true);
     setMessage("");
 
-    // Try to sign in first
-    let { error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email: data.email,
       password: data.password,
     });
 
-    // If user doesn't exist, create account
-    if (error?.message.includes("Invalid login credentials")) {
-      const { data: signUpData, error: signUpError } =
-        await supabase.auth.signUp({
-          email: data.email,
-          password: data.password,
-        });
-
-      if (signUpError) {
-        setMessage(`Error: ${signUpError.message}`);
-      } else if (signUpData.session) {
-        setMessage("✅ Account created! You're signed in.");
-        reset();
-      } else {
-        setMessage(
-          "Account created but requires email verification. Check your inbox."
-        );
-      }
-    } else if (error) {
+    if (error) {
       setMessage(`Error: ${error.message}`);
     } else {
-      setMessage("✅ Signed in successfully!");
       reset();
+    }
+
+    setLoading(false);
+  }
+
+  async function handleSignUp(data: FormData) {
+    setLoading(true);
+    setMessage("");
+
+    const { data: signUpData, error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+    });
+
+    if (error) {
+      setMessage(`Error: ${error.message}`);
+    } else if (signUpData.user?.identities?.length === 0) {
+      setMessage("Error: An account with this email already exists. Try signing in instead.");
+    } else if (signUpData.session) {
+      reset();
+    } else {
+      setMessage("Check your inbox to verify your email before signing in.");
     }
 
     setLoading(false);
@@ -101,10 +104,12 @@ export default function Auth() {
   return (
     <View style={styles.container}>
       <Text variant="headlineSmall" style={styles.title}>
-        Sign In
+        {isSignUp ? "Create Account" : "Sign In"}
       </Text>
       <Text variant="bodyMedium" style={styles.subtitle}>
-        Sign in with your email and password
+        {isSignUp
+          ? "Enter your email and a password to get started"
+          : "Sign in with your email and password"}
       </Text>
 
       {/* Email Field */}
@@ -176,21 +181,30 @@ export default function Auth() {
         )}
       </View>
 
-      {/* Sign In / Sign Up Button */}
+      {/* Submit Button */}
       <View style={[styles.verticallySpaced, styles.mt20]}>
         <Button
           mode="contained"
           disabled={loading}
           loading={loading}
-          onPress={handleSubmit(handleAuth)}
+          onPress={handleSubmit(isSignUp ? handleSignUp : handleSignIn)}
           style={styles.button}
         >
-          Sign In / Sign Up
+          {isSignUp ? "Create Account" : "Sign In"}
         </Button>
-        <Text variant="bodySmall" style={styles.hint}>
-          Don&apos;t have an account? Just enter your email and a password to
-          create one.
-        </Text>
+        <Button
+          mode="text"
+          disabled={loading}
+          onPress={() => {
+            setIsSignUp((prev) => !prev);
+            setMessage("");
+          }}
+          style={styles.button}
+        >
+          {isSignUp
+            ? "Already have an account? Sign In"
+            : "Don't have an account? Create one"}
+        </Button>
       </View>
 
       {/* Success/Error Messages */}
