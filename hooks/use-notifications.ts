@@ -31,6 +31,8 @@ export function useUnreadCount() {
     queryKey: queryKeys.unreadNotificationCount(user?.id || ""),
     queryFn: () => fetchUnreadCount(user!.id),
     enabled: !!user,
+    refetchInterval: 30_000, // Poll every 30s so badge updates even without push
+    staleTime: 0, // Always refetch on mount
   });
 }
 
