@@ -240,7 +240,7 @@ export function OccasionsSelectionView({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "transparent",
   },
   header: {
     flexDirection: "row",
@@ -248,9 +248,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-    backgroundColor: "#fff",
   },
   backButton: {
     margin: 0,
@@ -264,8 +261,11 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 16,
     paddingBottom: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.92)",
+    borderRadius: 16,
+    marginHorizontal: 8,
   },
   description: {
     marginBottom: 24,
@@ -300,9 +300,6 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: "row",
     padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
-    backgroundColor: "#fff",
     gap: 12,
   },
   skipButton: {

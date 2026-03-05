@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, Button, IconButton } from "react-native-paper";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { supabase } from "../../../lib/supabase";
-import { HEADER_HEIGHT, BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
+import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import type { GiftSuggestion, Recipient } from "../../../types/recipient";
 import { useRecipientForm } from "../../../hooks/use-recipient-form";
 import { RecipientDetailsForm } from "../../../components/recipients/RecipientDetailsForm";
@@ -13,7 +13,6 @@ import { useToast } from "../../../hooks/use-toast";
 
 export default function RecipientEditPage() {
   const insets = useSafeAreaInsets();
-  const headerSpacerHeight = Math.max(HEADER_HEIGHT, insets.top + 60);
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string; tab?: string }>();
   const recipientId = params.id;
@@ -292,7 +291,7 @@ export default function RecipientEditPage() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
+  
         <View style={styles.loadingPlaceholder}>
           <Text>Loading...</Text>
         </View>
@@ -303,7 +302,7 @@ export default function RecipientEditPage() {
   if (!recipient) {
     return (
       <View style={styles.container}>
-        <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
+  
         <View style={styles.loadingPlaceholder}>
           <Text>Recipient not found</Text>
         </View>
@@ -313,7 +312,7 @@ export default function RecipientEditPage() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
+
       {/* Header */}
       <View style={styles.header}>
         <IconButton
@@ -418,9 +417,6 @@ export default function RecipientEditPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
-  },
-  headerSpacer: {
     backgroundColor: "transparent",
   },
   loadingPlaceholder: {
@@ -434,9 +430,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
   },
   headerTitle: {
     flex: 1,
@@ -447,9 +440,6 @@ const styles = StyleSheet.create({
   },
   tabs: {
     flexDirection: "row",
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
     paddingHorizontal: 8,
   },
   tab: {

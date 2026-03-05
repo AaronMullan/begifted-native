@@ -6,6 +6,17 @@
 import { supabase } from "./supabase";
 import type { Recipient, GiftSuggestion } from "../types/recipient";
 
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  body: string;
+  data: Record<string, string>;
+  read: boolean;
+  created_at: string;
+}
+
 export interface Profile {
   id: string;
   username?: string;
@@ -19,6 +30,7 @@ export interface Profile {
   billing_address_city?: string;
   billing_address_state?: string;
   billing_address_zip?: string;
+  is_admin?: boolean;
 }
 
 export interface Occasion {
@@ -171,4 +183,268 @@ export async function fetchGiftSuggestions(
 
   if (error) throw error;
   return data || [];
+}
+
+/**
+ * Fetch notifications for a user (most recent 50)
+ */
+export async function fetchNotifications(
+  userId: string
+): Promise<AppNotification[]> {
+  const { data, error } = await supabase
+    .from("app_notifications")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) throw error;
+  return data || [];
+}
+
+/**
+ * Fetch unread notification count for a user
+ */
+export async function fetchUnreadCount(userId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from("app_notifications")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("read", false);
+
+  if (error) throw error;
+  return count || 0;
+}
+
+/**
+ * Mark a single notification as read
+ */
+export async function markNotificationRead(
+  notificationId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("app_notifications")
+    .update({ read: true })
+    .eq("id", notificationId);
+
+  if (error) throw error;
+}
+
+/**
+ * Mark all notifications as read for a user
+ */
+export async function markAllNotificationsRead(
+  userId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("app_notifications")
+    .update({ read: true })
+    .eq("user_id", userId)
+    .eq("read", false);
+
+  if (error) throw error;
+}
+
+// ============================================================================
+// Admin — Prompt Playground
+// ============================================================================
+
+export interface PromptTestRun {
+  id: string;
+  user_id: string;
+  recipient_id: string;
+  custom_system_prompt: string;
+  original_system_prompt: string;
+  chat_messages: { role: string; content: string }[];
+  generation_result: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface SystemPromptVersion {
+  id: string;
+  prompt_key: string;
+  version: number;
+  prompt_text: string;
+  change_notes: string | null;
+  is_active: boolean;
+  created_by: string | null;
+  created_at: string;
+}
+
+/**
+ * Check if a user is an admin
+ */
+export async function fetchIsAdmin(userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", userId)
+    .single();
+
+  if (error) return false;
+  return data?.is_admin === true;
+}
+
+/**
+ * Fetch all profiles (admin-only, for giver selection)
+ */
+export async function fetchAllProfiles(): Promise<Profile[]> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .order("full_name", { ascending: true });
+
+  if (error) throw error;
+  return data || [];
+}
+
+/**
+ * Fetch recipients belonging to a specific user (admin views another user's recipients)
+ */
+export async function fetchRecipientsForUser(
+  userId: string
+): Promise<Recipient[]> {
+  const { data, error } = await supabase
+    .from("recipients")
+    .select(
+      "id, name, relationship_type, interests, birthday, emotional_tone_preference, gift_budget_min, gift_budget_max, address, address_line_2, city, state, zip_code, country, created_at, updated_at"
+    )
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+/**
+ * Fetch prompt test runs for a user
+ */
+export async function fetchPromptTestRuns(
+  _userId: string
+): Promise<PromptTestRun[]> {
+  const { data, error } = await supabase
+    .from("prompt_test_runs")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) throw error;
+  return data || [];
+}
+
+/**
+ * Create a prompt test run
+ */
+export async function createPromptTestRun(
+  run: Omit<PromptTestRun, "id" | "created_at">
+): Promise<PromptTestRun> {
+  const { data, error } = await supabase
+    .from("prompt_test_runs")
+    .insert(run)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Fetch the active system prompt for a given key
+ */
+export async function fetchActiveSystemPrompt(
+  promptKey: string
+): Promise<SystemPromptVersion | null> {
+  const { data, error } = await supabase
+    .from("system_prompt_versions")
+    .select("*")
+    .eq("prompt_key", promptKey)
+    .eq("is_active", true)
+    .single();
+
+  if (error) return null;
+  return data;
+}
+
+/**
+ * Fetch all prompt versions for a given key
+ */
+export async function fetchPromptVersionHistory(
+  promptKey: string
+): Promise<SystemPromptVersion[]> {
+  const { data, error } = await supabase
+    .from("system_prompt_versions")
+    .select("*")
+    .eq("prompt_key", promptKey)
+    .order("version", { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+/**
+ * Deploy a new prompt version (sets it as active, deactivates previous)
+ */
+export async function deployNewPromptVersion(
+  promptKey: string,
+  promptText: string,
+  changeNotes: string,
+  userId: string
+): Promise<SystemPromptVersion> {
+  // Get the current max version
+  const { data: latestVersion } = await supabase
+    .from("system_prompt_versions")
+    .select("version")
+    .eq("prompt_key", promptKey)
+    .order("version", { ascending: false })
+    .limit(1)
+    .single();
+
+  const newVersion = (latestVersion?.version || 0) + 1;
+
+  // Deactivate current active version
+  await supabase
+    .from("system_prompt_versions")
+    .update({ is_active: false })
+    .eq("prompt_key", promptKey)
+    .eq("is_active", true);
+
+  // Insert new active version
+  const { data, error } = await supabase
+    .from("system_prompt_versions")
+    .insert({
+      prompt_key: promptKey,
+      version: newVersion,
+      prompt_text: promptText,
+      change_notes: changeNotes,
+      is_active: true,
+      created_by: userId,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Rollback to a specific prompt version
+ */
+export async function rollbackToVersion(
+  versionId: string,
+  promptKey: string
+): Promise<void> {
+  // Deactivate current active version
+  await supabase
+    .from("system_prompt_versions")
+    .update({ is_active: false })
+    .eq("prompt_key", promptKey)
+    .eq("is_active", true);
+
+  // Activate the target version
+  const { error } = await supabase
+    .from("system_prompt_versions")
+    .update({ is_active: true })
+    .eq("id", versionId);
+
+  if (error) throw error;
 }

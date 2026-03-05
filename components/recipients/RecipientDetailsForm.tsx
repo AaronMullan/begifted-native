@@ -244,6 +244,7 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 16,
+    backgroundColor: "#fff",
   },
   budgetRow: {
     flexDirection: "row",

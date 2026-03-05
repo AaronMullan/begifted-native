@@ -35,7 +35,7 @@ export default function GradientBackground() {
           gradientUnits="objectBoundingBox"
         >
           <Stop offset="0" stopColor="#432013" />
-          <Stop offset="0.4" stopColor="#5d8997" />
+          <Stop offset="0.65" stopColor="#5d8997" />
           <Stop offset="1" stopColor="#ebdfbd" />
         </LinearGradient>
         {/* radial-gradient(50% 40% at 20% 60%, #ac8b3f 0%, #073AFF00 100%) */}
@@ -49,8 +49,8 @@ export default function GradientBackground() {
           fy="60%"
           gradientUnits="objectBoundingBox"
         >
-          <Stop offset="0" stopColor="#ac8b3f" />
-          <Stop offset="1" stopColor="#073AFF" stopOpacity={0} />
+          <Stop offset="0" stopColor="#ac8b3f" stopOpacity={0.35} />
+          <Stop offset="1" stopColor="#ac8b3f" stopOpacity={0} />
         </RadialGradient>
       </Defs>
       <Rect
@@ -66,6 +66,7 @@ export default function GradientBackground() {
         width={width}
         height={height}
         fill="url(#goldOverlay)"
+        opacity={0.6}
       />
     </Svg>
   );

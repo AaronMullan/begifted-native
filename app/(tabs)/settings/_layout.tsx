@@ -6,6 +6,7 @@ export default function SettingsLayout() {
       screenOptions={{
         headerShown: false,
         animation: "none",
+        contentStyle: { backgroundColor: "transparent" },
       }}
     />
   );

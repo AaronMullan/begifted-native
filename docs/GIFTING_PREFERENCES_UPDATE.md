@@ -11,19 +11,7 @@ This document describes what’s new in this release compared to the previous Te
 
 ---
 
-## 1. New Navigation: Bottom Bar Instead of Hamburger Menu
-
-**Before:** You opened a hamburger menu (☰) to move between sections.  
-**After:** A bottom bar is always visible with four tabs: **Home**, **Contacts**, **Calendar**, and **Settings**.
-
-- One tap to switch between sections.
-- The bottom bar stays visible as you scroll.
-- Navigation is easier to discover and use.
-- Screens stay loaded when you switch, so data doesn’t reload every time.
-
----
-
-## 2. Editing People: Full Screen Instead of Pop-up
+## 1. Editing People: Full Screen Instead of Pop-up
 
 **Before:** Editing a person’s details (occasions, likes, etc.) happened in a pop-up overlay.  
 **After:** Editing uses a full screen with two tabs: **Details** and **Gifts**.
@@ -34,7 +22,7 @@ This document describes what’s new in this release compared to the previous Te
 
 ---
 
-## 3. Smarter Occasion Suggestions When Adding People
+## 2. Smarter Occasion Suggestions When Adding People
 
 **Before:** Occasions were mainly taken from your conversation.  
 **After:** The app suggests occasions based on the person’s interests (e.g. running → National Running Day, music → Record Store Day).
@@ -45,7 +33,7 @@ This document describes what’s new in this release compared to the previous Te
 
 ---
 
-## 4. Clearer Contacts Permission Flow
+## 3. Clearer Contacts Permission Flow
 
 **Before:** The app asked for contacts permission with little context.  
 **After:** A short intro screen explains why the app needs access and what “add all” means.
@@ -56,7 +44,7 @@ This document describes what’s new in this release compared to the previous Te
 
 ---
 
-## 5. Gifting Preferences: Easier to Use and More Reliable
+## 4. Gifting Preferences: Easier to Use and More Reliable
 
 **Before:** You had to scroll to the bottom to save; the screen could get stuck on “Loading…”; errors often didn’t show a message.  
 **After:**
@@ -68,7 +56,7 @@ This document describes what’s new in this release compared to the previous Te
 
 ---
 
-## 6. Profile Settings: Simpler and More Focused
+## 5. Profile Settings: Simpler and More Focused
 
 **Before:** Profile could include multiple fields.  
 **After:** Profile focuses on your name only, stored in the main profiles system.
@@ -80,7 +68,7 @@ This document describes what’s new in this release compared to the previous Te
 
 ---
 
-## 7. Faster Data Loading and Caching
+## 6. Faster Data Loading and Caching
 
 **Before:** Data was reloaded when you switched screens or reopened the app.  
 **After:** The app caches data more aggressively so it:
@@ -92,7 +80,7 @@ This document describes what’s new in this release compared to the previous Te
 
 ---
 
-## 8. Occasion Dates and Logic
+## 7. Occasion Dates and Logic
 
 **Before:** Occasion dates could be wrong when events had already passed.  
 **After:** The app correctly picks the next occurrence of a date (e.g. next birthday, next Christmas).
@@ -102,7 +90,7 @@ This document describes what’s new in this release compared to the previous Te
 
 ---
 
-## 9. Add Recipient Flow: Easier to Use
+## 8. Add Recipient Flow: Easier to Use
 
 **Before:** Extra space above headers; message input and action buttons could be hidden behind the bottom bar; autofill suggestions appeared when typing; send button was hard to see.  
 **After:**
@@ -114,7 +102,7 @@ This document describes what’s new in this release compared to the previous Te
 
 ---
 
-## 10. Other Improvements
+## 9. Other Improvements
 
 - **Device contacts:** Smoother flow when adding people from your phone’s contacts.
 - **FAQ:** Easier to read and navigate.
@@ -127,7 +115,6 @@ This document describes what’s new in this release compared to the previous Te
 
 This release (Build 7) adds:
 
-- **Easier navigation** via a bottom bar
 - **Full-screen editing** for contacts
 - **Smarter occasion suggestions** based on interests
 - **Clearer contacts permission** flow

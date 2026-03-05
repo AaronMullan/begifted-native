@@ -41,6 +41,7 @@ serve(async (req) => {
       recentEvents,
       giftPreferences,
       userId,
+      customSystemPrompt,
     } = await req.json();
     // Fetch user's gifting preferences from the database
     let userPreferences: UserPreferences | null = null;
@@ -173,7 +174,8 @@ serve(async (req) => {
         )}. Align all recommendations with this personal gifting approach.`;
       }
     }
-    const systemPrompt = `You are an expert gift curator with access to detailed conversation context about the recipient and the gift giver's personal style. Your goal is to recommend SPECIFIC, REAL PRODUCTS that can be purchased directly from reputable online retailers.
+    // Hardcoded fallback prompt
+    const hardcodedPrompt = `You are an expert gift curator with access to detailed conversation context about the recipient and the gift giver's personal style. Your goal is to recommend SPECIFIC, REAL PRODUCTS that can be purchased directly from reputable online retailers.
 
 **CRITICAL REQUIREMENTS**:
 - Recommend specific ASINs from Amazon
@@ -188,8 +190,30 @@ serve(async (req) => {
 **PRODUCT SPECIFICITY**:
 - Example: "Nike Air Zoom Pegasus 40" NOT "running shoes"
 - Example: "Born to Run by Christopher McDougal" NOT "running book"
-- Example: "Brother XM2701 Sewing Machine" NOT "sewing equipment"
-${userStyleContext}`;
+- Example: "Brother XM2701 Sewing Machine" NOT "sewing equipment"`;
+
+    let systemPrompt: string;
+    if (customSystemPrompt) {
+      // Playground override: use the custom prompt as-is (no userStyleContext appended)
+      systemPrompt = customSystemPrompt;
+    } else {
+      // Try to read the active prompt from the database
+      let dbPrompt: string | null = null;
+      try {
+        const { data: promptRow } = await supabase
+          .from("system_prompt_versions")
+          .select("prompt_text")
+          .eq("prompt_key", "gift_generation_system")
+          .eq("is_active", true)
+          .single();
+        if (promptRow?.prompt_text) {
+          dbPrompt = promptRow.prompt_text;
+        }
+      } catch (e) {
+        console.log("Could not fetch live prompt from DB, using hardcoded fallback:", e);
+      }
+      systemPrompt = `${dbPrompt || hardcodedPrompt}${userStyleContext}`;
+    }
     const userPrompt = `Create 3 exceptional, SPECIFIC gift recommendations for:
 
 **Recipient Details**:

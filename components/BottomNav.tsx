@@ -10,7 +10,7 @@ type NavItem = {
   key: "dashboard" | "contacts" | "calendar" | "settings";
   label: string;
   icon: keyof typeof MaterialIcons.glyphMap;
-  href: string;
+  href: "/dashboard" | "/contacts" | "/calendar" | "/settings";
 };
 
 const NAV_ITEMS: NavItem[] = [

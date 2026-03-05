@@ -133,7 +133,7 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "transparent",
     justifyContent: "center",
     alignItems: "center",
     padding: 24,

@@ -1,22 +1,6 @@
 import { useState, useEffect } from "react";
 import type { Recipient } from "../types/recipient";
 
-type RecipientFormValues = {
-  name: string;
-  relationshipType: string;
-  interests: string;
-  birthday: string;
-  emotionalTone: string;
-  budgetMin: string;
-  budgetMax: string;
-  address: string;
-  addressLine2: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-};
-
 type OriginalValues = {
   name: string;
   birthday: string;
