@@ -136,6 +136,7 @@ export interface GiftSuggestionRequest {
   recentEvents?: string;
   giftPreferences?: string;
   userId?: string;
+  customSystemPrompt?: string;
 }
 
 export interface GiftItem {

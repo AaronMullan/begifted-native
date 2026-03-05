@@ -29,4 +29,14 @@ export const queryKeys = {
 
   // FAQ (from Google Sheet or fallback)
   faqs: () => ["faqs"] as const,
+
+  // Admin — Prompt Playground
+  promptTestRuns: (userId: string) => ["promptTestRuns", userId] as const,
+  activeSystemPrompt: (promptKey: string) =>
+    ["systemPrompt", promptKey, "active"] as const,
+  promptVersionHistory: (promptKey: string) =>
+    ["systemPrompt", promptKey, "history"] as const,
+  allProfiles: () => ["allProfiles"] as const,
+  recipientsForUser: (userId: string) =>
+    ["recipientsForUser", userId] as const,
 };
