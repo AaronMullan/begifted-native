@@ -6,6 +6,7 @@ import {
   useWindowDimensions,
   KeyboardAvoidingView,
   Platform,
+  Linking,
 } from "react-native";
 import {
   Text,
@@ -441,6 +442,16 @@ type GenerationResultViewProps = {
   result: Record<string, unknown>;
 };
 
+function getProductUrl(gift: Record<string, string>): string | null {
+  if (gift.ASIN && gift.ASIN !== "ASIN of the product") {
+    return `https://www.amazon.com/dp/${gift.ASIN}`;
+  }
+  if (gift.productUrl) {
+    return gift.productUrl;
+  }
+  return null;
+}
+
 const GenerationResultView: React.FC<GenerationResultViewProps> = ({
   result,
 }) => {
@@ -477,6 +488,17 @@ const GenerationResultView: React.FC<GenerationResultViewProps> = ({
                 {primary.reasoning}
               </Text>
             )}
+            {getProductUrl(primary) && (
+              <Button
+                mode="text"
+                icon="open-in-new"
+                compact
+                onPress={() => Linking.openURL(getProductUrl(primary)!)}
+                style={styles.linkButton}
+              >
+                View on {primary.ASIN ? "Amazon" : primary.retailer}
+              </Button>
+            )}
           </Card.Content>
         </Card>
       )}
@@ -495,6 +517,17 @@ const GenerationResultView: React.FC<GenerationResultViewProps> = ({
               <Text variant="bodySmall" style={styles.reasoning}>
                 {alt.reasoning}
               </Text>
+            )}
+            {getProductUrl(alt) && (
+              <Button
+                mode="text"
+                icon="open-in-new"
+                compact
+                onPress={() => Linking.openURL(getProductUrl(alt)!)}
+                style={styles.linkButton}
+              >
+                View on {alt.ASIN ? "Amazon" : alt.retailer}
+              </Button>
             )}
           </Card.Content>
         </Card>
@@ -574,6 +607,7 @@ const styles = StyleSheet.create({
   defaultPromptCard: {
     marginBottom: 8,
     backgroundColor: Colors.neutrals.light,
+    borderRadius: 16,
   },
   monoText: {
     fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
@@ -597,6 +631,7 @@ const styles = StyleSheet.create({
   // Chat styles
   chatCard: {
     marginBottom: 16,
+    borderRadius: 16,
   },
   chatScroll: {
     maxHeight: 400,
@@ -654,6 +689,7 @@ const styles = StyleSheet.create({
   // Results
   resultCard: {
     marginBottom: 8,
+    borderRadius: 16,
   },
   primaryChip: {
     alignSelf: "flex-start",
@@ -676,6 +712,10 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     marginTop: 4,
   },
+  linkButton: {
+    alignSelf: "flex-start",
+    marginTop: 4,
+  },
   errorText: {
     color: Colors.pinks.dark,
   },
@@ -686,6 +726,7 @@ const styles = StyleSheet.create({
   // History
   historyCard: {
     marginBottom: 6,
+    borderRadius: 16,
   },
   emptyText: {
     color: Colors.darks.brown,
