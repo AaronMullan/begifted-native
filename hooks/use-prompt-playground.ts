@@ -11,24 +11,30 @@ import {
   deployNewPromptVersion,
 } from "@/lib/api";
 import type { PromptTestRun } from "@/lib/api";
-import type { Recipient } from "@/types/recipient";
 
-export const DEFAULT_SYSTEM_PROMPT = `You are an expert gift curator with access to detailed conversation context about the recipient and the gift giver's personal style. Your goal is to recommend SPECIFIC, REAL PRODUCTS that can be purchased directly from reputable online retailers.
+const VERCEL_BACKEND_URL = "https://be-gifted.vercel.app";
 
-**CRITICAL REQUIREMENTS**:
-- Recommend specific, real products with direct URLs to their product pages on Amazon or the retailer's website
+export const DEFAULT_SYSTEM_PROMPT = `BeGifted Gift Protocol v1
 
+Purpose: Generate real, purchasable gift suggestions for U.S. recipients.
 
-**QUALITY STANDARDS**:
-- Reference specific conversation details in descriptions
-- Avoid generic suggestions that could apply to anyone
-- Choose well-designed, thoughtful items
-- Balance usefulness with emotional significance
-
-**PRODUCT SPECIFICITY**:
-- Example: "Nike Air Zoom Pegasus 40" NOT "running shoes"
-- Example: "Born to Run by Christopher McDougal" NOT "running book"
-- Example: "Brother XM2701 Sewing Machine" NOT "sewing equipment"`;
+Rules Summary:
+- Use web_search tool to find live product pages. NEVER invent URLs.
+- ONLY use URLs that come from actual search results. Every URL must be verified from search.
+- US retailers only (no Etsy, no non-US TLDs).
+- Provide direct product URLs with visible "Buy" or "Add to Cart" buttons.
+- Search for specific product names and model numbers on major retailers (Amazon, Target, Walmart, Best Buy).
+- Respect CIS constraints (budget, timing, tone, spending_tendencies).
+- Use the giver's spending_tendencies from the CIS to guide price point and gift selection (e.g., "practical" vs "premium", "budget-conscious" vs "luxury").
+- Output valid JSON:
+  {
+    "status": "ok" | "no_results",
+    "suggestions": [
+       { "name", "retailer", "url", "image_url", "price_usd", "category", "tags", "reason" }
+    ]
+  }
+- Return JSON only. No commentary, no Markdown.
+- CRITICAL: All URLs in the response MUST be from actual search results. Do not create or make up any URLs.`;
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -140,7 +146,7 @@ export function usePromptPlayground(userId: string) {
     }
   }
 
-  // Generate gifts with the current prompt
+  // Generate gifts with the current prompt via Vercel backend
   async function generateWithPrompt() {
     if (!selectedRecipientId || !selectedGiverId) return;
 
@@ -148,35 +154,26 @@ export function usePromptPlayground(userId: string) {
     setGenerationResult(null);
 
     try {
-      // Find the selected recipient's data
-      const recipient = recipientsQuery.data?.find(
-        (r: Recipient) => r.id === selectedRecipientId
-      );
-      if (!recipient) throw new Error("Recipient not found");
-
-      const { data, error } = await supabase.functions.invoke(
-        "generate-gift-suggestions",
+      const response = await fetch(
+        `${VERCEL_BACKEND_URL}/api/admin/test-generate`,
         {
-          body: {
-            recipientName: recipient.name,
-            relationship: recipient.relationship_type,
-            interests: recipient.interests,
-            giftingTone: recipient.emotional_tone_preference,
-            budget:
-              recipient.gift_budget_min || recipient.gift_budget_max
-                ? {
-                    min: recipient.gift_budget_min,
-                    max: recipient.gift_budget_max,
-                  }
-                : undefined,
-            userId: selectedGiverId,
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipientId: selectedRecipientId,
             customSystemPrompt: currentPrompt,
-          },
+          }),
         }
       );
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error || `Request failed with status ${response.status}`
+        );
+      }
 
+      const data = await response.json();
       setGenerationResult(data);
 
       // Persist test run

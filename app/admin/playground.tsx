@@ -442,16 +442,16 @@ type GenerationResultViewProps = {
   result: Record<string, unknown>;
 };
 
-function getProductUrl(gift: Record<string, string>): string | null {
-  if (gift.productUrl) {
-    return gift.productUrl;
-  }
-  // Fallback: search Amazon by product name
-  if (gift.name) {
-    return `https://www.amazon.com/s?k=${encodeURIComponent(gift.name)}`;
-  }
-  return null;
-}
+type Suggestion = {
+  name: string;
+  retailer: string;
+  url: string;
+  price_usd: number;
+  category: string;
+  tags: string[];
+  reason: string;
+  image_url?: string;
+};
 
 const GenerationResultView: React.FC<GenerationResultViewProps> = ({
   result,
@@ -468,63 +468,55 @@ const GenerationResultView: React.FC<GenerationResultViewProps> = ({
     );
   }
 
-  const primary = result.primaryGift as Record<string, string> | undefined;
-  const alternatives = (result.alternatives as Record<string, string>[]) || [];
+  const suggestions = (result.suggestions as Suggestion[]) || [];
+
+  if (suggestions.length === 0) {
+    return (
+      <Card style={styles.resultCard}>
+        <Card.Content>
+          <Text variant="bodyMedium">No suggestions generated.</Text>
+        </Card.Content>
+      </Card>
+    );
+  }
 
   return (
     <View>
-      {primary && (
-        <Card style={styles.resultCard}>
-          <Card.Content>
-            <Chip style={styles.primaryChip}>Primary Gift</Chip>
-            <Text variant="titleSmall" style={styles.giftName}>
-              {primary.name}
-            </Text>
-            <Text variant="bodySmall">{primary.description}</Text>
-            <Text variant="bodySmall" style={styles.giftMeta}>
-              {primary.estimatedPrice} — {primary.retailer}
-            </Text>
-            {primary.reasoning && (
-              <Text variant="bodySmall" style={styles.reasoning}>
-                {primary.reasoning}
-              </Text>
-            )}
-            {getProductUrl(primary) && (
-              <Button
-                mode="text"
-                icon="open-in-new"
-                compact
-                onPress={() => Linking.openURL(getProductUrl(primary)!)}
-                style={styles.linkButton}
-              >
-                View Product
-              </Button>
-            )}
-          </Card.Content>
-        </Card>
-      )}
-      {alternatives.map((alt, i) => (
+      {suggestions.map((suggestion, i) => (
         <Card key={i} style={styles.resultCard}>
           <Card.Content>
-            <Chip style={styles.altChip}>Alternative {i + 1}</Chip>
+            <Chip style={i === 0 ? styles.primaryChip : styles.altChip}>
+              {i === 0 ? "Top Pick" : `Option ${i + 1}`}
+            </Chip>
             <Text variant="titleSmall" style={styles.giftName}>
-              {alt.name}
+              {suggestion.name}
             </Text>
-            <Text variant="bodySmall">{alt.description}</Text>
             <Text variant="bodySmall" style={styles.giftMeta}>
-              {alt.estimatedPrice} — {alt.retailer}
+              ${suggestion.price_usd} — {suggestion.retailer}
             </Text>
-            {alt.reasoning && (
+            {suggestion.reason && (
               <Text variant="bodySmall" style={styles.reasoning}>
-                {alt.reasoning}
+                {suggestion.reason}
               </Text>
             )}
-            {getProductUrl(alt) && (
+            {suggestion.category && (
+              <View style={styles.tagsRow}>
+                <Chip compact style={styles.categoryChip}>
+                  {suggestion.category}
+                </Chip>
+                {suggestion.tags?.map((tag, j) => (
+                  <Chip key={j} compact style={styles.tagChip}>
+                    {tag}
+                  </Chip>
+                ))}
+              </View>
+            )}
+            {suggestion.url && (
               <Button
                 mode="text"
                 icon="open-in-new"
                 compact
-                onPress={() => Linking.openURL(getProductUrl(alt)!)}
+                onPress={() => Linking.openURL(suggestion.url)}
                 style={styles.linkButton}
               >
                 View Product
@@ -533,15 +525,6 @@ const GenerationResultView: React.FC<GenerationResultViewProps> = ({
           </Card.Content>
         </Card>
       ))}
-      {result.note ? (
-        <Card style={styles.resultCard}>
-          <Card.Content>
-            <Text variant="bodySmall" style={styles.noteText}>
-              {String(result.note)}
-            </Text>
-          </Card.Content>
-        </Card>
-      ) : null}
     </View>
   );
 };
@@ -713,16 +696,24 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     marginTop: 4,
   },
+  tagsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 4,
+    marginTop: 6,
+  },
+  categoryChip: {
+    backgroundColor: Colors.neutrals.light,
+  },
+  tagChip: {
+    backgroundColor: Colors.neutrals.light,
+  },
   linkButton: {
     alignSelf: "flex-start",
     marginTop: 4,
   },
   errorText: {
     color: Colors.pinks.dark,
-  },
-  noteText: {
-    fontStyle: "italic",
-    color: Colors.darks.brown,
   },
   // History
   historyCard: {
