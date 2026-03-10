@@ -443,11 +443,12 @@ type GenerationResultViewProps = {
 };
 
 function getProductUrl(gift: Record<string, string>): string | null {
-  if (gift.ASIN && gift.ASIN !== "ASIN of the product") {
-    return `https://www.amazon.com/dp/${gift.ASIN}`;
-  }
   if (gift.productUrl) {
     return gift.productUrl;
+  }
+  // Fallback: search Amazon by product name
+  if (gift.name) {
+    return `https://www.amazon.com/s?k=${encodeURIComponent(gift.name)}`;
   }
   return null;
 }
@@ -496,7 +497,7 @@ const GenerationResultView: React.FC<GenerationResultViewProps> = ({
                 onPress={() => Linking.openURL(getProductUrl(primary)!)}
                 style={styles.linkButton}
               >
-                View on {primary.ASIN ? "Amazon" : primary.retailer}
+                View Product
               </Button>
             )}
           </Card.Content>
@@ -526,7 +527,7 @@ const GenerationResultView: React.FC<GenerationResultViewProps> = ({
                 onPress={() => Linking.openURL(getProductUrl(alt)!)}
                 style={styles.linkButton}
               >
-                View on {alt.ASIN ? "Amazon" : alt.retailer}
+                View Product
               </Button>
             )}
           </Card.Content>

@@ -16,7 +16,7 @@ import type { Recipient } from "@/types/recipient";
 export const DEFAULT_SYSTEM_PROMPT = `You are an expert gift curator with access to detailed conversation context about the recipient and the gift giver's personal style. Your goal is to recommend SPECIFIC, REAL PRODUCTS that can be purchased directly from reputable online retailers.
 
 **CRITICAL REQUIREMENTS**:
-- Recommend specific ASINs from Amazon
+- Recommend specific, real products with direct URLs to their product pages on Amazon or the retailer's website
 
 
 **QUALITY STANDARDS**:
