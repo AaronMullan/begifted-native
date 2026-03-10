@@ -36,6 +36,40 @@ Rules Summary:
 - Return JSON only. No commentary, no Markdown.
 - CRITICAL: All URLs in the response MUST be from actual search results. Do not create or make up any URLs.`;
 
+type CISPreview = {
+  giver: {
+    name: string;
+    tone: string;
+    spending_tendencies: string;
+  };
+  recipient: {
+    name: string;
+    relationship: string;
+    age?: number;
+    location?: string;
+    interests?: string[];
+    aesthetic?: string[];
+  };
+  occasion: {
+    type: string;
+    date: string;
+    significance?: string;
+    budget_usd?: number;
+  };
+  history: {
+    prior_gifts: Array<{
+      name: string;
+      reaction?: string;
+      notes?: string;
+    }>;
+    avoid?: string[];
+  };
+};
+
+type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+};
+
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
@@ -44,11 +78,19 @@ interface ChatMessage {
 export function usePromptPlayground(userId: string) {
   const queryClient = useQueryClient();
 
+  // CIS edit state
+  const [cisEdits, setCisEdits] = useState<DeepPartial<CISPreview>>({});
+
   // Selection state
   const [selectedGiverId, setSelectedGiverId] = useState<string | null>(null);
-  const [selectedRecipientId, setSelectedRecipientId] = useState<string | null>(
+  const [selectedRecipientIdRaw, setSelectedRecipientIdRaw] = useState<string | null>(
     null
   );
+  function setSelectedRecipientId(id: string | null) {
+    setSelectedRecipientIdRaw(id);
+    setCisEdits({});
+  }
+  const selectedRecipientId = selectedRecipientIdRaw;
 
   // Prompt state
   const [currentPrompt, setCurrentPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
@@ -87,6 +129,27 @@ export function usePromptPlayground(userId: string) {
     queryFn: () => fetchActiveSystemPrompt("gift_generation_system"),
   });
 
+  const cisPreviewQuery = useQuery({
+    queryKey: ["cisPreview", selectedRecipientId],
+    queryFn: async () => {
+      const response = await fetch(
+        `${VERCEL_BACKEND_URL}/api/admin/preview-cis`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ recipientId: selectedRecipientId }),
+        }
+      );
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Request failed with status ${response.status}`);
+      }
+      return response.json() as Promise<CISPreview>;
+    },
+    enabled: !!selectedRecipientId,
+    retry: false,
+  });
+
   // Initialize prompt from active DB version
   const hasInitialized = useRef(false);
   useEffect(() => {
@@ -100,10 +163,42 @@ export function usePromptPlayground(userId: string) {
     }
   }, [activePromptQuery.data]);
 
-  // When giver changes, reset recipient
+  // Compute edited CIS by merging DB values with user edits
+  const editedCis: CISPreview | null = cisPreviewQuery.data
+    ? {
+        giver: { ...cisPreviewQuery.data.giver, ...cisEdits.giver },
+        recipient: { ...cisPreviewQuery.data.recipient, ...cisEdits.recipient },
+        occasion: { ...cisPreviewQuery.data.occasion, ...cisEdits.occasion },
+        history: { ...cisPreviewQuery.data.history, ...cisEdits.history },
+      }
+    : null;
+
+  const hasCisEdits = Object.keys(cisEdits).length > 0;
+
+  // Set a single CIS field: setCisField("recipient", "age", 30)
+  function setCisField<S extends keyof CISPreview>(
+    section: S,
+    field: keyof CISPreview[S],
+    value: CISPreview[S][keyof CISPreview[S]]
+  ) {
+    setCisEdits((prev) => ({
+      ...prev,
+      [section]: {
+        ...(prev[section] as Record<string, unknown>),
+        [field]: value,
+      },
+    }));
+  }
+
+  function resetCisEdits() {
+    setCisEdits({});
+  }
+
+  // When giver changes, reset recipient and CIS edits
   function handleGiverChange(giverId: string) {
     setSelectedGiverId(giverId);
     setSelectedRecipientId(null);
+    setCisEdits({});
   }
 
   // Send a refinement message
@@ -162,6 +257,7 @@ export function usePromptPlayground(userId: string) {
           body: JSON.stringify({
             recipientId: selectedRecipientId,
             customSystemPrompt: currentPrompt,
+            ...(hasCisEdits ? { cisOverride: cisEdits } : {}),
           }),
         }
       );
@@ -272,6 +368,15 @@ export function usePromptPlayground(userId: string) {
 
     // Test runs
     loadTestRun,
+
+    // CIS preview + editing
+    cisPreview: cisPreviewQuery.data || null,
+    editedCis,
+    cisEdits,
+    hasCisEdits,
+    setCisField,
+    resetCisEdits,
+    isLoadingCis: cisPreviewQuery.isLoading,
 
     // Loading states
     isLoadingProfiles: allProfilesQuery.isLoading,
