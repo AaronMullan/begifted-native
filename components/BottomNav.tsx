@@ -124,7 +124,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: Colors.blues.dark,
   },
   container: {
     paddingTop: 8,
@@ -145,9 +144,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 4,
+    gap: 2,
   },
   label: {
-    marginTop: 2,
     letterSpacing: 0.2,
   },
 });

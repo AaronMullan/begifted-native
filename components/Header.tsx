@@ -1,10 +1,11 @@
-import { View, StyleSheet, Text, Pressable } from "react-native";
+import { View, StyleSheet, Text, Pressable, Animated } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Link } from "expo-router";
 import { useAuth } from "../hooks/use-auth";
 import { useUnreadCount } from "../hooks/use-notifications";
+import { useHeaderVisibility } from "../hooks/use-header-visibility";
 
 type HeaderProps = {
   colorful?: boolean;
@@ -14,6 +15,8 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { data: unreadCount = 0 } = useUnreadCount();
+  const headerHeight = insets.top + 4 + 32 + 8; // paddingTop + content + paddingBottom
+  const { animatedStyle } = useHeaderVisibility(headerHeight);
 
   const email = user?.email ?? "";
   const initials =
@@ -28,10 +31,11 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
       : "U";
 
   return (
-    <View
+    <Animated.View
       style={[
         styles.headerBackground,
         { paddingTop: insets.top + 4, backgroundColor: "transparent" },
+        animatedStyle,
       ]}
     >
       {/* Contained content at max 800px to match dashboard */}
@@ -77,7 +81,7 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
           </Link>
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

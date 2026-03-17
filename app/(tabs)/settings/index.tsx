@@ -5,7 +5,6 @@ import { useRouter } from "expo-router";
 import { supabase } from "../../../lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { MaterialIcons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import { Colors } from "../../../lib/colors";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 
@@ -133,22 +132,13 @@ export default function Settings() {
                 style={styles.settingsCard}
                 onPress={() => router.push(card.route)}
               >
-                <BlurView
-                  intensity={20}
-                  style={styles.cardBlurBackground}
-                  pointerEvents="none"
-                />
                 <View style={styles.cardContentWrapper}>
-                  <View
-                    style={[
-                      styles.iconContainer,
-                      { backgroundColor: Colors.white },
-                    ]}
-                  >
+                  <View style={styles.iconContainer}>
                     <MaterialIcons
                       name={card.icon as any}
-                      size={28}
-                      color={card.iconColor}
+                      size={24}
+                      color={Colors.white}
+                      style={{ opacity: 0.8 }}
                     />
                   </View>
                   <View style={styles.cardContent}>
@@ -162,7 +152,7 @@ export default function Settings() {
                   <MaterialIcons
                     name="chevron-right"
                     size={20}
-                    color={Colors.darks.black}
+                    color={Colors.white}
                     opacity={0.6}
                     style={styles.chevron}
                   />
@@ -229,43 +219,35 @@ const styles = StyleSheet.create({
   },
   settingsCard: {
     marginBottom: 0,
-    backgroundColor: Colors.neutrals.light + "30", // Low opacity
+    backgroundColor: "rgba(0,0,0,0.30)",
     borderRadius: 18,
-    borderWidth: 1,
-    borderColor: Colors.white,
     overflow: "hidden",
     position: "relative",
-  },
-  cardBlurBackground: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 18,
-    overflow: "hidden",
   },
   cardContentWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 20,
-    position: "relative",
-    zIndex: 1,
+    padding: 16,
+    gap: 16,
   },
   iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    backgroundColor: "rgba(255,255,255,0.12)",
   },
   cardContent: {
     flex: 1,
   },
   cardTitle: {
     marginBottom: 4,
-    color: Colors.darks.black,
+    color: Colors.white,
   },
   cardDescription: {
     lineHeight: 20,
-    color: Colors.darks.black,
+    color: Colors.white,
     opacity: 0.8,
   },
   chevron: {

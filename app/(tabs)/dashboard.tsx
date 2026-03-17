@@ -2,7 +2,6 @@ import { View, StyleSheet, ScrollView, Pressable } from "react-native";
 import { Text, ActivityIndicator } from "react-native-paper";
 import { Link, useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import { Colors } from "../../lib/colors";
 import { BOTTOM_NAV_HEIGHT } from "../../lib/constants";
 import { useBottomNavScrollVisibility } from "../../hooks/use-bottom-nav-scroll-visibility";
@@ -20,9 +19,6 @@ export default function Dashboard() {
   const { data: profile } = useProfile();
   const { handleScroll } = useBottomNavScrollVisibility();
 
-  // Single source of truth: derive stats from the same data Contacts and Calendar use
-  const recipientsCount = recipients.length;
-  const upcomingCount = occasions.length;
   const displayName =
     profile?.full_name || user?.email?.split("@")[0] || "User";
   const isLoading = loadingRecipients || loadingOccasions;
@@ -67,7 +63,7 @@ export default function Dashboard() {
             <Text variant="headlineMedium" style={styles.greeting}>
               Hello, {displayName}!
             </Text>
-            <Text variant="bodyLarge" style={styles.tagline}>
+            <Text variant="titleLarge" style={styles.tagline}>
               Let&apos;s make someone&apos;s day special
             </Text>
           </View>
@@ -100,7 +96,7 @@ export default function Dashboard() {
             <Text variant="headlineMedium" style={styles.greeting}>
               Hello, {displayName}!
             </Text>
-            <Text variant="bodyLarge" style={styles.tagline}>
+            <Text variant="titleLarge" style={styles.tagline}>
               Let&apos;s make someone&apos;s day special
             </Text>
           </View>
@@ -110,31 +106,19 @@ export default function Dashboard() {
             {/* Recipients Card */}
             <Link href="/contacts" asChild>
               <Pressable style={styles.card}>
-                <BlurView
-                  intensity={20}
-                  style={styles.blurBackground}
-                  pointerEvents="none"
-                />
-                <View style={styles.cardContent}>
-                  <View style={[styles.iconContainer, styles.recipientsIcon]}>
-                    <MaterialIcons
-                      name="people"
-                      size={32}
-                      color={Colors.pinks.dark}
-                    />
-                  </View>
-                  {loadingRecipients ? (
-                    <ActivityIndicator size="small" style={styles.loader} />
-                  ) : (
-                    <Text variant="displaySmall" style={styles.cardNumber}>
-                      {recipientsCount}
-                    </Text>
-                  )}
+                <View style={styles.iconContainer}>
+                  <MaterialIcons
+                    name="people-outline"
+                    size={32}
+                    color={Colors.blues.medium}
+                  />
+                </View>
+                <View style={styles.cardTextContent}>
                   <Text variant="titleLarge" style={styles.cardTitle}>
                     Recipients
                   </Text>
                   <Text variant="bodyMedium" style={styles.cardDescription}>
-                    Tap to view, edit, or add recipients
+                    View, edit, or add the people you gift
                   </Text>
                 </View>
               </Pressable>
@@ -145,31 +129,19 @@ export default function Dashboard() {
               style={styles.card}
               onPress={() => router.push("/calendar")}
             >
-              <BlurView
-                intensity={20}
-                style={styles.blurBackground}
-                pointerEvents="none"
-              />
-              <View style={styles.cardContent}>
-                <View style={[styles.iconContainer, styles.upcomingIcon]}>
-                  <MaterialIcons
-                    name="calendar-today"
-                    size={32}
-                    color={Colors.pinks.medium}
-                  />
-                </View>
-                {loadingOccasions ? (
-                  <ActivityIndicator size="small" style={styles.loader} />
-                ) : (
-                  <Text variant="displaySmall" style={styles.cardNumber}>
-                    {upcomingCount}
-                  </Text>
-                )}
+              <View style={styles.iconContainer}>
+                <MaterialIcons
+                  name="event"
+                  size={32}
+                  color={Colors.blues.medium}
+                />
+              </View>
+              <View style={styles.cardTextContent}>
                 <Text variant="titleLarge" style={styles.cardTitle}>
                   Upcoming
                 </Text>
                 <Text variant="bodyMedium" style={styles.cardDescription}>
-                  Tap to view calendar
+                  See your upcoming occasions and reminders
                 </Text>
               </View>
             </Pressable>
@@ -179,20 +151,15 @@ export default function Dashboard() {
               style={styles.card}
               onPress={() => router.push("/settings" as any)}
             >
-              <BlurView
-                intensity={20}
-                style={styles.blurBackground}
-                pointerEvents="none"
-              />
-              <View style={styles.cardContent}>
-                <View style={[styles.iconContainer, styles.settingsIcon]}>
-                  <MaterialIcons
-                    name="settings"
-                    size={32}
-                    color={Colors.pinks.dark}
-                  />
-                </View>
-                <Text variant="titleLarge" style={styles.settingsTitle}>
+              <View style={styles.iconContainer}>
+                <MaterialIcons
+                  name="settings"
+                  size={32}
+                  color={Colors.blues.medium}
+                />
+              </View>
+              <View style={styles.cardTextContent}>
+                <Text variant="titleLarge" style={styles.cardTitle}>
                   Settings
                 </Text>
                 <Text variant="bodyMedium" style={styles.cardDescription}>
@@ -230,7 +197,7 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
   },
   header: {
-    marginBottom: 32,
+    marginBottom: 48,
   },
   greeting: {
     marginBottom: 8,
@@ -238,80 +205,41 @@ const styles = StyleSheet.create({
   },
   tagline: {
     color: Colors.darks.black,
-    opacity: 0.9,
+    fontWeight: "600",
   },
   cardsContainer: {
-    gap: 40,
+    gap: 24,
   },
   card: {
-    marginBottom: 0,
-    backgroundColor: Colors.white + "18",
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: Colors.white + "40",
-    overflow: "visible",
-    position: "relative",
-  },
-  blurBackground: {
-    ...StyleSheet.absoluteFillObject,
+    flexDirection: "row",
+    alignItems: "stretch",
+    backgroundColor: "rgba(0,0,0,0.30)",
     borderRadius: 18,
     overflow: "hidden",
   },
-  cardContent: {
-    alignItems: "center",
-    padding: 20,
-    paddingTop: 40, // Extra padding to account for icon
-    position: "relative",
-    zIndex: 1,
-  },
   iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 80,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: Colors.white,
-    borderWidth: 2,
-    borderColor: Colors.white,
-    position: "absolute",
-    top: -32, // Half out (icon is 64px, so -32px puts it exactly half in/half out)
-    left: 20,
-    zIndex: 2,
+    backgroundColor: "rgba(0,0,0,0.40)",
+    borderTopLeftRadius: 18,
+    borderBottomLeftRadius: 18,
   },
-  recipientsIcon: {
-    backgroundColor: Colors.white,
-  },
-  upcomingIcon: {
-    backgroundColor: Colors.white,
-  },
-  settingsIcon: {
-    backgroundColor: Colors.white,
-  },
-  cardNumber: {
-    marginBottom: 8,
-    marginTop: 16,
-    color: Colors.darks.black,
+  cardTextContent: {
+    flex: 1,
+    padding: 20,
+    justifyContent: "center",
   },
   cardTitle: {
-    marginTop: 0,
-    marginBottom: 8,
-    color: Colors.darks.black,
+    color: Colors.white,
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.5,
-  },
-  settingsTitle: {
-    marginBottom: 8,
-    color: Colors.darks.black,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    marginBottom: 6,
   },
   cardDescription: {
-    textAlign: "center",
-    marginTop: 4,
-    color: Colors.darks.black,
-    opacity: 0.8,
+    color: Colors.white,
+    opacity: 0.7,
   },
   title: {
     marginBottom: 8,
@@ -320,9 +248,6 @@ const styles = StyleSheet.create({
   subtitle: {
     color: Colors.darks.black,
     opacity: 0.9,
-  },
-  loader: {
-    marginBottom: 8,
   },
   loadingContainer: {
     flex: 1,

@@ -13,6 +13,7 @@ export default function TabLayout() {
         headerShown: false,
         tabBarStyle: { display: "none" },
         sceneStyle: { backgroundColor: "transparent" },
+        lazy: true,
       }}
     >
       <Tabs.Screen name="dashboard" options={{ title: "Home" }} />

@@ -1,6 +1,5 @@
 import { Alert, StyleSheet, View, Pressable } from "react-native";
 import { Text, Button } from "react-native-paper";
-import { BlurView } from "expo-blur";
 import { Recipient } from "../types/recipient";
 import { Colors } from "../lib/colors";
 
@@ -47,7 +46,6 @@ export default function RecipientCard({
 
   return (
     <Pressable style={styles.card}>
-      <BlurView intensity={20} style={styles.blurBackground} />
       <View style={styles.cardContent}>
         <View style={styles.info}>
           <Text variant="titleMedium" style={styles.name}>
@@ -93,25 +91,16 @@ export default function RecipientCard({
 const styles = StyleSheet.create({
   card: {
     marginBottom: 12,
-    backgroundColor: Colors.neutrals.light + "30", // Low opacity (~19%)
+    backgroundColor: "rgba(0,0,0,0.30)",
     borderRadius: 18,
-    borderWidth: 1,
-    borderColor: Colors.white,
     overflow: "hidden",
     position: "relative",
-  },
-  blurBackground: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 18,
-    overflow: "hidden",
   },
   cardContent: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
-    position: "relative",
-    zIndex: 1,
+    padding: 16,
   },
   info: {
     flex: 1,
@@ -119,21 +108,21 @@ const styles = StyleSheet.create({
   },
   name: {
     marginBottom: 4,
-    color: Colors.darks.black,
+    color: Colors.white,
   },
   relationship: {
     marginBottom: 4,
-    color: Colors.darks.black,
+    color: Colors.white,
     opacity: 0.8,
   },
   birthday: {
-    color: Colors.darks.black,
+    color: Colors.white,
     opacity: 0.7,
     marginBottom: 4,
   },
   interests: {
     fontStyle: "italic",
-    color: Colors.darks.black,
+    color: Colors.white,
     opacity: 0.7,
   },
   actions: {
