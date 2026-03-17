@@ -4,6 +4,11 @@ import {
   RobotoFlex_400Regular,
 } from "@expo-google-fonts/roboto-flex";
 import { AzeretMono_400Regular } from "@expo-google-fonts/azeret-mono";
+import {
+  Fraunces_400Regular,
+  Fraunces_400Regular_Italic,
+  Fraunces_600SemiBold,
+} from "@expo-google-fonts/fraunces";
 import * as SplashScreen from "expo-splash-screen";
 
 /**
@@ -14,6 +19,9 @@ export function useFontsLoader() {
   const [fontsLoaded] = useFonts({
     RobotoFlex_400Regular,
     AzeretMono_400Regular,
+    Fraunces_400Regular,
+    Fraunces_400Regular_Italic,
+    Fraunces_600SemiBold,
   });
   const startTimeRef = useRef<number>(Date.now());
   const hideCalledRef = useRef<boolean>(false);

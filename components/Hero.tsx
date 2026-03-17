@@ -52,8 +52,7 @@ export default function Hero() {
         >
           <Text
             style={{
-              fontFamily: "Times New Roman",
-              fontStyle: "italic",
+              fontFamily: "Fraunces_400Regular_Italic",
               fontSize: fontSize.display,
               fontWeight: "regular",
               marginBottom: 16,

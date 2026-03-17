@@ -113,7 +113,7 @@ export default function BrandGrid() {
     >
       <Text
         style={{
-          fontFamily: "RobotoFlex_400Regular",
+          fontFamily: "Fraunces_400Regular",
           fontSize: fontSize.heading,
           color: "#fff",
           marginBottom: 20,
