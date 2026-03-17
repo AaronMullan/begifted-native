@@ -45,8 +45,8 @@ export default function BottomNav() {
   const insets = useSafeAreaInsets();
   const { isVisible, animatedStyle } = useBottomNavVisibility();
 
-  // Hide completely when provider says it's not visible (for non-animated cases)
-  if (!isVisible && !animatedStyle) {
+  // Hide on admin routes
+  if (pathname.startsWith("/admin")) {
     return null;
   }
 
