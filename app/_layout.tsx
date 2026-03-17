@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { QueryClient } from "@tanstack/react-query";
@@ -6,6 +7,7 @@ import { Provider as PaperProvider, MD3LightTheme } from "react-native-paper";
 import { View, StyleSheet } from "react-native";
 import Header from "../components/Header";
 import GradientBackground from "../components/GradientBackground";
+import AnimatedSplash from "../components/AnimatedSplash";
 import BottomNav from "../components/BottomNav";
 import { useFontsLoader } from "../hooks/use-fonts-loader";
 import { usePushNotifications } from "../hooks/use-push-notifications";
@@ -71,8 +73,14 @@ function AppShell() {
 }
 
 export default function RootLayout() {
-  // Load fonts and handle splash screen
   const fontsLoaded = useFontsLoader();
+  const [splashReady, setSplashReady] = useState(false);
+  const [splashDone, setSplashDone] = useState(false);
+
+  if (fontsLoaded && !splashReady) {
+    SplashScreen.hideAsync().catch(() => {});
+    setSplashReady(true);
+  }
 
   if (!fontsLoaded) {
     return null;
@@ -85,6 +93,12 @@ export default function RootLayout() {
     >
       <PaperProvider theme={customTheme}>
         <AppShell />
+        {!splashDone && (
+          <AnimatedSplash
+            ready={splashReady}
+            onFinish={() => setSplashDone(true)}
+          />
+        )}
       </PaperProvider>
     </PersistQueryClientProvider>
   );
