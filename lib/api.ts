@@ -6,6 +6,42 @@
 import { supabase } from "./supabase";
 import type { Recipient, GiftSuggestion } from "../types/recipient";
 
+export interface UserPreferences {
+  user_id: string;
+  onboarding_completed: boolean;
+  user_description: string | null;
+  gifting_style_text: string | null;
+  user_stack: {
+    philosophy?: string;
+    creativity?: string;
+    budget_style?: string;
+    planning_style?: string;
+  } | null;
+  default_gifting_tone: string | null;
+  reminder_days: number;
+  auto_fallback_enabled: boolean;
+}
+
+/**
+ * Fetch user preferences for a user
+ */
+export async function fetchUserPreferences(
+  userId: string
+): Promise<UserPreferences | null> {
+  const { data, error } = await supabase
+    .from("user_preferences")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error fetching user preferences:", error);
+    return null;
+  }
+
+  return data;
+}
+
 export interface AppNotification {
   id: string;
   user_id: string;

@@ -27,6 +27,9 @@ export const queryKeys = {
   unreadNotificationCount: (userId: string) =>
     ["notifications", userId, "unreadCount"] as const,
 
+  // User Preferences
+  userPreferences: (userId: string) => ["userPreferences", userId] as const,
+
   // FAQ (from Google Sheet or fallback)
   faqs: () => ["faqs"] as const,
 

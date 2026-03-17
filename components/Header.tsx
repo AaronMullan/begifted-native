@@ -2,7 +2,7 @@ import { View, StyleSheet, Text, Pressable, Animated } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
-import { Link } from "expo-router";
+import { Link, usePathname } from "expo-router";
 import { useAuth } from "../hooks/use-auth";
 import { useUnreadCount } from "../hooks/use-notifications";
 import { useHeaderVisibility } from "../hooks/use-header-visibility";
@@ -13,10 +13,16 @@ type HeaderProps = {
 
 export default function Header({ colorful: _colorful = false }: HeaderProps) {
   const insets = useSafeAreaInsets();
+  const pathname = usePathname();
   const { user } = useAuth();
   const { data: unreadCount = 0 } = useUnreadCount();
   const headerHeight = insets.top + 4 + 32 + 8; // paddingTop + content + paddingBottom
   const { animatedStyle } = useHeaderVisibility(headerHeight);
+
+  // Hide on onboarding routes
+  if (pathname.startsWith("/onboarding")) {
+    return null;
+  }
 
   const email = user?.email ?? "";
   const initials =

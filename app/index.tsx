@@ -1,4 +1,4 @@
-import { Session } from "@supabase/supabase-js";
+import type { Session } from "@supabase/supabase-js";
 import { useState, useEffect } from "react";
 import {
   StyleSheet,
@@ -7,9 +7,27 @@ import {
   ActivityIndicator,
   Platform,
 } from "react-native";
+import type { Href } from "expo-router";
 import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import Auth from "../components/Auth";
+
+async function resolvePostAuthRoute(userId: string): Promise<string> {
+  try {
+    const { data } = await supabase
+      .from("user_preferences")
+      .select("onboarding_completed")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (data?.onboarding_completed) {
+      return "/dashboard";
+    }
+    return "/onboarding/welcome";
+  } catch {
+    return "/onboarding/welcome";
+  }
+}
 
 export default function Index() {
   const [session, setSession] = useState<Session | null>(null);
@@ -22,15 +40,15 @@ export default function Index() {
     // Check auth session
     supabase.auth
       .getSession()
-      .then(({ data: { session } }) => {
+      .then(async ({ data: { session } }) => {
         if (!isMounted) return;
 
         setSession(session);
         setLoading(false);
 
-        // Redirect to dashboard if logged in
         if (session?.user) {
-          router.replace("/dashboard");
+          const route = await resolvePostAuthRoute(session.user.id);
+          if (isMounted) router.replace(route as Href);
         }
       })
       .catch((error) => {
@@ -44,13 +62,13 @@ export default function Index() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!isMounted) return;
       setSession(session);
 
-      // Redirect to dashboard if logged in
       if (session?.user) {
-        router.replace("/dashboard");
+        const route = await resolvePostAuthRoute(session.user.id);
+        if (isMounted) router.replace(route as Href);
       }
     });
 

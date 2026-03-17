@@ -51,9 +51,11 @@ export default function RecipientCard({
           <Text variant="titleMedium" style={styles.name}>
             {recipient.name}
           </Text>
-          <Text variant="bodyMedium" style={styles.relationship}>
-            {recipient.relationship_type}
-          </Text>
+          {recipient.relationship_type && recipient.relationship_type !== "null" ? (
+            <Text variant="bodyMedium" style={styles.relationship}>
+              {recipient.relationship_type}
+            </Text>
+          ) : null}
           {recipient.birthday && (
             <Text variant="bodySmall" style={styles.birthday}>
               Birthday: {formatBirthday(recipient.birthday)}
