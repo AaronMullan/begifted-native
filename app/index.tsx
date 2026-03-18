@@ -1,5 +1,5 @@
 import type { Session } from "@supabase/supabase-js";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   StyleSheet,
   ScrollView,
@@ -12,64 +12,58 @@ import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import Auth from "../components/Auth";
 
-async function resolvePostAuthRoute(userId: string): Promise<string> {
-  try {
-    const { data } = await supabase
-      .from("user_preferences")
-      .select("onboarding_completed")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (data?.onboarding_completed) {
-      return "/dashboard";
-    }
-    return "/onboarding/welcome";
-  } catch {
-    return "/onboarding/welcome";
-  }
-}
-
 export default function Index() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const hasNavigated = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
 
+    async function handleSession(session: Session | null) {
+      if (!isMounted || hasNavigated.current) return;
+
+      setSession(session);
+
+      if (session?.user) {
+        try {
+          const { data } = await supabase
+            .from("user_preferences")
+            .select("onboarding_completed")
+            .eq("user_id", session.user.id)
+            .maybeSingle();
+
+          if (!isMounted || hasNavigated.current) return;
+
+          hasNavigated.current = true;
+          const route = data?.onboarding_completed
+            ? "/dashboard"
+            : "/onboarding/welcome";
+          router.replace(route as Href);
+        } catch {
+          if (!isMounted || hasNavigated.current) return;
+          hasNavigated.current = true;
+          router.replace("/onboarding/welcome" as Href);
+        }
+      } else {
+        setLoading(false);
+      }
+    }
+
     // Check auth session
     supabase.auth
       .getSession()
-      .then(async ({ data: { session } }) => {
-        if (!isMounted) return;
-
-        setSession(session);
-        setLoading(false);
-
-        if (session?.user) {
-          const route = await resolvePostAuthRoute(session.user.id);
-          if (isMounted) router.replace(route as Href);
-        }
-      })
+      .then(({ data: { session } }) => handleSession(session))
       .catch((error) => {
         console.error("Error checking auth session:", error);
-        if (!isMounted) return;
-
-        // On error, still show auth screen
-        setSession(null);
-        setLoading(false);
+        if (isMounted) setLoading(false);
       });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (!isMounted) return;
-      setSession(session);
-
-      if (session?.user) {
-        const route = await resolvePostAuthRoute(session.user.id);
-        if (isMounted) router.replace(route as Href);
-      }
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      handleSession(session);
     });
 
     return () => {
@@ -78,11 +72,8 @@ export default function Index() {
     };
   }, [router]);
 
-  // Show loading screen while checking auth - splash screen should be visible
-  // On web, we also show a fallback loading screen since splash screens work differently
+  // Keep showing loading until redirect completes for authenticated users
   if (loading) {
-    // On native, splash screen is visible, so return null
-    // On web, show a loading screen as fallback
     if (Platform.OS === "web") {
       return (
         <View style={styles.loadingContainer}>
@@ -105,7 +96,7 @@ export default function Index() {
     );
   }
 
-  // This shouldn't render if redirect works, but just in case
+  // Authenticated but waiting for redirect — keep loading
   return null;
 }
 
