@@ -67,36 +67,44 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
         Basic Information
       </Text>
 
+      <Text variant="bodyMedium" style={styles.label}>
+        Name *
+      </Text>
       <TextInput
         mode="outlined"
-        label="Name *"
         value={name}
         onChangeText={onChangeName}
         placeholder="e.g., Sarah Johnson"
         style={styles.input}
       />
 
+      <Text variant="bodyMedium" style={styles.label}>
+        Relationship *
+      </Text>
       <TextInput
         mode="outlined"
-        label="Relationship *"
         value={relationshipType}
         onChangeText={onChangeRelationshipType}
         placeholder="e.g., Sister, Friend, Colleague"
         style={styles.input}
       />
 
+      <Text variant="bodyMedium" style={styles.label}>
+        Birthday
+      </Text>
       <TextInput
         mode="outlined"
-        label="Birthday"
         value={birthday}
         onChangeText={onChangeBirthday}
         placeholder="YYYY-MM-DD"
         style={styles.input}
       />
 
+      <Text variant="bodyMedium" style={styles.label}>
+        Interests
+      </Text>
       <TextInput
         mode="outlined"
-        label="Interests"
         value={interests}
         onChangeText={onChangeInterests}
         placeholder="e.g., reading, hiking, coffee (comma-separated)"
@@ -109,9 +117,11 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
         Gift Preferences
       </Text>
 
+      <Text variant="bodyMedium" style={styles.label}>
+        Emotional Tone
+      </Text>
       <TextInput
         mode="outlined"
-        label="Emotional Tone"
         value={emotionalTone}
         onChangeText={onChangeEmotionalTone}
         placeholder="e.g., heartfelt, playful, elegant"
@@ -125,10 +135,9 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
         <View style={styles.budgetField}>
           <TextInput
             mode="outlined"
-            label="Min ($)"
             value={budgetMin}
             onChangeText={onChangeBudgetMin}
-            placeholder="25"
+            placeholder="Min ($)"
             keyboardType="numeric"
             style={styles.input}
           />
@@ -136,10 +145,9 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
         <View style={styles.budgetField}>
           <TextInput
             mode="outlined"
-            label="Max ($)"
             value={budgetMax}
             onChangeText={onChangeBudgetMax}
-            placeholder="100"
+            placeholder="Max ($)"
             keyboardType="numeric"
             style={styles.input}
           />
@@ -150,18 +158,22 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
         Shipping Address
       </Text>
 
+      <Text variant="bodyMedium" style={styles.label}>
+        Address Line 1
+      </Text>
       <TextInput
         mode="outlined"
-        label="Address Line 1"
         value={address}
         onChangeText={onChangeAddress}
         placeholder="123 Main St"
         style={styles.input}
       />
 
+      <Text variant="bodyMedium" style={styles.label}>
+        Address Line 2
+      </Text>
       <TextInput
         mode="outlined"
-        label="Address Line 2"
         value={addressLine2}
         onChangeText={onChangeAddressLine2}
         placeholder="Apt 4B"
@@ -170,9 +182,11 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
 
       <View style={styles.addressRow}>
         <View style={styles.cityField}>
+          <Text variant="bodyMedium" style={styles.label}>
+            City
+          </Text>
           <TextInput
             mode="outlined"
-            label="City"
             value={city}
             onChangeText={onChangeCity}
             placeholder="New York"
@@ -180,9 +194,11 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
           />
         </View>
         <View style={styles.stateField}>
+          <Text variant="bodyMedium" style={styles.label}>
+            State
+          </Text>
           <TextInput
             mode="outlined"
-            label="State"
             value={state}
             onChangeText={onChangeState}
             placeholder="NY"
@@ -193,9 +209,11 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
 
       <View style={styles.addressRow}>
         <View style={styles.zipField}>
+          <Text variant="bodyMedium" style={styles.label}>
+            Zip Code
+          </Text>
           <TextInput
             mode="outlined"
-            label="Zip Code"
             value={zipCode}
             onChangeText={onChangeZipCode}
             placeholder="10001"
@@ -204,9 +222,11 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
           />
         </View>
         <View style={styles.countryField}>
+          <Text variant="bodyMedium" style={styles.label}>
+            Country
+          </Text>
           <TextInput
             mode="outlined"
-            label="Country"
             value={country}
             onChangeText={onChangeCountry}
             placeholder="US"
@@ -219,7 +239,7 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
       <Button
         mode="outlined"
         buttonColor="#000000"
-        textColor="#000000"
+        textColor="#cc0000"
         icon="delete-outline"
         onPress={onDelete}
         style={styles.deleteButton}
@@ -240,7 +260,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   label: {
-    marginBottom: 6,
+    marginBottom: 4,
   },
   input: {
     marginBottom: 16,

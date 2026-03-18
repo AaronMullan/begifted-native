@@ -5,7 +5,7 @@ import type { ReactElement } from "react";
 
 type UseToastReturn = {
   showToast: (message: string) => void;
-  toast: ReactElement | null;
+  toast: ReactElement;
 };
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -15,13 +15,11 @@ export function useToast(): UseToastReturn {
   const [message, setMessage] = useState("");
 
   const showToast = (toastMessage: string) => {
-    console.log("showToast called with:", toastMessage);
     setMessage(toastMessage);
     setVisible(true);
-    console.log("Toast state updated - visible should be true");
   };
 
-  const toast = visible ? (
+  const toast = (
     <Portal>
       <Snackbar
         visible={visible}
@@ -33,7 +31,7 @@ export function useToast(): UseToastReturn {
         {message}
       </Snackbar>
     </Portal>
-  ) : null;
+  );
 
   return { showToast, toast };
 }
@@ -41,7 +39,7 @@ export function useToast(): UseToastReturn {
 const styles = StyleSheet.create({
   wrapper: {
     position: "absolute",
-    top: SCREEN_HEIGHT / 2 - 30, // Center vertically (30 is approximate snackbar height / 2)
+    top: SCREEN_HEIGHT / 2 - 30,
     left: 0,
     right: 0,
   },
