@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     gap: 30,
   },
   heading: {
-    fontFamily: "RobotoFlex_400Regular",
+    fontFamily: "Fraunces_600SemiBold",
     color: "#fff",
     marginBottom: 10,
     textAlign: "left",

@@ -45,8 +45,8 @@ export default function BottomNav() {
   const insets = useSafeAreaInsets();
   const { isVisible, animatedStyle } = useBottomNavVisibility();
 
-  // Hide completely when provider says it's not visible (for non-animated cases)
-  if (!isVisible && !animatedStyle) {
+  // Hide on admin and onboarding routes
+  if (pathname.startsWith("/admin") || pathname.startsWith("/onboarding")) {
     return null;
   }
 
@@ -124,7 +124,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: Colors.blues.dark,
   },
   container: {
     paddingTop: 8,
@@ -145,9 +144,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 4,
+    gap: 2,
   },
   label: {
-    marginTop: 2,
     letterSpacing: 0.2,
   },
 });

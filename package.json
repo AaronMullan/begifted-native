@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@expo-google-fonts/azeret-mono": "^0.4.1",
+    "@expo-google-fonts/fraunces": "^0.4.1",
     "@expo-google-fonts/roboto-flex": "^0.4.1",
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "^2.2.0",
