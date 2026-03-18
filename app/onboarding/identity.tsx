@@ -1,4 +1,12 @@
-import { View, StyleSheet } from "react-native";
+import {
+  View,
+  StyleSheet,
+  KeyboardAvoidingView,
+  ScrollView,
+  Keyboard,
+  Platform,
+  Pressable,
+} from "react-native";
 import { Text, Button, TextInput } from "react-native-paper";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -42,59 +50,77 @@ export default function OnboardingIdentity() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 60 }]}>
-      <View style={styles.content}>
-        <Text variant="headlineMedium" style={styles.headline}>
-          Tell us about yourself
-        </Text>
-        <Text variant="bodyLarge" style={styles.body}>
-          How would you describe yourself? This helps us understand your gifting
-          style and personalize recommendations.
-        </Text>
-
-        <TextInput
-          mode="outlined"
-          placeholder="e.g. I'm a creative person who loves cooking, hiking, and finding unique handmade gifts for friends and family..."
-          value={description}
-          onChangeText={setDescription}
-          multiline
-          numberOfLines={5}
-          style={styles.input}
-          outlineStyle={styles.inputOutline}
-          contentStyle={styles.inputContent}
-        />
-      </View>
-
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 24 }]}>
-        <Button
-          mode="contained"
-          onPress={handleContinue}
-          loading={saving}
-          disabled={saving}
-          contentStyle={styles.buttonContent}
-          labelStyle={styles.buttonLabel}
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <Pressable style={styles.flex} onPress={Keyboard.dismiss}>
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: insets.top + 60, paddingBottom: insets.bottom + 24 },
+          ]}
+          keyboardShouldPersistTaps="handled"
         >
-          Continue
-        </Button>
-        <Button
-          mode="text"
-          onPress={() => router.push("/onboarding/confirmation")}
-          disabled={saving}
-          labelStyle={styles.skipLabel}
-          style={styles.skipButton}
-        >
-          Skip for now
-        </Button>
-      </View>
-    </View>
+          <View style={styles.content}>
+            <Text variant="headlineMedium" style={styles.headline}>
+              Tell us about yourself
+            </Text>
+            <Text variant="bodyLarge" style={styles.body}>
+              How would you describe yourself? This helps us understand your
+              gifting style and personalize recommendations.
+            </Text>
+
+            <TextInput
+              mode="outlined"
+              placeholder="e.g. I'm a creative person who loves cooking, hiking, and finding unique handmade gifts for friends and family..."
+              value={description}
+              onChangeText={setDescription}
+              multiline
+              numberOfLines={5}
+              style={styles.input}
+              outlineStyle={styles.inputOutline}
+              contentStyle={styles.inputContent}
+            />
+          </View>
+
+          <View style={styles.footer}>
+            <Button
+              mode="contained"
+              onPress={handleContinue}
+              loading={saving}
+              disabled={saving}
+              contentStyle={styles.buttonContent}
+              labelStyle={styles.buttonLabel}
+            >
+              Continue
+            </Button>
+            <Button
+              mode="text"
+              onPress={() => router.push("/onboarding/confirmation")}
+              disabled={saving}
+              labelStyle={styles.skipLabel}
+              style={styles.skipButton}
+            >
+              Skip for now
+            </Button>
+          </View>
+        </ScrollView>
+      </Pressable>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  flex: {
     flex: 1,
     backgroundColor: "transparent",
+  },
+  scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 24,
+    justifyContent: "center",
   },
   content: {
     flex: 1,
