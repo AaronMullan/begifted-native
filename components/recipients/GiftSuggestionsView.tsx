@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { StyleSheet, View, Linking, Image } from "react-native";
 import {
   ActivityIndicator,
@@ -8,6 +8,7 @@ import {
   List,
 } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
+import { Colors } from "../../lib/colors";
 import type { GiftSuggestion } from "../../types/recipient";
 
 type GiftSuggestionsViewProps = {
@@ -88,9 +89,24 @@ const groupSuggestionsByDate = (suggestions: GiftSuggestion[]): DateGroup[] => {
   });
 };
 
+const MIN_IMAGE_SIZE = 200;
+
 const SuggestionCard: React.FC<{ suggestion: GiftSuggestion }> = ({
   suggestion,
 }) => {
+  const [showImage, setShowImage] = useState(false);
+
+  useEffect(() => {
+    if (!suggestion.image_url) return;
+    Image.getSize(
+      suggestion.image_url,
+      (width, height) => {
+        setShowImage(width >= MIN_IMAGE_SIZE && height >= MIN_IMAGE_SIZE);
+      },
+      () => setShowImage(false)
+    );
+  }, [suggestion.image_url]);
+
   return (
     <Card
       key={suggestion.id}
@@ -98,7 +114,7 @@ const SuggestionCard: React.FC<{ suggestion: GiftSuggestion }> = ({
       onPress={() => openLink(suggestion.link)}
       disabled={!suggestion.link}
     >
-      {suggestion.image_url && (
+      {showImage && suggestion.image_url && (
         <View style={styles.suggestionImageContainer}>
           <View style={styles.suggestionImageInner}>
             <Image
@@ -233,10 +249,13 @@ export const GiftSuggestionsView: React.FC<GiftSuggestionsViewProps> = ({
             <List.Accordion
               key={group.dateKey}
               title={group.dateLabel}
-              left={(props) => <List.Icon {...props} icon="calendar" />}
+              titleStyle={styles.accordionTitle}
+              left={(props) => <List.Icon {...props} icon="calendar" color={Colors.white} />}
+              right={(props) => <List.Icon {...props} icon={expandedGroups.has(group.dateKey) ? "chevron-up" : "chevron-down"} color={Colors.white} />}
               expanded={expandedGroups.has(group.dateKey)}
               onPress={() => toggleGroup(group.dateKey)}
               style={styles.accordion}
+              theme={{ colors: { background: "transparent", surface: "transparent" } }}
             >
               <View style={styles.groupedSuggestions}>
                 {group.suggestions.map((suggestion) => (
@@ -322,6 +341,7 @@ const styles = StyleSheet.create({
   },
   suggestionContent: {
     paddingTop: 16,
+    backgroundColor: "transparent",
   },
   suggestionTitle: {
     marginBottom: 6,
@@ -350,6 +370,10 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.30)",
     borderRadius: 18,
     marginBottom: 8,
+    paddingRight: 0,
+  },
+  accordionTitle: {
+    color: Colors.white,
   },
   groupedSuggestions: {
     paddingHorizontal: 16,
