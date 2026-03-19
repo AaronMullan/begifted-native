@@ -109,7 +109,7 @@ const SuggestionCard: React.FC<{ suggestion: GiftSuggestion }> = ({
           </View>
         </View>
       )}
-      <Card.Content>
+      <Card.Content style={styles.suggestionContent}>
         <Text variant="titleMedium" style={styles.suggestionTitle}>
           {suggestion.title}
         </Text>
@@ -319,6 +319,9 @@ const styles = StyleSheet.create({
   suggestionImage: {
     width: "100%",
     height: "100%",
+  },
+  suggestionContent: {
+    paddingTop: 16,
   },
   suggestionTitle: {
     marginBottom: 6,
