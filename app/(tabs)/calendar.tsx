@@ -78,8 +78,9 @@ export default function Calendar() {
 
   function formatOccasionTitle(occasion: Occasion): string {
     const recipientName = occasion.recipient?.name || "Unknown";
-    const occasionType =
-      occasion.occasion_type === "custom" ? "custom" : "birthday";
+    const occasionType = occasion.occasion_type
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
     // Handle possessive correctly
     const possessive = recipientName.endsWith("s")
       ? `${recipientName}'`
