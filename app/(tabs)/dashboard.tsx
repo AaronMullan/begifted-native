@@ -1,8 +1,8 @@
-import { View, StyleSheet, ScrollView, Pressable } from "react-native";
+import { View, StyleSheet, ScrollView } from "react-native";
 import { Text, ActivityIndicator } from "react-native-paper";
-import { Link, useRouter } from "expo-router";
-import { MaterialIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { Colors } from "../../lib/colors";
+import MenuCard from "../../components/MenuCard";
 import { BOTTOM_NAV_HEIGHT } from "../../lib/constants";
 import { useBottomNavScrollVisibility } from "../../hooks/use-bottom-nav-scroll-visibility";
 import { useAuth } from "../../hooks/use-auth";
@@ -103,70 +103,24 @@ export default function Dashboard() {
 
           {/* Three cards */}
           <View style={styles.cardsContainer}>
-            {/* Recipients Card */}
-            <Link href="/contacts" asChild>
-              <Pressable style={styles.card}>
-                <View style={styles.iconContainer}>
-                  <MaterialIcons
-                    name="people-outline"
-                    size={32}
-                    color={Colors.blues.medium}
-                  />
-                </View>
-                <View style={styles.cardTextContent}>
-                  <Text variant="titleLarge" style={styles.cardTitle}>
-                    Recipients
-                  </Text>
-                  <Text variant="bodyMedium" style={styles.cardDescription}>
-                    View, edit, or add the people you gift
-                  </Text>
-                </View>
-              </Pressable>
-            </Link>
-
-            {/* Upcoming Card */}
-            <Pressable
-              style={styles.card}
+            <MenuCard
+              icon="people-outline"
+              title="Recipients"
+              description="View, edit, or add the people you gift"
+              onPress={() => router.push("/contacts")}
+            />
+            <MenuCard
+              icon="event"
+              title="Upcoming"
+              description="See your upcoming occasions and reminders"
               onPress={() => router.push("/calendar")}
-            >
-              <View style={styles.iconContainer}>
-                <MaterialIcons
-                  name="event"
-                  size={32}
-                  color={Colors.blues.medium}
-                />
-              </View>
-              <View style={styles.cardTextContent}>
-                <Text variant="titleLarge" style={styles.cardTitle}>
-                  Upcoming
-                </Text>
-                <Text variant="bodyMedium" style={styles.cardDescription}>
-                  See your upcoming occasions and reminders
-                </Text>
-              </View>
-            </Pressable>
-
-            {/* Settings Card */}
-            <Pressable
-              style={styles.card}
+            />
+            <MenuCard
+              icon="settings"
+              title="Settings"
+              description="Manage your account and preferences"
               onPress={() => router.push("/settings" as any)}
-            >
-              <View style={styles.iconContainer}>
-                <MaterialIcons
-                  name="settings"
-                  size={32}
-                  color={Colors.blues.medium}
-                />
-              </View>
-              <View style={styles.cardTextContent}>
-                <Text variant="titleLarge" style={styles.cardTitle}>
-                  Settings
-                </Text>
-                <Text variant="bodyMedium" style={styles.cardDescription}>
-                  Manage your account and preferences
-                </Text>
-              </View>
-            </Pressable>
+            />
           </View>
         </View>
       </ScrollView>
@@ -209,37 +163,6 @@ const styles = StyleSheet.create({
   },
   cardsContainer: {
     gap: 24,
-  },
-  card: {
-    flexDirection: "row",
-    alignItems: "stretch",
-    backgroundColor: "rgba(0,0,0,0.30)",
-    borderRadius: 18,
-    overflow: "hidden",
-  },
-  iconContainer: {
-    width: 80,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.40)",
-    borderTopLeftRadius: 18,
-    borderBottomLeftRadius: 18,
-  },
-  cardTextContent: {
-    flex: 1,
-    padding: 20,
-    justifyContent: "center",
-  },
-  cardTitle: {
-    color: Colors.white,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 6,
-  },
-  cardDescription: {
-    color: Colors.white,
-    opacity: 0.7,
   },
   title: {
     marginBottom: 8,

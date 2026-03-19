@@ -56,7 +56,7 @@ export default function Contacts() {
   const { handleScroll } = useBottomNavScrollVisibility();
 
   function openEditForm(recipient: Recipient) {
-    router.push(`/contacts/${recipient.id}?tab=details`);
+    router.push(`/contacts/${recipient.id}?tab=gifts`);
   }
 
   function closeForm() {
@@ -174,32 +174,6 @@ export default function Contacts() {
     }
   }
 
-  async function deleteRecipient(id: string) {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from("recipients")
-        .delete()
-        .eq("id", id)
-        .eq("user_id", user.id);
-
-      if (error) throw error;
-
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.recipients(user.id),
-      });
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.occasions(user.id),
-      });
-      Alert.alert("Success", "Recipient deleted");
-    } catch (error) {
-      if (error instanceof Error) {
-        Alert.alert("Error deleting recipient", error.message);
-      }
-    }
-  }
-
   function openContactsAccessIntro() {
     setContactsAccessIntroVisible(true);
   }
@@ -255,14 +229,12 @@ export default function Contacts() {
         <View style={styles.content}>
           {/* Header section */}
           <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text variant="headlineMedium" style={styles.title}>
-                My Contacts
-              </Text>
-              <Text variant="bodyLarge" style={styles.subtitle}>
-                Manage the people you want to send gifts to.
-              </Text>
-            </View>
+            <Text variant="headlineMedium" style={styles.title}>
+              My Contacts
+            </Text>
+            <Text variant="bodyLarge" style={styles.subtitle}>
+              Manage the people you want to send gifts to.
+            </Text>
           </View>
 
           {!formVisible && (
@@ -347,8 +319,7 @@ export default function Contacts() {
                 <RecipientCard
                   key={recipient.id}
                   recipient={recipient}
-                  onEdit={openEditForm}
-                  onDelete={deleteRecipient}
+                  onPress={openEditForm}
                 />
               ))}
             </View>
@@ -394,13 +365,7 @@ const styles = StyleSheet.create({
     paddingBottom: BOTTOM_NAV_HEIGHT,
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 32,
-  },
-  headerLeft: {
-    flex: 1,
+    marginBottom: 48,
   },
   title: {
     marginBottom: 8,
