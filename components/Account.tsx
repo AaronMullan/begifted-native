@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
-import { StyleSheet, View, Alert } from "react-native";
+import { StyleSheet, View, Alert, KeyboardAvoidingView, ScrollView, Keyboard, Platform, Pressable } from "react-native";
 import { TextInput, Button } from "react-native-paper";
 import { Session } from "@supabase/supabase-js";
 
@@ -78,66 +78,85 @@ export default function Account({ session }: { session: Session }) {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.verticallySpaced, styles.mt20]}>
-        <TextInput
-          mode="outlined"
-          label="Email"
-          value={session?.user?.email || ""}
-          editable={false}
-          style={styles.input}
-        />
-      </View>
-      <View style={styles.verticallySpaced}>
-        <TextInput
-          mode="outlined"
-          label="Username"
-          value={username || ""}
-          onChangeText={setUsername}
-          placeholder="Username"
-          style={styles.input}
-        />
-      </View>
-      <View style={styles.verticallySpaced}>
-        <TextInput
-          mode="outlined"
-          label="Website"
-          value={website || ""}
-          onChangeText={setWebsite}
-          placeholder="Website"
-          style={styles.input}
-        />
-      </View>
-
-      <View style={[styles.verticallySpaced, styles.mt20]}>
-        <Button
-          mode="contained"
-          onPress={() =>
-            updateProfile({ username, website, avatar_url: avatarUrl })
-          }
-          disabled={loading}
-          loading={loading}
-          style={styles.button}
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <Pressable style={styles.flex} onPress={Keyboard.dismiss}>
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
         >
-          Update
-        </Button>
-      </View>
+          <View style={styles.container}>
+            <View style={[styles.verticallySpaced, styles.mt20]}>
+              <TextInput
+                mode="outlined"
+                label="Email"
+                value={session?.user?.email || ""}
+                editable={false}
+                style={styles.input}
+              />
+            </View>
+            <View style={styles.verticallySpaced}>
+              <TextInput
+                mode="outlined"
+                label="Username"
+                value={username || ""}
+                onChangeText={setUsername}
+                placeholder="Username"
+                style={styles.input}
+              />
+            </View>
+            <View style={styles.verticallySpaced}>
+              <TextInput
+                mode="outlined"
+                label="Website"
+                value={website || ""}
+                onChangeText={setWebsite}
+                placeholder="Website"
+                style={styles.input}
+              />
+            </View>
 
-      <View style={styles.verticallySpaced}>
-        <Button
-          mode="contained"
-          buttonColor="#000000"
-          onPress={() => supabase.auth.signOut()}
-          style={styles.signOutButton}
-        >
-          Sign Out
-        </Button>
-      </View>
-    </View>
+            <View style={[styles.verticallySpaced, styles.mt20]}>
+              <Button
+                mode="contained"
+                onPress={() =>
+                  updateProfile({ username, website, avatar_url: avatarUrl })
+                }
+                disabled={loading}
+                loading={loading}
+                style={styles.button}
+              >
+                Update
+              </Button>
+            </View>
+
+            <View style={styles.verticallySpaced}>
+              <Button
+                mode="contained"
+                buttonColor="#000000"
+                onPress={() => supabase.auth.signOut()}
+                style={styles.signOutButton}
+              >
+                Sign Out
+              </Button>
+            </View>
+          </View>
+        </ScrollView>
+      </Pressable>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
   container: {
     marginTop: 40,
     padding: 12,

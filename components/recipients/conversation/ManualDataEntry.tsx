@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, ScrollView, StyleSheet } from "react-native";
+import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Keyboard, Platform, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, TextInput, Button } from "react-native-paper";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
@@ -86,11 +86,16 @@ export function ManualDataEntry({
   const isValid = name.trim().length > 0 && relationshipType.trim().length > 0;
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-      >
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <Pressable style={styles.container} onPress={Keyboard.dismiss}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+        >
         <Text variant="headlineSmall" style={styles.title}>
           Manual Entry
         </Text>
@@ -277,25 +282,26 @@ export function ManualDataEntry({
             </View>
           </View>
         </View>
-      </ScrollView>
+        </ScrollView>
 
-      {/* Footer Actions */}
-      <View style={[styles.footer, { paddingBottom: footerBottomPadding }]}>
-        <Button mode="outlined" onPress={onCancel} style={styles.cancelButton}>
-          Cancel
-        </Button>
+        {/* Footer Actions */}
+        <View style={[styles.footer, { paddingBottom: footerBottomPadding }]}>
+          <Button mode="outlined" onPress={onCancel} style={styles.cancelButton}>
+            Cancel
+          </Button>
 
-        <Button
-          mode="contained"
-          buttonColor="#000000"
-          onPress={handleSave}
-          disabled={!isValid}
-          style={styles.saveButton}
-        >
-          Continue
-        </Button>
-      </View>
-    </View>
+          <Button
+            mode="contained"
+            buttonColor="#000000"
+            onPress={handleSave}
+            disabled={!isValid}
+            style={styles.saveButton}
+          >
+            Continue
+          </Button>
+        </View>
+      </Pressable>
+    </KeyboardAvoidingView>
   );
 }
 

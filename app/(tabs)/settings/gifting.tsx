@@ -2,7 +2,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Button, Dialog, IconButton, Portal, Text, TextInput } from "react-native-paper";
 import { useAuth } from "../../../hooks/use-auth";
 import { Colors } from "../../../lib/colors";
@@ -198,12 +198,17 @@ export default function GiftingPreferences() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerSpacer} />
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-      >
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <Pressable style={styles.flex} onPress={Keyboard.dismiss}>
+        <View style={styles.headerSpacer} />
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
         <View style={styles.content}>
           <Pressable style={styles.mainCard}>
             <BlurView
@@ -312,22 +317,23 @@ export default function GiftingPreferences() {
         </View>
       </ScrollView>
 
-      {/* Floating Save Button */}
-      {hasChanges && (
-        <View style={styles.floatingSaveContainer} pointerEvents="box-none">
-          <Button
-            mode="contained"
-            onPress={handleSave}
-            loading={saving}
-            disabled={saving}
-            contentStyle={styles.floatingSaveContent}
-            labelStyle={styles.floatingSaveLabel}
-            style={styles.floatingSaveButton}
-          >
-            {saving ? "Saving..." : "Save Preferences"}
-          </Button>
-        </View>
-      )}
+        {/* Floating Save Button */}
+        {hasChanges && (
+          <View style={styles.floatingSaveContainer} pointerEvents="box-none">
+            <Button
+              mode="contained"
+              onPress={handleSave}
+              loading={saving}
+              disabled={saving}
+              contentStyle={styles.floatingSaveContent}
+              labelStyle={styles.floatingSaveLabel}
+              style={styles.floatingSaveButton}
+            >
+              {saving ? "Saving..." : "Save Preferences"}
+            </Button>
+          </View>
+        )}
+      </Pressable>
 
       {/* Error Dialog */}
       <Portal>
@@ -344,11 +350,14 @@ export default function GiftingPreferences() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: "transparent",

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Modal, StyleSheet, Alert } from "react-native";
+import { View, Modal, StyleSheet, Alert, KeyboardAvoidingView, Keyboard, Platform, Pressable } from "react-native";
 import { Text, TextInput, IconButton, Button } from "react-native-paper";
 
 interface OccasionEditorProps {
@@ -59,62 +59,67 @@ export function OccasionEditor({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.header}>
-            <Text variant="titleLarge" style={styles.title}>
-              Edit Occasion Date
-            </Text>
-            <IconButton
-              icon="close"
-              size={24}
-              iconColor="#000000"
-              onPress={onClose}
-              style={styles.closeButton}
-            />
-          </View>
-
-          <View style={styles.content}>
-            <Text variant="titleMedium" style={styles.occasionType}>
-              {formatOccasionType(occasion.occasion_type)}
-            </Text>
-
-            <View style={styles.fieldContainer}>
-              <TextInput
-                mode="outlined"
-                label="Date"
-                value={dateInput}
-                onChangeText={setDateInput}
-                placeholder="YYYY-MM-DD"
-                keyboardType="numeric"
-                maxLength={10}
-                style={styles.input}
-              />
-              <Text variant="bodySmall" style={styles.helperText}>
-                Enter date in YYYY-MM-DD format (e.g., 2026-12-25)
+      <KeyboardAvoidingView
+        style={styles.modalOverlay}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <Pressable style={styles.modalOverlay} onPress={Keyboard.dismiss}>
+          <View style={styles.modalContent}>
+            <View style={styles.header}>
+              <Text variant="titleLarge" style={styles.title}>
+                Edit Occasion Date
               </Text>
+              <IconButton
+                icon="close"
+                size={24}
+                iconColor="#000000"
+                onPress={onClose}
+                style={styles.closeButton}
+              />
+            </View>
+
+            <View style={styles.content}>
+              <Text variant="titleMedium" style={styles.occasionType}>
+                {formatOccasionType(occasion.occasion_type)}
+              </Text>
+
+              <View style={styles.fieldContainer}>
+                <TextInput
+                  mode="outlined"
+                  label="Date"
+                  value={dateInput}
+                  onChangeText={setDateInput}
+                  placeholder="YYYY-MM-DD"
+                  keyboardType="numeric"
+                  maxLength={10}
+                  style={styles.input}
+                />
+                <Text variant="bodySmall" style={styles.helperText}>
+                  Enter date in YYYY-MM-DD format (e.g., 2026-12-25)
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.footer}>
+              <Button
+                mode="outlined"
+                onPress={onClose}
+                style={styles.cancelButton}
+              >
+                Cancel
+              </Button>
+              <Button
+                mode="contained"
+                buttonColor="#000000"
+                onPress={handleSave}
+                style={styles.saveButton}
+              >
+                Save
+              </Button>
             </View>
           </View>
-
-          <View style={styles.footer}>
-            <Button
-              mode="outlined"
-              onPress={onClose}
-              style={styles.cancelButton}
-            >
-              Cancel
-            </Button>
-            <Button
-              mode="contained"
-              buttonColor="#000000"
-              onPress={handleSave}
-              style={styles.saveButton}
-            >
-              Save
-            </Button>
-          </View>
-        </View>
-      </View>
+        </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, KeyboardAvoidingView, ScrollView, Keyboard, Platform, Pressable } from "react-native";
 import { Text, TextInput, Button } from "react-native-paper";
 
 type RecipientDetailsFormProps = {
@@ -62,10 +62,20 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
   onDelete,
 }) => {
   return (
-    <View style={styles.form}>
-      <Text variant="titleMedium" style={styles.sectionTitle}>
-        Basic Information
-      </Text>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <Pressable style={styles.flex} onPress={Keyboard.dismiss}>
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.form}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Basic Information
+            </Text>
 
       <Text variant="bodyMedium" style={styles.label}>
         Name *
@@ -234,22 +244,31 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
         </View>
       </View>
 
-      {/* Delete Button */}
-      <Button
-        mode="outlined"
-        buttonColor="#000000"
-        textColor="#cc0000"
-        icon="delete-outline"
-        onPress={onDelete}
-        style={styles.deleteButton}
-      >
-        Delete Recipient
-      </Button>
-    </View>
+            {/* Delete Button */}
+            <Button
+              mode="outlined"
+              buttonColor="#000000"
+              textColor="#cc0000"
+              icon="delete-outline"
+              onPress={onDelete}
+              style={styles.deleteButton}
+            >
+              Delete Recipient
+            </Button>
+          </View>
+        </ScrollView>
+      </Pressable>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
   form: {
     padding: 16,
     paddingTop: 8,

@@ -1,4 +1,4 @@
-import { View, ScrollView, StyleSheet, Alert } from "react-native";
+import { View, ScrollView, StyleSheet, Alert, KeyboardAvoidingView, Keyboard, Platform, TouchableWithoutFeedback } from "react-native";
 import { Text, TextInput, IconButton, Button } from "react-native-paper";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
@@ -114,13 +114,19 @@ export default function ProfileSettings() {
   }
 
   return (
-    <ScrollView
+    <KeyboardAvoidingView
       style={styles.container}
-      contentContainerStyle={styles.scrollContent}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <View style={styles.content}>
-        {/* Main white card container */}
-        <View style={styles.mainCard}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.content}>
+            {/* Main white card container */}
+            <View style={styles.mainCard}>
           {/* Header section */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
@@ -190,8 +196,10 @@ export default function ProfileSettings() {
             {hasChanges ? "Save Changes" : "No Changes"}
           </Button>
         </View>
-      </View>
-    </ScrollView>
+          </View>
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
