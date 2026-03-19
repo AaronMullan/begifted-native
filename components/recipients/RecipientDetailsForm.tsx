@@ -109,8 +109,7 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
         onChangeText={onChangeInterests}
         placeholder="e.g., reading, hiking, coffee (comma-separated)"
         multiline
-        numberOfLines={3}
-        style={styles.input}
+        style={[styles.input, styles.interestsInput]}
       />
 
       <Text variant="titleMedium" style={styles.sectionTitle}>
@@ -265,6 +264,9 @@ const styles = StyleSheet.create({
   input: {
     marginBottom: 16,
     backgroundColor: "#fff",
+  },
+  interestsInput: {
+    minHeight: 80,
   },
   budgetRow: {
     flexDirection: "row",
