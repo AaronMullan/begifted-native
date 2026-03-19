@@ -131,6 +131,7 @@ const SuggestionCard: React.FC<{ suggestion: GiftSuggestion }> = ({
               mode="text"
               icon="open-in-new"
               compact
+              textColor="#ffffff"
               onPress={() => openLink(suggestion.link)}
             >
               View
@@ -296,14 +297,19 @@ const styles = StyleSheet.create({
   },
   suggestionCard: {
     marginBottom: 12,
+    backgroundColor: "rgba(0,0,0,0.30)",
+    borderRadius: 18,
+    overflow: "hidden",
   },
   suggestionImageContainer: {
     width: "100%",
     aspectRatio: 1,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "rgba(255,255,255,0.1)",
     paddingTop: 28,
     paddingHorizontal: 24,
     paddingBottom: 24,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
   },
   suggestionImageInner: {
     flex: 1,
@@ -316,9 +322,11 @@ const styles = StyleSheet.create({
   },
   suggestionTitle: {
     marginBottom: 6,
+    color: "#ffffff",
   },
   suggestionDescription: {
     marginBottom: 12,
+    color: "rgba(255,255,255,0.8)",
   },
   suggestionMeta: {
     flexDirection: "row",
@@ -326,7 +334,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   suggestionPrice: {
-    color: "#000000",
+    color: "#ffffff",
   },
   dateGroupsContainer: {
     marginTop: 24,
@@ -336,7 +344,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   accordion: {
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(0,0,0,0.30)",
+    borderRadius: 18,
     marginBottom: 8,
   },
   groupedSuggestions: {
