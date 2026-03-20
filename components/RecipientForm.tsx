@@ -1,4 +1,4 @@
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, KeyboardAvoidingView, ScrollView, Keyboard, Platform, Pressable } from "react-native";
 import { Text, TextInput, Button } from "react-native-paper";
 import { Recipient } from "../types/recipient";
 
@@ -68,10 +68,20 @@ export default function RecipientForm({
   onCancel,
 }: RecipientFormProps) {
   return (
-    <View style={styles.form}>
-      <Text variant="headlineSmall" style={styles.formTitle}>
-        {editingRecipient ? "Edit Recipient" : "Add Recipient"}
-      </Text>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <Pressable style={styles.flex} onPress={Keyboard.dismiss}>
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.form}>
+            <Text variant="headlineSmall" style={styles.formTitle}>
+              {editingRecipient ? "Edit Recipient" : "Add Recipient"}
+            </Text>
 
       <Text variant="titleMedium" style={styles.sectionTitle}>
         Basic Information
@@ -225,26 +235,35 @@ export default function RecipientForm({
         </View>
       </View>
 
-      <View style={styles.formButtons}>
-        <Button mode="outlined" onPress={onCancel} style={styles.cancelButton}>
-          Cancel
-        </Button>
+            <View style={styles.formButtons}>
+              <Button mode="outlined" onPress={onCancel} style={styles.cancelButton}>
+                Cancel
+              </Button>
 
-        <Button
-          mode="contained"
-          onPress={onSave}
-          disabled={loading}
-          loading={loading}
-          style={styles.submitButton}
-        >
-          {editingRecipient ? "Update" : "Add Recipient"}
-        </Button>
-      </View>
-    </View>
+              <Button
+                mode="contained"
+                onPress={onSave}
+                disabled={loading}
+                loading={loading}
+                style={styles.submitButton}
+              >
+                {editingRecipient ? "Update" : "Add Recipient"}
+              </Button>
+            </View>
+          </View>
+        </ScrollView>
+      </Pressable>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
   form: {
     backgroundColor: "white",
     padding: 20,

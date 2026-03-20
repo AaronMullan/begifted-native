@@ -1,11 +1,11 @@
-import { View, ScrollView, StyleSheet, Pressable } from "react-native";
+import { View, ScrollView, StyleSheet } from "react-native";
 import { Text, Button } from "react-native-paper";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { supabase } from "../../../lib/supabase";
-import { Session } from "@supabase/supabase-js";
-import { MaterialIcons } from "@expo/vector-icons";
+import type { Session } from "@supabase/supabase-js";
 import { Colors } from "../../../lib/colors";
+import MenuCard from "../../../components/MenuCard";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 
 export default function Settings() {
@@ -127,37 +127,14 @@ export default function Settings() {
           {/* Settings cards */}
           <View style={styles.cardsContainer}>
             {settingsCards.map((card) => (
-              <Pressable
+              <MenuCard
                 key={card.id}
-                style={styles.settingsCard}
+                icon={card.icon as any}
+                title={card.title}
+                description={card.description}
                 onPress={() => router.push(card.route)}
-              >
-                <View style={styles.cardContentWrapper}>
-                  <View style={styles.iconContainer}>
-                    <MaterialIcons
-                      name={card.icon as any}
-                      size={24}
-                      color={Colors.white}
-                      style={{ opacity: 0.8 }}
-                    />
-                  </View>
-                  <View style={styles.cardContent}>
-                    <Text variant="titleMedium" style={styles.cardTitle}>
-                      {card.title}
-                    </Text>
-                    <Text variant="bodyMedium" style={styles.cardDescription}>
-                      {card.description}
-                    </Text>
-                  </View>
-                  <MaterialIcons
-                    name="chevron-right"
-                    size={20}
-                    color={Colors.white}
-                    opacity={0.6}
-                    style={styles.chevron}
-                  />
-                </View>
-              </Pressable>
+                showChevron
+              />
             ))}
           </View>
 
@@ -202,7 +179,7 @@ const styles = StyleSheet.create({
     paddingBottom: BOTTOM_NAV_HEIGHT,
   },
   header: {
-    marginBottom: 24,
+    marginBottom: 48,
   },
   title: {
     marginBottom: 8,
@@ -214,44 +191,6 @@ const styles = StyleSheet.create({
   },
   cardsContainer: {
     gap: 24,
-    position: "relative",
-    zIndex: 1,
-  },
-  settingsCard: {
-    marginBottom: 0,
-    backgroundColor: "rgba(0,0,0,0.30)",
-    borderRadius: 18,
-    overflow: "hidden",
-    position: "relative",
-  },
-  cardContentWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    gap: 16,
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.12)",
-  },
-  cardContent: {
-    flex: 1,
-  },
-  cardTitle: {
-    marginBottom: 4,
-    color: Colors.white,
-  },
-  cardDescription: {
-    lineHeight: 20,
-    color: Colors.white,
-    opacity: 0.8,
-  },
-  chevron: {
-    marginLeft: 12,
   },
   signOutButton: {
     marginTop: 32,

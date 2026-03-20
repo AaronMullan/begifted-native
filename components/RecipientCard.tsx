@@ -1,140 +1,36 @@
-import { Alert, StyleSheet, View, Pressable } from "react-native";
-import { Text, Button } from "react-native-paper";
-import { Recipient } from "../types/recipient";
-import { Colors } from "../lib/colors";
+import type { Recipient } from "../types/recipient";
+import MenuCard from "./MenuCard";
 
-interface RecipientCardProps {
+type RecipientCardProps = {
   recipient: Recipient;
-  onEdit: (recipient: Recipient) => void;
-  onDelete: (id: string) => void;
-}
+  onPress: (recipient: Recipient) => void;
+};
 
-export default function RecipientCard({
-  recipient,
-  onEdit,
-  onDelete,
-}: RecipientCardProps) {
-  const handleDelete = () => {
-    Alert.alert(
-      "Delete Recipient",
-      `Are you sure you want to delete ${recipient.name}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => onDelete(recipient.id),
-        },
-      ]
-    );
-  };
+export default function RecipientCard({ recipient, onPress }: RecipientCardProps) {
+  const relationship =
+    recipient.relationship_type && recipient.relationship_type !== "null"
+      ? recipient.relationship_type
+      : "";
 
-  // Format birthday for display
-  const formatBirthday = (birthday?: string) => {
-    if (!birthday) return null;
-
-    // Parse YYYY-MM-DD format and create date in local timezone
-    const [year, month, day] = birthday.split("-").map(Number);
-    const date = new Date(year, month - 1, day); // month is 0-indexed
-
-    return date.toLocaleDateString("en-US", {
+  let birthday = "";
+  if (recipient.birthday) {
+    const [year, month, day] = recipient.birthday.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
+    birthday = `Birthday: ${date.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
-    });
-  };
+    })}`;
+  }
+
+  const description = [relationship, birthday].filter(Boolean).join("\n");
 
   return (
-    <Pressable style={styles.card}>
-      <View style={styles.cardContent}>
-        <View style={styles.info}>
-          <Text variant="titleMedium" style={styles.name}>
-            {recipient.name}
-          </Text>
-          {recipient.relationship_type && recipient.relationship_type !== "null" ? (
-            <Text variant="bodyMedium" style={styles.relationship}>
-              {recipient.relationship_type}
-            </Text>
-          ) : null}
-          {recipient.birthday && (
-            <Text variant="bodySmall" style={styles.birthday}>
-              Birthday: {formatBirthday(recipient.birthday)}
-            </Text>
-          )}
-          {recipient.interests && recipient.interests.length > 0 && (
-            <Text variant="bodySmall" style={styles.interests}>
-              Interests: {recipient.interests.join(", ")}
-            </Text>
-          )}
-        </View>
-        <View style={styles.actions}>
-          <Button
-            mode="contained"
-            onPress={() => onEdit(recipient)}
-            style={styles.editButton}
-            compact
-          >
-            View
-          </Button>
-          <Button
-            mode="outlined"
-            onPress={handleDelete}
-            style={styles.deleteButton}
-            compact
-          >
-            Delete
-          </Button>
-        </View>
-      </View>
-    </Pressable>
+    <MenuCard
+      title={recipient.name}
+      description={description}
+      onPress={() => onPress(recipient)}
+      showChevron
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    marginBottom: 12,
-    backgroundColor: "rgba(0,0,0,0.30)",
-    borderRadius: 18,
-    overflow: "hidden",
-    position: "relative",
-  },
-  cardContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-  },
-  info: {
-    flex: 1,
-    marginRight: 12,
-  },
-  name: {
-    marginBottom: 4,
-    color: Colors.white,
-  },
-  relationship: {
-    marginBottom: 4,
-    color: Colors.white,
-    opacity: 0.8,
-  },
-  birthday: {
-    color: Colors.white,
-    opacity: 0.7,
-    marginBottom: 4,
-  },
-  interests: {
-    fontStyle: "italic",
-    color: Colors.white,
-    opacity: 0.7,
-  },
-  actions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  editButton: {
-    minWidth: 70,
-  },
-  deleteButton: {
-    minWidth: 70,
-  },
-});

@@ -9,6 +9,8 @@ import type { GiftSuggestion, Recipient } from "../../../types/recipient";
 import { useRecipientForm } from "../../../hooks/use-recipient-form";
 import { RecipientDetailsForm } from "../../../components/recipients/RecipientDetailsForm";
 import { GiftSuggestionsView } from "../../../components/recipients/GiftSuggestionsView";
+import { ConversationView } from "../../../components/recipients/conversation/ConversationView";
+import { useAddOccasionFlow } from "../../../hooks/use-add-occasion-flow";
 import { useToast } from "../../../hooks/use-toast";
 
 export default function RecipientEditPage() {
@@ -25,6 +27,7 @@ export default function RecipientEditPage() {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "gifts">(initialTab);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showAddOccasionChat, setShowAddOccasionChat] = useState(false);
   const { showToast, toast } = useToast();
 
   // Fetch recipient data
@@ -96,6 +99,16 @@ export default function RecipientEditPage() {
     getFormData,
     hasGiftRelevantChanges,
   } = useRecipientForm(recipient);
+
+  // Add-occasion chat flow
+  const addOccasionFlow = useAddOccasionFlow({
+    recipientId: recipientId || "",
+    recipientName: recipient?.name || "",
+    onSuccess: () => {
+      setShowAddOccasionChat(false);
+      showToast("Occasion added!");
+    },
+  });
 
   // Reset active tab when tab param changes
   useEffect(() => {
@@ -310,6 +323,25 @@ export default function RecipientEditPage() {
     );
   }
 
+  if (showAddOccasionChat) {
+    return (
+      <View style={styles.container}>
+        <ConversationView
+          messages={addOccasionFlow.messages}
+          isLoading={addOccasionFlow.isLoading}
+          messagesEndRef={addOccasionFlow.messagesEndRef}
+          onNavigateBack={() => setShowAddOccasionChat(false)}
+          onSendMessage={addOccasionFlow.sendMessage}
+          onFinishConversation={addOccasionFlow.handleFinishConversation}
+          shouldShowNextStepButton={addOccasionFlow.shouldShowNextStepButton}
+          conversationContext={addOccasionFlow.conversationContext}
+          title="Add Occasion"
+          finishButtonLabel="Save Occasion"
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
 
@@ -398,7 +430,12 @@ export default function RecipientEditPage() {
             onChangeState={createChangeHandler(setState)}
             onChangeZipCode={createChangeHandler(setZipCode)}
             onChangeCountry={createChangeHandler(setCountry)}
+            recipientId={recipient.id}
             onDelete={handleDelete}
+            onAddOccasion={() => {
+              addOccasionFlow.resetConversation();
+              setShowAddOccasionChat(true);
+            }}
           />
         ) : (
           <GiftSuggestionsView
@@ -429,7 +466,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingBottom: 4,
   },
   headerTitle: {
     flex: 1,
@@ -441,6 +478,7 @@ const styles = StyleSheet.create({
   tabs: {
     flexDirection: "row",
     paddingHorizontal: 8,
+    paddingBottom: 8,
   },
   tab: {
     flex: 1,

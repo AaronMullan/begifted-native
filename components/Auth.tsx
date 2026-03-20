@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, KeyboardAvoidingView, ScrollView, Keyboard, Platform, Pressable } from "react-native";
 import { TextInput, Button, Text } from "react-native-paper";
 import { useForm, Controller } from "react-hook-form";
 import { supabase } from "../lib/supabase";
@@ -102,10 +102,20 @@ export default function Auth() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text variant="headlineSmall" style={styles.title}>
-        {isSignUp ? "Create Account" : "Sign In"}
-      </Text>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <Pressable style={styles.flex} onPress={Keyboard.dismiss}>
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.container}>
+            <Text variant="headlineSmall" style={styles.title}>
+              {isSignUp ? "Create Account" : "Sign In"}
+            </Text>
       <Text variant="bodyMedium" style={styles.subtitle}>
         {isSignUp
           ? "Enter your email and a password to get started"
@@ -207,30 +217,39 @@ export default function Auth() {
         </Button>
       </View>
 
-      {/* Success/Error Messages */}
-      {message && (
-        <View
-          style={[
-            styles.messageContainer,
-            message.includes("Error") && styles.errorContainer,
-          ]}
-        >
-          <Text
-            variant="bodyMedium"
-            style={[
-              styles.messageText,
-              message.includes("Error") && styles.errorMessageText,
-            ]}
-          >
-            {message}
-          </Text>
-        </View>
-      )}
-    </View>
+            {/* Success/Error Messages */}
+            {message && (
+              <View
+                style={[
+                  styles.messageContainer,
+                  message.includes("Error") && styles.errorContainer,
+                ]}
+              >
+                <Text
+                  variant="bodyMedium"
+                  style={[
+                    styles.messageText,
+                    message.includes("Error") && styles.errorMessageText,
+                  ]}
+                >
+                  {message}
+                </Text>
+              </View>
+            )}
+          </View>
+        </ScrollView>
+      </Pressable>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
   container: {
     marginTop: 40,
     padding: 12,
