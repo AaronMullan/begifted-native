@@ -167,12 +167,12 @@ export const GiftSuggestionsView: React.FC<GiftSuggestionsViewProps> = ({
 }) => {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
-  // Show only first 5 suggestions initially
+  // Show only the most recent 3 suggestions (one generation batch)
   const recentSuggestions = useMemo(
-    () => suggestions.slice(0, 5),
+    () => suggestions.slice(0, 3),
     [suggestions]
   );
-  const olderSuggestions = useMemo(() => suggestions.slice(5), [suggestions]);
+  const olderSuggestions = useMemo(() => suggestions.slice(3), [suggestions]);
 
   // Group older suggestions by date
   const dateGroups = useMemo(
@@ -230,7 +230,7 @@ export const GiftSuggestionsView: React.FC<GiftSuggestionsViewProps> = ({
         </View>
       )}
 
-      {/* Recent suggestions (first 5) */}
+      {/* Recent suggestions (most recent batch) */}
       {recentSuggestions.length > 0 && (
         <View style={styles.suggestionsList}>
           {recentSuggestions.map((suggestion) => (
