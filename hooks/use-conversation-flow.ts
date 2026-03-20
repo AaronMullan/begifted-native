@@ -11,6 +11,7 @@ export interface Message {
 
 export type ConversationType =
   | "add_recipient"
+  | "add_occasion"
   | "update_field"
   | "extract_interests"
   | "extract_preferences"
@@ -89,6 +90,8 @@ const getDefaultWelcomeMessage = (
   switch (conversationType) {
     case "add_recipient":
       return "Hello! I'll help you add a new recipient. Tell me about the person you'd like to add.";
+    case "add_occasion":
+      return "What occasion would you like to add for this person?";
     case "extract_interests":
       return "I'll help you update their interests. What interests would you like to add or change?";
     case "extract_preferences":

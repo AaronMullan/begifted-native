@@ -206,6 +206,45 @@ export async function fetchRecipientOccasions(
 }
 
 /**
+ * Update an occasion's date and/or type
+ */
+export async function updateOccasion(
+  occasionId: string,
+  fields: { date?: string; occasion_type?: string }
+): Promise<void> {
+  const { error } = await supabase
+    .from("occasions")
+    .update(fields)
+    .eq("id", occasionId);
+
+  if (error) throw error;
+}
+
+/**
+ * Create a new occasion for a recipient
+ */
+export async function createOccasion(
+  userId: string,
+  recipientId: string,
+  date: string,
+  occasionType: string
+): Promise<Occasion> {
+  const { data, error } = await supabase
+    .from("occasions")
+    .insert({
+      user_id: userId,
+      recipient_id: recipientId,
+      date,
+      occasion_type: occasionType,
+    })
+    .select("id, date, occasion_type, recipient_id")
+    .single();
+
+  if (error) throw error;
+  return { ...data, occasion_type: data.occasion_type || occasionType };
+}
+
+/**
  * Delete a single occasion
  */
 export async function deleteOccasion(occasionId: string): Promise<void> {

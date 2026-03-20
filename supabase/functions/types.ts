@@ -17,6 +17,7 @@ export interface Message {
 
 export type ConversationType =
   | "add_recipient" // Full extraction for new recipient
+  | "add_occasion" // Extract occasion type + date from conversation
   | "update_field" // Partial extraction for specific field(s)
   | "extract_interests" // Extract interests from conversation
   | "extract_preferences" // Extract gift preferences from conversation

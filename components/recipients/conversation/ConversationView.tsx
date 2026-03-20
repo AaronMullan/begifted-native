@@ -26,6 +26,8 @@ interface ConversationViewProps {
   onFinishConversation: () => Promise<void>;
   shouldShowNextStepButton: boolean;
   conversationContext: string;
+  title?: string;
+  finishButtonLabel?: string;
 }
 
 export function ConversationView({
@@ -37,6 +39,8 @@ export function ConversationView({
   onFinishConversation,
   shouldShowNextStepButton,
   conversationContext: _conversationContext,
+  title = "Add Recipient",
+  finishButtonLabel = "Let's Move to the Next Step",
 }: ConversationViewProps) {
   const [inputMessage, setInputMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -83,7 +87,7 @@ export function ConversationView({
           style={styles.backButton}
         />
         <Text variant="titleLarge" style={styles.headerTitle}>
-          Add Recipient
+          {title}
         </Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -149,7 +153,7 @@ export function ConversationView({
             disabled={isLoading || isSending}
             style={styles.nextStepButton}
           >
-            Let&apos;s Move to the Next Step
+            {finishButtonLabel}
           </Button>
         )}
 

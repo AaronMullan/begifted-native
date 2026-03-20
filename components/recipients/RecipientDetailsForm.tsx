@@ -3,7 +3,8 @@ import { StyleSheet, View, KeyboardAvoidingView, ScrollView, Keyboard, Platform,
 import { Text, TextInput, Button, Dialog, IconButton, Portal } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import type { Occasion } from "@/lib/api";
-import { useRecipientOccasions, useDeleteOccasion } from "@/hooks/use-occasion-mutations";
+import { useRecipientOccasions, useDeleteOccasion, useUpdateOccasion } from "@/hooks/use-occasion-mutations";
+import { OccasionEditor } from "@/components/recipients/conversation/OccasionEditor";
 
 type RecipientDetailsFormProps = {
   name: string;
@@ -34,6 +35,7 @@ type RecipientDetailsFormProps = {
   onChangeCountry: (value: string) => void;
   recipientId: string;
   onDelete: () => void;
+  onAddOccasion: () => void;
 };
 
 export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
@@ -65,10 +67,13 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
   onChangeCountry,
   recipientId,
   onDelete,
+  onAddOccasion,
 }) => {
   const { data: occasions = [] } = useRecipientOccasions(recipientId);
   const deleteOccasion = useDeleteOccasion();
+  const updateOccasion = useUpdateOccasion();
   const [occasionToDelete, setOccasionToDelete] = useState<Occasion | null>(null);
+  const [editingOccasion, setEditingOccasion] = useState<Occasion | null>(null);
 
   function formatOccasionType(type: string): string {
     return type
@@ -77,7 +82,8 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
   }
 
   function formatOccasionDate(dateString: string): string {
-    const date = new Date(dateString);
+    const [year, month, day] = dateString.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
     return date.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
@@ -106,36 +112,45 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
         >
           <View style={styles.form}>
             {/* Occasions */}
-            {occasions.length > 0 && (
-              <>
-                <Text variant="titleMedium" style={styles.sectionTitle}>
-                  Occasions
-                </Text>
-                {occasions.map((occasion) => (
-                  <View key={occasion.id} style={styles.occasionRow}>
-                    <MaterialIcons
-                      name="event"
-                      size={20}
-                      color="#555"
-                      style={styles.occasionIcon}
-                    />
-                    <View style={styles.occasionInfo}>
-                      <Text variant="bodyLarge">
-                        {formatOccasionType(occasion.occasion_type)}
-                      </Text>
-                      <Text variant="bodySmall" style={styles.occasionDate}>
-                        {formatOccasionDate(occasion.date)}
-                      </Text>
-                    </View>
-                    <IconButton
-                      icon="close"
-                      size={18}
-                      onPress={() => setOccasionToDelete(occasion)}
-                    />
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Occasions
+            </Text>
+            {occasions.map((occasion) => (
+              <Pressable
+                key={occasion.id}
+                onPress={() => setEditingOccasion(occasion)}
+              >
+                <View style={styles.occasionRow}>
+                  <MaterialIcons
+                    name="event"
+                    size={20}
+                    color="#555"
+                    style={styles.occasionIcon}
+                  />
+                  <View style={styles.occasionInfo}>
+                    <Text variant="bodyLarge">
+                      {formatOccasionType(occasion.occasion_type)}
+                    </Text>
+                    <Text variant="bodySmall" style={styles.occasionDate}>
+                      {formatOccasionDate(occasion.date)}
+                    </Text>
                   </View>
-                ))}
-              </>
-            )}
+                  <IconButton
+                    icon="close"
+                    size={18}
+                    onPress={() => setOccasionToDelete(occasion)}
+                  />
+                </View>
+              </Pressable>
+            ))}
+            <Button
+              mode="outlined"
+              icon="plus"
+              onPress={onAddOccasion}
+              style={styles.addOccasionButton}
+            >
+              Add Occasion
+            </Button>
 
       <Text variant="titleMedium" style={styles.sectionTitle}>
         Interests
@@ -355,6 +370,20 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
           </View>
         </Dialog>
       </Portal>
+      {editingOccasion && (
+        <OccasionEditor
+          occasion={editingOccasion}
+          visible={!!editingOccasion}
+          onClose={() => setEditingOccasion(null)}
+          onSave={(date) => {
+            updateOccasion.mutate({
+              occasionId: editingOccasion.id,
+              recipientId,
+              fields: { date },
+            });
+          }}
+        />
+      )}
     </KeyboardAvoidingView>
   );
 };
@@ -441,6 +470,9 @@ const styles = StyleSheet.create({
   },
   occasionDate: {
     color: "#888",
+  },
+  addOccasionButton: {
+    marginBottom: 8,
   },
   deleteButton: {
     marginTop: 32,

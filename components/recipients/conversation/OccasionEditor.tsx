@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { View, Modal, StyleSheet, Alert, KeyboardAvoidingView, Keyboard, Platform, Pressable } from "react-native";
-import { Text, TextInput, IconButton, Button } from "react-native-paper";
+import { View, Modal, StyleSheet, KeyboardAvoidingView, Keyboard, Platform, Pressable } from "react-native";
+import { Text, TextInput, IconButton, Button, Dialog, Portal } from "react-native-paper";
 
 interface OccasionEditorProps {
   occasion: {
@@ -19,10 +19,11 @@ export function OccasionEditor({
   onSave,
 }: OccasionEditorProps) {
   const [dateInput, setDateInput] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     if (visible && occasion) {
-      // Initialize with current date or empty if it's a placeholder
+      setErrorMessage("");
       if (occasion.date && !occasion.date.includes("01-01")) {
         setDateInput(occasion.date);
       } else {
@@ -32,18 +33,16 @@ export function OccasionEditor({
   }, [visible, occasion]);
 
   const handleSave = () => {
-    // Validate date format (YYYY-MM-DD)
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
     if (dateInput.trim() && dateRegex.test(dateInput.trim())) {
       onSave(dateInput.trim());
       onClose();
     } else if (!dateInput.trim()) {
-      // Allow saving empty date (will show "Add Date")
       onSave("");
       onClose();
     } else {
-      // Invalid format - show error
-      Alert.alert("Invalid Date", "Please enter date in YYYY-MM-DD format");
+      setErrorMessage("Please enter date in YYYY-MM-DD format");
     }
   };
 
@@ -53,74 +52,95 @@ export function OccasionEditor({
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <KeyboardAvoidingView
-        style={styles.modalOverlay}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+    <>
+      <Modal
+        visible={visible}
+        transparent
+        animationType="fade"
+        onRequestClose={onClose}
       >
-        <Pressable style={styles.modalOverlay} onPress={Keyboard.dismiss}>
-          <View style={styles.modalContent}>
-            <View style={styles.header}>
-              <Text variant="titleLarge" style={styles.title}>
-                Edit Occasion Date
-              </Text>
-              <IconButton
-                icon="close"
-                size={24}
-                iconColor="#000000"
-                onPress={onClose}
-                style={styles.closeButton}
-              />
-            </View>
-
-            <View style={styles.content}>
-              <Text variant="titleMedium" style={styles.occasionType}>
-                {formatOccasionType(occasion.occasion_type)}
-              </Text>
-
-              <View style={styles.fieldContainer}>
-                <TextInput
-                  mode="outlined"
-                  label="Date"
-                  value={dateInput}
-                  onChangeText={setDateInput}
-                  placeholder="YYYY-MM-DD"
-                  keyboardType="numeric"
-                  maxLength={10}
-                  style={styles.input}
-                />
-                <Text variant="bodySmall" style={styles.helperText}>
-                  Enter date in YYYY-MM-DD format (e.g., 2026-12-25)
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <Pressable style={styles.dismissArea} onPress={Keyboard.dismiss}>
+            <View style={styles.modalContent}>
+              <View style={styles.header}>
+                <Text variant="titleLarge" style={styles.title}>
+                  Edit Occasion
                 </Text>
+                <IconButton
+                  icon="close"
+                  size={24}
+                  iconColor="#000000"
+                  onPress={onClose}
+                  style={styles.closeButton}
+                />
+              </View>
+
+              <View style={styles.content}>
+                <Text variant="titleMedium" style={styles.occasionType}>
+                  {formatOccasionType(occasion.occasion_type)}
+                </Text>
+
+                <View style={styles.fieldContainer}>
+                  <TextInput
+                    mode="outlined"
+                    label="Date"
+                    value={dateInput}
+                    onChangeText={(text) => {
+                      setDateInput(text);
+                      setErrorMessage("");
+                    }}
+                    placeholder="YYYY-MM-DD"
+                    keyboardType="numeric"
+                    maxLength={10}
+                    style={styles.input}
+                  />
+                  <Text variant="bodySmall" style={styles.helperText}>
+                    Enter date in YYYY-MM-DD format (e.g., 2026-12-25)
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.footer}>
+                <Button
+                  mode="outlined"
+                  textColor="#000000"
+                  onPress={onClose}
+                  style={styles.cancelButton}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  mode="contained"
+                  buttonColor="#000000"
+                  onPress={handleSave}
+                  style={styles.saveButton}
+                >
+                  Save
+                </Button>
               </View>
             </View>
-
-            <View style={styles.footer}>
-              <Button
-                mode="outlined"
-                onPress={onClose}
-                style={styles.cancelButton}
-              >
-                Cancel
-              </Button>
-              <Button
-                mode="contained"
-                buttonColor="#000000"
-                onPress={handleSave}
-                style={styles.saveButton}
-              >
-                Save
-              </Button>
-            </View>
-          </View>
-        </Pressable>
-      </KeyboardAvoidingView>
-    </Modal>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
+      <Portal>
+        <Dialog
+          visible={!!errorMessage}
+          onDismiss={() => setErrorMessage("")}
+          style={styles.dialog}
+        >
+          <Dialog.Title>Invalid Input</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">{errorMessage}</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setErrorMessage("")}>OK</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+    </>
   );
 }
 
@@ -130,14 +150,16 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+  },
+  dismissArea: {
+    width: "100%",
+    paddingHorizontal: 20,
   },
   modalContent: {
-    backgroundColor: "#fff",
+    backgroundColor: "#f4e6dd",
     borderRadius: 16,
     width: "100%",
     maxWidth: 400,
-    maxHeight: "80%",
   },
   header: {
     flexDirection: "row",
@@ -154,7 +176,9 @@ const styles = StyleSheet.create({
     margin: 0,
   },
   content: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 4,
   },
   occasionType: {
     marginBottom: 16,
@@ -171,9 +195,9 @@ const styles = StyleSheet.create({
   },
   footer: {
     flexDirection: "row",
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
     gap: 12,
   },
   cancelButton: {
@@ -181,5 +205,8 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     flex: 1,
+  },
+  dialog: {
+    borderRadius: 16,
   },
 });
