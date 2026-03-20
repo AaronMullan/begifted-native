@@ -1,10 +1,11 @@
 import { useRouter } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { Text } from "react-native-paper";
+import { Button, Dialog, Portal, Text } from "react-native-paper";
 import { Colors } from "../../lib/colors";
 import { useAuth } from "../../hooks/use-auth";
 import { useOccasions } from "../../hooks/use-occasions";
+import { useDeleteOccasion } from "../../hooks/use-occasion-mutations";
 import { useToast } from "../../hooks/use-toast";
 import { useBottomNavScrollVisibility } from "../../hooks/use-bottom-nav-scroll-visibility";
 import MenuCard from "../../components/MenuCard";
@@ -28,8 +29,10 @@ export default function Calendar() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { data: occasions = [], isLoading: loading } = useOccasions();
-  const { toast } = useToast();
+  const deleteOccasion = useDeleteOccasion();
+  const { toast, showToast } = useToast();
   const { handleScroll } = useBottomNavScrollVisibility();
+  const [occasionToDelete, setOccasionToDelete] = useState<Occasion | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -90,6 +93,27 @@ export default function Calendar() {
 
   function handleOccasionPress(occasion: Occasion) {
     router.push(`/contacts/${occasion.recipient_id}?tab=gifts`);
+  }
+
+  function handleOccasionLongPress(occasion: Occasion) {
+    setOccasionToDelete(occasion);
+  }
+
+  function handleConfirmDelete() {
+    if (!occasionToDelete || !user) return;
+    deleteOccasion.mutate(
+      { occasionId: occasionToDelete.id, recipientId: occasionToDelete.recipient_id },
+      {
+        onSuccess: () => {
+          showToast("Occasion deleted");
+          setOccasionToDelete(null);
+        },
+        onError: () => {
+          showToast("Failed to delete occasion");
+          setOccasionToDelete(null);
+        },
+      }
+    );
   }
 
   const groupedOccasions = groupOccasionsByMonth(occasions);
@@ -176,6 +200,7 @@ export default function Calendar() {
                           title={formatOccasionTitle(occasion)}
                           description={formatDate(occasion.date)}
                           onPress={() => handleOccasionPress(occasion)}
+                          onLongPress={() => handleOccasionLongPress(occasion)}
                           rightContent={
                             <View style={styles.daysContainer}>
                               <Text
@@ -202,6 +227,35 @@ export default function Calendar() {
           )}
         </View>
       </ScrollView>
+      <Portal>
+        <Dialog
+          visible={!!occasionToDelete}
+          onDismiss={() => setOccasionToDelete(null)}
+          style={styles.dialog}
+        >
+          <Dialog.Title>
+            <Text variant="bodySmall" style={styles.dialogLabel}>Delete Occasion</Text>
+          </Dialog.Title>
+          <Dialog.Content>
+            <Text variant="headlineSmall">
+              Delete {occasionToDelete ? formatOccasionTitle(occasionToDelete) : ""}?
+            </Text>
+          </Dialog.Content>
+          <View style={styles.dialogActions}>
+            <Button mode="outlined" onPress={() => setOccasionToDelete(null)} style={styles.dialogButton}>Cancel</Button>
+            <Button
+              mode="contained"
+              buttonColor="#cc0000"
+              textColor="#fff"
+              onPress={handleConfirmDelete}
+              loading={deleteOccasion.isPending}
+              style={styles.dialogButton}
+            >
+              Delete
+            </Button>
+          </View>
+        </Dialog>
+      </Portal>
       {toast}
     </View>
   );
@@ -285,6 +339,23 @@ const styles = StyleSheet.create({
   daysNumber: {
     color: Colors.white,
     fontWeight: "700",
+  },
+  dialog: {
+    borderRadius: 16,
+  },
+  dialogLabel: {
+    color: "#595959",
+  },
+  dialogActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+    paddingHorizontal: 24,
+    paddingBottom: 20,
+    paddingTop: 8,
+  },
+  dialogButton: {
+    minWidth: 100,
   },
   daysLabel: {
     color: Colors.white,

@@ -398,6 +398,7 @@ export default function RecipientEditPage() {
             onChangeState={createChangeHandler(setState)}
             onChangeZipCode={createChangeHandler(setZipCode)}
             onChangeCountry={createChangeHandler(setCountry)}
+            recipientId={recipient.id}
             onDelete={handleDelete}
           />
         ) : (
@@ -429,7 +430,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingBottom: 4,
   },
   headerTitle: {
     flex: 1,
@@ -441,6 +442,7 @@ const styles = StyleSheet.create({
   tabs: {
     flexDirection: "row",
     paddingHorizontal: 8,
+    paddingBottom: 8,
   },
   tab: {
     flex: 1,

@@ -9,6 +9,7 @@ type MenuCardProps = {
   title: string;
   description: string;
   onPress: () => void;
+  onLongPress?: () => void;
   showChevron?: boolean;
   rightContent?: ReactNode;
 };
@@ -18,11 +19,12 @@ const MenuCard: React.FC<MenuCardProps> = ({
   title,
   description,
   onPress,
+  onLongPress,
   showChevron = false,
   rightContent,
 }) => {
   return (
-    <Pressable style={styles.card} onPress={onPress}>
+    <Pressable style={styles.card} onPress={onPress} onLongPress={onLongPress}>
       {icon && (
         <View style={styles.iconContainer}>
           <MaterialIcons name={icon} size={32} color={Colors.blues.medium} />

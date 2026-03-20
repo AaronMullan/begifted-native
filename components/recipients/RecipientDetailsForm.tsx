@@ -1,6 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { StyleSheet, View, KeyboardAvoidingView, ScrollView, Keyboard, Platform, Pressable } from "react-native";
-import { Text, TextInput, Button } from "react-native-paper";
+import { Text, TextInput, Button, Dialog, IconButton, Portal } from "react-native-paper";
+import { MaterialIcons } from "@expo/vector-icons";
+import type { Occasion } from "@/lib/api";
+import { useRecipientOccasions, useDeleteOccasion } from "@/hooks/use-occasion-mutations";
 
 type RecipientDetailsFormProps = {
   name: string;
@@ -29,6 +32,7 @@ type RecipientDetailsFormProps = {
   onChangeState: (value: string) => void;
   onChangeZipCode: (value: string) => void;
   onChangeCountry: (value: string) => void;
+  recipientId: string;
   onDelete: () => void;
 };
 
@@ -59,8 +63,36 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
   onChangeState,
   onChangeZipCode,
   onChangeCountry,
+  recipientId,
   onDelete,
 }) => {
+  const { data: occasions = [] } = useRecipientOccasions(recipientId);
+  const deleteOccasion = useDeleteOccasion();
+  const [occasionToDelete, setOccasionToDelete] = useState<Occasion | null>(null);
+
+  function formatOccasionType(type: string): string {
+    return type
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
+  function formatOccasionDate(dateString: string): string {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+
+  function handleConfirmDeleteOccasion() {
+    if (!occasionToDelete) return;
+    deleteOccasion.mutate(
+      { occasionId: occasionToDelete.id, recipientId },
+      { onSettled: () => setOccasionToDelete(null) }
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       style={styles.flex}
@@ -73,44 +105,39 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.form}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
-              Basic Information
-            </Text>
+            {/* Occasions */}
+            {occasions.length > 0 && (
+              <>
+                <Text variant="titleMedium" style={styles.sectionTitle}>
+                  Occasions
+                </Text>
+                {occasions.map((occasion) => (
+                  <View key={occasion.id} style={styles.occasionRow}>
+                    <MaterialIcons
+                      name="event"
+                      size={20}
+                      color="#555"
+                      style={styles.occasionIcon}
+                    />
+                    <View style={styles.occasionInfo}>
+                      <Text variant="bodyLarge">
+                        {formatOccasionType(occasion.occasion_type)}
+                      </Text>
+                      <Text variant="bodySmall" style={styles.occasionDate}>
+                        {formatOccasionDate(occasion.date)}
+                      </Text>
+                    </View>
+                    <IconButton
+                      icon="close"
+                      size={18}
+                      onPress={() => setOccasionToDelete(occasion)}
+                    />
+                  </View>
+                ))}
+              </>
+            )}
 
-      <Text variant="bodyMedium" style={styles.label}>
-        Name *
-      </Text>
-      <TextInput
-        mode="outlined"
-        value={name}
-        onChangeText={onChangeName}
-        placeholder="e.g., Sarah Johnson"
-        style={styles.input}
-      />
-
-      <Text variant="bodyMedium" style={styles.label}>
-        Relationship *
-      </Text>
-      <TextInput
-        mode="outlined"
-        value={relationshipType}
-        onChangeText={onChangeRelationshipType}
-        placeholder="e.g., Sister, Friend, Colleague"
-        style={styles.input}
-      />
-
-      <Text variant="bodyMedium" style={styles.label}>
-        Birthday
-      </Text>
-      <TextInput
-        mode="outlined"
-        value={birthday}
-        onChangeText={onChangeBirthday}
-        placeholder="YYYY-MM-DD"
-        style={styles.input}
-      />
-
-      <Text variant="bodyMedium" style={styles.label}>
+      <Text variant="titleMedium" style={styles.sectionTitle}>
         Interests
       </Text>
       <TextInput
@@ -162,6 +189,43 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
           />
         </View>
       </View>
+
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Basic Information
+            </Text>
+
+      <Text variant="bodyMedium" style={styles.label}>
+        Name *
+      </Text>
+      <TextInput
+        mode="outlined"
+        value={name}
+        onChangeText={onChangeName}
+        placeholder="e.g., Sarah Johnson"
+        style={styles.input}
+      />
+
+      <Text variant="bodyMedium" style={styles.label}>
+        Relationship *
+      </Text>
+      <TextInput
+        mode="outlined"
+        value={relationshipType}
+        onChangeText={onChangeRelationshipType}
+        placeholder="e.g., Sister, Friend, Colleague"
+        style={styles.input}
+      />
+
+      <Text variant="bodyMedium" style={styles.label}>
+        Birthday
+      </Text>
+      <TextInput
+        mode="outlined"
+        value={birthday}
+        onChangeText={onChangeBirthday}
+        placeholder="YYYY-MM-DD"
+        style={styles.input}
+      />
 
       <Text variant="titleMedium" style={styles.sectionTitle}>
         Shipping Address
@@ -258,6 +322,39 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
           </View>
         </ScrollView>
       </Pressable>
+      <Portal>
+        <Dialog
+          visible={!!occasionToDelete}
+          onDismiss={() => setOccasionToDelete(null)}
+          style={styles.dialog}
+        >
+          <Dialog.Title>
+            <Text variant="bodySmall" style={styles.dialogLabel}>Delete Occasion</Text>
+          </Dialog.Title>
+          <Dialog.Content>
+            <Text variant="headlineSmall">
+              Delete{" "}
+              {occasionToDelete
+                ? formatOccasionType(occasionToDelete.occasion_type)
+                : ""}
+              ?
+            </Text>
+          </Dialog.Content>
+          <View style={styles.dialogActions}>
+            <Button mode="outlined" onPress={() => setOccasionToDelete(null)} style={styles.dialogButton}>Cancel</Button>
+            <Button
+              mode="contained"
+              buttonColor="#cc0000"
+              textColor="#fff"
+              onPress={handleConfirmDeleteOccasion}
+              loading={deleteOccasion.isPending}
+              style={styles.dialogButton}
+            >
+              Delete
+            </Button>
+          </View>
+        </Dialog>
+      </Portal>
     </KeyboardAvoidingView>
   );
 };
@@ -309,6 +406,41 @@ const styles = StyleSheet.create({
   },
   countryField: {
     flex: 1,
+  },
+  dialog: {
+    borderRadius: 16,
+  },
+  dialogLabel: {
+    color: "#595959",
+  },
+  dialogActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+    paddingHorizontal: 24,
+    paddingBottom: 20,
+    paddingTop: 8,
+  },
+  dialogButton: {
+    minWidth: 100,
+  },
+  occasionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingLeft: 12,
+    paddingVertical: 4,
+    marginBottom: 8,
+  },
+  occasionIcon: {
+    marginRight: 10,
+  },
+  occasionInfo: {
+    flex: 1,
+  },
+  occasionDate: {
+    color: "#888",
   },
   deleteButton: {
     marginTop: 32,

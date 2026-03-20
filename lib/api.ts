@@ -187,6 +187,37 @@ export async function fetchOccasions(userId: string): Promise<Occasion[]> {
 }
 
 /**
+ * Fetch occasions for a specific recipient
+ */
+export async function fetchRecipientOccasions(
+  recipientId: string
+): Promise<Occasion[]> {
+  const { data, error } = await supabase
+    .from("occasions")
+    .select("id, date, occasion_type, recipient_id")
+    .eq("recipient_id", recipientId)
+    .order("date", { ascending: true });
+
+  if (error) throw error;
+  return (data || []).map((o) => ({
+    ...o,
+    occasion_type: o.occasion_type || "birthday",
+  }));
+}
+
+/**
+ * Delete a single occasion
+ */
+export async function deleteOccasion(occasionId: string): Promise<void> {
+  const { error } = await supabase
+    .from("occasions")
+    .delete()
+    .eq("id", occasionId);
+
+  if (error) throw error;
+}
+
+/**
  * Fetch user profile
  */
 export async function fetchProfile(userId: string): Promise<Profile | null> {
