@@ -147,6 +147,7 @@ serve(async (req) => {
       targetFields,
       existingData,
       extractedData,
+      customSystemPrompt,
     } = requestBody;
 
     if (!action) {
@@ -173,7 +174,7 @@ serve(async (req) => {
           }
         );
       }
-      const result = await recommendOccasions(data);
+      const result = await recommendOccasions(data, customSystemPrompt);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
@@ -240,7 +241,8 @@ serve(async (req) => {
       const result = await handleConversation(
         messages,
         conversationType,
-        existingData
+        existingData,
+        customSystemPrompt
       );
       return new Response(JSON.stringify(result), {
         headers: {

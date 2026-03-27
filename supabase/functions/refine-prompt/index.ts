@@ -10,7 +10,26 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const META_SYSTEM_PROMPT = `You are a prompt engineering assistant. Your job is to help refine and improve system prompts used for an AI gift recommendation engine.
+const CATEGORY_GUIDANCE: Record<string, string> = {
+  gift_generation_system: `This prompt powers a gift recommendation engine.
+- Preserve the JSON output schema expectations (suggestions array with name, retailer, url, etc.)
+- Preserve the product specificity requirements unless explicitly asked to change them
+- Keep product URL and retailer constraints intact`,
+  add_recipient_conversation: `This prompt guides a conversational flow for adding a new gift recipient.
+- Preserve the stage-based response structure (Discovery → Enrichment → Ready)
+- Keep the prescriptive templates intact unless explicitly asked to change them
+- Maintain the template variables: {{contextInfo}}, {{conversationHistory}}, {{messageCount}}`,
+  occasion_recommendations: `This prompt generates occasion/holiday recommendations for a recipient.
+- Preserve the JSON output format (primaryOccasions array + additionalSuggestions)
+- Keep the anti-hallucination rules for real observance days only
+- Maintain the template variables: {{today}}, {{name}}, {{relationship}}, {{birthday}}, {{interests}}`,
+  user_preferences_extraction: `This prompt extracts a concise gifting style summary from natural language.
+- Preserve the JSON output format with a single gifting_summary string field
+- The summary should be free-text (2-4 sentences), NOT categories or enum values
+- This prompt has no template variables — user text is sent as a separate message`,
+};
+
+const META_SYSTEM_PROMPT = `You are a prompt engineering assistant. Your job is to help refine and improve system prompts used in a gift-planning app.
 
 You will receive:
 1. The current system prompt being used
@@ -19,8 +38,6 @@ You will receive:
 
 Your task:
 - Rewrite the FULL system prompt incorporating the requested changes
-- Preserve the JSON output schema expectations (primaryGift, alternatives, etc.)
-- Preserve the ASIN/product specificity requirements unless explicitly asked to change them
 - Keep the prompt clear, well-structured, and effective
 
 Return your response as a JSON object with exactly these fields:
@@ -35,7 +52,8 @@ serve(async (req) => {
   }
 
   try {
-    const { currentPrompt, userInstruction, chatHistory } = await req.json();
+    const { currentPrompt, userInstruction, chatHistory, promptCategory } =
+      await req.json();
 
     if (!currentPrompt || !userInstruction) {
       return new Response(
@@ -50,9 +68,17 @@ serve(async (req) => {
       );
     }
 
+    // Build category-specific system prompt
+    const categoryGuidance =
+      promptCategory && CATEGORY_GUIDANCE[promptCategory]
+        ? `\n\nCATEGORY-SPECIFIC GUIDANCE:\n${CATEGORY_GUIDANCE[promptCategory]}`
+        : CATEGORY_GUIDANCE.gift_generation_system
+          ? `\n\nCATEGORY-SPECIFIC GUIDANCE:\n${CATEGORY_GUIDANCE.gift_generation_system}`
+          : "";
+
     // Build messages for the LLM
     const messages: Array<{ role: string; content: string }> = [
-      { role: "system", content: META_SYSTEM_PROMPT },
+      { role: "system", content: META_SYSTEM_PROMPT + categoryGuidance },
     ];
 
     // Include chat history for context on previous iterations

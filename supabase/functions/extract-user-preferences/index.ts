@@ -1,5 +1,6 @@
 // @ts-ignore - Deno HTTP imports are resolved at runtime
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,39 +11,10 @@ const corsHeaders = {
 
 // @ts-ignore - Deno environment variables are resolved at runtime
 const openAiApiKey = Deno.env.get("OPENAI_API_KEY");
-
-const VALID_PHILOSOPHY = [
-  "thoughtful",
-  "practical",
-  "luxury",
-  "experiential",
-  "balanced",
-];
-const VALID_CREATIVITY = [
-  "traditional",
-  "moderate",
-  "creative",
-  "very_creative",
-];
-const VALID_BUDGET = [
-  "budget_conscious",
-  "moderate",
-  "premium",
-  "flexible",
-];
-const VALID_PLANNING = [
-  "early_bird",
-  "moderate",
-  "last_minute",
-  "flexible",
-];
-const VALID_TONE = [
-  "warm",
-  "professional",
-  "playful",
-  "romantic",
-  "casual",
-];
+// @ts-ignore - Deno environment variables are resolved at runtime
+const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+// @ts-ignore - Deno environment variables are resolved at runtime
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 function parseOpenAIJSON(content: string): any {
   let cleanContent = content.trim();
@@ -54,20 +26,13 @@ function parseOpenAIJSON(content: string): any {
   return JSON.parse(cleanContent);
 }
 
-function clampToValid(value: string | undefined, validValues: string[]): string {
-  if (!value) return validValues[validValues.length - 1]; // default to last (often "flexible"/"balanced")
-  const normalized = value.toLowerCase().replace(/\s+/g, "_");
-  if (validValues.includes(normalized)) return normalized;
-  return validValues[validValues.length - 1];
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { text } = await req.json();
+    const { text, customSystemPrompt } = await req.json();
 
     if (!text || typeof text !== "string") {
       return new Response(
@@ -78,6 +43,26 @@ serve(async (req) => {
         }
       );
     }
+
+    const HARDCODED_FALLBACK = `You are a preference extraction assistant for a gift-planning app.
+
+Given a user's natural-language description of their gifting style, produce a concise summary (2-4 sentences) that captures the essence of how they approach gift-giving. Preserve the user's voice and priorities — do NOT force their description into categories or labels.
+
+Return ONLY valid JSON:
+
+{
+  "gifting_summary": "A concise summary of the user's gifting style in their own words"
+}`;
+
+    // Use custom prompt (playground testing) > DB active version > hardcoded fallback
+    const systemPrompt = customSystemPrompt
+      ? customSystemPrompt
+      : await loadActivePrompt(
+          supabaseUrl,
+          supabaseServiceKey,
+          "user_preferences_extraction",
+          HARDCODED_FALLBACK
+        );
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -91,21 +76,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a preference extraction assistant for a gift-planning app.
-
-Given a user's natural-language description of their gifting style, extract structured preferences.
-
-Return ONLY valid JSON with these fields:
-
-{
-  "philosophy": one of: "thoughtful", "practical", "luxury", "experiential", "balanced",
-  "creativity": one of: "traditional", "moderate", "creative", "very_creative",
-  "budget_style": one of: "budget_conscious", "moderate", "premium", "flexible",
-  "planning_style": one of: "early_bird", "moderate", "last_minute", "flexible",
-  "default_gifting_tone": one of: "warm", "professional", "playful", "romantic", "casual"
-}
-
-Pick the BEST match for each field based on the user's text. If the text doesn't clearly indicate a preference for a field, use a sensible default (usually "balanced", "moderate", or "flexible").`,
+            content: systemPrompt,
           },
           {
             role: "user",
@@ -130,18 +101,10 @@ Pick the BEST match for each field based on the user's text. If the text doesn't
 
     const extracted = parseOpenAIJSON(rawContent);
 
-    // Validate and clamp values
     const result = {
-      user_stack: {
-        philosophy: clampToValid(extracted.philosophy, VALID_PHILOSOPHY),
-        creativity: clampToValid(extracted.creativity, VALID_CREATIVITY),
-        budget_style: clampToValid(extracted.budget_style, VALID_BUDGET),
-        planning_style: clampToValid(extracted.planning_style, VALID_PLANNING),
-      },
-      default_gifting_tone: clampToValid(
-        extracted.default_gifting_tone,
-        VALID_TONE
-      ),
+      gifting_summary: typeof extracted.gifting_summary === "string"
+        ? extracted.gifting_summary
+        : "",
     };
 
     return new Response(JSON.stringify(result), {

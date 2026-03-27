@@ -89,10 +89,9 @@ export default function GiftingPreferences() {
     try {
       setSaving(true);
 
-      let userStack = undefined;
-      let defaultGiftingTone = undefined;
+      let giftingSummary = undefined;
 
-      // If gifting style text changed, extract structured preferences via edge function
+      // If gifting style text changed, extract a concise summary via edge function
       if (giftingStyleText.trim() && giftingStyleText !== originalGiftingStyleText) {
         try {
           const { data: fnData, error: fnError } = await supabase.functions.invoke(
@@ -103,8 +102,7 @@ export default function GiftingPreferences() {
           if (fnError) {
             console.error("Error extracting preferences:", fnError);
           } else if (fnData) {
-            userStack = fnData.user_stack;
-            defaultGiftingTone = fnData.default_gifting_tone;
+            giftingSummary = fnData.gifting_summary;
           }
         } catch (extractError) {
           console.error("Error calling extract function:", extractError);
@@ -118,11 +116,8 @@ export default function GiftingPreferences() {
         updated_at: new Date().toISOString(),
       };
 
-      if (userStack) {
-        updates.user_stack = userStack;
-      }
-      if (defaultGiftingTone) {
-        updates.default_gifting_tone = defaultGiftingTone;
+      if (giftingSummary) {
+        updates.gifting_summary = giftingSummary;
       }
 
       const { error } = await supabase

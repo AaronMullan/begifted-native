@@ -11,13 +11,7 @@ export interface UserPreferences {
   onboarding_completed: boolean;
   user_description: string | null;
   gifting_style_text: string | null;
-  user_stack: {
-    philosophy?: string;
-    creativity?: string;
-    budget_style?: string;
-    planning_style?: string;
-  } | null;
-  default_gifting_tone: string | null;
+  gifting_summary: string | null;
   reminder_days: number;
   auto_fallback_enabled: boolean;
 }
@@ -358,11 +352,12 @@ export async function markAllNotificationsRead(
 export interface PromptTestRun {
   id: string;
   user_id: string;
-  recipient_id: string;
+  recipient_id: string | null;
   custom_system_prompt: string;
   original_system_prompt: string;
   chat_messages: { role: string; content: string }[];
   generation_result: Record<string, unknown> | null;
+  prompt_key: string | null;
   created_at: string;
 }
 
@@ -426,13 +421,20 @@ export async function fetchRecipientsForUser(
  * Fetch prompt test runs for a user
  */
 export async function fetchPromptTestRuns(
-  _userId: string
+  _userId: string,
+  promptKey?: string
 ): Promise<PromptTestRun[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from("prompt_test_runs")
     .select("*")
     .order("created_at", { ascending: false })
     .limit(50);
+
+  if (promptKey) {
+    query = query.eq("prompt_key", promptKey);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
   return data || [];
