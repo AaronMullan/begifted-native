@@ -1,6 +1,6 @@
 -- Add prompt_key to test runs so each run is associated with a specific prompt type
 ALTER TABLE prompt_test_runs
-  ADD COLUMN prompt_key TEXT;
+  ADD COLUMN IF NOT EXISTS prompt_key TEXT;
 
 -- Backfill existing rows (all current test runs are for gift generation)
 UPDATE prompt_test_runs
@@ -12,4 +12,4 @@ ALTER TABLE prompt_test_runs
   ALTER COLUMN recipient_id DROP NOT NULL;
 
 -- Add index for filtering test runs by prompt_key
-CREATE INDEX idx_prompt_test_runs_key ON prompt_test_runs (prompt_key);
+CREATE INDEX IF NOT EXISTS idx_prompt_test_runs_key ON prompt_test_runs (prompt_key);

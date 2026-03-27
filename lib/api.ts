@@ -11,13 +11,7 @@ export interface UserPreferences {
   onboarding_completed: boolean;
   user_description: string | null;
   gifting_style_text: string | null;
-  user_stack: {
-    philosophy?: string;
-    creativity?: string;
-    budget_style?: string;
-    planning_style?: string;
-  } | null;
-  default_gifting_tone: string | null;
+  gifting_summary: string | null;
   reminder_days: number;
   auto_fallback_enabled: boolean;
 }

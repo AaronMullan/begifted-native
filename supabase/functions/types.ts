@@ -170,37 +170,12 @@ export interface ParsedGiftSuggestions {
   personalizationLevel?: "basic" | "medium" | "high";
 }
 
-export type PhilosophyType =
-  | "thoughtful"
-  | "experiences"
-  | "practical"
-  | "surprise";
-export type CreativityType = "classic" | "creative" | "innovative";
-export type BudgetStyleType = "mindful" | "balanced" | "generous";
-export type PlanningStyleType = "planner" | "seasonal" | "spontaneous";
-
 // ----------------------------------------------------------------------------
 // User Preferences Types
 // ----------------------------------------------------------------------------
 
-export interface UserPreferences {
-  giftingTone?: string;
-  philosophy?: string;
-  creativity?: string;
-  budgetStyle?: string;
-  planningStyle?: string;
-}
-
-export interface UserStack {
-  philosophy?: string;
-  creativity?: string;
-  budget_style?: string;
-  planning_style?: string;
-}
-
 export interface UserData {
-  default_gifting_tone?: string;
-  user_stack?: UserStack;
+  gifting_summary?: string;
   reminder_days?: number;
   auto_fallback_enabled?: boolean;
 }

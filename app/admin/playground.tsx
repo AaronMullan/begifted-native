@@ -1163,11 +1163,11 @@ const JsonResultView: React.FC<JsonResultViewProps> = ({ result }) => {
   }
 
   return (
-    <View style={styles.jsonResultBox}>
+    <ScrollView style={styles.jsonResultBox} nestedScrollEnabled>
       <Text variant="bodySmall" style={styles.monoText}>
         {JSON.stringify(result, null, 2)}
       </Text>
-    </View>
+    </ScrollView>
   );
 };
 
