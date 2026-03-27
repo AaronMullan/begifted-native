@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Dialog,
   Portal,
+  Menu,
 } from "react-native-paper";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -18,9 +19,9 @@ import {
 } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
 import { Colors } from "@/lib/colors";
+import { PROMPT_REGISTRY } from "@/lib/prompt-registry";
 import type { SystemPromptVersion } from "@/lib/api";
-
-const PROMPT_KEY = "gift_generation_system";
+import type { PromptDefinition } from "@/lib/prompt-registry";
 
 const PromptsScreen: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -55,6 +56,10 @@ const PromptsScreen: React.FC = () => {
 
 const PromptsContent: React.FC = () => {
   const queryClient = useQueryClient();
+  const [selectedPromptKey, setSelectedPromptKey] = useState(
+    "gift_generation_system"
+  );
+  const [promptMenuVisible, setPromptMenuVisible] = useState(false);
   const [rollbackTarget, setRollbackTarget] =
     useState<SystemPromptVersion | null>(null);
   const [isRollingBack, setIsRollingBack] = useState(false);
@@ -62,26 +67,28 @@ const PromptsContent: React.FC = () => {
     null
   );
 
+  const selectedDef = PROMPT_REGISTRY.find((p) => p.key === selectedPromptKey);
+
   const activeQuery = useQuery({
-    queryKey: queryKeys.activeSystemPrompt(PROMPT_KEY),
-    queryFn: () => fetchActiveSystemPrompt(PROMPT_KEY),
+    queryKey: queryKeys.activeSystemPrompt(selectedPromptKey),
+    queryFn: () => fetchActiveSystemPrompt(selectedPromptKey),
   });
 
   const historyQuery = useQuery({
-    queryKey: queryKeys.promptVersionHistory(PROMPT_KEY),
-    queryFn: () => fetchPromptVersionHistory(PROMPT_KEY),
+    queryKey: queryKeys.promptVersionHistory(selectedPromptKey),
+    queryFn: () => fetchPromptVersionHistory(selectedPromptKey),
   });
 
   async function handleRollback() {
     if (!rollbackTarget) return;
     setIsRollingBack(true);
     try {
-      await rollbackToVersion(rollbackTarget.id, PROMPT_KEY);
+      await rollbackToVersion(rollbackTarget.id, selectedPromptKey);
       queryClient.invalidateQueries({
-        queryKey: queryKeys.activeSystemPrompt(PROMPT_KEY),
+        queryKey: queryKeys.activeSystemPrompt(selectedPromptKey),
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.promptVersionHistory(PROMPT_KEY),
+        queryKey: queryKeys.promptVersionHistory(selectedPromptKey),
       });
       setRollbackTarget(null);
     } catch (err) {
@@ -101,7 +108,39 @@ const PromptsContent: React.FC = () => {
     >
       {/* Header */}
       <View style={styles.header}>
-        <Text variant="headlineSmall">Prompt Versions</Text>
+        <View style={styles.headerTitleRow}>
+          <Text variant="headlineSmall">Prompt Versions</Text>
+          <Menu
+            visible={promptMenuVisible}
+            onDismiss={() => setPromptMenuVisible(false)}
+            anchor={
+              <Button
+                mode="outlined"
+                onPress={() => setPromptMenuVisible(true)}
+                icon="swap-horizontal"
+                compact
+              >
+                {selectedDef?.label ?? "Select Prompt"}
+              </Button>
+            }
+            contentStyle={styles.promptMenuContent}
+          >
+            {PROMPT_REGISTRY.map((def: PromptDefinition) => (
+              <Menu.Item
+                key={def.key}
+                onPress={() => {
+                  setSelectedPromptKey(def.key);
+                  setPromptMenuVisible(false);
+                  setExpandedVersionId(null);
+                }}
+                title={def.label}
+                leadingIcon={
+                  def.key === selectedPromptKey ? "check" : undefined
+                }
+              />
+            ))}
+          </Menu>
+        </View>
         <Button
           mode="text"
           onPress={() => {
@@ -292,6 +331,16 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  promptMenuContent: {
+    maxHeight: 300,
   },
   sectionTitle: {
     marginTop: 16,

@@ -29,6 +29,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Colors } from "@/lib/colors";
 import type { Profile } from "@/lib/api";
 import type { Recipient } from "@/types/recipient";
+import type { PromptDefinition } from "@/lib/prompt-registry";
 
 const DESKTOP_BREAKPOINT = 900;
 
@@ -83,10 +84,12 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
   const [showHistory, setShowHistory] = useState(false);
   const [giverMenuVisible, setGiverMenuVisible] = useState(false);
   const [recipientMenuVisible, setRecipientMenuVisible] = useState(false);
+  const [promptMenuVisible, setPromptMenuVisible] = useState(false);
   const [addingInterest, setAddingInterest] = useState(false);
   const [newInterest, setNewInterest] = useState("");
   const [addingAvoid, setAddingAvoid] = useState(false);
   const [newAvoid, setNewAvoid] = useState("");
+  const [testMessageInput, setTestMessageInput] = useState("");
   const chatScrollRef = useRef<ScrollView>(null);
 
   function handleSendChat() {
@@ -156,13 +159,53 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
     return !!(playground.cisEdits as Record<string, unknown>)[section];
   }
 
-  // --- Header with title + actions ---
+  function handleAddTestMessage() {
+    const msg = testMessageInput.trim();
+    if (!msg) return;
+    playground.addTestMessage(msg);
+    setTestMessageInput("");
+  }
+
+  // --- Header with title + prompt selector + actions ---
   const header = (
     <View style={styles.header}>
       <View style={styles.headerLeft}>
         <Text variant="headlineSmall" style={styles.headerTitle}>
           Prompt Playground
         </Text>
+        <Menu
+          visible={promptMenuVisible}
+          onDismiss={() => setPromptMenuVisible(false)}
+          anchor={
+            <Button
+              mode="outlined"
+              onPress={() => setPromptMenuVisible(true)}
+              icon="swap-horizontal"
+              style={styles.promptSelector}
+              contentStyle={styles.selectorContent}
+            >
+              {playground.selectedPromptDef?.label ?? "Select Prompt"}
+            </Button>
+          }
+          contentStyle={styles.menuContent}
+        >
+          {playground.promptRegistry.map((def: PromptDefinition) => (
+            <Menu.Item
+              key={def.key}
+              onPress={() => {
+                playground.setSelectedPromptKey(def.key);
+                setPromptMenuVisible(false);
+              }}
+              title={def.label}
+              description={def.description}
+              leadingIcon={
+                def.key === playground.selectedPromptKey
+                  ? "check"
+                  : undefined
+              }
+            />
+          ))}
+        </Menu>
         <Button
           mode="text"
           onPress={() => {
@@ -181,12 +224,12 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
         <Button
           mode="contained"
           onPress={playground.generateWithPrompt}
-          disabled={!playground.selectedRecipientId || playground.isGenerating}
+          disabled={!playground.canGenerate}
           loading={playground.isGenerating}
           icon="auto-fix"
           style={styles.headerButton}
         >
-          Generate
+          {playground.isGiftGeneration ? "Generate" : "Test"}
         </Button>
         <Button
           mode="contained"
@@ -203,8 +246,8 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
     </View>
   );
 
-  // --- Context panel: selectors + editable CIS ---
-  const contextPanel = (
+  // --- Context panel: differs by prompt type ---
+  const contextPanel = playground.isGiftGeneration ? (
     <View style={[styles.panel, isDesktop && styles.contextPanelDesktop]}>
       {/* Selectors card */}
       <Card style={styles.card}>
@@ -567,6 +610,188 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
         </Card>
       )}
     </View>
+  ) : (
+    // Non-gift prompt context panel
+    <View style={[styles.panel, isDesktop && styles.contextPanelDesktop]}>
+      <Card style={styles.card}>
+        <Card.Content>
+          <Text variant="titleSmall" style={styles.cardTitle}>
+            {playground.selectedPromptDef?.label}
+          </Text>
+          <Text variant="bodySmall" style={styles.promptDescription}>
+            {playground.selectedPromptDef?.description}
+          </Text>
+
+          {/* Template variables */}
+          {(playground.selectedPromptDef?.templateVariables.length ?? 0) > 0 && (
+            <View style={styles.templateVarsSection}>
+              <Text variant="labelSmall" style={styles.cisFieldLabel}>
+                Variables available at runtime
+              </Text>
+              <View style={styles.cisChipRow}>
+                {playground.selectedPromptDef?.templateVariables.map((v) => (
+                  <Chip key={v} compact style={styles.templateVarChip}>
+                    {`{{${v}}}`}
+                  </Chip>
+                ))}
+              </View>
+            </View>
+          )}
+        </Card.Content>
+      </Card>
+
+      {/* Test input panels by prompt type */}
+      {playground.selectedPromptKey === "add_recipient_conversation" && (
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text variant="titleSmall" style={styles.cardTitle}>
+              Test Messages
+            </Text>
+            <Text variant="bodySmall" style={styles.cisSecondary}>
+              Build a mock conversation to test the prompt.
+            </Text>
+            {playground.testMessages.map((msg, i) => (
+              <View key={i} style={styles.testMessageRow}>
+                <Chip compact style={styles.testMessageRole}>
+                  {msg.role}
+                </Chip>
+                <Text variant="bodySmall" style={styles.testMessageText} numberOfLines={2}>
+                  {msg.content}
+                </Text>
+              </View>
+            ))}
+            <View style={styles.chatInputRow}>
+              <TextInput
+                mode="outlined"
+                placeholder="Add a user message..."
+                value={testMessageInput}
+                onChangeText={setTestMessageInput}
+                onSubmitEditing={handleAddTestMessage}
+                style={styles.chatInputField}
+                dense
+              />
+              <IconButton
+                icon="plus"
+                onPress={handleAddTestMessage}
+                disabled={!testMessageInput.trim()}
+              />
+            </View>
+            {playground.testMessages.length > 0 && (
+              <Button
+                mode="text"
+                onPress={playground.clearTestMessages}
+                compact
+                icon="delete"
+              >
+                Clear messages
+              </Button>
+            )}
+          </Card.Content>
+        </Card>
+      )}
+
+      {playground.selectedPromptKey === "occasion_recommendations" && (
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text variant="titleSmall" style={styles.cardTitle}>
+              Test Context
+            </Text>
+            <Text variant="bodySmall" style={styles.cisSecondary}>
+              Select a giver and recipient to test occasion recommendations.
+            </Text>
+            <Text variant="labelMedium" style={styles.fieldLabel}>
+              Giver
+            </Text>
+            <Menu
+              visible={giverMenuVisible}
+              onDismiss={() => setGiverMenuVisible(false)}
+              anchor={
+                <Button
+                  mode="outlined"
+                  onPress={() => setGiverMenuVisible(true)}
+                  style={styles.selector}
+                  contentStyle={styles.selectorContent}
+                  icon="account"
+                >
+                  {selectedGiver
+                    ? selectedGiver.full_name || selectedGiver.username || "Unnamed"
+                    : "Select a giver..."}
+                </Button>
+              }
+              contentStyle={styles.menuContent}
+            >
+              {playground.profiles.map((profile: Profile) => (
+                <Menu.Item
+                  key={profile.id}
+                  onPress={() => {
+                    playground.handleGiverChange(profile.id);
+                    setGiverMenuVisible(false);
+                  }}
+                  title={`${profile.full_name || profile.username || "Unnamed"} (${profile.id.substring(0, 8)})`}
+                />
+              ))}
+            </Menu>
+
+            <Text variant="labelMedium" style={styles.fieldLabel}>
+              Recipient
+            </Text>
+            <Menu
+              visible={recipientMenuVisible}
+              onDismiss={() => setRecipientMenuVisible(false)}
+              anchor={
+                <Button
+                  mode="outlined"
+                  onPress={() => setRecipientMenuVisible(true)}
+                  disabled={!playground.selectedGiverId}
+                  style={styles.selector}
+                  contentStyle={styles.selectorContent}
+                  icon="account-heart"
+                >
+                  {selectedRecipient
+                    ? `${selectedRecipient.name} (${selectedRecipient.relationship_type})`
+                    : "Select a recipient..."}
+                </Button>
+              }
+              contentStyle={styles.menuContent}
+            >
+              {playground.recipients.map((recipient: Recipient) => (
+                <Menu.Item
+                  key={recipient.id}
+                  onPress={() => {
+                    playground.setSelectedRecipientId(recipient.id);
+                    setRecipientMenuVisible(false);
+                  }}
+                  title={`${recipient.name} — ${recipient.relationship_type}`}
+                />
+              ))}
+            </Menu>
+          </Card.Content>
+        </Card>
+      )}
+
+      {playground.selectedPromptKey === "user_preferences_extraction" && (
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text variant="titleSmall" style={styles.cardTitle}>
+              Test Input
+            </Text>
+            <Text variant="bodySmall" style={styles.cisSecondary}>
+              Paste or type a sample user description of their gifting style.
+            </Text>
+            <TextInput
+              mode="outlined"
+              multiline
+              numberOfLines={6}
+              placeholder="e.g., I like to give thoughtful, personalized gifts. I plan ahead and prefer mid-range budgets..."
+              value={playground.testInput}
+              onChangeText={playground.setTestInput}
+              style={styles.testTextInput}
+              outlineStyle={styles.cisInputOutline}
+            />
+          </Card.Content>
+        </Card>
+      )}
+    </View>
   );
 
   // --- Prompt editor panel ---
@@ -697,16 +922,22 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
         <Card style={styles.card}>
           <Card.Content>
             <Text variant="titleSmall" style={styles.cardTitle}>
-              Generation Results
+              {playground.isGiftGeneration ? "Generation Results" : "Test Results"}
             </Text>
-            <GenerationResultView result={playground.generationResult} />
+            {playground.isGiftGeneration ? (
+              <GenerationResultView result={playground.generationResult} />
+            ) : (
+              <JsonResultView result={playground.generationResult} />
+            )}
           </Card.Content>
         </Card>
       ) : (
         <Card style={[styles.card, styles.emptyResultsCard]}>
           <Card.Content style={styles.emptyResultsContent}>
             <Text variant="bodyMedium" style={styles.emptyResultsText}>
-              Select a giver and recipient, then click Generate to see results here.
+              {playground.isGiftGeneration
+                ? "Select a giver and recipient, then click Generate to see results here."
+                : `Click Test to run the ${playground.selectedPromptDef?.label ?? "prompt"} and see results here.`}
             </Text>
           </Card.Content>
         </Card>
@@ -789,7 +1020,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
           <Dialog.Title>Deploy to Production</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={styles.dialogBody}>
-              This will update the live gift generation prompt. Are you sure?
+              This will update the live {playground.selectedPromptDef?.label ?? "prompt"}. Are you sure?
             </Text>
             <TextInput
               mode="outlined"
@@ -916,6 +1147,30 @@ const GenerationResultView: React.FC<GenerationResultViewProps> = ({
   );
 };
 
+type JsonResultViewProps = {
+  result: Record<string, unknown>;
+};
+
+const JsonResultView: React.FC<JsonResultViewProps> = ({ result }) => {
+  if ("error" in result) {
+    return (
+      <View style={styles.resultError}>
+        <Text variant="bodyMedium" style={styles.errorText}>
+          {String(result.error)}
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.jsonResultBox}>
+      <Text variant="bodySmall" style={styles.monoText}>
+        {JSON.stringify(result, null, 2)}
+      </Text>
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -951,14 +1206,20 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
+    flexWrap: "wrap",
+    gap: 8,
   },
   headerLeft: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    flexWrap: "wrap",
   },
   headerTitle: {
     fontWeight: "700",
+  },
+  promptSelector: {
+    borderRadius: 8,
   },
   historyLink: {
     marginLeft: 4,
@@ -1026,6 +1287,37 @@ const styles = StyleSheet.create({
   },
   menuContent: {
     maxHeight: 300,
+  },
+
+  // Non-gift context panel
+  promptDescription: {
+    color: Colors.darks.brown,
+    marginBottom: 12,
+  },
+  templateVarsSection: {
+    marginTop: 8,
+  },
+  templateVarChip: {
+    backgroundColor: "#e8f4f8",
+    fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
+  },
+  testTextInput: {
+    marginTop: 8,
+    backgroundColor: Colors.white,
+    fontSize: 13,
+  },
+  testMessageRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  testMessageRole: {
+    backgroundColor: "#e8f4f8",
+  },
+  testMessageText: {
+    flex: 1,
+    color: Colors.darks.brown,
   },
 
   // CIS Editable
@@ -1257,6 +1549,12 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: Colors.pinks.dark,
+  },
+  jsonResultBox: {
+    backgroundColor: "#f5f5f5",
+    borderRadius: 8,
+    padding: 12,
+    maxHeight: 400,
   },
   suggestionsList: {
     gap: 0,

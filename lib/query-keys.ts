@@ -34,7 +34,8 @@ export const queryKeys = {
   faqs: () => ["faqs"] as const,
 
   // Admin — Prompt Playground
-  promptTestRuns: (userId: string) => ["promptTestRuns", userId] as const,
+  promptTestRuns: (userId: string, promptKey?: string) =>
+    ["promptTestRuns", userId, promptKey ?? "all"] as const,
   activeSystemPrompt: (promptKey: string) =>
     ["systemPrompt", promptKey, "active"] as const,
   promptVersionHistory: (promptKey: string) =>

@@ -11,30 +11,9 @@ import {
   deployNewPromptVersion,
 } from "@/lib/api";
 import type { PromptTestRun } from "@/lib/api";
+import { PROMPT_REGISTRY, getPromptByKey } from "@/lib/prompt-registry";
 
 const VERCEL_BACKEND_URL = "https://be-gifted.vercel.app";
-
-export const DEFAULT_SYSTEM_PROMPT = `BeGifted Gift Protocol v1
-
-Purpose: Generate real, purchasable gift suggestions for U.S. recipients.
-
-Rules Summary:
-- Use web_search tool to find live product pages. NEVER invent URLs.
-- ONLY use URLs that come from actual search results. Every URL must be verified from search.
-- US retailers only (no Etsy, no non-US TLDs).
-- Provide direct product URLs with visible "Buy" or "Add to Cart" buttons.
-- Search for specific product names and model numbers on major retailers (Amazon, Target, Walmart, Best Buy).
-- Respect CIS constraints (budget, timing, tone, spending_tendencies).
-- Use the giver's spending_tendencies from the CIS to guide price point and gift selection (e.g., "practical" vs "premium", "budget-conscious" vs "luxury").
-- Output valid JSON:
-  {
-    "status": "ok" | "no_results",
-    "suggestions": [
-       { "name", "retailer", "url", "image_url", "price_usd", "category", "tags", "reason" }
-    ]
-  }
-- Return JSON only. No commentary, no Markdown.
-- CRITICAL: All URLs in the response MUST be from actual search results. Do not create or make up any URLs.`;
 
 type CISPreview = {
   giver: {
@@ -78,14 +57,22 @@ interface ChatMessage {
 export function usePromptPlayground(userId: string) {
   const queryClient = useQueryClient();
 
+  // Prompt key selection
+  const [selectedPromptKey, setSelectedPromptKeyRaw] = useState(
+    "gift_generation_system"
+  );
+  const selectedPromptDef = getPromptByKey(selectedPromptKey);
+  const defaultPrompt = selectedPromptDef?.defaultPrompt ?? "";
+  const isGiftGeneration = selectedPromptKey === "gift_generation_system";
+
   // CIS edit state
   const [cisEdits, setCisEdits] = useState<DeepPartial<CISPreview>>({});
 
   // Selection state
   const [selectedGiverId, setSelectedGiverId] = useState<string | null>(null);
-  const [selectedRecipientIdRaw, setSelectedRecipientIdRaw] = useState<string | null>(
-    null
-  );
+  const [selectedRecipientIdRaw, setSelectedRecipientIdRaw] = useState<
+    string | null
+  >(null);
   function setSelectedRecipientId(id: string | null) {
     setSelectedRecipientIdRaw(id);
     setCisEdits({});
@@ -93,8 +80,8 @@ export function usePromptPlayground(userId: string) {
   const selectedRecipientId = selectedRecipientIdRaw;
 
   // Prompt state
-  const [currentPrompt, setCurrentPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
-  const originalPromptRef = useRef(DEFAULT_SYSTEM_PROMPT);
+  const [currentPrompt, setCurrentPrompt] = useState(defaultPrompt);
+  const originalPromptRef = useRef(defaultPrompt);
 
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -106,6 +93,27 @@ export function usePromptPlayground(userId: string) {
     string,
     unknown
   > | null>(null);
+
+  // Test input state (for non-gift prompts)
+  const [testInput, setTestInput] = useState("");
+  const [testMessages, setTestMessages] = useState<
+    { role: string; content: string }[]
+  >([]);
+
+  // Handle prompt key change — reset all state
+  function setSelectedPromptKey(key: string) {
+    const def = getPromptByKey(key);
+    if (!def) return;
+    setSelectedPromptKeyRaw(key);
+    setChatMessages([]);
+    setGenerationResult(null);
+    setTestInput("");
+    setTestMessages([]);
+    // Prompt will be reset via the effect below when activePromptQuery loads
+    // For now, set to the registry default
+    setCurrentPrompt(def.defaultPrompt);
+    originalPromptRef.current = def.defaultPrompt;
+  }
 
   // Queries
   const allProfilesQuery = useQuery({
@@ -120,13 +128,13 @@ export function usePromptPlayground(userId: string) {
   });
 
   const testRunsQuery = useQuery({
-    queryKey: queryKeys.promptTestRuns(userId),
-    queryFn: () => fetchPromptTestRuns(userId),
+    queryKey: queryKeys.promptTestRuns(userId, selectedPromptKey),
+    queryFn: () => fetchPromptTestRuns(userId, selectedPromptKey),
   });
 
   const activePromptQuery = useQuery({
-    queryKey: queryKeys.activeSystemPrompt("gift_generation_system"),
-    queryFn: () => fetchActiveSystemPrompt("gift_generation_system"),
+    queryKey: queryKeys.activeSystemPrompt(selectedPromptKey),
+    queryFn: () => fetchActiveSystemPrompt(selectedPromptKey),
   });
 
   const cisPreviewQuery = useQuery({
@@ -142,32 +150,39 @@ export function usePromptPlayground(userId: string) {
       );
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Request failed with status ${response.status}`);
+        throw new Error(
+          errorData.error || `Request failed with status ${response.status}`
+        );
       }
       return response.json() as Promise<CISPreview>;
     },
-    enabled: !!selectedRecipientId,
-    retry: false,
+    enabled: !!selectedRecipientId && isGiftGeneration,
   });
 
   // Initialize prompt from active DB version
   const hasInitialized = useRef(false);
+  const lastInitKey = useRef(selectedPromptKey);
   useEffect(() => {
-    if (
-      activePromptQuery.data?.prompt_text &&
-      !hasInitialized.current
-    ) {
+    // Reset initialization flag when prompt key changes
+    if (lastInitKey.current !== selectedPromptKey) {
+      hasInitialized.current = false;
+      lastInitKey.current = selectedPromptKey;
+    }
+    if (activePromptQuery.data?.prompt_text && !hasInitialized.current) {
       hasInitialized.current = true;
       originalPromptRef.current = activePromptQuery.data.prompt_text;
       setCurrentPrompt(activePromptQuery.data.prompt_text);
     }
-  }, [activePromptQuery.data]);
+  }, [activePromptQuery.data, selectedPromptKey]);
 
   // Compute edited CIS by merging DB values with user edits
   const editedCis: CISPreview | null = cisPreviewQuery.data
     ? {
         giver: { ...cisPreviewQuery.data.giver, ...cisEdits.giver },
-        recipient: { ...cisPreviewQuery.data.recipient, ...cisEdits.recipient },
+        recipient: {
+          ...cisPreviewQuery.data.recipient,
+          ...cisEdits.recipient,
+        },
         occasion: { ...cisPreviewQuery.data.occasion, ...cisEdits.occasion },
         history: { ...cisPreviewQuery.data.history, ...cisEdits.history },
       }
@@ -215,6 +230,7 @@ export function usePromptPlayground(userId: string) {
             currentPrompt,
             userInstruction: message,
             chatHistory: chatMessages,
+            promptCategory: isGiftGeneration ? undefined : selectedPromptKey,
           },
         }
       );
@@ -241,55 +257,129 @@ export function usePromptPlayground(userId: string) {
     }
   }
 
-  // Generate gifts with the current prompt via Vercel backend
+  // Generate/test with the current prompt
   async function generateWithPrompt() {
-    if (!selectedRecipientId || !selectedGiverId) return;
-
     setIsGenerating(true);
     setGenerationResult(null);
 
     try {
-      const response = await fetch(
-        `${VERCEL_BACKEND_URL}/api/admin/test-generate`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            recipientId: selectedRecipientId,
-            customSystemPrompt: currentPrompt,
-            ...(hasCisEdits ? { cisOverride: cisEdits } : {}),
-          }),
-        }
-      );
+      let data: Record<string, unknown>;
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error || `Request failed with status ${response.status}`
+      if (isGiftGeneration) {
+        // Gift generation — existing Vercel backend
+        if (!selectedRecipientId || !selectedGiverId) return;
+        const response = await fetch(
+          `${VERCEL_BACKEND_URL}/api/admin/test-generate`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              recipientId: selectedRecipientId,
+              customSystemPrompt: currentPrompt,
+              ...(hasCisEdits ? { cisOverride: cisEdits } : {}),
+            }),
+          }
         );
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(
+            errorData.error || `Request failed with status ${response.status}`
+          );
+        }
+
+        data = await response.json();
+      } else if (selectedPromptKey === "add_recipient_conversation") {
+        // Test the add-recipient conversation prompt
+        const msgs =
+          testMessages.length > 0
+            ? testMessages
+            : [{ role: "user", content: testInput || "Hi, I want to add my mom to my gift list." }];
+
+        const { data: result, error } = await supabase.functions.invoke(
+          "recipient-conversation",
+          {
+            body: {
+              action: "conversation",
+              conversationType: "add_recipient",
+              messages: msgs,
+              customSystemPrompt: currentPrompt,
+            },
+          }
+        );
+        if (error) throw error;
+        data = result;
+      } else if (selectedPromptKey === "occasion_recommendations") {
+        // Test occasion recommendations — needs recipient data
+        if (!selectedRecipientId || !selectedGiverId) return;
+        const recipient = recipientsQuery.data?.find(
+          (r) => r.id === selectedRecipientId
+        );
+        if (!recipient) throw new Error("Recipient not found");
+
+        const { data: result, error } = await supabase.functions.invoke(
+          "recipient-conversation",
+          {
+            body: {
+              action: "recommend_occasions",
+              extractedData: {
+                name: recipient.name,
+                relationship_type: recipient.relationship_type,
+                birthday: recipient.birthday,
+                interests: recipient.interests,
+              },
+              customSystemPrompt: currentPrompt,
+            },
+          }
+        );
+        if (error) throw error;
+        data = result;
+      } else if (selectedPromptKey === "user_preferences_extraction") {
+        // Test user preferences extraction
+        const sampleText =
+          testInput ||
+          "I like to give thoughtful, personalized gifts. I plan ahead and prefer mid-range budgets.";
+
+        const { data: result, error } = await supabase.functions.invoke(
+          "extract-user-preferences",
+          {
+            body: {
+              text: sampleText,
+              customSystemPrompt: currentPrompt,
+            },
+          }
+        );
+        if (error) throw error;
+        data = result;
+      } else {
+        throw new Error(`Unknown prompt key: ${selectedPromptKey}`);
       }
 
-      const data = await response.json();
       setGenerationResult(data);
 
-      // Persist test run
-      await createPromptTestRun({
-        user_id: userId,
-        recipient_id: selectedRecipientId,
-        custom_system_prompt: currentPrompt,
-        original_system_prompt: originalPromptRef.current,
-        chat_messages: chatMessages,
-        generation_result: data,
-      });
+      // Persist test run — isolated so a DB error doesn't wipe the result
+      try {
+        await createPromptTestRun({
+          user_id: userId,
+          recipient_id: isGiftGeneration ? selectedRecipientId : null,
+          custom_system_prompt: currentPrompt,
+          original_system_prompt: originalPromptRef.current,
+          chat_messages: chatMessages,
+          generation_result: data,
+          prompt_key: selectedPromptKey,
+        });
 
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.promptTestRuns(userId),
-      });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.promptTestRuns(userId, selectedPromptKey),
+        });
+      } catch (persistErr) {
+        console.warn("Failed to persist test run:", persistErr);
+      }
     } catch (err) {
       console.error("Generation error:", err);
       setGenerationResult({
         error:
-          err instanceof Error ? err.message : "Failed to generate suggestions",
+          err instanceof Error ? err.message : "Failed to generate",
       });
     } finally {
       setIsGenerating(false);
@@ -300,7 +390,7 @@ export function usePromptPlayground(userId: string) {
   const deployMutation = useMutation({
     mutationFn: (changeNotes: string) =>
       deployNewPromptVersion(
-        "gift_generation_system",
+        selectedPromptKey,
         currentPrompt,
         changeNotes,
         userId
@@ -308,10 +398,10 @@ export function usePromptPlayground(userId: string) {
     onSuccess: () => {
       originalPromptRef.current = currentPrompt;
       queryClient.invalidateQueries({
-        queryKey: queryKeys.activeSystemPrompt("gift_generation_system"),
+        queryKey: queryKeys.activeSystemPrompt(selectedPromptKey),
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.promptVersionHistory("gift_generation_system"),
+        queryKey: queryKeys.promptVersionHistory(selectedPromptKey),
       });
     },
   });
@@ -330,9 +420,36 @@ export function usePromptPlayground(userId: string) {
     setGenerationResult(run.generation_result);
   }
 
+  // Add a test message (for add_recipient_conversation testing)
+  function addTestMessage(content: string) {
+    setTestMessages((prev) => [...prev, { role: "user", content }]);
+  }
+
+  function clearTestMessages() {
+    setTestMessages([]);
+  }
+
   const hasPromptChanged = currentPrompt !== originalPromptRef.current;
 
+  // Determine if Generate button should be enabled
+  const canGenerate = (() => {
+    if (isGenerating) return false;
+    if (isGiftGeneration)
+      return !!selectedRecipientId && !!selectedGiverId;
+    if (selectedPromptKey === "occasion_recommendations")
+      return !!selectedRecipientId && !!selectedGiverId;
+    // add_recipient_conversation and user_preferences_extraction always work
+    return true;
+  })();
+
   return {
+    // Prompt key
+    selectedPromptKey,
+    setSelectedPromptKey,
+    selectedPromptDef,
+    promptRegistry: PROMPT_REGISTRY,
+    isGiftGeneration,
+
     // Selection
     selectedGiverId,
     selectedRecipientId,
@@ -361,6 +478,7 @@ export function usePromptPlayground(userId: string) {
     isGenerating,
     generationResult,
     generateWithPrompt,
+    canGenerate,
 
     // Deploy
     deployToProduction: deployMutation.mutateAsync,
@@ -369,7 +487,14 @@ export function usePromptPlayground(userId: string) {
     // Test runs
     loadTestRun,
 
-    // CIS preview + editing
+    // Test input (non-gift prompts)
+    testInput,
+    setTestInput,
+    testMessages,
+    addTestMessage,
+    clearTestMessages,
+
+    // CIS preview + editing (gift generation only)
     cisPreview: cisPreviewQuery.data || null,
     editedCis,
     cisEdits,

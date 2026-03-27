@@ -8,13 +8,19 @@ import type {
   RecipientData,
 } from "../types.ts";
 import { parseOpenAIJSON } from "./utils.ts";
+import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 // @ts-ignore - Deno environment variables are resolved at runtime
 const openAiApiKey = Deno.env.get("OPENAI_API_KEY");
+// @ts-ignore - Deno environment variables are resolved at runtime
+const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+// @ts-ignore - Deno environment variables are resolved at runtime
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 // Generalized conversation handler - supports different conversation types
 export async function handleConversation(
   messages: Message[],
   conversationType: ConversationType = "add_recipient",
-  existingData?: RecipientData
+  existingData?: RecipientData,
+  customSystemPrompt?: string
 ): Promise<ConversationResponse> {
   const conversationHistory = messages
     .map((m) => `${m.role}: ${m.content}`)
@@ -100,13 +106,36 @@ Return JSON with what's been established:
   // Build conversation prompt based on conversation type
   let systemPrompt = "";
   switch (conversationType) {
-    case "add_recipient":
-      systemPrompt = buildAddRecipientPrompt(
-        contextInfo,
-        conversationHistory,
-        messages.length
-      );
+    case "add_recipient": {
+      if (customSystemPrompt) {
+        // Playground testing — interpolate template variables into custom prompt
+        systemPrompt = customSystemPrompt
+          .replace("{{contextInfo}}", JSON.stringify(contextInfo, null, 2))
+          .replace("{{conversationHistory}}", conversationHistory)
+          .replace("{{messageCount}}", String(messages.length));
+      } else {
+        // Production — try loading from DB, fall back to hardcoded
+        const dbPrompt = await loadActivePrompt(
+          supabaseUrl,
+          supabaseServiceKey,
+          "add_recipient_conversation",
+          ""
+        );
+        if (dbPrompt) {
+          systemPrompt = dbPrompt
+            .replace("{{contextInfo}}", JSON.stringify(contextInfo, null, 2))
+            .replace("{{conversationHistory}}", conversationHistory)
+            .replace("{{messageCount}}", String(messages.length));
+        } else {
+          systemPrompt = buildAddRecipientPrompt(
+            contextInfo,
+            conversationHistory,
+            messages.length
+          );
+        }
+      }
       break;
+    }
     case "update_field":
     case "extract_interests":
       systemPrompt = buildUpdateFieldPrompt(
@@ -731,7 +760,8 @@ export interface OccasionRecommendations {
  * Leans into hobbies and interests (e.g. running → race day, music → Record Store Day).
  */
 export async function recommendOccasions(
-  extractedData: ExtractedData | RecipientData
+  extractedData: ExtractedData | RecipientData,
+  customSystemPrompt?: string
 ): Promise<OccasionRecommendations> {
   const name = extractedData.name || "this person";
   const relationship = extractedData.relationship_type || "";
@@ -742,22 +772,24 @@ export async function recommendOccasions(
     [];
 
   const today = new Date().toISOString().split("T")[0];
+  const birthdayStr = birthday ? `- Birthday: ${birthday}` : "";
+  const interestsStr =
+    interests.length > 0
+      ? `- Interests: ${interests.join(", ")}`
+      : "- Interests: (none specified)";
 
-  const prompt = `You are a gift-planning assistant. Suggest ONLY real, verifiable occasions—no invented or creative-but-fake ones.
+  // Build the prompt — custom > DB > hardcoded fallback
+  const hardcodedFallback = `You are a gift-planning assistant. Suggest ONLY real, verifiable occasions—no invented or creative-but-fake ones.
 
 NO HALLUCINATION: Every primaryOccasion MUST be a real observance day, official holiday, or the recipient's birthday. Do NOT invent occasions (e.g. no "Skateboarding video release day", "Hair dye experimentation day", or similar). If you are not certain an occasion exists on an official or widely recognized calendar (national/international observance, public holiday), do not include it. Prefer fewer, real occasions over more, made-up ones.
 
-TODAY'S DATE (all suggestedDate values must be on or after this date): ${today}
+TODAY'S DATE (all suggestedDate values must be on or after this date): {{today}}
 
 RECIPIENT:
-- Name: ${name}
-- Relationship: ${relationship}
-${birthday ? `- Birthday: ${birthday}` : ""}
-${
-  interests.length > 0
-    ? `- Interests: ${interests.join(", ")}`
-    : "- Interests: (none specified)"
-}
+- Name: {{name}}
+- Relationship: {{relationship}}
+{{birthday}}
+{{interests}}
 
 ALLOWED SOURCES (only these):
 - Birthday (use their next upcoming birthday date).
@@ -784,6 +816,25 @@ Return JSON only, no markdown:
   ],
   "additionalSuggestions": ["Real holiday/observance names only"]
 }`;
+
+  let promptTemplate: string;
+  if (customSystemPrompt) {
+    promptTemplate = customSystemPrompt;
+  } else {
+    promptTemplate = await loadActivePrompt(
+      supabaseUrl,
+      supabaseServiceKey,
+      "occasion_recommendations",
+      hardcodedFallback
+    );
+  }
+
+  const prompt = promptTemplate
+    .replace("{{today}}", today)
+    .replace("{{name}}", name)
+    .replace("{{relationship}}", relationship)
+    .replace("{{birthday}}", birthdayStr)
+    .replace("{{interests}}", interestsStr);
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",

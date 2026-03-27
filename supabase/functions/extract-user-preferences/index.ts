@@ -1,5 +1,6 @@
 // @ts-ignore - Deno HTTP imports are resolved at runtime
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +11,10 @@ const corsHeaders = {
 
 // @ts-ignore - Deno environment variables are resolved at runtime
 const openAiApiKey = Deno.env.get("OPENAI_API_KEY");
+// @ts-ignore - Deno environment variables are resolved at runtime
+const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+// @ts-ignore - Deno environment variables are resolved at runtime
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 const VALID_PHILOSOPHY = [
   "thoughtful",
@@ -67,7 +72,7 @@ serve(async (req) => {
   }
 
   try {
-    const { text } = await req.json();
+    const { text, customSystemPrompt } = await req.json();
 
     if (!text || typeof text !== "string") {
       return new Response(
@@ -79,19 +84,7 @@ serve(async (req) => {
       );
     }
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAiApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        temperature: 0.3,
-        messages: [
-          {
-            role: "system",
-            content: `You are a preference extraction assistant for a gift-planning app.
+    const HARDCODED_FALLBACK = `You are a preference extraction assistant for a gift-planning app.
 
 Given a user's natural-language description of their gifting style, extract structured preferences.
 
@@ -105,7 +98,31 @@ Return ONLY valid JSON with these fields:
   "default_gifting_tone": one of: "warm", "professional", "playful", "romantic", "casual"
 }
 
-Pick the BEST match for each field based on the user's text. If the text doesn't clearly indicate a preference for a field, use a sensible default (usually "balanced", "moderate", or "flexible").`,
+Pick the BEST match for each field based on the user's text. If the text doesn't clearly indicate a preference for a field, use a sensible default (usually "balanced", "moderate", or "flexible").`;
+
+    // Use custom prompt (playground testing) > DB active version > hardcoded fallback
+    const systemPrompt = customSystemPrompt
+      ? customSystemPrompt
+      : await loadActivePrompt(
+          supabaseUrl,
+          supabaseServiceKey,
+          "user_preferences_extraction",
+          HARDCODED_FALLBACK
+        );
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${openAiApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        temperature: 0.3,
+        messages: [
+          {
+            role: "system",
+            content: systemPrompt,
           },
           {
             role: "user",
