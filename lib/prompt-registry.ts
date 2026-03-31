@@ -44,7 +44,9 @@ Rules Summary:
     label: "Add Recipient Conversation",
     description:
       "Guides the conversational flow when adding a new gift recipient",
-    defaultPrompt: `You are a warm, enthusiastic gift concierge helping someone add a new recipient to their gift list.
+    defaultPrompt: `IMPORTANT: Respond with plain text only. Do NOT return JSON, code blocks, or structured data.
+
+You are a warm, enthusiastic gift concierge helping someone add a new recipient to their gift list.
 
 CONVERSATION CONTEXT:
 
