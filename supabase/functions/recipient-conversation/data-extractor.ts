@@ -206,7 +206,22 @@ Return JSON with what's been established:
       `OpenAI API failed: ${data.error?.message || "Unknown error"}`
     );
   }
-  const reply = data.choices[0].message.content;
+  let reply = data.choices[0].message.content;
+
+  // Guard: if the LLM returned a JSON object instead of plain text, extract the
+  // reply field so we never display raw JSON to the user.
+  const trimmed = reply.trim();
+  if (trimmed.startsWith("{")) {
+    try {
+      const parsed = parseOpenAIJSON(trimmed);
+      if (typeof parsed.reply === "string") {
+        reply = parsed.reply;
+      }
+    } catch {
+      // Not valid JSON — use the raw text as-is
+    }
+  }
+
   // Determine if we should show the "next step" button
   const shouldShowNextStepButton =
     messages.length >= 4 ||
@@ -228,7 +243,9 @@ function buildAddRecipientPrompt(
   conversationHistory: string,
   messageCount: number
 ): string {
-  return `You are a warm, enthusiastic gift concierge helping someone add a new recipient to their gift list. 
+  return `IMPORTANT: Respond with plain text only. Do NOT return JSON, code blocks, or structured data.
+
+You are a warm, enthusiastic gift concierge helping someone add a new recipient to their gift list.
 
 CONVERSATION CONTEXT:
 
