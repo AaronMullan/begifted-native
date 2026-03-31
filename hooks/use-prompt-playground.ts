@@ -94,6 +94,9 @@ export function usePromptPlayground(userId: string) {
     unknown
   > | null>(null);
 
+  // Interactive conversation state (for add_recipient_conversation)
+  const [isConversationLoading, setIsConversationLoading] = useState(false);
+
   // Test input state (for non-gift prompts)
   const [testInput, setTestInput] = useState("");
   const [testMessages, setTestMessages] = useState<
@@ -427,6 +430,45 @@ export function usePromptPlayground(userId: string) {
 
   function clearTestMessages() {
     setTestMessages([]);
+    setGenerationResult(null);
+  }
+
+  async function sendConversationMessage(content: string) {
+    const userMsg = { role: "user", content };
+    const updatedMessages = [...testMessages, userMsg];
+    setTestMessages(updatedMessages);
+    setIsConversationLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "recipient-conversation",
+        {
+          body: {
+            action: "conversation",
+            conversationType: "add_recipient",
+            messages: updatedMessages,
+            customSystemPrompt: currentPrompt,
+          },
+        }
+      );
+      if (error) throw error;
+
+      setTestMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: data.reply },
+      ]);
+      setGenerationResult(data);
+    } catch (err) {
+      setTestMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `Error: ${err instanceof Error ? err.message : "Failed to get response"}`,
+        },
+      ]);
+    } finally {
+      setIsConversationLoading(false);
+    }
   }
 
   const hasPromptChanged = currentPrompt !== originalPromptRef.current;
@@ -493,6 +535,8 @@ export function usePromptPlayground(userId: string) {
     testMessages,
     addTestMessage,
     clearTestMessages,
+    sendConversationMessage,
+    isConversationLoading,
 
     // CIS preview + editing (gift generation only)
     cisPreview: cisPreviewQuery.data || null,

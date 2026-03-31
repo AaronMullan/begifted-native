@@ -92,11 +92,20 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
   const [testMessageInput, setTestMessageInput] = useState("");
   const chatScrollRef = useRef<ScrollView>(null);
 
+  const conversationScrollRef = useRef<ScrollView>(null);
+
   function handleSendChat() {
     const msg = chatInput.trim();
     if (!msg || playground.isRefining) return;
     setChatInput("");
     playground.sendRefinementMessage(msg);
+  }
+
+  function handleSendConversationMessage() {
+    const msg = testMessageInput.trim();
+    if (!msg || playground.isConversationLoading) return;
+    setTestMessageInput("");
+    playground.sendConversationMessage(msg);
   }
 
   async function handleDeploy() {
@@ -159,12 +168,6 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
     return !!(playground.cisEdits as Record<string, unknown>)[section];
   }
 
-  function handleAddTestMessage() {
-    const msg = testMessageInput.trim();
-    if (!msg) return;
-    playground.addTestMessage(msg);
-    setTestMessageInput("");
-  }
 
   // --- Header with title + prompt selector + actions ---
   const header = (
@@ -644,48 +647,85 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
       {playground.selectedPromptKey === "add_recipient_conversation" && (
         <Card style={styles.card}>
           <Card.Content>
-            <Text variant="titleSmall" style={styles.cardTitle}>
-              Test Messages
-            </Text>
-            <Text variant="bodySmall" style={styles.cisSecondary}>
-              Build a mock conversation to test the prompt.
-            </Text>
-            {playground.testMessages.map((msg, i) => (
-              <View key={i} style={styles.testMessageRow}>
-                <Chip compact style={styles.testMessageRole}>
-                  {msg.role}
-                </Chip>
-                <Text variant="bodySmall" style={styles.testMessageText} numberOfLines={2}>
-                  {msg.content}
-                </Text>
-              </View>
-            ))}
+            <View style={styles.cardTitleRow}>
+              <Text variant="titleSmall" style={styles.cardTitle}>
+                Conversation Test
+              </Text>
+              {playground.testMessages.length > 0 && (
+                <Button
+                  mode="text"
+                  onPress={playground.clearTestMessages}
+                  compact
+                  icon="delete"
+                >
+                  Reset
+                </Button>
+              )}
+            </View>
+
+            <ScrollView
+              ref={conversationScrollRef}
+              style={styles.conversationScroll}
+              nestedScrollEnabled
+              onContentSizeChange={() =>
+                conversationScrollRef.current?.scrollToEnd({ animated: true })
+              }
+            >
+              {playground.testMessages.length === 0 && (
+                <View style={styles.welcomeMessage}>
+                  <Text variant="bodySmall" style={styles.welcomeText}>
+                    Send a message to start testing the conversation prompt.
+                  </Text>
+                </View>
+              )}
+              {playground.testMessages.map((msg, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.messageBubble,
+                    msg.role === "user"
+                      ? styles.userBubble
+                      : styles.assistantBubble,
+                  ]}
+                >
+                  <Text
+                    variant="bodySmall"
+                    style={
+                      msg.role === "user"
+                        ? styles.userText
+                        : styles.assistantText
+                    }
+                  >
+                    {msg.content}
+                  </Text>
+                </View>
+              ))}
+              {playground.isConversationLoading && (
+                <View style={styles.loadingBubble}>
+                  <ActivityIndicator size="small" />
+                </View>
+              )}
+            </ScrollView>
+
             <View style={styles.chatInputRow}>
               <TextInput
                 mode="outlined"
-                placeholder="Add a user message..."
+                placeholder="Type a message..."
                 value={testMessageInput}
                 onChangeText={setTestMessageInput}
-                onSubmitEditing={handleAddTestMessage}
+                onSubmitEditing={handleSendConversationMessage}
                 style={styles.chatInputField}
                 dense
+                disabled={playground.isConversationLoading}
               />
               <IconButton
-                icon="plus"
-                onPress={handleAddTestMessage}
-                disabled={!testMessageInput.trim()}
+                icon="send"
+                onPress={handleSendConversationMessage}
+                disabled={
+                  !testMessageInput.trim() || playground.isConversationLoading
+                }
               />
             </View>
-            {playground.testMessages.length > 0 && (
-              <Button
-                mode="text"
-                onPress={playground.clearTestMessages}
-                compact
-                icon="delete"
-              >
-                Clear messages
-              </Button>
-            )}
           </Card.Content>
         </Card>
       )}
@@ -926,6 +966,12 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
             </Text>
             {playground.isGiftGeneration ? (
               <GenerationResultView result={playground.generationResult} />
+            ) : playground.selectedPromptKey === "add_recipient_conversation" ? (
+              <ConversationResultView result={playground.generationResult} />
+            ) : playground.selectedPromptKey === "occasion_recommendations" ? (
+              <OccasionResultView result={playground.generationResult} />
+            ) : playground.selectedPromptKey === "user_preferences_extraction" ? (
+              <PreferencesResultView result={playground.generationResult} />
             ) : (
               <JsonResultView result={playground.generationResult} />
             )}
@@ -1170,6 +1216,261 @@ const JsonResultView: React.FC<JsonResultViewProps> = ({ result }) => {
     </ScrollView>
   );
 };
+
+// --- Formatted result views for non-gift prompts ---
+
+const ConversationResultView: React.FC<{ result: Record<string, unknown> }> = ({
+  result,
+}) => {
+  const [showContext, setShowContext] = useState(true);
+  const ctx = result.conversationContext as Record<string, unknown> | undefined;
+
+  if ("error" in result) {
+    return (
+      <View style={styles.resultError}>
+        <Text variant="bodyMedium" style={styles.errorText}>
+          {String(result.error)}
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View>
+      <Text variant="labelSmall" style={resultStyles.sectionLabel}>
+        Latest Turn Metadata
+      </Text>
+      <View style={resultStyles.statusRow}>
+        <Chip compact style={result.shouldShowNextStepButton ? resultStyles.activeChip : resultStyles.inactiveChip}>
+          {result.shouldShowNextStepButton ? "Next-step button: visible" : "Next-step button: hidden"}
+        </Chip>
+      </View>
+      {ctx && (
+        <>
+          <Button
+            mode="text"
+            onPress={() => setShowContext(!showContext)}
+            icon={showContext ? "chevron-up" : "chevron-down"}
+            compact
+            style={resultStyles.collapseBtn}
+          >
+            Extracted Context
+          </Button>
+          {showContext && ctx && (
+            <View style={resultStyles.contextBox}>
+              {ctx.name != null && (
+                <Text variant="bodySmall" style={resultStyles.contextField}>
+                  {"Name: " + String(ctx.name)}
+                </Text>
+              )}
+              {ctx.relationship != null && (
+                <Text variant="bodySmall" style={resultStyles.contextField}>
+                  {"Relationship: " + String(ctx.relationship)}
+                </Text>
+              )}
+              {Array.isArray(ctx.interests) && ctx.interests.length > 0 && (
+                <View style={resultStyles.chipRow}>
+                  <Text variant="bodySmall" style={resultStyles.contextField}>
+                    {"Interests: "}
+                  </Text>
+                  {(ctx.interests as string[]).map((interest, i) => (
+                    <Chip key={i} compact style={resultStyles.contextChip}>
+                      {interest}
+                    </Chip>
+                  ))}
+                </View>
+              )}
+              {ctx.birthday != null && (
+                <Text variant="bodySmall" style={resultStyles.contextField}>
+                  {"Birthday: " + String(ctx.birthday)}
+                </Text>
+              )}
+              {ctx.readiness_score != null && (
+                <Text variant="bodySmall" style={resultStyles.contextField}>
+                  {"Readiness: " + String(ctx.readiness_score) + "/10"}
+                </Text>
+              )}
+            </View>
+          )}
+        </>
+      )}
+    </View>
+  );
+};
+
+const OccasionResultView: React.FC<{ result: Record<string, unknown> }> = ({
+  result,
+}) => {
+  if ("error" in result) {
+    return (
+      <View style={styles.resultError}>
+        <Text variant="bodyMedium" style={styles.errorText}>
+          {String(result.error)}
+        </Text>
+      </View>
+    );
+  }
+
+  const occasions = Array.isArray(result.primaryOccasions)
+    ? result.primaryOccasions
+    : [];
+  const additional = Array.isArray(result.additionalSuggestions)
+    ? result.additionalSuggestions
+    : [];
+
+  if (occasions.length === 0 && additional.length === 0) {
+    return (
+      <Text variant="bodyMedium" style={{ color: Colors.darks.brown }}>
+        No occasions suggested.
+      </Text>
+    );
+  }
+
+  return (
+    <View>
+      {occasions.map((occ: any, i: number) => (
+        <View key={i}>
+          <View style={resultStyles.occasionHeader}>
+            <Text variant="titleSmall">{occ.name || occ.type}</Text>
+            {occ.isMilestone && (
+              <Chip compact style={resultStyles.milestoneChip}>
+                Milestone
+              </Chip>
+            )}
+          </View>
+          <View style={resultStyles.chipRow}>
+            <Chip compact style={resultStyles.contextChip}>
+              {occ.type}
+            </Chip>
+            {occ.suggestedDate && (
+              <Text variant="bodySmall" style={resultStyles.occasionDate}>
+                {occ.suggestedDate}
+              </Text>
+            )}
+          </View>
+          {occ.reasoning && (
+            <Text variant="bodySmall" style={resultStyles.reasoning}>
+              {occ.reasoning}
+            </Text>
+          )}
+          {i < occasions.length - 1 && <Divider style={{ marginVertical: 8 }} />}
+        </View>
+      ))}
+      {additional.length > 0 && (
+        <View style={resultStyles.additionalSection}>
+          <Text variant="labelSmall" style={{ color: Colors.darks.brown, marginBottom: 4 }}>
+            Also consider
+          </Text>
+          <View style={resultStyles.chipRow}>
+            {additional.map((s: string, i: number) => (
+              <Chip key={i} compact style={resultStyles.contextChip}>
+                {s}
+              </Chip>
+            ))}
+          </View>
+        </View>
+      )}
+    </View>
+  );
+};
+
+const PreferencesResultView: React.FC<{ result: Record<string, unknown> }> = ({
+  result,
+}) => {
+  if ("error" in result) {
+    return (
+      <View style={styles.resultError}>
+        <Text variant="bodyMedium" style={styles.errorText}>
+          {String(result.error)}
+        </Text>
+      </View>
+    );
+  }
+
+  const summary =
+    typeof result.gifting_summary === "string" ? result.gifting_summary : null;
+
+  if (!summary) {
+    return (
+      <Text variant="bodyMedium" style={{ color: Colors.darks.brown }}>
+        No summary extracted.
+      </Text>
+    );
+  }
+
+  return (
+    <View style={resultStyles.summaryBox}>
+      <Text variant="bodyMedium" style={{ color: Colors.darks.brown }}>
+        {summary}
+      </Text>
+    </View>
+  );
+};
+
+const resultStyles = StyleSheet.create({
+  statusRow: {
+    flexDirection: "row",
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  activeChip: {
+    backgroundColor: "#d4edda",
+  },
+  inactiveChip: {
+    backgroundColor: "#e2e3e5",
+  },
+  sectionLabel: {
+    color: Colors.darks.brown,
+    marginBottom: 4,
+  },
+  collapseBtn: {
+    alignSelf: "flex-start",
+    marginTop: 4,
+  },
+  contextBox: {
+    backgroundColor: "#f5f5f5",
+    borderRadius: 8,
+    padding: 12,
+    gap: 4,
+  },
+  contextField: {
+    color: Colors.darks.brown,
+  },
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    alignItems: "center",
+  },
+  contextChip: {
+    backgroundColor: "#e8e8e8",
+  },
+  occasionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  milestoneChip: {
+    backgroundColor: Colors.yellows.amber,
+  },
+  occasionDate: {
+    color: Colors.darks.brown,
+  },
+  reasoning: {
+    color: Colors.darks.brown,
+    fontStyle: "italic",
+    marginTop: 4,
+  },
+  additionalSection: {
+    marginTop: 12,
+  },
+  summaryBox: {
+    backgroundColor: "#f5f5f5",
+    borderRadius: 8,
+    padding: 12,
+  },
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -1476,6 +1777,13 @@ const styles = StyleSheet.create({
   chatScroll: {
     maxHeight: 250,
     paddingHorizontal: 16,
+  },
+  conversationScroll: {
+    maxHeight: 350,
+    borderRadius: 8,
+    backgroundColor: "#fafafa",
+    padding: 8,
+    marginBottom: 8,
   },
   welcomeMessage: {
     padding: 12,
