@@ -1,24 +1,9 @@
 import { useState, useEffect } from "react";
-import {
-  StyleSheet,
-  View,
-  AppState,
-  TextInput,
-  TouchableOpacity,
-  Text,
-  Platform,
-} from "react-native";
+import { StyleSheet, View, KeyboardAvoidingView, ScrollView, Keyboard, Platform, Pressable } from "react-native";
+import { TextInput, Button, Text } from "react-native-paper";
 import { useForm, Controller } from "react-hook-form";
 import { supabase } from "../lib/supabase";
 import { Session } from "@supabase/supabase-js";
-
-AppState.addEventListener("change", (state) => {
-  if (state === "active") {
-    supabase.auth.startAutoRefresh();
-  } else {
-    supabase.auth.stopAutoRefresh();
-  }
-});
 
 type FormData = {
   email: string;
@@ -29,6 +14,7 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [message, setMessage] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
 
   const {
     control,
@@ -52,39 +38,41 @@ export default function Auth() {
     });
   }, []);
 
-  async function handleAuth(data: FormData) {
+  async function handleSignIn(data: FormData) {
     setLoading(true);
     setMessage("");
 
-    // Try to sign in first
-    let { error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email: data.email,
       password: data.password,
     });
 
-    // If user doesn't exist, create account
-    if (error?.message.includes("Invalid login credentials")) {
-      const { data: signUpData, error: signUpError } =
-        await supabase.auth.signUp({
-          email: data.email,
-          password: data.password,
-        });
-
-      if (signUpError) {
-        setMessage(`Error: ${signUpError.message}`);
-      } else if (signUpData.session) {
-        setMessage("✅ Account created! You're signed in.");
-        reset();
-      } else {
-        setMessage(
-          "Account created but requires email verification. Check your inbox."
-        );
-      }
-    } else if (error) {
+    if (error) {
       setMessage(`Error: ${error.message}`);
     } else {
-      setMessage("✅ Signed in successfully!");
       reset();
+    }
+
+    setLoading(false);
+  }
+
+  async function handleSignUp(data: FormData) {
+    setLoading(true);
+    setMessage("");
+
+    const { data: signUpData, error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+    });
+
+    if (error) {
+      setMessage(`Error: ${error.message}`);
+    } else if (signUpData.user?.identities?.length === 0) {
+      setMessage("Error: An account with this email already exists. Try signing in instead.");
+    } else if (signUpData.session) {
+      reset();
+    } else {
+      setMessage("Check your inbox to verify your email before signing in.");
     }
 
     setLoading(false);
@@ -98,25 +86,44 @@ export default function Auth() {
   if (session && session.user) {
     return (
       <View style={styles.container}>
-        <Text style={styles.welcomeText}>Welcome, {session.user.email}!</Text>
-        <TouchableOpacity
-          style={[styles.button, styles.signOutButton]}
+        <Text variant="titleLarge" style={styles.welcomeText}>
+          Welcome, {session.user.email}!
+        </Text>
+        <Button
+          mode="contained"
+          buttonColor="#000000"
           onPress={signOut}
+          style={styles.signOutButton}
         >
-          <Text style={styles.buttonText}>Sign Out</Text>
-        </TouchableOpacity>
+          Sign Out
+        </Button>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Sign In</Text>
-      <Text style={styles.subtitle}>Sign in with your email and password</Text>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <Pressable style={styles.flex} onPress={Keyboard.dismiss}>
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.container}>
+            <Text variant="headlineSmall" style={styles.title}>
+              {isSignUp ? "Create Account" : "Sign In"}
+            </Text>
+      <Text variant="bodyMedium" style={styles.subtitle}>
+        {isSignUp
+          ? "Enter your email and a password to get started"
+          : "Sign in with your email and password"}
+      </Text>
 
       {/* Email Field */}
       <View style={[styles.verticallySpaced, styles.mt20]}>
-        <Text style={styles.label}>Email</Text>
         <Controller
           control={control}
           name="email"
@@ -129,24 +136,29 @@ export default function Auth() {
           }}
           render={({ field: { onChange, onBlur, value } }) => (
             <TextInput
+              mode="outlined"
+              label="Email"
+              value={value}
               onChangeText={onChange}
               onBlur={onBlur}
-              value={value}
               placeholder="email@address.com"
               autoCapitalize="none"
+              autoCorrect={false}
               keyboardType="email-address"
-              style={[styles.input, errors.email && styles.inputError]}
+              error={!!errors.email}
+              style={styles.input}
             />
           )}
         />
         {errors.email && (
-          <Text style={styles.errorText}>{errors.email.message}</Text>
+          <Text variant="bodySmall" style={styles.errorText}>
+            {errors.email.message}
+          </Text>
         )}
       </View>
 
       {/* Password Field */}
       <View style={styles.verticallySpaced}>
-        <Text style={styles.label}>Password</Text>
         <Controller
           control={control}
           name="password"
@@ -159,61 +171,85 @@ export default function Auth() {
           }}
           render={({ field: { onChange, onBlur, value } }) => (
             <TextInput
+              mode="outlined"
+              label="Password"
+              value={value}
               onChangeText={onChange}
               onBlur={onBlur}
-              value={value}
               secureTextEntry
               placeholder="Password (min 6 characters)"
               autoCapitalize="none"
-              style={[styles.input, errors.password && styles.inputError]}
+              error={!!errors.password}
+              style={styles.input}
             />
           )}
         />
         {errors.password && (
-          <Text style={styles.errorText}>{errors.password.message}</Text>
+          <Text variant="bodySmall" style={styles.errorText}>
+            {errors.password.message}
+          </Text>
         )}
       </View>
 
-      {/* Sign In / Sign Up Button */}
+      {/* Submit Button */}
       <View style={[styles.verticallySpaced, styles.mt20]}>
-        <TouchableOpacity
-          style={styles.button}
+        <Button
+          mode="contained"
           disabled={loading}
-          onPress={handleSubmit(handleAuth)}
+          loading={loading}
+          onPress={handleSubmit(isSignUp ? handleSignUp : handleSignIn)}
+          style={styles.button}
         >
-          <Text style={styles.buttonText}>
-            {loading ? "Loading..." : "Sign In / Sign Up"}
-          </Text>
-        </TouchableOpacity>
-        <Text style={styles.hint}>
-          Don't have an account? Just enter your email and a password to create
-          one.
-        </Text>
+          {isSignUp ? "Create Account" : "Sign In"}
+        </Button>
+        <Button
+          mode="text"
+          disabled={loading}
+          onPress={() => {
+            setIsSignUp((prev) => !prev);
+            setMessage("");
+          }}
+          style={styles.button}
+        >
+          {isSignUp
+            ? "Already have an account? Sign In"
+            : "Don't have an account? Create one"}
+        </Button>
       </View>
 
-      {/* Success/Error Messages */}
-      {message && (
-        <View
-          style={[
-            styles.messageContainer,
-            message.includes("Error") && styles.errorContainer,
-          ]}
-        >
-          <Text
-            style={[
-              styles.messageText,
-              message.includes("Error") && styles.errorMessageText,
-            ]}
-          >
-            {message}
-          </Text>
-        </View>
-      )}
-    </View>
+            {/* Success/Error Messages */}
+            {message && (
+              <View
+                style={[
+                  styles.messageContainer,
+                  message.includes("Error") && styles.errorContainer,
+                ]}
+              >
+                <Text
+                  variant="bodyMedium"
+                  style={[
+                    styles.messageText,
+                    message.includes("Error") && styles.errorMessageText,
+                  ]}
+                >
+                  {message}
+                </Text>
+              </View>
+            )}
+          </View>
+        </ScrollView>
+      </Pressable>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
   container: {
     marginTop: 40,
     padding: 12,
@@ -222,15 +258,10 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#333",
     marginBottom: 8,
     textAlign: "center",
   },
   subtitle: {
-    fontSize: 14,
-    color: "#666",
     textAlign: "center",
     marginBottom: 20,
   },
@@ -242,53 +273,25 @@ const styles = StyleSheet.create({
   mt20: {
     marginTop: 20,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 8,
-    color: "#333",
-  },
   input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-  },
-  inputError: {
-    borderColor: "#FF3B30",
-    borderWidth: 2,
+    marginBottom: 4,
   },
   errorText: {
     color: "#FF3B30",
-    fontSize: 12,
     marginTop: 4,
     marginLeft: 4,
   },
   button: {
-    backgroundColor: "#007AFF",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
+    marginTop: 8,
   },
   signOutButton: {
-    backgroundColor: "#FF3B30",
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
+    marginTop: 20,
   },
   welcomeText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
     marginBottom: 20,
     textAlign: "center",
   },
   hint: {
-    fontSize: 12,
-    color: "#999",
     marginTop: 12,
     textAlign: "center",
     fontStyle: "italic",
@@ -303,7 +306,6 @@ const styles = StyleSheet.create({
   },
   messageText: {
     color: "#2E7D32",
-    fontSize: 14,
     textAlign: "center",
   },
   errorContainer: {

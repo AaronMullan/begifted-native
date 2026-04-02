@@ -1,11 +1,14 @@
-import { useState, useCallback } from "react";
+import * as Haptics from "expo-haptics";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { supabase } from "../lib/supabase";
+import { useCallback, useEffect, useState } from "react";
 import { Alert } from "react-native";
+import { queryKeys } from "../lib/query-keys";
+import { supabase } from "../lib/supabase";
 import {
-  useConversationFlow,
-  Message,
   ExtractedData,
+  Message,
+  useConversationFlow,
 } from "./use-conversation-flow";
 
 interface UseAddRecipientFlowReturn {
@@ -15,6 +18,8 @@ interface UseAddRecipientFlowReturn {
   showDataReview: boolean;
   showOccasionsSelection: boolean;
   isSaving: boolean;
+  saveSuccess: boolean;
+  savedRecipientName: string | null;
   messagesEndRef: React.RefObject<any>;
   shouldShowNextStepButton: boolean;
   conversationContext: string;
@@ -25,16 +30,29 @@ interface UseAddRecipientFlowReturn {
   handleOccasionsBack: () => void;
   handleOccasionsContinue: (occasions: any[]) => Promise<void>;
   handleOccasionsSkip: () => Promise<void>;
+  handleViewRecipients: () => void;
   setShowDataReview: (show: boolean) => void;
   setShowOccasionsSelection: (show: boolean) => void;
   setExtractedData: (data: ExtractedData | null) => void;
 }
 
-export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
+export function useAddRecipientFlow(
+  userId: string,
+  initialContactName?: string
+): UseAddRecipientFlowReturn {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [showDataReview, setShowDataReview] = useState(false);
   const [showOccasionsSelection, setShowOccasionsSelection] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [savedRecipientName, setSavedRecipientName] = useState<string | null>(
+    null
+  );
+
+  const initialUserMessage = initialContactName?.trim()
+    ? `I'd like to add ${initialContactName.trim()}`
+    : undefined;
 
   // Use the generic conversation flow hook
   const {
@@ -49,6 +67,7 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
     setExtractedData: genericSetExtractedData,
   } = useConversationFlow({
     conversationType: "add_recipient",
+    initialUserMessage,
     onExtractSuccess: (data) => {
       // Validate that we have required fields
       if (data.name && data.relationship_type) {
@@ -97,7 +116,7 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
 
         if (recipientError) throw recipientError;
 
-        // Create occasions if provided
+        // Create occasions if provided (includes birthday if it was extracted as an occasion)
         if (data.occasions && data.occasions.length > 0 && recipient) {
           const occasionsData = data.occasions.map((occasion) => ({
             user_id: userId,
@@ -116,65 +135,34 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
           }
         }
 
-        // Create birthday occasion if birthday exists
-        if (data.birthday && recipient) {
-          // Parse birthday and create occasions for this year and next year
-          const birthdayParts = data.birthday.split("-");
-          if (birthdayParts.length >= 2) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const nextYear = new Date(today);
-            nextYear.setFullYear(nextYear.getFullYear() + 1);
+        // Invalidate cache so dashboard, contacts, and calendar show the new recipient
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.recipients(userId),
+        });
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.occasions(userId),
+        });
 
-            let month: number;
-            let day: number;
+        // Trigger success haptic feedback
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-            if (birthdayParts.length === 3) {
-              month = parseInt(birthdayParts[1]) - 1;
-              day = parseInt(birthdayParts[2]);
-            } else {
-              month = parseInt(birthdayParts[0]) - 1;
-              day = parseInt(birthdayParts[1]);
-            }
-
-            const currentYear = today.getFullYear();
-            const thisYearDate = new Date(currentYear, month, day);
-            const nextYearDate = new Date(currentYear + 1, month, day);
-
-            const occasionsToCreate: any[] = [];
-
-            if (thisYearDate >= today && thisYearDate <= nextYear) {
-              occasionsToCreate.push({
-                user_id: userId,
-                recipient_id: recipient.id,
-                date: thisYearDate.toISOString().split("T")[0],
-                occasion_type: "birthday",
-              });
-            }
-
-            if (nextYearDate <= nextYear) {
-              occasionsToCreate.push({
-                user_id: userId,
-                recipient_id: recipient.id,
-                date: nextYearDate.toISOString().split("T")[0],
-                occasion_type: "birthday",
-              });
-            }
-
-            if (occasionsToCreate.length > 0) {
-              await supabase.from("occasions").insert(occasionsToCreate);
-            }
-          }
+        // Trigger gift generation in the background (fire-and-forget)
+        if (recipient?.id) {
+          fetch("https://be-gifted.vercel.app/api/generate-gifts", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ recipientId: recipient.id }),
+          }).catch((err) => {
+            // Log but don't fail the save flow
+            console.error("Failed to trigger gift generation:", err);
+          });
         }
 
-        Alert.alert("Success", "Recipient added successfully!", [
-          {
-            text: "OK",
-            onPress: () => {
-              router.back();
-            },
-          },
-        ]);
+        // Set success state to show success screen
+        setSavedRecipientName(data.name || "Recipient");
+        setSaveSuccess(true);
       } catch (error) {
         console.error("Error saving recipient:", error);
         Alert.alert(
@@ -187,7 +175,7 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
         setIsSaving(false);
       }
     },
-    [userId, router]
+    [userId, router, queryClient]
   );
 
   // Wrap generic sendMessage to maintain interface
@@ -277,6 +265,45 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
     router.back();
   }, [router]);
 
+  const handleViewRecipients = useCallback(() => {
+    // Replace so user can't navigate back to the completed add flow
+    router.replace("/contacts");
+  }, [router]);
+
+  // Background enrichment of occasions with dates
+  useEffect(() => {
+    if (extractedData?.occasions && extractedData.occasions.length > 0) {
+      // Background process to enrich occasions with dates
+      const enrichOccasions = async () => {
+        const { lookupOccasionDate } = await import("../utils/occasion-dates");
+        const enrichedOccasions = extractedData.occasions!.map((occasion) => {
+          // If date is missing or is a placeholder, try to look it up
+          if (!occasion.date || occasion.date.includes("01-01")) {
+            const lookedUpDate = lookupOccasionDate(occasion.occasion_type);
+            if (lookedUpDate) {
+              return { ...occasion, date: lookedUpDate };
+            }
+          }
+          return occasion;
+        });
+
+        // Only update if we actually enriched any occasions
+        const hasChanges = enrichedOccasions.some(
+          (occ, idx) => occ.date !== extractedData.occasions![idx].date
+        );
+
+        if (hasChanges) {
+          genericSetExtractedData({
+            ...extractedData,
+            occasions: enrichedOccasions,
+          });
+        }
+      };
+
+      enrichOccasions();
+    }
+  }, [extractedData, genericSetExtractedData]);
+
   // Wrapper for setExtractedData to maintain interface
   const setExtractedData = useCallback(
     (data: ExtractedData | null) => {
@@ -292,6 +319,8 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
     showDataReview,
     showOccasionsSelection,
     isSaving,
+    saveSuccess,
+    savedRecipientName,
     messagesEndRef,
     shouldShowNextStepButton,
     conversationContext: conversationContext || "",
@@ -302,6 +331,7 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
     handleOccasionsBack,
     handleOccasionsContinue,
     handleOccasionsSkip,
+    handleViewRecipients,
     setShowDataReview,
     setShowOccasionsSelection,
     setExtractedData,
@@ -309,4 +339,4 @@ export function useAddRecipientFlow(userId: string): UseAddRecipientFlowReturn {
 }
 
 // Re-export types for backward compatibility
-export type { Message, ExtractedData };
+export type { ExtractedData, Message };

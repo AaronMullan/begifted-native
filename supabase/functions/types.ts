@@ -17,6 +17,7 @@ export interface Message {
 
 export type ConversationType =
   | "add_recipient" // Full extraction for new recipient
+  | "add_occasion" // Extract occasion type + date from conversation
   | "update_field" // Partial extraction for specific field(s)
   | "extract_interests" // Extract interests from conversation
   | "extract_preferences" // Extract gift preferences from conversation
@@ -68,6 +69,27 @@ export interface RecipientData {
 }
 
 // ----------------------------------------------------------------------------
+// Readiness State Types
+// ----------------------------------------------------------------------------
+
+export type ReadinessState =
+  | "not_captured"
+  | "captured_needs_both"
+  | "captured_needs_occasion"
+  | "captured_needs_specificity"
+  | "ready";
+
+export interface Readiness {
+  state: ReadinessState;
+  gift_ready: boolean;
+  has_recipient_anchor: boolean;
+  has_occasion_anchor: boolean;
+  has_specificity_anchor: boolean;
+  missing_requirements: string[];
+  reason: string;
+}
+
+// ----------------------------------------------------------------------------
 // Context Info Types (for conversation analysis)
 // ----------------------------------------------------------------------------
 
@@ -75,7 +97,13 @@ export interface ContextInfo {
   name?: string | null;
   relationship?: string | null;
   interests?: string[];
+  birthday?: string | null;
+  occasions_mentioned?: string[];
+  needs_occasion_date?: boolean;
+  occasion_needing_date?: string | null;
+  user_skipped_specificity?: boolean;
   other_details?: string;
+  readiness?: Readiness;
   existing_name?: string | null;
   existing_relationship?: string | null;
   existing_interests?: string[];
@@ -134,6 +162,7 @@ export interface GiftSuggestionRequest {
   recentEvents?: string;
   giftPreferences?: string;
   userId?: string;
+  customSystemPrompt?: string;
 }
 
 export interface GiftItem {
@@ -167,37 +196,12 @@ export interface ParsedGiftSuggestions {
   personalizationLevel?: "basic" | "medium" | "high";
 }
 
-export type PhilosophyType =
-  | "thoughtful"
-  | "experiences"
-  | "practical"
-  | "surprise";
-export type CreativityType = "classic" | "creative" | "innovative";
-export type BudgetStyleType = "mindful" | "balanced" | "generous";
-export type PlanningStyleType = "planner" | "seasonal" | "spontaneous";
-
 // ----------------------------------------------------------------------------
 // User Preferences Types
 // ----------------------------------------------------------------------------
 
-export interface UserPreferences {
-  giftingTone?: string;
-  philosophy?: string;
-  creativity?: string;
-  budgetStyle?: string;
-  planningStyle?: string;
-}
-
-export interface UserStack {
-  philosophy?: string;
-  creativity?: string;
-  budget_style?: string;
-  planning_style?: string;
-}
-
 export interface UserData {
-  default_gifting_tone?: string;
-  user_stack?: UserStack;
+  gifting_summary?: string;
   reminder_days?: number;
   auto_fallback_enabled?: boolean;
 }

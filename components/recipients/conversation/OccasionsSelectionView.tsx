@@ -1,29 +1,28 @@
-import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-  Switch,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { useState, useEffect } from "react";
+import { View, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Text, IconButton, Button } from "react-native-paper";
+import { MaterialIcons } from "@expo/vector-icons";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
+import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
+import {
+  useOccasionRecommendations,
+  mapRecommendationsToOccasions,
+} from "../../../hooks/use-occasion-recommendations";
+import {
+  lookupOccasionDate,
+  getNextOccurrence,
+} from "../../../utils/occasion-dates";
+import { OccasionItem } from "./OccasionItem";
+import { OccasionEditor } from "./OccasionEditor";
 
 interface OccasionsSelectionViewProps {
   extractedData: ExtractedData;
   onBack: () => void;
   onContinue: (
-    occasions: Array<{ date: string; occasion_type: string }>
+    occasions: { date: string; occasion_type: string }[]
   ) => Promise<void>;
   onSkip: () => Promise<void>;
-}
-
-interface OccasionOption {
-  id: string;
-  label: string;
-  type: string;
-  defaultDate?: string; // For birthdays from extracted data
 }
 
 export function OccasionsSelectionView({
@@ -32,113 +31,60 @@ export function OccasionsSelectionView({
   onContinue,
   onSkip,
 }: OccasionsSelectionViewProps) {
-  const [selectedOccasions, setSelectedOccasions] = useState<
-    Array<{ date: string; occasion_type: string; enabled: boolean }>
-  >([]);
+  const insets = useSafeAreaInsets();
+  const footerBottomPadding = BOTTOM_NAV_HEIGHT + Math.max(insets.bottom, 0);
+  const { recommendations, isLoading: isLoadingRecommendations } =
+    useOccasionRecommendations(extractedData);
 
+  const [selectedOccasions, setSelectedOccasions] = useState<
+    { date: string; occasion_type: string; enabled: boolean }[]
+  >([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [editingOccasionIndex, setEditingOccasionIndex] = useState<
+    number | null
+  >(null);
+
+  // Merge conversation-extracted occasions with interest-based AI recommendations
   useEffect(() => {
-    // Initialize with occasions from extractedData
-    const initialOccasions: Array<{
+    const merged: {
       date: string;
       occasion_type: string;
       enabled: boolean;
-    }> = [];
+    }[] = [];
 
-    // First, add any occasions that were extracted from the conversation (holidays, etc.)
-    if (extractedData.occasions && extractedData.occasions.length > 0) {
-      extractedData.occasions.forEach((occasion) => {
-        initialOccasions.push({
-          date: occasion.date,
-          occasion_type: occasion.occasion_type || "custom",
-          enabled: true,
-        });
-      });
-    }
-
-    // Then, add birthday occasions if birthday exists
-    if (extractedData.birthday) {
-      // Parse birthday to create occasion dates
-      const birthdayParts = extractedData.birthday.split("-");
-      if (birthdayParts.length >= 2) {
-        let month: number;
-        let day: number;
-
-        if (birthdayParts.length === 3) {
-          // Format: YYYY-MM-DD - ignore the year, use only month and day
-          month = parseInt(birthdayParts[1], 10);
-          day = parseInt(birthdayParts[2], 10);
-        } else {
-          // Format: MM-DD
-          month = parseInt(birthdayParts[0], 10);
-          day = parseInt(birthdayParts[1], 10);
-        }
-
-        // Validate month and day
-        if (
-          isNaN(month) ||
-          isNaN(day) ||
-          month < 1 ||
-          month > 12 ||
-          day < 1 ||
-          day > 31
-        ) {
-          console.warn("Invalid birthday format:", extractedData.birthday);
-        } else {
-          // Get today's date in local timezone
-          const todayLocal = new Date();
-          todayLocal.setHours(0, 0, 0, 0);
-          const currentYear = todayLocal.getFullYear();
-
-          // Create date strings directly in ISO format to avoid timezone issues
-          const formatDateString = (
-            year: number,
-            month: number,
-            day: number
-          ): string => {
-            const monthStr = month.toString().padStart(2, "0");
-            const dayStr = day.toString().padStart(2, "0");
-            return `${year}-${monthStr}-${dayStr}`;
-          };
-
-          const thisYearDateStr = formatDateString(currentYear, month, day);
-          const nextYearDateStr = formatDateString(currentYear + 1, month, day);
-
-          // Compare dates as strings in local timezone
-          const todayStr = formatDateString(
-            todayLocal.getFullYear(),
-            todayLocal.getMonth() + 1,
-            todayLocal.getDate()
-          );
-
-          const nextYearLocal = new Date(todayLocal);
-          nextYearLocal.setFullYear(nextYearLocal.getFullYear() + 1);
-          const nextYearStr = formatDateString(
-            nextYearLocal.getFullYear(),
-            nextYearLocal.getMonth() + 1,
-            nextYearLocal.getDate()
-          );
-
-          if (thisYearDateStr >= todayStr && thisYearDateStr <= nextYearStr) {
-            initialOccasions.push({
-              date: thisYearDateStr,
-              occasion_type: "birthday",
-              enabled: true,
-            });
-          }
-
-          if (nextYearDateStr <= nextYearStr) {
-            initialOccasions.push({
-              date: nextYearDateStr,
-              occasion_type: "birthday",
-              enabled: true,
-            });
-          }
-        }
+    const isoDateRe = /^\d{4}-\d{2}-\d{2}$/;
+    const fromConversation = (extractedData.occasions ?? []).map((occ) => {
+      const type = occ.occasion_type || "custom";
+      let date = occ.date?.trim() || "";
+      const useLookup =
+        !date ||
+        date.includes("01-01") ||
+        !isoDateRe.test(date) ||
+        new Date(date).getTime() < new Date().setHours(0, 0, 0, 0);
+      if (useLookup) {
+        const lookedUp = lookupOccasionDate(type);
+        date = lookedUp ?? "2025-01-01";
+      } else {
+        date = getNextOccurrence(date);
       }
-    }
+      return { date, occasion_type: type, enabled: true };
+    });
+    const seen = new Set<string>();
+    fromConversation.forEach((o) => {
+      merged.push(o);
+      seen.add(o.occasion_type);
+    });
 
-    setSelectedOccasions(initialOccasions);
-  }, [extractedData.birthday, extractedData.occasions]);
+    const fromRecommendations = mapRecommendationsToOccasions(recommendations);
+    fromRecommendations.forEach((o) => {
+      if (!seen.has(o.occasion_type)) {
+        merged.push(o);
+        seen.add(o.occasion_type);
+      }
+    });
+
+    setSelectedOccasions(merged);
+  }, [extractedData.occasions, recommendations]);
 
   const toggleOccasion = (index: number) => {
     setSelectedOccasions((prev) =>
@@ -149,60 +95,57 @@ export function OccasionsSelectionView({
   };
 
   const handleContinue = async () => {
-    const enabledOccasions = selectedOccasions
-      .filter((occ) => occ.enabled)
-      .map((occ) => ({
-        date: occ.date,
-        occasion_type: occ.occasion_type,
-      }));
+    if (isProcessing) return; // Prevent double-clicks
 
-    await onContinue(enabledOccasions);
-  };
+    setIsProcessing(true);
+    try {
+      const enabledOccasions = selectedOccasions
+        .filter((occ) => occ.enabled)
+        .map((occ) => ({
+          date: occ.date,
+          occasion_type: occ.occasion_type,
+        }));
 
-  const formatDate = (dateString: string): string => {
-    // Parse date string (YYYY-MM-DD) manually to avoid timezone issues
-    const parts = dateString.split("-");
-    if (parts.length !== 3) {
-      // Fallback to Date parsing if format is unexpected
-      const date = new Date(dateString);
-      return date.toLocaleDateString("en-US", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
+      await onContinue(enabledOccasions);
+    } catch (error) {
+      console.error("Error in handleContinue:", error);
+    } finally {
+      setIsProcessing(false);
     }
-
-    const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1; // JavaScript months are 0-indexed
-    const day = parseInt(parts[2], 10);
-
-    // Create date in local timezone (not UTC)
-    const date = new Date(year, month, day);
-
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
   };
 
-  const formatOccasionType = (type: string): string => {
-    // Capitalize first letter and handle common types
-    const formatted = type.charAt(0).toUpperCase() + type.slice(1);
-    // Replace underscores with spaces for better display
-    return formatted.replace(/_/g, " ");
+  const handleEditOccasion = (index: number) => {
+    setEditingOccasionIndex(index);
+  };
+
+  const handleSaveOccasionDate = (date: string) => {
+    if (editingOccasionIndex !== null) {
+      setSelectedOccasions((prev) =>
+        prev.map((occ, i) =>
+          i === editingOccasionIndex ? { ...occ, date } : occ
+        )
+      );
+      setEditingOccasionIndex(null);
+    }
+  };
+
+  const handleCloseEditor = () => {
+    setEditingOccasionIndex(null);
   };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#231F20" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Select Occasions</Text>
+        <IconButton
+          icon="arrow-left"
+          size={24}
+          iconColor="#000000"
+          onPress={onBack}
+          style={styles.backButton}
+        />
+        <Text variant="titleLarge" style={styles.headerTitle}>
+          Select Occasions
+        </Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -210,63 +153,86 @@ export function OccasionsSelectionView({
         style={styles.scrollView}
         contentContainerStyle={styles.content}
       >
-        <Text style={styles.description}>
-          Select which occasions you'd like to track for this recipient. We've
-          automatically added occasions based on your conversation.
+        <Text variant="bodyMedium" style={styles.description}>
+          We&apos;ve suggested occasions based on your conversation and their
+          interests. Add or remove any you&apos;d like to track.
         </Text>
 
-        {selectedOccasions.length === 0 ? (
+        {selectedOccasions.length === 0 && isLoadingRecommendations ? (
           <View style={styles.emptyState}>
-            <Ionicons name="calendar-outline" size={48} color="#999" />
-            <Text style={styles.emptyText}>No occasions found</Text>
-            <Text style={styles.emptySubtext}>
-              Occasions will be automatically created from the birthday and
-              holidays you mentioned.
+            <ActivityIndicator size="large" color="#000" />
+            <Text
+              variant="bodyMedium"
+              style={[styles.emptySubtext, { marginTop: 16 }]}
+            >
+              Loading additional occasion ideas…
+            </Text>
+          </View>
+        ) : selectedOccasions.length === 0 ? (
+          <View style={styles.emptyState}>
+            <MaterialIcons name="calendar-today" size={48} color="#999" />
+            <Text variant="titleLarge" style={styles.emptyText}>
+              No occasions found
+            </Text>
+            <Text variant="bodyMedium" style={styles.emptySubtext}>
+              Occasions will be added from birthday and holidays you mentioned,
+              or add your own after continuing.
             </Text>
           </View>
         ) : (
-          <View style={styles.occasionsList}>
-            {selectedOccasions.map((occasion, index) => (
-              <View key={index} style={styles.occasionItem}>
-                <View style={styles.occasionContent}>
-                  <View style={styles.occasionIcon}>
-                    <Ionicons name="gift-outline" size={24} color="#FFB6C1" />
-                  </View>
-                  <View style={styles.occasionDetails}>
-                    <Text style={styles.occasionType}>
-                      {formatOccasionType(occasion.occasion_type)}
-                    </Text>
-                    <Text style={styles.occasionDate}>
-                      {formatDate(occasion.date)}
-                    </Text>
-                  </View>
-                </View>
-                <Switch
-                  value={occasion.enabled}
-                  onValueChange={() => toggleOccasion(index)}
-                  trackColor={{ false: "#E0E0E0", true: "#FFB6C1" }}
-                  thumbColor={occasion.enabled ? "#FF6B9D" : "#f4f3f4"}
-                  ios_backgroundColor="#E0E0E0"
+          <>
+            <View style={styles.occasionsList}>
+              {selectedOccasions.map((occasion, index) => (
+                <OccasionItem
+                  key={index}
+                  occasion={occasion}
+                  onToggle={() => toggleOccasion(index)}
+                  onEdit={() => handleEditOccasion(index)}
                 />
+              ))}
+            </View>
+            {isLoadingRecommendations && (
+              <View style={styles.loadingMoreRow}>
+                <ActivityIndicator size="small" color="#000" />
+                <Text variant="bodyMedium" style={styles.loadingMoreText}>
+                  Loading additional occasion ideas…
+                </Text>
               </View>
-            ))}
-          </View>
+            )}
+          </>
         )}
       </ScrollView>
 
-      {/* Footer Actions */}
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.skipButton} onPress={onSkip}>
-          <Text style={styles.skipButtonText}>Skip</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.continueButton}
-          onPress={handleContinue}
+      <View style={[styles.footer, { paddingBottom: footerBottomPadding }]}>
+        <Button
+          mode="outlined"
+          onPress={onSkip}
+          disabled={isProcessing}
+          style={styles.skipButton}
         >
-          <Text style={styles.continueButtonText}>Continue</Text>
-        </TouchableOpacity>
+          Skip
+        </Button>
+
+        <Button
+          mode="contained"
+          buttonColor="#000000"
+          onPress={handleContinue}
+          disabled={isProcessing}
+          loading={isProcessing}
+          style={styles.continueButton}
+        >
+          Continue
+        </Button>
       </View>
+
+      {editingOccasionIndex !== null && (
+        <OccasionEditor
+          occasion={selectedOccasions[editingOccasionIndex]}
+          visible={editingOccasionIndex !== null}
+          onClose={handleCloseEditor}
+          onSave={handleSaveOccasionDate}
+        />
+      )}
     </View>
   );
 }
@@ -274,7 +240,7 @@ export function OccasionsSelectionView({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "transparent",
   },
   header: {
     flexDirection: "row",
@@ -282,18 +248,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-    backgroundColor: "#fff",
   },
   backButton: {
-    padding: 8,
+    margin: 0,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#231F20",
-  },
+  headerTitle: {},
   headerSpacer: {
     width: 40,
   },
@@ -301,13 +260,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.92)",
+    borderRadius: 16,
+    marginHorizontal: 8,
   },
   description: {
-    fontSize: 14,
-    color: "#666",
     marginBottom: 24,
     lineHeight: 20,
+    color: "#666",
   },
   emptyState: {
     alignItems: "center",
@@ -315,90 +278,34 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#231F20",
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtext: {
-    fontSize: 14,
-    color: "#666",
     textAlign: "center",
+    color: "#666",
+  },
+  loadingMoreRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 16,
+  },
+  loadingMoreText: {
+    color: "#666",
   },
   occasionsList: {
     gap: 12,
   },
-  occasionItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#f8f8f8",
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-  },
-  occasionContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  occasionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#FFF0F5",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  occasionDetails: {
-    flex: 1,
-  },
-  occasionType: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#231F20",
-    marginBottom: 4,
-  },
-  occasionDate: {
-    fontSize: 14,
-    color: "#666",
-  },
   footer: {
     flexDirection: "row",
     padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
-    backgroundColor: "#fff",
     gap: 12,
   },
   skipButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  skipButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#231F20",
   },
   continueButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    backgroundColor: "#FFB6C1",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  continueButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#fff",
   },
 });

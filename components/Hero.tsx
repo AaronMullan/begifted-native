@@ -1,6 +1,4 @@
 import { View, Text, Image, useWindowDimensions } from "react-native";
-import { useState } from "react";
-import Auth from "./Auth";
 
 export default function Hero() {
   const { width } = useWindowDimensions();
@@ -16,7 +14,14 @@ export default function Hero() {
       style={{ width: "100%", backgroundColor: "#52A78B", paddingBottom: 60 }}
     >
       {/* Full-width background with contained content */}
-      <View style={{ maxWidth: 1200, width: "100%", alignSelf: "center" }}>
+      <View
+        style={{
+          maxWidth: 1200,
+          width: "100%",
+          alignSelf: "center",
+          paddingHorizontal: 16,
+        }}
+      >
         <View style={{ width: "100%" }}>
           <Text
             style={{
@@ -47,8 +52,7 @@ export default function Hero() {
         >
           <Text
             style={{
-              fontFamily: "Times New Roman",
-              fontStyle: "italic",
+              fontFamily: "Fraunces_400Regular_Italic",
               fontSize: fontSize.display,
               fontWeight: "regular",
               marginBottom: 16,

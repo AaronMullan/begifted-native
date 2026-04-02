@@ -1,56 +1,117 @@
-import { Session } from "@supabase/supabase-js";
-import { useState, useEffect } from "react";
-import { ScrollView } from "react-native";
+import type { Session } from "@supabase/supabase-js";
+import { useState, useEffect, useRef } from "react";
+import {
+  StyleSheet,
+  ScrollView,
+  View,
+  ActivityIndicator,
+  Platform,
+} from "react-native";
+import type { Href } from "expo-router";
 import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
-import Hero from "../components/Hero";
-import ContentBlock from "../components/ContentBlock";
-import BrandGrid from "../components/BrandGrid";
+import Auth from "../components/Auth";
 
 export default function Index() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const hasNavigated = useRef(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    let isMounted = true;
+
+    async function handleSession(session: Session | null) {
+      if (!isMounted || hasNavigated.current) return;
+
       setSession(session);
-      setLoading(false);
-      // Redirect to dashboard if logged in
+
       if (session?.user) {
-        router.replace("/dashboard");
+        try {
+          const { data } = await supabase
+            .from("user_preferences")
+            .select("onboarding_completed")
+            .eq("user_id", session.user.id)
+            .maybeSingle();
+
+          if (!isMounted || hasNavigated.current) return;
+
+          hasNavigated.current = true;
+          const route = data?.onboarding_completed
+            ? "/dashboard"
+            : "/onboarding/welcome";
+          router.replace(route as Href);
+        } catch {
+          if (!isMounted || hasNavigated.current) return;
+          hasNavigated.current = true;
+          router.replace("/onboarding/welcome" as Href);
+        }
+      } else {
+        setLoading(false);
       }
-    });
+    }
+
+    // Check auth session
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => handleSession(session))
+      .catch((error) => {
+        console.error("Error checking auth session:", error);
+        if (isMounted) setLoading(false);
+      });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      // Redirect to dashboard if logged in
-      if (session?.user) {
-        router.replace("/dashboard");
-      }
+      handleSession(session);
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [router]);
 
-  // Show loading state while checking session
+  // Keep showing loading until redirect completes for authenticated users
   if (loading) {
+    if (Platform.OS === "web") {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#000000" />
+        </View>
+      );
+    }
     return null;
   }
 
-  // Show auth components if not logged in
+  // Show auth component if not logged in
   if (!session || !session.user) {
     return (
-      <ScrollView>
-        <Hero />
-        <ContentBlock />
-        <BrandGrid />
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+      >
+        <Auth />
       </ScrollView>
     );
   }
 
-  // This shouldn't render if redirect works, but just in case
+  // Authenticated but waiting for redirect — keep loading
   return null;
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+  contentContainer: {
+    flexGrow: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: "transparent",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+});

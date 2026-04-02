@@ -1,17 +1,21 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
   View,
-  Text,
-  TextInput,
-  TouchableOpacity,
   ScrollView,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
+  TextInput as RNTextInput,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import {
+  Text,
+  IconButton,
+  Button,
+  ActivityIndicator,
+} from "react-native-paper";
 import { Message } from "@/hooks/use-add-recipient-flow";
+import { BOTTOM_NAV_HEIGHT } from "@/lib/constants";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface ConversationViewProps {
   messages: Message[];
@@ -22,6 +26,8 @@ interface ConversationViewProps {
   onFinishConversation: () => Promise<void>;
   shouldShowNextStepButton: boolean;
   conversationContext: string;
+  title?: string;
+  finishButtonLabel?: string;
 }
 
 export function ConversationView({
@@ -32,11 +38,15 @@ export function ConversationView({
   onSendMessage,
   onFinishConversation,
   shouldShowNextStepButton,
-  conversationContext,
+  conversationContext: _conversationContext,
+  title = "Add Recipient",
+  finishButtonLabel = "Let's Move to the Next Step",
 }: ConversationViewProps) {
   const [inputMessage, setInputMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  const insets = useSafeAreaInsets();
+  const inputBottomPadding = BOTTOM_NAV_HEIGHT + Math.max(insets.bottom, 0);
 
   useEffect(() => {
     // Auto-scroll to bottom when new messages arrive
@@ -69,10 +79,16 @@ export function ConversationView({
     >
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onNavigateBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#231F20" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add Recipient</Text>
+        <IconButton
+          icon="arrow-left"
+          size={24}
+          iconColor="#000000"
+          onPress={onNavigateBack}
+          style={styles.backButton}
+        />
+        <Text variant="titleLarge" style={styles.headerTitle}>
+          {title}
+        </Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -101,6 +117,7 @@ export function ConversationView({
               ]}
             >
               <Text
+                variant="bodyLarge"
                 style={[
                   styles.messageText,
                   message.role === "user"
@@ -116,8 +133,10 @@ export function ConversationView({
 
         {isLoading && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#FFB6C1" />
-            <Text style={styles.loadingText}>Thinking...</Text>
+            <ActivityIndicator size="small" />
+            <Text variant="bodyMedium" style={styles.loadingText}>
+              Thinking...
+            </Text>
           </View>
         )}
 
@@ -125,33 +144,41 @@ export function ConversationView({
       </ScrollView>
 
       {/* Input Area */}
-      <View style={styles.inputContainer}>
+      <View style={[styles.inputContainer, { paddingBottom: inputBottomPadding }]}>
         {shouldShowNextStepButton && (
-          <TouchableOpacity
-            style={styles.nextStepButton}
+          <Button
+            mode="contained"
+            buttonColor="#000000"
             onPress={onFinishConversation}
             disabled={isLoading || isSending}
+            style={styles.nextStepButton}
           >
-            <Text style={styles.nextStepButtonText}>
-              Let's Move to the Next Step
-            </Text>
-          </TouchableOpacity>
+            {finishButtonLabel}
+          </Button>
         )}
 
         <View style={styles.inputRow}>
-          <TextInput
-            style={styles.textInput}
+          <RNTextInput
             value={inputMessage}
             onChangeText={setInputMessage}
             placeholder="Type your message..."
-            placeholderTextColor="#999"
             onSubmitEditing={handleSend}
             returnKeyType="send"
             blurOnSubmit={false}
-            maxLength={500}
+            multiline
             editable={!isLoading && !isSending}
+            autoComplete="off"
+            autoCorrect={false}
+            spellCheck={false}
+            textContentType="none"
+            importantForAutofill="no"
+            placeholderTextColor="#999"
+            style={styles.textInput}
           />
-          <TouchableOpacity
+          <IconButton
+            icon="send"
+            size={24}
+            iconColor="#000000"
             style={[
               styles.sendButton,
               (!inputMessage.trim() || isLoading || isSending) &&
@@ -159,13 +186,9 @@ export function ConversationView({
             ]}
             onPress={handleSend}
             disabled={!inputMessage.trim() || isLoading || isSending}
-          >
-            {isSending ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Ionicons name="send" size={20} color="#fff" />
-            )}
-          </TouchableOpacity>
+            containerColor="#FFFFFF"
+            loading={isSending}
+          />
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -175,7 +198,7 @@ export function ConversationView({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "transparent",
   },
   header: {
     flexDirection: "row",
@@ -183,18 +206,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-    backgroundColor: "#fff",
   },
   backButton: {
-    padding: 8,
+    margin: 0,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#231F20",
-  },
+  headerTitle: {},
   headerSpacer: {
     width: 40,
   },
@@ -202,7 +218,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   messagesContent: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 8,
     paddingBottom: 8,
   },
   messageContainer: {
@@ -222,7 +239,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   userMessageBubble: {
-    backgroundColor: "#FFB6C1",
+    backgroundColor: "#333333",
     borderBottomRightRadius: 4,
   },
   assistantMessageBubble: {
@@ -230,14 +247,13 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 4,
   },
   messageText: {
-    fontSize: 16,
     lineHeight: 22,
   },
   userMessageText: {
-    color: "#231F20",
+    color: "#FFFFFF",
   },
   assistantMessageText: {
-    color: "#231F20",
+    color: "#000000",
   },
   loadingContainer: {
     flexDirection: "row",
@@ -247,28 +263,14 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginLeft: 8,
-    fontSize: 14,
     color: "#666",
   },
   inputContainer: {
-    borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
-    backgroundColor: "#fff",
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   nextStepButton: {
-    backgroundColor: "#FFB6C1",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    alignItems: "center",
     marginBottom: 12,
-  },
-  nextStepButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
   },
   inputRow: {
     flexDirection: "row",
@@ -277,25 +279,19 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: "#231F20",
     backgroundColor: "#f5f5f5",
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    maxHeight: 120,
   },
   sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#FFB6C1",
-    justifyContent: "center",
-    alignItems: "center",
+    margin: 0,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
   },
   sendButtonDisabled: {
-    backgroundColor: "#ccc",
-    opacity: 0.5,
+    opacity: 0.6,
   },
 });

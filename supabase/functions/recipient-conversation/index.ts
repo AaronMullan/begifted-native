@@ -5,7 +5,13 @@ import {
   extractFullRecipient,
   extractFields,
   extractField,
-} from "./data-extractor";
+  recommendOccasions,
+} from "./data-extractor.ts";
+
+import { parseOpenAIJSON } from "./utils.ts";
+
+// @ts-ignore - Deno environment variables are resolved at runtime
+const openAiApiKey = Deno.env.get("OPENAI_API_KEY");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,6 +19,117 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+// ── Standalone add-occasion handlers (completely separate from recipient flows) ──
+
+async function handleAddOccasionConversation(
+  messages: { role: string; content: string }[],
+  recipientName: string | null
+) {
+  const conversationHistory = messages
+    .map((m) => `${m.role}: ${m.content}`)
+    .join("\n");
+
+  const nameRef = recipientName ? ` for ${recipientName}` : "";
+
+  const systemPrompt = `You are a concise assistant that adds calendar occasions${nameRef}. The recipient ALREADY exists — do NOT ask about names, relationships, interests, birthdays, gifts, or anything else. Your ONLY job: identify the occasion type and its date.
+
+Rules:
+- Known holiday (Christmas, St. Patrick's Day, Mother's Day, etc.) → confirm with its standard date immediately. Example: "Got it — St. Patrick's Day, March 17! Tap the button below to save."
+- Personal occasion WITH a date (e.g., "anniversary June 15") → confirm. Example: "Anniversary on June 15 — tap below to save!"
+- Personal occasion WITHOUT a date → ask ONLY for the date. Example: "When is the anniversary?"
+- Max 1–2 sentences per response. Never mention gifts, relationships, or the person's details.`;
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${openAiApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...messages.map((m) => ({ role: m.role, content: m.content })),
+      ],
+      max_tokens: 150,
+      temperature: 0.3,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok || !data.choices?.[0]) {
+    throw new Error(
+      `OpenAI API failed: ${data.error?.message || "Unknown error"}`
+    );
+  }
+
+  const reply = data.choices[0].message.content;
+  // Show the save button after the first AI response (user has stated the occasion)
+  const userMessages = messages.filter((m) => m.role === "user");
+  const shouldShowNextStepButton = userMessages.length >= 1;
+
+  return { reply, shouldShowNextStepButton, conversationContext: null };
+}
+
+async function handleAddOccasionExtract(
+  messages: { role: string; content: string }[]
+) {
+  const conversationHistory = messages
+    .map((m) => `${m.role}: ${m.content}`)
+    .join("\n");
+
+  const prompt = `Extract the occasion from this conversation. Return ONLY JSON, no markdown:
+{
+  "occasion_type": "lowercase_snake_case (e.g. christmas, st_patricks_day, anniversary, mothers_day)",
+  "date": "YYYY-MM-DD or null"
+}
+
+Conversation:
+${conversationHistory}`;
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${openAiApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 100,
+      temperature: 0.2,
+      response_format: { type: "json_object" },
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok || !data.choices?.[0]?.message?.content) {
+    throw new Error(
+      `OpenAI API failed: ${data.error?.message || "Unknown error"}`
+    );
+  }
+
+  let parsed;
+  try {
+    parsed = parseOpenAIJSON(data.choices[0].message.content);
+  } catch {
+    parsed = { occasion_type: "custom", date: null };
+  }
+
+  return {
+    extractedData: {
+      occasions: [
+        {
+          occasion_type: String(parsed.occasion_type || "custom")
+            .replace(/\s+/g, "_")
+            .toLowerCase(),
+          date: parsed.date || null,
+        },
+      ],
+    },
+  };
+}
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -23,14 +140,53 @@ serve(async (req) => {
   try {
     // Parse request body
     const requestBody = await req.json();
-    const { action, conversationType, messages, targetFields, existingData } =
-      requestBody;
-    // Validate required fields
-    if (!action || !conversationType || !messages) {
+    const {
+      action,
+      conversationType,
+      messages,
+      targetFields,
+      existingData,
+      extractedData,
+      customSystemPrompt,
+    } = requestBody;
+
+    if (!action) {
+      return new Response(
+        JSON.stringify({ error: "Missing required field: action" }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        }
+      );
+    }
+
+    // Handle recommend_occasions (interest-based occasion suggestions)
+    if (action === "recommend_occasions") {
+      const data = extractedData ?? requestBody.extractedData;
+      if (!data || typeof data !== "object") {
+        return new Response(
+          JSON.stringify({
+            error: "recommend_occasions requires extractedData",
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 400,
+          }
+        );
+      }
+      const result = await recommendOccasions(data, customSystemPrompt);
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // All other actions require conversationType and messages
+    if (!conversationType || !messages) {
       return new Response(
         JSON.stringify({
           error:
-            "Missing required fields: action, conversationType, and messages are required",
+            "Missing required fields: conversationType and messages are required",
         }),
         {
           headers: {
@@ -41,7 +197,6 @@ serve(async (req) => {
         }
       );
     }
-    // Validate messages array
     if (!Array.isArray(messages) || messages.length === 0) {
       return new Response(
         JSON.stringify({
@@ -56,12 +211,38 @@ serve(async (req) => {
         }
       );
     }
+    // ── add_occasion: completely separate path ──
+    if (conversationType === "add_occasion") {
+      let result;
+      if (action === "conversation") {
+        result = await handleAddOccasionConversation(
+          messages,
+          existingData?.name || null
+        );
+      } else if (action === "extract") {
+        result = await handleAddOccasionExtract(messages);
+      } else {
+        return new Response(
+          JSON.stringify({ error: `Invalid action: ${action}` }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 400,
+          }
+        );
+      }
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     // Handle conversation action
     if (action === "conversation") {
       const result = await handleConversation(
         messages,
         conversationType,
-        existingData
+        existingData,
+        customSystemPrompt
       );
       return new Response(JSON.stringify(result), {
         headers: {

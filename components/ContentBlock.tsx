@@ -1,12 +1,11 @@
 import {
   View,
-  Text,
   Image,
   useWindowDimensions,
-  TouchableOpacity,
   Modal,
   StyleSheet,
 } from "react-native";
+import { Text, Button, IconButton } from "react-native-paper";
 import { useState } from "react";
 import Auth from "./Auth";
 
@@ -60,6 +59,7 @@ export default function ContentBlock() {
           ]}
         >
           <Text
+            variant="headlineMedium"
             style={[
               styles.heading,
               {
@@ -72,6 +72,7 @@ export default function ContentBlock() {
           </Text>
 
           <Text
+            variant="bodyLarge"
             style={[
               styles.body,
               {
@@ -80,16 +81,17 @@ export default function ContentBlock() {
               },
             ]}
           >
-            Just sign up. We'll take care of the rest. Picked. Purchased. Sent.
-            For everyone on your list.
+            Just sign up. We&apos;ll take care of the rest. Picked. Purchased.
+            Sent. For everyone on your list.
           </Text>
 
-          <TouchableOpacity
-            style={styles.button}
+          <Button
+            mode="contained"
             onPress={() => setAuthModalVisible(true)}
+            style={styles.button}
           >
-            <Text style={styles.buttonText}>Get Started</Text>
-          </TouchableOpacity>
+            Get Started
+          </Button>
         </View>
       </View>
 
@@ -101,12 +103,12 @@ export default function ContentBlock() {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <TouchableOpacity
-              style={styles.closeButton}
+            <IconButton
+              icon="close"
+              size={24}
               onPress={() => setAuthModalVisible(false)}
-            >
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
+              style={styles.closeButton}
+            />
             <Auth />
           </View>
         </View>
@@ -128,6 +130,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingHorizontal: 16,
   },
   imageContainer: {
     // Dynamic styles applied inline
@@ -141,7 +144,7 @@ const styles = StyleSheet.create({
     gap: 30,
   },
   heading: {
-    fontFamily: "RobotoFlex_400Regular",
+    fontFamily: "Fraunces_600SemiBold",
     color: "#fff",
     marginBottom: 10,
     textAlign: "left",
@@ -154,16 +157,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   button: {
-    backgroundColor: "#231F20",
-    paddingHorizontal: 30,
-    paddingVertical: 15,
     marginBottom: 20,
     alignSelf: "flex-start",
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
   },
   modalContainer: {
     flex: 1,
@@ -175,9 +170,5 @@ const styles = StyleSheet.create({
   closeButton: {
     alignSelf: "flex-end",
     marginBottom: 20,
-  },
-  closeButtonText: {
-    fontSize: 18,
-    color: "#007AFF",
   },
 });

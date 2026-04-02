@@ -1,19 +1,26 @@
-import { parseOpenAIJSON } from "./utils";
 import type {
   ContextInfo,
-  Message,
-  ConversationType,
-  RecipientData,
-  ExtractionResponse,
   ConversationResponse,
+  ConversationType,
+  ExtractedData,
+  ExtractionResponse,
+  Message,
+  RecipientData,
 } from "../types.ts";
+import { parseOpenAIJSON } from "./utils.ts";
+import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 // @ts-ignore - Deno environment variables are resolved at runtime
 const openAiApiKey = Deno.env.get("OPENAI_API_KEY");
+// @ts-ignore - Deno environment variables are resolved at runtime
+const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+// @ts-ignore - Deno environment variables are resolved at runtime
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 // Generalized conversation handler - supports different conversation types
 export async function handleConversation(
   messages: Message[],
   conversationType: ConversationType = "add_recipient",
-  existingData?: RecipientData
+  existingData?: RecipientData,
+  customSystemPrompt?: string
 ): Promise<ConversationResponse> {
   const conversationHistory = messages
     .map((m) => `${m.role}: ${m.content}`)
@@ -32,22 +39,67 @@ export async function handleConversation(
       existing_gift_budget_max: existingData.gift_budget_max || null,
       is_update: true,
       conversation_length: messages.length,
+      readiness: {
+        state: "ready",
+        gift_ready: true,
+        has_recipient_anchor: true,
+        has_occasion_anchor: true,
+        has_specificity_anchor: true,
+        missing_requirements: [],
+        reason: "Existing recipient — already completed intake.",
+      },
     };
   } else {
     // Quick context extraction for new recipients
-    const quickExtractionPrompt = `QUICK CONTEXT ANALYSIS - Extract what we know so far from this conversation:
+    const quickExtractionPrompt = `CONTEXT ANALYSIS — Extract what we know so far from this conversation and assess gift-readiness.
 
 ${conversationHistory}
+
+A recipient should not be judged by conversation length. Do NOT use number of exchanges as a proxy for readiness.
+
+Determine what information is still missing for this recipient to become gift-ready in the current flow.
+
+Mark gift_ready as true only when BeGifted has the minimum information needed to generate 3 non-generic gift concepts for one specific occasion, with a clear rationale, and without obvious mismatch.
+
+A recipient is gift-ready only when ALL of the following are true:
+
+**Recipient anchor:** The conversation identifies the person in a meaningful way. This requires a name or clear person descriptor, plus relationship or life-stage context.
+
+**Occasion anchor:** The conversation identifies at least one specific giftable moment. Examples: birthday, anniversary, Mother's Day, Father's Day, Christmas, graduation, wedding, new baby, recovery, or another clear occasion/date. If a personal occasion is mentioned without a specific date, the anchor is still satisfied — set needs_occasion_date to true and occasion_needing_date to the occasion name.
+
+**Specificity anchor:** The conversation contains enough information to avoid a generic gift. This requires either one strong signal or two weak signals. If the user explicitly indicates they're unsure or done ("not sure", "skip", "that's all I have"), set user_skipped_specificity to true — this satisfies the anchor.
+
+Strong signals include: specific interests/hobbies/obsessions, aesthetic or style preferences, hard no's/avoid lists/clutter boundaries, favorite brands/artists/authors/teams/cuisines/categories, meaningful life-stage context tied to taste.
+
+Weak signals include: broad interests, approximate age or general life stage, loose personality descriptors, generic other details.
+
+If the conversation only establishes the person and the occasion, but the recipient still feels generic, mark as not gift-ready.
+
+Prefer conservative judgment. If unsure, mark gift_ready as false and explain what is missing.
 
 Return JSON with what's been established:
 
 {
   "name": "person's name if clearly mentioned, null otherwise",
-  "relationship": "relationship if established, null otherwise", 
+  "relationship": "relationship if established, null otherwise",
   "interests": ["any interests mentioned"],
+  "birthday": "birthday if mentioned (YYYY-MM-DD, MM-DD, or descriptive like 'October 31, 2002'), null otherwise",
+  "occasions_mentioned": ["array of holidays/occasions mentioned (e.g., 'christmas', 'anniversary', 'kwanzaa')"],
+  "needs_occasion_date": false,
+  "occasion_needing_date": null,
+  "user_skipped_specificity": false,
   "other_details": "brief summary of other key details gathered",
+  "readiness": {
+    "state": "not_captured | captured_needs_both | captured_needs_occasion | captured_needs_specificity | ready",
+    "gift_ready": false,
+    "has_recipient_anchor": false,
+    "has_occasion_anchor": false,
+    "has_specificity_anchor": false,
+    "missing_requirements": ["recipient_anchor", "occasion_anchor", "specificity_anchor"],
+    "reason": "One-sentence explanation of the assessment"
+  },
   "conversation_length": ${messages.length},
-  "readiness_score": "0-10 scale how ready this seems for next step"
+  "readiness_score": "0-10 scale (debugging only)"
 }`;
     try {
       const contextResponse = await fetch(
@@ -66,7 +118,7 @@ Return JSON with what's been established:
                 content: quickExtractionPrompt,
               },
             ],
-            max_tokens: 200,
+            max_tokens: 500,
             temperature: 0.7,
             response_format: {
               type: "json_object",
@@ -83,6 +135,15 @@ Return JSON with what's been established:
           contextInfo = {
             conversation_length: messages.length,
             readiness_score: 3,
+            readiness: {
+              state: "not_captured",
+              gift_ready: false,
+              has_recipient_anchor: false,
+              has_occasion_anchor: false,
+              has_specificity_anchor: false,
+              missing_requirements: ["recipient_anchor", "occasion_anchor", "specificity_anchor"],
+              reason: "Failed to parse context extraction.",
+            },
           };
         }
       }
@@ -91,19 +152,51 @@ Return JSON with what's been established:
       contextInfo = {
         conversation_length: messages.length,
         readiness_score: 3,
+        readiness: {
+          state: "not_captured",
+          gift_ready: false,
+          has_recipient_anchor: false,
+          has_occasion_anchor: false,
+          has_specificity_anchor: false,
+          missing_requirements: ["recipient_anchor", "occasion_anchor", "specificity_anchor"],
+          reason: "Error in context extraction.",
+        },
       };
     }
   }
   // Build conversation prompt based on conversation type
   let systemPrompt = "";
   switch (conversationType) {
-    case "add_recipient":
-      systemPrompt = buildAddRecipientPrompt(
-        contextInfo,
-        conversationHistory,
-        messages.length
-      );
+    case "add_recipient": {
+      if (customSystemPrompt) {
+        // Playground testing — interpolate template variables into custom prompt
+        systemPrompt = customSystemPrompt
+          .replace("{{contextInfo}}", JSON.stringify(contextInfo, null, 2))
+          .replace("{{conversationHistory}}", conversationHistory)
+          .replace("{{messageCount}}", String(messages.length));
+      } else {
+        // Production — try loading from DB, fall back to hardcoded
+        const dbPrompt = await loadActivePrompt(
+          supabaseUrl,
+          supabaseServiceKey,
+          "add_recipient_conversation",
+          ""
+        );
+        if (dbPrompt) {
+          systemPrompt = dbPrompt
+            .replace("{{contextInfo}}", JSON.stringify(contextInfo, null, 2))
+            .replace("{{conversationHistory}}", conversationHistory)
+            .replace("{{messageCount}}", String(messages.length));
+        } else {
+          systemPrompt = buildAddRecipientPrompt(
+            contextInfo,
+            conversationHistory,
+            messages.length
+          );
+        }
+      }
       break;
+    }
     case "update_field":
     case "extract_interests":
       systemPrompt = buildUpdateFieldPrompt(
@@ -174,15 +267,30 @@ Return JSON with what's been established:
       `OpenAI API failed: ${data.error?.message || "Unknown error"}`
     );
   }
-  const reply = data.choices[0].message.content;
-  // Determine if we should show the "next step" button
+  let reply = data.choices[0].message.content;
+
+  // Guard: if the LLM returned a JSON object instead of plain text, extract the
+  // reply field so we never display raw JSON to the user.
+  const trimmed = reply.trim();
+  if (trimmed.startsWith("{")) {
+    try {
+      const parsed = parseOpenAIJSON(trimmed);
+      if (typeof parsed.reply === "string") {
+        reply = parsed.reply;
+      }
+    } catch {
+      // Not valid JSON — use the raw text as-is
+    }
+  }
+
+  // Determine if we should show the "next step" button (deterministic, anchor-based)
+  const readiness = contextInfo?.readiness;
+  const effectiveSpecificityAnchor =
+    readiness?.has_specificity_anchor || !!contextInfo?.user_skipped_specificity;
   const shouldShowNextStepButton =
-    messages.length >= 4 ||
-    (contextInfo?.readiness_score ?? 0) >= 7 ||
-    reply.toLowerCase().includes("ready to move forward") ||
-    reply.toLowerCase().includes("let's move to the next step") ||
-    reply.toLowerCase().includes("click") ||
-    messages.length >= 6;
+    !!readiness?.has_recipient_anchor &&
+    !!readiness?.has_occasion_anchor &&
+    effectiveSpecificityAnchor;
   return {
     reply,
     shouldShowNextStepButton,
@@ -194,9 +302,15 @@ Return JSON with what's been established:
 function buildAddRecipientPrompt(
   contextInfo: ContextInfo,
   conversationHistory: string,
-  messageCount: number
+  _messageCount: number
 ): string {
-  return `You are a warm, enthusiastic gift concierge helping someone add a new recipient to their gift list. 
+  const readinessState = contextInfo.readiness?.state ?? "not_captured";
+  const needsOccasionDate = contextInfo.needs_occasion_date ?? false;
+  const recipientName = contextInfo.name || contextInfo.existing_name || "this person";
+
+  return `IMPORTANT: Respond with plain text only. Do NOT return JSON, code blocks, or structured data.
+
+You are a warm, enthusiastic gift concierge helping someone add a new recipient to their gift list.
 
 CONVERSATION CONTEXT:
 
@@ -206,48 +320,34 @@ Current conversation:
 
 ${conversationHistory}
 
-PRESCRIPTIVE RESPONSE GUIDELINES:
+READINESS STATE: ${readinessState}
 
-STAGE-BASED RESPONSES:
+YOUR GOAL: Collect the minimum information needed to generate personalized, non-generic gift suggestions. Each response should move toward completing all three anchors: recipient identity, a giftable occasion, and enough specificity to avoid generic gifts.
 
-- Messages 1-3 (Discovery): Ask focused questions about name, relationship, and key interests
+ONE-ASK-PER-MESSAGE RULE: Each response must contain exactly ONE question or call-to-action. Never combine multiple asks (e.g., don't ask for a date AND hobbies in the same message).
 
-- Messages 4-6 (Enrichment): Fill specific gaps with targeted follow-ups, ask about birthday/holidays
+PRIORITY ORDER — when multiple anchors are missing, follow this strict priority:
 
-- Messages 6+ (Ready): Be prescriptive about next steps
+1. RECIPIENT IDENTITY (name + relationship) — if not yet captured, ask about who this person is.
+2. DATE FOLLOW-UP — HIGHEST PRIORITY when a personal occasion was mentioned without a date. ${needsOccasionDate ? `Ask ONLY for the date of "${contextInfo.occasion_needing_date}". Use warm phrasing like "Do you happen to know the date of ${recipientName}'s ${contextInfo.occasion_needing_date}? I'd love to keep track of it."` : "Not currently needed."}
+3. OCCASION — if recipient is known but no giftable moment identified, ask about what occasion they're shopping for (birthday, holiday, anniversary, etc.).
+4. SPECIFICITY — if recipient and occasion are known but the person still feels generic, ask one specific probing question about their interests, hobbies, or preferences.
+5. SKIP OFFER — if the user seems unsure after a specificity probe, offer to skip: "If you're not sure what else to add right now, that's totally fine — we can always update their profile later. Would you like to move on?"
+6. WRAP-UP — all anchors captured. Direct user to the Next Step button.
 
-REQUIRED PRESCRIPTIVE TEMPLATES:
+STATE-SPECIFIC GUIDANCE:
 
-Use these exact patterns when appropriate:
+${readinessState === "not_captured" ? "→ We don't know who this person is yet. Ask about name and relationship." : ""}${readinessState === "captured_needs_both" ? "→ We know the person but need both an occasion and more specificity. Follow priority order above." : ""}${readinessState === "captured_needs_occasion" ? "→ We know the person well but need a giftable moment. Ask what occasion they're thinking about." : ""}${readinessState === "captured_needs_specificity" ? "→ We know the person and occasion but need more detail to avoid generic gifts. Ask one targeted question about interests or preferences." : ""}${readinessState === "ready" ? `→ All anchors are captured. Say something like: "I have everything I need to help you find great gifts for ${recipientName}. Click 'Let's move to the next step' below to continue."` : ""}
 
-1. When you have basic info but want more:
-
-"This gives me a great start! Feel free to tell me more about [specific aspect], or if you're ready, we can move to the next step."
-
-2. When ready to proceed after gathering basics:
-
-"Wonderful! I have great information about [person's name] and [their interests]. To make my gift suggestions even more personalized, it would be helpful to know their birthday and any special holidays you like to celebrate together (Christmas, Mother's Day, anniversaries, etc.). Feel free to share what you know, or if you'd prefer to add this later, just click 'Let's move to the next step' below."
-
-3. When fully ready to proceed:
-
-"Perfect! I have everything I need to help you add [person's name] to your gift list and get started on tailored suggestions. Click 'Let's move to the next step' below."
-
-4. When missing critical info:
-
-"Just one more thing - [specific question], then we can proceed."
-
-5. When conversation is getting long:
-
-"Perfect! I have everything I need to help you add [person's name] to your gift list. Click 'Let's move to the next step' below to continue."
+BUTTON REFERENCE RULE: NEVER mention "Let's move to the next step" or reference the button unless the readiness state is "ready". Before that point, do not reference the button at all.
 
 RESPONSE REQUIREMENTS:
 
-- Always end with a clear call-to-action
-- Be specific about what's needed vs. optional
+- 2-4 sentences max per response
+- Always end with a clear, singular call-to-action
 - Use established info naturally (e.g., "Mary, your mom")
-- Never ask open-ended questions after message 4
-
-Current exchange #${messageCount}. Be prescriptive and guide the user clearly:`;
+- Never repeat questions about already-captured info — check CONVERSATION CONTEXT first
+- Never ask for birthday or occasions that are already mentioned in the context`;
 }
 // Build prompt for updating specific fields
 function buildUpdateFieldPrompt(
@@ -389,7 +489,7 @@ Conversation:
 ${conversationHistory}
 
 Look for birthday mentions like: "her birthday is...", "she was born on...", "he turns [age] on..."
-Look for holiday mentions like: "we celebrate Christmas", "Mother's Day", "anniversaries", "Valentine's Day"
+Look for holidays, occasions, and special events like: "we celebrate Christmas", "Mother's Day", "anniversaries", "Valentine's Day", "New Year's", "Spring Equinox", "Autumn Equinox", "our anniversary", or any other special dates mentioned.
 
 Extract and return valid JSON (no markdown formatting) with this exact structure:
 {
@@ -406,11 +506,21 @@ Extract and return valid JSON (no markdown formatting) with this exact structure
   "state": "string or null",
   "zip_code": "string or null",
   "country": "string or null",
-  "preferred_holidays": ["array of holiday names mentioned like Christmas, Easter, Mother's Day, Valentine's Day, Groundhog Day, etc."],
+  "occasions": [
+    {
+      "date": "YYYY-MM-DD or null (extract date if mentioned in conversation, otherwise null)",
+      "occasion_type": "lowercase_with_underscores (e.g., 'christmas', 'anniversary', 'spring_equinox', 'new_years', 'autumn_equinox')"
+    }
+  ],
   "confidence_score": "number 0-1 (use 0.9+ if name and relationship are clear)"
 }
 
-IMPORTANT: If the priority fields have values, use them exactly as provided above.`;
+IMPORTANT: 
+- Extract ALL occasions mentioned (holidays, anniversaries, equinoxes, solstices, personal events, etc.)
+- If a date is mentioned with the occasion (e.g., "our anniversary is June 15"), extract it in YYYY-MM-DD format
+- If no date is mentioned, set date to null - we'll calculate it later
+- Use descriptive occasion_type names (e.g., "anniversary", "spring_equinox", "new_years", "christmas")
+- If the priority fields have values, use them exactly as provided above.`;
   console.log("🔍 PASS 2: Full extraction with context...");
   const fullResponse = await fetch(
     "https://api.openai.com/v1/chat/completions",
@@ -479,39 +589,42 @@ IMPORTANT: If the priority fields have values, use them exactly as provided abov
   if (criticalFields.relationship_type && !extractedData.relationship_type) {
     extractedData.relationship_type = criticalFields.relationship_type;
   }
-  // Convert preferred_holidays to occasions
-  if (
-    extractedData.preferred_holidays &&
-    Array.isArray(extractedData.preferred_holidays) &&
-    extractedData.preferred_holidays.length > 0
-  ) {
-    const { convertHolidaysToOccasions } = await import("./utils");
-    const holidayOccasions = convertHolidaysToOccasions(
-      extractedData.preferred_holidays
-    );
 
-    // Initialize occasions array if it doesn't exist
-    if (!extractedData.occasions) {
-      extractedData.occasions = [];
-    }
+  // Process occasions - fill in missing dates using holiday lookup
+  if (extractedData.occasions && Array.isArray(extractedData.occasions)) {
+    const { convertHolidaysToOccasions } = await import("./utils.ts");
 
-    // Add holiday occasions (avoid duplicates)
-    // Add holiday occasions (avoid duplicates)
-    for (const holidayOccasion of holidayOccasions) {
-      const exists = extractedData.occasions.some(
-        (occ: { date: string; occasion_type: string }) =>
-          occ.occasion_type === holidayOccasion.occasion_type &&
-          occ.date === holidayOccasion.date
-      );
-      if (!exists) {
-        extractedData.occasions.push(holidayOccasion);
+    // Process each occasion
+    for (const occasion of extractedData.occasions) {
+      // If date is missing, try to look it up
+      if (
+        !occasion.date ||
+        occasion.date === "null" ||
+        occasion.date === null
+      ) {
+        const holidayOccasions = convertHolidaysToOccasions([
+          occasion.occasion_type,
+        ]);
+
+        if (holidayOccasions.length > 0 && holidayOccasions[0].date) {
+          // Found in lookup, use that date
+          occasion.date = holidayOccasions[0].date;
+        } else {
+          // Unknown occasion - use placeholder date (Jan 1 of next year)
+          // User can edit this later in the UI
+          const nextYear = new Date().getFullYear() + 1;
+          occasion.date = `${nextYear}-01-01`;
+          console.warn(
+            `Unknown occasion "${occasion.occasion_type}" - using placeholder date ${occasion.date}`
+          );
+        }
       }
     }
-  }
-  // Add birthday as an occasion if it exists
-  if (extractedData.birthday && !extractedData.occasions) {
+  } else if (!extractedData.occasions) {
     extractedData.occasions = [];
   }
+
+  // Add birthday as an occasion if it exists (only if not already in occasions)
   if (extractedData.birthday) {
     // Parse birthday and add as occasion
     const birthdayParts = extractedData.birthday.split("-");
@@ -533,7 +646,7 @@ IMPORTANT: If the priority fields have values, use them exactly as provided abov
         day >= 1 &&
         day <= 31
       ) {
-        const { getNextOccurrenceDate } = await import("./utils");
+        const { getNextOccurrenceDate } = await import("./utils.ts");
         const nextBirthdayDate = getNextOccurrenceDate(month, day);
 
         const birthdayExists = extractedData.occasions?.some(
@@ -688,4 +801,165 @@ export async function extractField(
   existingData?: RecipientData
 ): Promise<ExtractionResponse> {
   return extractFields(messages, [field], existingData);
+}
+
+// Occasion recommendation types for suggest-occasions-from-interests
+export interface OccasionRecommendation {
+  type: string;
+  name: string;
+  suggestedDate: string | null;
+  isMilestone: boolean;
+  reasoning: string;
+}
+
+export interface OccasionRecommendations {
+  primaryOccasions: OccasionRecommendation[];
+  additionalSuggestions: string[];
+}
+
+/**
+ * Recommend occasions based on the recipient's interests, relationship, and birthday.
+ * Leans into hobbies and interests (e.g. running → race day, music → Record Store Day).
+ */
+export async function recommendOccasions(
+  extractedData: ExtractedData | RecipientData,
+  customSystemPrompt?: string
+): Promise<OccasionRecommendations> {
+  const name = extractedData.name || "this person";
+  const relationship = extractedData.relationship_type || "";
+  const birthday = extractedData.birthday || null;
+  const interests =
+    (extractedData as ExtractedData).interests ||
+    (extractedData as RecipientData).interests ||
+    [];
+
+  const today = new Date().toISOString().split("T")[0];
+  const birthdayStr = birthday ? `- Birthday: ${birthday}` : "";
+  const interestsStr =
+    interests.length > 0
+      ? `- Interests: ${interests.join(", ")}`
+      : "- Interests: (none specified)";
+
+  // Build the prompt — custom > DB > hardcoded fallback
+  const hardcodedFallback = `You are a gift-planning assistant. Suggest ONLY real, verifiable occasions—no invented or creative-but-fake ones.
+
+NO HALLUCINATION: Every primaryOccasion MUST be a real observance day, official holiday, or the recipient's birthday. Do NOT invent occasions (e.g. no "Skateboarding video release day", "Hair dye experimentation day", or similar). If you are not certain an occasion exists on an official or widely recognized calendar (national/international observance, public holiday), do not include it. Prefer fewer, real occasions over more, made-up ones.
+
+TODAY'S DATE (all suggestedDate values must be on or after this date): {{today}}
+
+RECIPIENT:
+- Name: {{name}}
+- Relationship: {{relationship}}
+{{birthday}}
+{{interests}}
+
+ALLOWED SOURCES (only these):
+- Birthday (use their next upcoming birthday date).
+- Official or widely recognized national/international observance days, e.g.: National Bird Day (Jan 5), National BBQ Day (May 16), National Country Music Day (Sep 17), Record Store Day (3rd Saturday in April), National Running Day (1st Wed in June), Earth Day (Apr 22), etc.
+- Major holidays: Christmas, Thanksgiving, New Year's Day, Valentine's Day, Mother's Day, Father's Day, Halloween, etc.
+Do not suggest fictional, invented, or "creative" occasions that are not real calendar events.
+
+RULES:
+- DATES MUST BE IN THE FUTURE: suggestedDate must be today or a future date (YYYY-MM-DD). Use the next occurrence for annual events. For birthday, use next upcoming birthday. Never use past years.
+- Include birthday if provided; for ages 30, 40, 50, etc. set isMilestone true.
+- type: lowercase snake_case (e.g. national_bird_day, national_bbq_day, record_store_day).
+- reasoning: one short sentence tying the occasion to their interests (only for real occasions).
+
+Return JSON only, no markdown:
+{
+  "primaryOccasions": [
+    {
+      "type": "snake_case_type",
+      "name": "Human-readable name",
+      "suggestedDate": "YYYY-MM-DD or null",
+      "isMilestone": false,
+      "reasoning": "Why this fits their interests"
+    }
+  ],
+  "additionalSuggestions": ["Real holiday/observance names only"]
+}`;
+
+  let promptTemplate: string;
+  if (customSystemPrompt) {
+    promptTemplate = customSystemPrompt;
+  } else {
+    promptTemplate = await loadActivePrompt(
+      supabaseUrl,
+      supabaseServiceKey,
+      "occasion_recommendations",
+      hardcodedFallback
+    );
+  }
+
+  const prompt = promptTemplate
+    .replace("{{today}}", today)
+    .replace("{{name}}", name)
+    .replace("{{relationship}}", relationship)
+    .replace("{{birthday}}", birthdayStr)
+    .replace("{{interests}}", interestsStr);
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${openAiApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 900,
+      temperature: 0.75,
+      response_format: { type: "json_object" },
+    }),
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.choices?.[0]?.message?.content) {
+    console.error("recommendOccasions OpenAI error:", data);
+    return getFallbackOccasionRecommendations(birthday);
+  }
+
+  try {
+    const parsed = parseOpenAIJSON(data.choices[0].message.content);
+    const primary = Array.isArray(parsed.primaryOccasions)
+      ? parsed.primaryOccasions
+      : [];
+    const additional = Array.isArray(parsed.additionalSuggestions)
+      ? parsed.additionalSuggestions
+      : [];
+    return {
+      primaryOccasions: primary.map((o: any) => ({
+        type: String(o.type || "custom")
+          .replace(/\s+/g, "_")
+          .toLowerCase(),
+        name: String(o.name || o.type || "Occasion"),
+        suggestedDate: o.suggestedDate ?? null,
+        isMilestone: Boolean(o.isMilestone),
+        reasoning: String(o.reasoning || ""),
+      })),
+      additionalSuggestions: additional.map((s: any) => String(s)),
+    };
+  } catch (e) {
+    console.error("recommendOccasions parse error:", e);
+    return getFallbackOccasionRecommendations(birthday);
+  }
+}
+
+function getFallbackOccasionRecommendations(
+  birthday: string | null
+): OccasionRecommendations {
+  const primary: OccasionRecommendation[] = [];
+  if (birthday) {
+    primary.push({
+      type: "birthday",
+      name: "Birthday",
+      suggestedDate: birthday,
+      isMilestone: false,
+      reasoning: "Everyone deserves to feel special on their birthday.",
+    });
+  }
+  return {
+    primaryOccasions: primary,
+    additionalSuggestions: ["Christmas", "New Year", "Thanksgiving"],
+  };
 }

@@ -1,52 +1,147 @@
-import { View, Image, StyleSheet } from "react-native";
+import { View, StyleSheet, Text, Pressable, Animated } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import HamburgerMenu from "./HamburgerMenu";
-import { useWindowDimensions } from "react-native";
+import { Avatar } from "react-native-paper";
+import { MaterialIcons } from "@expo/vector-icons";
+import { Link, usePathname } from "expo-router";
+import { useAuth } from "../hooks/use-auth";
+import { useUnreadCount } from "../hooks/use-notifications";
+import { useHeaderVisibility } from "../hooks/use-header-visibility";
 
-export default function Header() {
+type HeaderProps = {
+  colorful?: boolean;
+};
+
+export default function Header({ colorful: _colorful = false }: HeaderProps) {
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const isDesktop = width >= 1024;
-  const isTablet = width >= 768;
+  const pathname = usePathname();
+  const { user } = useAuth();
+  const { data: unreadCount = 0 } = useUnreadCount();
+  const headerHeight = insets.top + 4 + 32 + 8; // paddingTop + content + paddingBottom
+  const { animatedStyle } = useHeaderVisibility(headerHeight);
 
-  // Add padding until we reach the max-width
-  const getPadding = () => {
-    if (width >= 1240) return 0; // Full width, content is at max-width
-    if (width >= 1024) return 40; // Desktop but below max-width
-    if (width >= 768) return 40; // Tablet
-    return 20; // Mobile
-  };
+  // Hide on onboarding routes
+  if (pathname.startsWith("/onboarding")) {
+    return null;
+  }
+
+  const email = user?.email ?? "";
+  const initials =
+    email && email.includes("@")
+      ? email
+          .split("@")[0]
+          .split(/[.\s_-]/)
+          .filter(Boolean)
+          .slice(0, 2)
+          .map((part) => part[0]?.toUpperCase() ?? "")
+          .join("") || "U"
+      : "U";
 
   return (
-    <View style={[styles.headerBackground, { paddingTop: insets.top + 10 }]}>
-      {/* Contained content at max 1200px */}
-      <View style={[styles.headerContent, { paddingHorizontal: getPadding() }]}>
-        <Image
-          source={require("../assets/images/begifted-logo.png")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-        <HamburgerMenu />
+    <Animated.View
+      style={[
+        styles.headerBackground,
+        { paddingTop: insets.top + 4, backgroundColor: "transparent" },
+        animatedStyle,
+      ]}
+    >
+      {/* Contained content at max 800px to match dashboard */}
+      <View style={styles.headerContent}>
+        <Link href="/dashboard" asChild>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Go to Begifted home"
+          >
+            <Text style={styles.logoText}>BEGIFTED</Text>
+          </Pressable>
+        </Link>
+        <View style={styles.rightSection}>
+          <Link href="/notifications" asChild>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
+              style={styles.bellButton}
+            >
+              <MaterialIcons name="notifications" size={24} color="#000000" />
+              {unreadCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </Text>
+                </View>
+              )}
+            </Pressable>
+          </Link>
+          <Link href="/settings" asChild>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open settings"
+              style={styles.avatarButton}
+            >
+              <Avatar.Text
+                size={32}
+                label={initials}
+                style={styles.avatar}
+                color="#FFFFFF"
+              />
+            </Pressable>
+          </Link>
+        </View>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   headerBackground: {
     width: "100%",
-    backgroundColor: "#52A78B",
-    paddingBottom: 80,
+    paddingBottom: 8,
   },
   headerContent: {
-    maxWidth: 1200,
+    maxWidth: 800,
     width: "100%",
     alignSelf: "center",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingHorizontal: 20,
   },
-  logo: {
-    // height: 40,
+  rightSection: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  bellButton: {
+    position: "relative",
+    padding: 4,
+  },
+  badge: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    backgroundColor: "#c53064",
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 3,
+  },
+  badgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "700",
+    lineHeight: 14,
+  },
+  avatarButton: {
+    marginLeft: 12,
+  },
+  logoText: {
+    fontFamily: "AzeretMono_400Regular",
+    fontSize: 18,
+    fontWeight: "400",
+    color: "#000000",
+    letterSpacing: 0.5,
+  },
+  avatar: {
+    backgroundColor: "#000000",
   },
 });
