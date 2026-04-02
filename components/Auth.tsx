@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { StyleSheet, View, KeyboardAvoidingView, ScrollView, Keyboard, Platform, Pressable } from "react-native";
+import { StyleSheet, View, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
 import { TextInput, Button, Text } from "react-native-paper";
 import { useForm, Controller } from "react-hook-form";
 import { supabase } from "../lib/supabase";
@@ -106,11 +106,11 @@ export default function Auth() {
       style={styles.flex}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <Pressable style={styles.flex} onPress={Keyboard.dismiss}>
         <ScrollView
           style={styles.flex}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
           <View style={styles.container}>
             <Text variant="headlineSmall" style={styles.title}>
@@ -238,7 +238,6 @@ export default function Auth() {
             )}
           </View>
         </ScrollView>
-      </Pressable>
     </KeyboardAvoidingView>
   );
 }
