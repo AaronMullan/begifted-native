@@ -39,24 +39,67 @@ export async function handleConversation(
       existing_gift_budget_max: existingData.gift_budget_max || null,
       is_update: true,
       conversation_length: messages.length,
+      readiness: {
+        state: "ready",
+        gift_ready: true,
+        has_recipient_anchor: true,
+        has_occasion_anchor: true,
+        has_specificity_anchor: true,
+        missing_requirements: [],
+        reason: "Existing recipient — already completed intake.",
+      },
     };
   } else {
     // Quick context extraction for new recipients
-    const quickExtractionPrompt = `QUICK CONTEXT ANALYSIS - Extract what we know so far from this conversation:
+    const quickExtractionPrompt = `CONTEXT ANALYSIS — Extract what we know so far from this conversation and assess gift-readiness.
 
 ${conversationHistory}
+
+A recipient should not be judged by conversation length. Do NOT use number of exchanges as a proxy for readiness.
+
+Determine what information is still missing for this recipient to become gift-ready in the current flow.
+
+Mark gift_ready as true only when BeGifted has the minimum information needed to generate 3 non-generic gift concepts for one specific occasion, with a clear rationale, and without obvious mismatch.
+
+A recipient is gift-ready only when ALL of the following are true:
+
+**Recipient anchor:** The conversation identifies the person in a meaningful way. This requires a name or clear person descriptor, plus relationship or life-stage context.
+
+**Occasion anchor:** The conversation identifies at least one specific giftable moment. Examples: birthday, anniversary, Mother's Day, Father's Day, Christmas, graduation, wedding, new baby, recovery, or another clear occasion/date. If a personal occasion is mentioned without a specific date, the anchor is still satisfied — set needs_occasion_date to true and occasion_needing_date to the occasion name.
+
+**Specificity anchor:** The conversation contains enough information to avoid a generic gift. This requires either one strong signal or two weak signals. If the user explicitly indicates they're unsure or done ("not sure", "skip", "that's all I have"), set user_skipped_specificity to true — this satisfies the anchor.
+
+Strong signals include: specific interests/hobbies/obsessions, aesthetic or style preferences, hard no's/avoid lists/clutter boundaries, favorite brands/artists/authors/teams/cuisines/categories, meaningful life-stage context tied to taste.
+
+Weak signals include: broad interests, approximate age or general life stage, loose personality descriptors, generic other details.
+
+If the conversation only establishes the person and the occasion, but the recipient still feels generic, mark as not gift-ready.
+
+Prefer conservative judgment. If unsure, mark gift_ready as false and explain what is missing.
 
 Return JSON with what's been established:
 
 {
   "name": "person's name if clearly mentioned, null otherwise",
-  "relationship": "relationship if established, null otherwise", 
+  "relationship": "relationship if established, null otherwise",
   "interests": ["any interests mentioned"],
   "birthday": "birthday if mentioned (YYYY-MM-DD, MM-DD, or descriptive like 'October 31, 2002'), null otherwise",
   "occasions_mentioned": ["array of holidays/occasions mentioned (e.g., 'christmas', 'anniversary', 'kwanzaa')"],
+  "needs_occasion_date": false,
+  "occasion_needing_date": null,
+  "user_skipped_specificity": false,
   "other_details": "brief summary of other key details gathered",
+  "readiness": {
+    "state": "not_captured | captured_needs_both | captured_needs_occasion | captured_needs_specificity | ready",
+    "gift_ready": false,
+    "has_recipient_anchor": false,
+    "has_occasion_anchor": false,
+    "has_specificity_anchor": false,
+    "missing_requirements": ["recipient_anchor", "occasion_anchor", "specificity_anchor"],
+    "reason": "One-sentence explanation of the assessment"
+  },
   "conversation_length": ${messages.length},
-  "readiness_score": "0-10 scale how ready this seems for next step"
+  "readiness_score": "0-10 scale (debugging only)"
 }`;
     try {
       const contextResponse = await fetch(
@@ -75,7 +118,7 @@ Return JSON with what's been established:
                 content: quickExtractionPrompt,
               },
             ],
-            max_tokens: 200,
+            max_tokens: 500,
             temperature: 0.7,
             response_format: {
               type: "json_object",
@@ -92,6 +135,15 @@ Return JSON with what's been established:
           contextInfo = {
             conversation_length: messages.length,
             readiness_score: 3,
+            readiness: {
+              state: "not_captured",
+              gift_ready: false,
+              has_recipient_anchor: false,
+              has_occasion_anchor: false,
+              has_specificity_anchor: false,
+              missing_requirements: ["recipient_anchor", "occasion_anchor", "specificity_anchor"],
+              reason: "Failed to parse context extraction.",
+            },
           };
         }
       }
@@ -100,6 +152,15 @@ Return JSON with what's been established:
       contextInfo = {
         conversation_length: messages.length,
         readiness_score: 3,
+        readiness: {
+          state: "not_captured",
+          gift_ready: false,
+          has_recipient_anchor: false,
+          has_occasion_anchor: false,
+          has_specificity_anchor: false,
+          missing_requirements: ["recipient_anchor", "occasion_anchor", "specificity_anchor"],
+          reason: "Error in context extraction.",
+        },
       };
     }
   }
@@ -222,14 +283,14 @@ Return JSON with what's been established:
     }
   }
 
-  // Determine if we should show the "next step" button
+  // Determine if we should show the "next step" button (deterministic, anchor-based)
+  const readiness = contextInfo?.readiness;
+  const effectiveSpecificityAnchor =
+    readiness?.has_specificity_anchor || !!contextInfo?.user_skipped_specificity;
   const shouldShowNextStepButton =
-    messages.length >= 4 ||
-    (contextInfo?.readiness_score ?? 0) >= 7 ||
-    reply.toLowerCase().includes("ready to move forward") ||
-    reply.toLowerCase().includes("let's move to the next step") ||
-    reply.toLowerCase().includes("click") ||
-    messages.length >= 6;
+    !!readiness?.has_recipient_anchor &&
+    !!readiness?.has_occasion_anchor &&
+    effectiveSpecificityAnchor;
   return {
     reply,
     shouldShowNextStepButton,
@@ -241,8 +302,12 @@ Return JSON with what's been established:
 function buildAddRecipientPrompt(
   contextInfo: ContextInfo,
   conversationHistory: string,
-  messageCount: number
+  _messageCount: number
 ): string {
+  const readinessState = contextInfo.readiness?.state ?? "not_captured";
+  const needsOccasionDate = contextInfo.needs_occasion_date ?? false;
+  const recipientName = contextInfo.name || contextInfo.existing_name || "this person";
+
   return `IMPORTANT: Respond with plain text only. Do NOT return JSON, code blocks, or structured data.
 
 You are a warm, enthusiastic gift concierge helping someone add a new recipient to their gift list.
@@ -255,54 +320,34 @@ Current conversation:
 
 ${conversationHistory}
 
-PRESCRIPTIVE RESPONSE GUIDELINES:
+READINESS STATE: ${readinessState}
 
-STAGE-BASED RESPONSES:
+YOUR GOAL: Collect the minimum information needed to generate personalized, non-generic gift suggestions. Each response should move toward completing all three anchors: recipient identity, a giftable occasion, and enough specificity to avoid generic gifts.
 
-- Messages 1-3 (Discovery): Ask focused questions about name, relationship, and key interests
+ONE-ASK-PER-MESSAGE RULE: Each response must contain exactly ONE question or call-to-action. Never combine multiple asks (e.g., don't ask for a date AND hobbies in the same message).
 
-- Messages 4-6 (Enrichment): Fill specific gaps with targeted follow-ups, ask about birthday/holidays
+PRIORITY ORDER — when multiple anchors are missing, follow this strict priority:
 
-- Messages 6+ (Ready): Be prescriptive about next steps
+1. RECIPIENT IDENTITY (name + relationship) — if not yet captured, ask about who this person is.
+2. DATE FOLLOW-UP — HIGHEST PRIORITY when a personal occasion was mentioned without a date. ${needsOccasionDate ? `Ask ONLY for the date of "${contextInfo.occasion_needing_date}". Use warm phrasing like "Do you happen to know the date of ${recipientName}'s ${contextInfo.occasion_needing_date}? I'd love to keep track of it."` : "Not currently needed."}
+3. OCCASION — if recipient is known but no giftable moment identified, ask about what occasion they're shopping for (birthday, holiday, anniversary, etc.).
+4. SPECIFICITY — if recipient and occasion are known but the person still feels generic, ask one specific probing question about their interests, hobbies, or preferences.
+5. SKIP OFFER — if the user seems unsure after a specificity probe, offer to skip: "If you're not sure what else to add right now, that's totally fine — we can always update their profile later. Would you like to move on?"
+6. WRAP-UP — all anchors captured. Direct user to the Next Step button.
 
-REQUIRED PRESCRIPTIVE TEMPLATES:
+STATE-SPECIFIC GUIDANCE:
 
-Use these exact patterns when appropriate:
+${readinessState === "not_captured" ? "→ We don't know who this person is yet. Ask about name and relationship." : ""}${readinessState === "captured_needs_both" ? "→ We know the person but need both an occasion and more specificity. Follow priority order above." : ""}${readinessState === "captured_needs_occasion" ? "→ We know the person well but need a giftable moment. Ask what occasion they're thinking about." : ""}${readinessState === "captured_needs_specificity" ? "→ We know the person and occasion but need more detail to avoid generic gifts. Ask one targeted question about interests or preferences." : ""}${readinessState === "ready" ? `→ All anchors are captured. Say something like: "I have everything I need to help you find great gifts for ${recipientName}. Click 'Let's move to the next step' below to continue."` : ""}
 
-1. When you have basic info but want more:
-
-"This gives me a great start! Feel free to tell me more about [specific aspect], or if you're ready, we can move to the next step."
-
-2. When ready to proceed after gathering basics:
-
-IMPORTANT: Check the CONVERSATION CONTEXT to see if birthday or occasions were already mentioned. Only ask for what's missing:
-- If birthday is missing: "To make my gift suggestions even more personalized, it would be helpful to know their birthday."
-- If occasions are missing: "It would be helpful to know any special holidays you like to celebrate together (Christmas, Mother's Day, anniversaries, etc.)."
-- If both are provided: Skip to template #3 (fully ready to proceed)
-- If one is missing: Ask only for what's missing, then say "Feel free to share what you know, or if you'd prefer to add this later, just click 'Let's move to the next step' below."
-
-3. When fully ready to proceed:
-
-"Perfect! I have everything I need to help you add [person's name] to your gift list and get started on tailored suggestions. Click 'Let's move to the next step' below."
-
-4. When missing critical info:
-
-"Just one more thing - [specific question], then we can proceed."
-
-5. When conversation is getting long:
-
-"Perfect! I have everything I need to help you add [person's name] to your gift list. Click 'Let's move to the next step' below to continue."
+BUTTON REFERENCE RULE: NEVER mention "Let's move to the next step" or reference the button unless the readiness state is "ready". Before that point, do not reference the button at all.
 
 RESPONSE REQUIREMENTS:
 
-- Always end with a clear call-to-action
-- Be specific about what's needed vs. optional
+- 2-4 sentences max per response
+- Always end with a clear, singular call-to-action
 - Use established info naturally (e.g., "Mary, your mom")
-- Never ask open-ended questions after message 4
-- CRITICAL: Check CONVERSATION CONTEXT before asking for birthday or holidays - if they're already mentioned, acknowledge them and don't ask again
-- If birthday and occasions are both already provided, use template #3 (fully ready to proceed)
-
-Current exchange #${messageCount}. Be prescriptive and guide the user clearly:`;
+- Never repeat questions about already-captured info — check CONVERSATION CONTEXT first
+- Never ask for birthday or occasions that are already mentioned in the context`;
 }
 // Build prompt for updating specific fields
 function buildUpdateFieldPrompt(

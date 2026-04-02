@@ -1245,6 +1245,36 @@ const ConversationResultView: React.FC<{ result: Record<string, unknown> }> = ({
           {result.shouldShowNextStepButton ? "Next-step button: visible" : "Next-step button: hidden"}
         </Chip>
       </View>
+      {ctx?.readiness && (
+        <View style={resultStyles.statusRow}>
+          <Chip compact style={resultStyles.contextChip}>
+            {String(ctx.readiness.state)}
+          </Chip>
+        </View>
+      )}
+      {ctx?.readiness && (
+        <View style={resultStyles.chipRow}>
+          <Chip compact style={ctx.readiness.has_recipient_anchor ? resultStyles.anchorActive : resultStyles.anchorMissing}>
+            {"Recipient"}
+          </Chip>
+          <Chip compact style={ctx.readiness.has_occasion_anchor ? resultStyles.anchorActive : resultStyles.anchorMissing}>
+            {"Occasion"}
+          </Chip>
+          <Chip compact style={(ctx.readiness.has_specificity_anchor || ctx.user_skipped_specificity) ? resultStyles.anchorActive : resultStyles.anchorMissing}>
+            {ctx.user_skipped_specificity ? "Specificity (skipped)" : "Specificity"}
+          </Chip>
+        </View>
+      )}
+      {ctx?.readiness?.reason && (
+        <Text variant="bodySmall" style={resultStyles.contextField}>
+          {ctx.readiness.reason}
+        </Text>
+      )}
+      {ctx?.needs_occasion_date && (
+        <Text variant="bodySmall" style={resultStyles.contextField}>
+          {"Needs date for: " + String(ctx.occasion_needing_date)}
+        </Text>
+      )}
       {ctx && (
         <>
           <Button
@@ -1287,7 +1317,7 @@ const ConversationResultView: React.FC<{ result: Record<string, unknown> }> = ({
               )}
               {ctx.readiness_score != null && (
                 <Text variant="bodySmall" style={resultStyles.contextField}>
-                  {"Readiness: " + String(ctx.readiness_score) + "/10"}
+                  {"Legacy score: " + String(ctx.readiness_score) + "/10"}
                 </Text>
               )}
             </View>
@@ -1444,6 +1474,12 @@ const resultStyles = StyleSheet.create({
   },
   contextChip: {
     backgroundColor: "#e8e8e8",
+  },
+  anchorActive: {
+    backgroundColor: "#d4edda",
+  },
+  anchorMissing: {
+    backgroundColor: "#f8d7da",
   },
   occasionHeader: {
     flexDirection: "row",
