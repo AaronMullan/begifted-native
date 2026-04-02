@@ -69,6 +69,27 @@ export interface RecipientData {
 }
 
 // ----------------------------------------------------------------------------
+// Readiness State Types
+// ----------------------------------------------------------------------------
+
+export type ReadinessState =
+  | "not_captured"
+  | "captured_needs_both"
+  | "captured_needs_occasion"
+  | "captured_needs_specificity"
+  | "ready";
+
+export interface Readiness {
+  state: ReadinessState;
+  gift_ready: boolean;
+  has_recipient_anchor: boolean;
+  has_occasion_anchor: boolean;
+  has_specificity_anchor: boolean;
+  missing_requirements: string[];
+  reason: string;
+}
+
+// ----------------------------------------------------------------------------
 // Context Info Types (for conversation analysis)
 // ----------------------------------------------------------------------------
 
@@ -78,7 +99,11 @@ export interface ContextInfo {
   interests?: string[];
   birthday?: string | null;
   occasions_mentioned?: string[];
+  needs_occasion_date?: boolean;
+  occasion_needing_date?: string | null;
+  user_skipped_specificity?: boolean;
   other_details?: string;
+  readiness?: Readiness;
   existing_name?: string | null;
   existing_relationship?: string | null;
   existing_interests?: string[];
