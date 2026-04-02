@@ -43,11 +43,13 @@ jobs:
         run: |
           if [ -d "supabase/functions" ]; then
             supabase functions deploy recipient-conversation --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy generate-gift-suggestions --project-ref $SUPABASE_PROJECT_REF
+            supabase functions deploy extract-user-preferences --project-ref $SUPABASE_PROJECT_REF
+            supabase functions deploy refine-prompt --project-ref $SUPABASE_PROJECT_REF
           elif [ -d "begifted/supabase/functions" ]; then
             cd begifted
             supabase functions deploy recipient-conversation --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy generate-gift-suggestions --project-ref $SUPABASE_PROJECT_REF
+            supabase functions deploy extract-user-preferences --project-ref $SUPABASE_PROJECT_REF
+            supabase functions deploy refine-prompt --project-ref $SUPABASE_PROJECT_REF
           else
             echo "Error: Could not find supabase/functions directory"
             exit 1
