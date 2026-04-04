@@ -62,6 +62,7 @@ export default function OnboardingIdentity() {
             { paddingTop: insets.top + 60, paddingBottom: insets.bottom + 24 },
           ]}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
         >
           <View style={styles.content}>
             <Text variant="headlineMedium" style={styles.headline}>
@@ -120,7 +121,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    justifyContent: "center",
   },
   content: {
     flex: 1,

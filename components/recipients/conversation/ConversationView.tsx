@@ -165,7 +165,7 @@ export function ConversationView({
             onSubmitEditing={handleSend}
             returnKeyType="send"
             blurOnSubmit={false}
-            maxLength={500}
+            multiline
             editable={!isLoading && !isSending}
             autoComplete="off"
             autoCorrect={false}
@@ -284,6 +284,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
+    maxHeight: 120,
   },
   sendButton: {
     margin: 0,

@@ -1,4 +1,5 @@
 import type { Recipient } from "../types/recipient";
+import { formatShortName } from "../lib/format-name";
 import MenuCard from "./MenuCard";
 
 type RecipientCardProps = {
@@ -27,7 +28,7 @@ export default function RecipientCard({ recipient, onPress }: RecipientCardProps
 
   return (
     <MenuCard
-      title={recipient.name}
+      title={formatShortName(recipient.name)}
       description={description}
       onPress={() => onPress(recipient)}
       showChevron

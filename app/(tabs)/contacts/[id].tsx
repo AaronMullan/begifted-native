@@ -11,6 +11,7 @@ import { RecipientDetailsForm } from "../../../components/recipients/RecipientDe
 import { GiftSuggestionsView } from "../../../components/recipients/GiftSuggestionsView";
 import { ConversationView } from "../../../components/recipients/conversation/ConversationView";
 import { useAddOccasionFlow } from "../../../hooks/use-add-occasion-flow";
+import { formatShortName } from "../../../lib/format-name";
 import { useToast } from "../../../hooks/use-toast";
 
 export default function RecipientEditPage() {
@@ -354,7 +355,7 @@ export default function RecipientEditPage() {
           iconColor="#000000"
         />
         <Text variant="titleLarge" style={styles.headerTitle}>
-          {recipient.name}
+          {formatShortName(recipient.name)}
         </Text>
         {activeTab !== "gifts" && (
           <Button
@@ -441,7 +442,7 @@ export default function RecipientEditPage() {
           <GiftSuggestionsView
             suggestions={suggestions}
             loading={loadingSuggestions}
-            recipientName={recipient.name}
+            recipientName={formatShortName(recipient.name)}
             isGenerating={isGenerating}
           />
         )}

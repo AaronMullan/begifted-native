@@ -279,6 +279,8 @@ export async function fetchGiftSuggestions(
     .from("gift_suggestions")
     .select("*")
     .eq("recipient_id", recipientId)
+    .not("price", "is", null)
+    .gt("price", 0)
     .order("generated_at", { ascending: false });
 
   if (error) throw error;

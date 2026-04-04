@@ -9,6 +9,7 @@ import { useDeleteOccasion } from "../../hooks/use-occasion-mutations";
 import { useToast } from "../../hooks/use-toast";
 import { useBottomNavScrollVisibility } from "../../hooks/use-bottom-nav-scroll-visibility";
 import MenuCard from "../../components/MenuCard";
+import { formatShortName } from "../../lib/format-name";
 
 interface Occasion {
   id: string;
@@ -81,13 +82,14 @@ export default function Calendar() {
 
   function formatOccasionTitle(occasion: Occasion): string {
     const recipientName = occasion.recipient?.name || "Unknown";
+    const shortName = formatShortName(recipientName);
     const occasionType = occasion.occasion_type
       .replace(/_/g, " ")
       .replace(/\b\w/g, (c) => c.toUpperCase());
     // Handle possessive correctly
-    const possessive = recipientName.endsWith("s")
-      ? `${recipientName}'`
-      : `${recipientName}'s`;
+    const possessive = shortName.endsWith("s")
+      ? `${shortName}'`
+      : `${shortName}'s`;
     return `${possessive} ${occasionType}`;
   }
 
