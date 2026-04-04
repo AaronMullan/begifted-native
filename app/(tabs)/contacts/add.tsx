@@ -12,9 +12,23 @@ import { SuccessView } from "../../../components/recipients/conversation/Success
 const AddRecipient = () => {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const params = useLocalSearchParams<{ name?: string }>();
+  const params = useLocalSearchParams<{
+    name?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    zip_code?: string;
+    country?: string;
+  }>();
   const initialContactName =
     typeof params.name === "string" ? params.name : undefined;
+  const initialAddress = {
+    ...(typeof params.address === "string" && { address: params.address }),
+    ...(typeof params.city === "string" && { city: params.city }),
+    ...(typeof params.state === "string" && { state: params.state }),
+    ...(typeof params.zip_code === "string" && { zip_code: params.zip_code }),
+    ...(typeof params.country === "string" && { country: params.country }),
+  };
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [partialData, setPartialData] = useState<any>(null);
 
@@ -41,7 +55,11 @@ const AddRecipient = () => {
     handleViewRecipients,
     setShowDataReview,
     setExtractedData,
-  } = useAddRecipientFlow(user?.id || "", initialContactName);
+  } = useAddRecipientFlow(
+    user?.id || "",
+    initialContactName,
+    Object.keys(initialAddress).length > 0 ? initialAddress : undefined
+  );
 
   // Enhanced finish conversation handler with proper error handling
   const handleFinishConversationWithFallback = async () => {

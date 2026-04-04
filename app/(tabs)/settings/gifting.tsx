@@ -219,7 +219,7 @@ export default function GiftingPreferences() {
                     Gifting Preferences
                   </Text>
                   <Text variant="bodyMedium" style={styles.subtitle}>
-                    Describe your gifting style in your own words. We'll personalize your gift recommendations.
+                    Describe your gifting style in your own words. We&apos;ll personalize your gift recommendations.
                   </Text>
                 </View>
                 <IconButton
