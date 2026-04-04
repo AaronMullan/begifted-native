@@ -75,7 +75,7 @@ Weak signals include: broad interests, approximate age or general life stage, lo
 
 If the conversation only establishes the person and the occasion, but the recipient still feels generic, mark as not gift-ready.
 
-Prefer conservative judgment. If unsure, mark gift_ready as false and explain what is missing.
+Be accurate, not conservative. If the anchors are clearly satisfied, mark them as true. Only mark an anchor as false if the information is genuinely missing from the conversation.
 
 Return JSON with what's been established:
 
@@ -119,7 +119,7 @@ Return JSON with what's been established:
               },
             ],
             max_tokens: 500,
-            temperature: 0.7,
+            temperature: 0.5,
             response_format: {
               type: "json_object",
             },
