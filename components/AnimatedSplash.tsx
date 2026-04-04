@@ -8,10 +8,8 @@ type AnimatedSplashProps = {
   onFinish: () => void;
 };
 
-const AnimatedSvg = Animated.createAnimatedComponent(Svg);
-
 const AnimatedSplash: React.FC<AnimatedSplashProps> = ({ ready, onFinish }) => {
-  const { width, height } = useWindowDimensions();
+  const { width } = useWindowDimensions();
   const wordmarkScale = useRef(new Animated.Value(1)).current;
   const wordmarkOpacity = useRef(new Animated.Value(1)).current;
   const overlayOpacity = useRef(new Animated.Value(1)).current;
@@ -41,6 +39,7 @@ const AnimatedSplash: React.FC<AnimatedSplashProps> = ({ ready, onFinish }) => {
         onFinish();
       });
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
   // SVG viewBox is 50x101; scale to ~40% of screen width

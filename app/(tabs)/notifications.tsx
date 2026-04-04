@@ -155,7 +155,7 @@ export default function NotificationsScreen() {
               No notifications yet
             </Text>
             <Text variant="bodyMedium" style={styles.emptySubtext}>
-              You'll be notified when gift suggestions are ready
+              You&apos;ll be notified when gift suggestions are ready
             </Text>
           </View>
         ) : (

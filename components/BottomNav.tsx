@@ -43,7 +43,7 @@ const NAV_ITEMS: NavItem[] = [
 export default function BottomNav() {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const { isVisible, animatedStyle } = useBottomNavVisibility();
+  const { animatedStyle } = useBottomNavVisibility();
 
   // Hide on admin and onboarding routes
   if (pathname.startsWith("/admin") || pathname.startsWith("/onboarding")) {

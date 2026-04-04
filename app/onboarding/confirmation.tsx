@@ -15,7 +15,7 @@ export default function OnboardingConfirmation() {
           Got it.
         </Text>
         <Text variant="bodyLarge" style={styles.body}>
-          Now let's add the first person you'd like to find gifts for. You can
+          Now let&apos;s add the first person you&apos;d like to find gifts for. You can
           type their details or import from your contacts.
         </Text>
       </View>

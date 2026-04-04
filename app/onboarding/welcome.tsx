@@ -15,8 +15,8 @@ export default function OnboardingWelcome() {
           Welcome to BeGifted
         </Text>
         <Text variant="bodyLarge" style={styles.body}>
-          We'll help you find thoughtful gifts for the people you care about.
-          Let's get to know you a little, then add your first person.
+          We&apos;ll help you find thoughtful gifts for the people you care about.
+          Let&apos;s get to know you a little, then add your first person.
         </Text>
       </View>
 

@@ -13,7 +13,8 @@
     "format": "npx prettier --write \"**/*.{ts,tsx,js,jsx,json}\"",
     "format:check": "npx prettier --check \"**/*.{ts,tsx,js,jsx,json}\"",
     "export": "expo export --platform web",
-    "build": "expo export --platform web"
+    "build": "expo export --platform web",
+    "prepare": "husky"
   },
   "dependencies": {
     "@expo-google-fonts/azeret-mono": "^0.4.1",
@@ -65,11 +66,16 @@
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "prettier": "^2.8.8",
     "typescript": "~5.9.2"
   },
   "plugins": [
     "prettier"
   ],
+  "lint-staged": {
+    "*.{ts,tsx}": "eslint --fix"
+  },
   "private": true
 }
