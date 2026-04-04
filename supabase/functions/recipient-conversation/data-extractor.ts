@@ -164,6 +164,26 @@ Return JSON with what's been established:
       };
     }
   }
+
+  // Override LLM-generated readiness state with deterministic anchor logic
+  // so the reply prompt and the button logic always agree
+  if (contextInfo?.readiness) {
+    const r = contextInfo.readiness;
+    const effectiveSpecificity =
+      r.has_specificity_anchor || !!contextInfo.user_skipped_specificity;
+    if (r.has_recipient_anchor && r.has_occasion_anchor && effectiveSpecificity) {
+      contextInfo.readiness.state = "ready";
+    } else if (r.has_recipient_anchor && !r.has_occasion_anchor && !effectiveSpecificity) {
+      contextInfo.readiness.state = "captured_needs_both";
+    } else if (r.has_recipient_anchor && !r.has_occasion_anchor) {
+      contextInfo.readiness.state = "captured_needs_occasion";
+    } else if (r.has_recipient_anchor && r.has_occasion_anchor && !effectiveSpecificity) {
+      contextInfo.readiness.state = "captured_needs_specificity";
+    } else {
+      contextInfo.readiness.state = "not_captured";
+    }
+  }
+
   // Build conversation prompt based on conversation type
   let systemPrompt = "";
   switch (conversationType) {
