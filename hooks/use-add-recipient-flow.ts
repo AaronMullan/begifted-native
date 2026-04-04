@@ -38,7 +38,10 @@ interface UseAddRecipientFlowReturn {
 
 export function useAddRecipientFlow(
   userId: string,
-  initialContactName?: string
+  initialContactName?: string,
+  initialAddress?: Partial<
+    Pick<ExtractedData, "address" | "city" | "state" | "zip_code" | "country">
+  >
 ): UseAddRecipientFlowReturn {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -71,6 +74,21 @@ export function useAddRecipientFlow(
     onExtractSuccess: (data) => {
       // Validate that we have required fields
       if (data.name && data.relationship_type) {
+        // Pre-fill address from device contact if not already extracted
+        if (initialAddress) {
+          const merged = { ...data };
+          if (!merged.address && initialAddress.address)
+            merged.address = initialAddress.address;
+          if (!merged.city && initialAddress.city)
+            merged.city = initialAddress.city;
+          if (!merged.state && initialAddress.state)
+            merged.state = initialAddress.state;
+          if (!merged.zip_code && initialAddress.zip_code)
+            merged.zip_code = initialAddress.zip_code;
+          if (!merged.country && initialAddress.country)
+            merged.country = initialAddress.country;
+          genericSetExtractedData(merged);
+        }
         setShowDataReview(true);
       }
     },
@@ -201,12 +219,12 @@ export function useAddRecipientFlow(
           extracted.emotional_tone_preference || undefined,
         gift_budget_min: extracted.gift_budget_min || undefined,
         gift_budget_max: extracted.gift_budget_max || undefined,
-        address: extracted.address || undefined,
+        address: extracted.address || initialAddress?.address || undefined,
         address_line_2: extracted.address_line_2 || undefined,
-        city: extracted.city || undefined,
-        state: extracted.state || undefined,
-        zip_code: extracted.zip_code || undefined,
-        country: extracted.country || "US",
+        city: extracted.city || initialAddress?.city || undefined,
+        state: extracted.state || initialAddress?.state || undefined,
+        zip_code: extracted.zip_code || initialAddress?.zip_code || undefined,
+        country: extracted.country || initialAddress?.country || "US",
         occasions: extracted.occasions || undefined,
       };
 

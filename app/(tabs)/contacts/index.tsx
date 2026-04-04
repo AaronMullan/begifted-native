@@ -196,9 +196,17 @@ export default function Contacts() {
 
   function handleSelectContact(contact: DeviceContact) {
     setPickerVisible(false);
+    const addr = contact.addresses?.[0];
     router.push({
       pathname: "/contacts/add",
-      params: { name: contact.name },
+      params: {
+        name: contact.name,
+        ...(addr?.street && { address: addr.street }),
+        ...(addr?.city && { city: addr.city }),
+        ...(addr?.region && { state: addr.region }),
+        ...(addr?.postalCode && { zip_code: addr.postalCode }),
+        ...(addr?.country && { country: addr.country }),
+      },
     });
   }
 
