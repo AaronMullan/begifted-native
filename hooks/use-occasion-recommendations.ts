@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import type { ExtractedData } from "./use-conversation-flow";
-import { lookupOccasionDate, getNextOccurrence } from "../utils/occasion-dates";
+import { lookupOccasionDate } from "../utils/occasion-dates";
 
 export interface OccasionRecommendation {
   type: string;
@@ -151,8 +151,6 @@ function checkIfMilestoneBirthday(birthday: string | null): boolean {
   return age > 0 && age % 10 === 0 && age >= 30;
 }
 
-const ISO_DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
-
 /**
  * Map AI occasion recommendations into the shape used by OccasionsSelectionView:
  * { date: string, occasion_type: string, enabled: boolean }.
@@ -161,21 +159,24 @@ const ISO_DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
  */
 export function mapRecommendationsToOccasions(
   recs: OccasionRecommendations | null
-): Array<{ date: string; occasion_type: string; enabled: boolean }> {
+): { date: string; occasion_type: string; enabled: boolean }[] {
   if (!recs?.primaryOccasions?.length) return [];
 
-  return recs.primaryOccasions.map((o) => {
-    const type = o.type || "custom";
-    let date: string;
-    if (o.suggestedDate && ISO_DATE_ONLY.test(o.suggestedDate.trim())) {
-      date = getNextOccurrence(o.suggestedDate.trim());
-    } else {
-      date = lookupOccasionDate(type) ?? "2025-01-01";
-    }
-    return {
-      date,
-      occasion_type: type,
-      enabled: true,
-    };
-  });
+  return recs.primaryOccasions
+    .map((o) => {
+      const type = o.type || "custom";
+      const knownDate = lookupOccasionDate(type);
+
+      // Birthday is added from extractedData.birthday in OccasionsSelectionView,
+      // so drop any AI-hallucinated birthday here.
+      if (type === "birthday") return null;
+
+      if (knownDate) {
+        return { date: knownDate, occasion_type: type, enabled: true };
+      }
+
+      // Drop occasions the AI hallucinated that we can't verify
+      return null;
+    })
+    .filter((o): o is NonNullable<typeof o> => o !== null);
 }

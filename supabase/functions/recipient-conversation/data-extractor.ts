@@ -63,7 +63,7 @@ Mark gift_ready as true only when BeGifted has the minimum information needed to
 
 A recipient is gift-ready only when ALL of the following are true:
 
-**Recipient anchor:** The conversation identifies the person in a meaningful way. This requires a name or clear person descriptor, plus relationship or life-stage context.
+**Recipient anchor:** The conversation identifies the person in a meaningful way. This requires a name or clear person descriptor, plus ANY relationship or connection context. Relationship means any description of how the user relates to this person — family (mom, brother), social (friend, colleague, neighbor), or admiration/fandom (hero, idol, inspiration, mentor, favorite artist). "My guitar hero", "my favorite author", "someone I admire" ALL count as valid relationships.
 
 **Occasion anchor:** The conversation identifies at least one specific giftable moment. Examples: birthday, anniversary, Mother's Day, Father's Day, Christmas, graduation, wedding, new baby, recovery, or another clear occasion/date. If a personal occasion is mentioned without a specific date, the anchor is still satisfied — set needs_occasion_date to true and occasion_needing_date to the occasion name.
 
@@ -165,23 +165,59 @@ Return JSON with what's been established:
     }
   }
 
-  // Override LLM-generated readiness state with deterministic anchor logic
-  // so the reply prompt and the button logic always agree
-  if (contextInfo?.readiness) {
-    const r = contextInfo.readiness;
-    const effectiveSpecificity =
-      r.has_specificity_anchor || !!contextInfo.user_skipped_specificity;
-    if (r.has_recipient_anchor && r.has_occasion_anchor && effectiveSpecificity) {
-      contextInfo.readiness.state = "ready";
-    } else if (r.has_recipient_anchor && !r.has_occasion_anchor && !effectiveSpecificity) {
-      contextInfo.readiness.state = "captured_needs_both";
-    } else if (r.has_recipient_anchor && !r.has_occasion_anchor) {
-      contextInfo.readiness.state = "captured_needs_occasion";
-    } else if (r.has_recipient_anchor && r.has_occasion_anchor && !effectiveSpecificity) {
-      contextInfo.readiness.state = "captured_needs_specificity";
-    } else {
-      contextInfo.readiness.state = "not_captured";
-    }
+  // Derive anchors deterministically from the extracted data fields,
+  // rather than trusting the LLM's self-assessment which is often too conservative.
+  if (!contextInfo.readiness) {
+    contextInfo.readiness = {
+      state: "not_captured",
+      gift_ready: false,
+      has_recipient_anchor: false,
+      has_occasion_anchor: false,
+      has_specificity_anchor: false,
+      missing_requirements: [],
+      reason: "",
+    };
+  }
+
+  const hasName = !!(contextInfo.name || contextInfo.existing_name);
+  const hasRelationship = !!(contextInfo.relationship || contextInfo.existing_relationship);
+  contextInfo.readiness.has_recipient_anchor = hasName && hasRelationship;
+
+  const hasOccasion =
+    !!(contextInfo.birthday || contextInfo.existing_birthday) ||
+    (Array.isArray(contextInfo.occasions_mentioned) && contextInfo.occasions_mentioned.length > 0);
+  contextInfo.readiness.has_occasion_anchor = hasOccasion;
+
+  const interestCount = (contextInfo.interests || contextInfo.existing_interests || []).length;
+  const hasSpecificity =
+    interestCount >= 1 ||
+    !!contextInfo.user_skipped_specificity;
+  contextInfo.readiness.has_specificity_anchor = hasSpecificity;
+
+  const effectiveSpecificity = hasSpecificity || !!contextInfo.user_skipped_specificity;
+
+  if (contextInfo.readiness.has_recipient_anchor && hasOccasion && effectiveSpecificity) {
+    contextInfo.readiness.state = "ready";
+  } else if (contextInfo.readiness.has_recipient_anchor && !hasOccasion && !effectiveSpecificity) {
+    contextInfo.readiness.state = "captured_needs_both";
+  } else if (contextInfo.readiness.has_recipient_anchor && !hasOccasion) {
+    contextInfo.readiness.state = "captured_needs_occasion";
+  } else if (contextInfo.readiness.has_recipient_anchor && hasOccasion && !effectiveSpecificity) {
+    contextInfo.readiness.state = "captured_needs_specificity";
+  } else {
+    contextInfo.readiness.state = "not_captured";
+  }
+
+  // If all anchors are satisfied, skip the reply LLM entirely — return a
+  // deterministic wrap-up so the message and button are always in sync.
+  if (contextInfo.readiness.state === "ready") {
+    const recipientName =
+      contextInfo.name || contextInfo.existing_name || "this person";
+    return {
+      reply: `Great — I have everything I need to help you find the perfect gift for ${recipientName}! Feel free to keep telling me more, or tap "Let's Move to the Next Step" below whenever you're ready.`,
+      shouldShowNextStepButton: true,
+      conversationContext: contextInfo,
+    };
   }
 
   // Build conversation prompt based on conversation type
@@ -303,17 +339,10 @@ Return JSON with what's been established:
     }
   }
 
-  // Determine if we should show the "next step" button (deterministic, anchor-based)
-  const readiness = contextInfo?.readiness;
-  const effectiveSpecificityAnchor =
-    readiness?.has_specificity_anchor || !!contextInfo?.user_skipped_specificity;
-  const shouldShowNextStepButton =
-    !!readiness?.has_recipient_anchor &&
-    !!readiness?.has_occasion_anchor &&
-    effectiveSpecificityAnchor;
+  // If we reach here, anchors were not all satisfied — button stays hidden.
   return {
     reply,
-    shouldShowNextStepButton,
+    shouldShowNextStepButton: false,
     conversationContext: contextInfo,
   };
 }
@@ -359,7 +388,11 @@ STATE-SPECIFIC GUIDANCE:
 
 ${readinessState === "not_captured" ? "→ We don't know who this person is yet. Ask about name and relationship." : ""}${readinessState === "captured_needs_both" ? "→ We know the person but need both an occasion and more specificity. Follow priority order above." : ""}${readinessState === "captured_needs_occasion" ? "→ We know the person well but need a giftable moment. Ask what occasion they're thinking about." : ""}${readinessState === "captured_needs_specificity" ? "→ We know the person and occasion but need more detail to avoid generic gifts. Ask one targeted question about interests or preferences." : ""}${readinessState === "ready" ? `→ All anchors are captured. Say something like: "I have everything I need to help you find great gifts for ${recipientName}. Click 'Let's move to the next step' below to continue."` : ""}
 
-BUTTON REFERENCE RULE: NEVER mention "Let's move to the next step" or reference the button unless the readiness state is "ready". Before that point, do not reference the button at all.
+CRITICAL WRAP-UP RULE: Unless the readiness state is EXACTLY "ready", you MUST NOT:
+- Mention "Let's move to the next step" or reference the button
+- Use wrap-up language like "I'll take it from here", "I have what I need", "that's enough", "let's get started", or any phrasing that implies you're done collecting information
+- Imply the conversation is complete or that you're ready to proceed
+Instead, follow the PRIORITY ORDER above and ask the next required question.
 
 RESPONSE REQUIREMENTS:
 
