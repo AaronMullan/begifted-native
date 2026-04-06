@@ -27,4 +27,10 @@ module.exports = defineConfig([
       ],
     },
   },
+  {
+    files: ["supabase/functions/**/*.ts"],
+    rules: {
+      "import/no-unresolved": "off",
+    },
+  },
 ]);
