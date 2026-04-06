@@ -26,10 +26,6 @@ async function handleAddOccasionConversation(
   messages: { role: string; content: string }[],
   recipientName: string | null
 ) {
-  const conversationHistory = messages
-    .map((m) => `${m.role}: ${m.content}`)
-    .join("\n");
-
   const nameRef = recipientName ? ` for ${recipientName}` : "";
 
   const systemPrompt = `You are a concise assistant that adds calendar occasions${nameRef}. The recipient ALREADY exists — do NOT ask about names, relationships, interests, birthdays, gifts, or anything else. Your ONLY job: identify the occasion type and its date.

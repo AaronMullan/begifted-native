@@ -52,23 +52,34 @@ export function OccasionsSelectionView({
       enabled: boolean;
     }[] = [];
 
-    const isoDateRe = /^\d{4}-\d{2}-\d{2}$/;
-    const fromConversation = (extractedData.occasions ?? []).map((occ) => {
+    const fromConversation: typeof merged = [];
+    for (const occ of extractedData.occasions ?? []) {
       const type = occ.occasion_type || "custom";
-      let date = occ.date?.trim() || "";
-      const useLookup =
-        !date ||
-        date.includes("01-01") ||
-        !isoDateRe.test(date) ||
-        new Date(date).getTime() < new Date().setHours(0, 0, 0, 0);
-      if (useLookup) {
-        const lookedUp = lookupOccasionDate(type);
-        date = lookedUp ?? "2025-01-01";
-      } else {
-        date = getNextOccurrence(date);
+
+      // Skip hallucinated birthdays — we use extractedData.birthday directly
+      if (type === "birthday") continue;
+
+      // For known occasion types, always use our authoritative date calculator
+      const knownDate = lookupOccasionDate(type);
+      if (knownDate) {
+        fromConversation.push({ date: knownDate, occasion_type: type, enabled: true });
+        continue;
       }
-      return { date, occasion_type: type, enabled: true };
-    });
+
+      // Unknown/custom types with a valid future date — keep as-is
+      const raw = occ.date?.trim() || "";
+      const isoDateRe = /^\d{4}-\d{2}-\d{2}$/;
+      if (raw && isoDateRe.test(raw)) {
+        fromConversation.push({ date: getNextOccurrence(raw), occasion_type: type, enabled: true });
+      }
+      // Otherwise drop it — we can't verify the occasion
+    }
+    // Add birthday from the verified extractedData field (not AI occasions)
+    if (extractedData.birthday) {
+      const bdayDate = getNextOccurrence(extractedData.birthday);
+      fromConversation.unshift({ date: bdayDate, occasion_type: "birthday", enabled: true });
+    }
+
     const seen = new Set<string>();
     fromConversation.forEach((o) => {
       merged.push(o);
@@ -84,7 +95,7 @@ export function OccasionsSelectionView({
     });
 
     setSelectedOccasions(merged);
-  }, [extractedData.occasions, recommendations]);
+  }, [extractedData.occasions, extractedData.birthday, recommendations]);
 
   const toggleOccasion = (index: number) => {
     setSelectedOccasions((prev) =>

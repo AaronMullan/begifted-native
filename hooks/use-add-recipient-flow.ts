@@ -246,14 +246,9 @@ export function useAddRecipientFlow(
       return;
     }
 
-    // Check if we need to show occasions selection
-    // If birthday exists, we might want to create occasions
-    if (extractedData.birthday) {
-      setShowOccasionsSelection(true);
-    } else {
-      // Skip to saving directly
-      await saveRecipient(extractedData);
-    }
+    // Always show occasions selection so users can add birthday,
+    // holidays, and other occasions even if birthday wasn't extracted
+    setShowOccasionsSelection(true);
   }, [extractedData, saveRecipient]);
 
   const handleOccasionsBack = useCallback(() => {
