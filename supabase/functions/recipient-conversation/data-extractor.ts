@@ -217,7 +217,26 @@ Return JSON with what's been established:
       reply: `Great — I have everything I need to help you find the perfect gift for ${recipientName}! Feel free to keep telling me more, or tap "Let's Move to the Next Step" below whenever you're ready.`,
       shouldShowNextStepButton: true,
       conversationContext: contextInfo,
+      resolvedSystemPrompt: null, // Deterministic wrap-up — LLM prompt was not used
     };
+  }
+
+  // Pre-compute dynamic template content
+  const readinessState = contextInfo.readiness?.state ?? "not_captured";
+  const recipientName = contextInfo.name || contextInfo.existing_name || "this person";
+  const stateGuidance = buildStateGuidance(readinessState, recipientName);
+  const priorityGuidance = buildPriorityGuidance(contextInfo, recipientName);
+
+  // Interpolate all template variables into a prompt string
+  function interpolatePrompt(template: string): string {
+    return template
+      .replace(/\{\{contextInfo\}\}/g, JSON.stringify(contextInfo, null, 2))
+      .replace(/\{\{conversationHistory\}\}/g, conversationHistory)
+      .replace(/\{\{messageCount\}\}/g, String(messages.length))
+      .replace(/\{\{readinessState\}\}/g, readinessState)
+      .replace(/\{\{stateGuidance\}\}/g, stateGuidance)
+      .replace(/\{\{priorityGuidance\}\}/g, priorityGuidance)
+      .replace(/\{\{recipientName\}\}/g, recipientName);
   }
 
   // Build conversation prompt based on conversation type
@@ -226,30 +245,16 @@ Return JSON with what's been established:
     case "add_recipient": {
       if (customSystemPrompt) {
         // Playground testing — interpolate template variables into custom prompt
-        systemPrompt = customSystemPrompt
-          .replace("{{contextInfo}}", JSON.stringify(contextInfo, null, 2))
-          .replace("{{conversationHistory}}", conversationHistory)
-          .replace("{{messageCount}}", String(messages.length));
+        systemPrompt = interpolatePrompt(customSystemPrompt);
       } else {
-        // Production — try loading from DB, fall back to hardcoded
+        // Production — load from DB, fall back to hardcoded default template
         const dbPrompt = await loadActivePrompt(
           supabaseUrl,
           supabaseServiceKey,
           "add_recipient_conversation",
-          ""
+          ADD_RECIPIENT_DEFAULT_TEMPLATE
         );
-        if (dbPrompt) {
-          systemPrompt = dbPrompt
-            .replace("{{contextInfo}}", JSON.stringify(contextInfo, null, 2))
-            .replace("{{conversationHistory}}", conversationHistory)
-            .replace("{{messageCount}}", String(messages.length));
-        } else {
-          systemPrompt = buildAddRecipientPrompt(
-            contextInfo,
-            conversationHistory,
-            messages.length
-          );
-        }
+        systemPrompt = interpolatePrompt(dbPrompt);
       }
       break;
     }
@@ -287,11 +292,7 @@ Return JSON with what's been established:
       );
       break;
     default:
-      systemPrompt = buildAddRecipientPrompt(
-        contextInfo,
-        conversationHistory,
-        messages.length
-      );
+      systemPrompt = interpolatePrompt(ADD_RECIPIENT_DEFAULT_TEMPLATE);
   }
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -344,32 +345,57 @@ Return JSON with what's been established:
     reply,
     shouldShowNextStepButton: false,
     conversationContext: contextInfo,
+    resolvedSystemPrompt: systemPrompt,
   };
 }
-// Build prompt for adding new recipients
-// Line 182-186: buildAddRecipientPrompt
-function buildAddRecipientPrompt(
-  contextInfo: ContextInfo,
-  conversationHistory: string,
-  _messageCount: number
-): string {
-  const readinessState = contextInfo.readiness?.state ?? "not_captured";
-  const needsOccasionDate = contextInfo.needs_occasion_date ?? false;
-  const recipientName = contextInfo.name || contextInfo.existing_name || "this person";
+// --- Helpers for pre-computing dynamic template content ---
 
-  return `IMPORTANT: Respond with plain text only. Do NOT return JSON, code blocks, or structured data.
+function buildStateGuidance(readinessState: string, recipientName: string): string {
+  switch (readinessState) {
+    case "not_captured":
+      return "→ We don't know who this person is yet. Ask about name and relationship.";
+    case "captured_needs_both":
+      return "→ We know the person but need both an occasion and more specificity. Follow priority order above.";
+    case "captured_needs_occasion":
+      return "→ We know the person well but need a giftable moment. Ask what occasion they're thinking about.";
+    case "captured_needs_specificity":
+      return "→ We know the person and occasion but need more detail to avoid generic gifts. Ask one targeted question about interests or preferences.";
+    case "ready":
+      return `→ All anchors are captured. Say something like: "I have everything I need to help you find great gifts for ${recipientName}. Click 'Let's move to the next step' below to continue."`;
+    default:
+      return "";
+  }
+}
+
+function buildPriorityGuidance(contextInfo: ContextInfo, recipientName: string): string {
+  const needsOccasionDate = contextInfo.needs_occasion_date ?? false;
+  const dateFollowUp = needsOccasionDate
+    ? `Ask ONLY for the date of "${contextInfo.occasion_needing_date}". Use warm phrasing like "Do you happen to know the date of ${recipientName}'s ${contextInfo.occasion_needing_date}? I'd love to keep track of it."`
+    : "Not currently needed.";
+
+  return `1. RECIPIENT IDENTITY (name + relationship) — if not yet captured, ask about who this person is.
+2. DATE FOLLOW-UP — HIGHEST PRIORITY when a personal occasion was mentioned without a date. ${dateFollowUp}
+3. OCCASION — if recipient is known but no giftable moment identified, ask about what occasion they're shopping for (birthday, holiday, anniversary, etc.).
+4. SPECIFICITY — if recipient and occasion are known but the person still feels generic, ask one specific probing question about their interests, hobbies, or preferences.
+5. SKIP OFFER — if the user seems unsure after a specificity probe, offer to skip: "If you're not sure what else to add right now, that's totally fine — we can always update their profile later. Would you like to move on?"
+6. WRAP-UP — all anchors captured. Direct user to the Next Step button.`;
+}
+
+// Default template for add_recipient_conversation — single source of truth.
+// This matches the structure previously hardcoded in buildAddRecipientPrompt().
+const ADD_RECIPIENT_DEFAULT_TEMPLATE = `IMPORTANT: Respond with plain text only. Do NOT return JSON, code blocks, or structured data.
 
 You are a warm, enthusiastic gift concierge helping someone add a new recipient to their gift list.
 
 CONVERSATION CONTEXT:
 
-${JSON.stringify(contextInfo, null, 2)}
+{{contextInfo}}
 
 Current conversation:
 
-${conversationHistory}
+{{conversationHistory}}
 
-READINESS STATE: ${readinessState}
+READINESS STATE: {{readinessState}}
 
 YOUR GOAL: Collect the minimum information needed to generate personalized, non-generic gift suggestions. Each response should move toward completing all three anchors: recipient identity, a giftable occasion, and enough specificity to avoid generic gifts.
 
@@ -377,16 +403,11 @@ ONE-ASK-PER-MESSAGE RULE: Each response must contain exactly ONE question or cal
 
 PRIORITY ORDER — when multiple anchors are missing, follow this strict priority:
 
-1. RECIPIENT IDENTITY (name + relationship) — if not yet captured, ask about who this person is.
-2. DATE FOLLOW-UP — HIGHEST PRIORITY when a personal occasion was mentioned without a date. ${needsOccasionDate ? `Ask ONLY for the date of "${contextInfo.occasion_needing_date}". Use warm phrasing like "Do you happen to know the date of ${recipientName}'s ${contextInfo.occasion_needing_date}? I'd love to keep track of it."` : "Not currently needed."}
-3. OCCASION — if recipient is known but no giftable moment identified, ask about what occasion they're shopping for (birthday, holiday, anniversary, etc.).
-4. SPECIFICITY — if recipient and occasion are known but the person still feels generic, ask one specific probing question about their interests, hobbies, or preferences.
-5. SKIP OFFER — if the user seems unsure after a specificity probe, offer to skip: "If you're not sure what else to add right now, that's totally fine — we can always update their profile later. Would you like to move on?"
-6. WRAP-UP — all anchors captured. Direct user to the Next Step button.
+{{priorityGuidance}}
 
 STATE-SPECIFIC GUIDANCE:
 
-${readinessState === "not_captured" ? "→ We don't know who this person is yet. Ask about name and relationship." : ""}${readinessState === "captured_needs_both" ? "→ We know the person but need both an occasion and more specificity. Follow priority order above." : ""}${readinessState === "captured_needs_occasion" ? "→ We know the person well but need a giftable moment. Ask what occasion they're thinking about." : ""}${readinessState === "captured_needs_specificity" ? "→ We know the person and occasion but need more detail to avoid generic gifts. Ask one targeted question about interests or preferences." : ""}${readinessState === "ready" ? `→ All anchors are captured. Say something like: "I have everything I need to help you find great gifts for ${recipientName}. Click 'Let's move to the next step' below to continue."` : ""}
+{{stateGuidance}}
 
 CRITICAL WRAP-UP RULE: Unless the readiness state is EXACTLY "ready", you MUST NOT:
 - Mention "Let's move to the next step" or reference the button
@@ -401,7 +422,6 @@ RESPONSE REQUIREMENTS:
 - Use established info naturally (e.g., "Mary, your mom")
 - Never repeat questions about already-captured info — check CONVERSATION CONTEXT first
 - Never ask for birthday or occasions that are already mentioned in the context`;
-}
 // Build prompt for updating specific fields
 function buildUpdateFieldPrompt(
   contextInfo: ContextInfo,
