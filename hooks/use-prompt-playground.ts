@@ -36,11 +36,11 @@ type CISPreview = {
     budget_usd?: number;
   };
   history: {
-    prior_gifts: Array<{
+    prior_gifts: {
       name: string;
       reaction?: string;
       notes?: string;
-    }>;
+    }[];
     avoid?: string[];
   };
 };
@@ -93,6 +93,9 @@ export function usePromptPlayground(userId: string) {
     string,
     unknown
   > | null>(null);
+
+  // Cron simulation (gift generation only)
+  const [simulateCron, setSimulateCron] = useState(false);
 
   // Interactive conversation state (for add_recipient_conversation)
   const [isConversationLoading, setIsConversationLoading] = useState(false);
@@ -280,6 +283,7 @@ export function usePromptPlayground(userId: string) {
               recipientId: selectedRecipientId,
               customSystemPrompt: currentPrompt,
               ...(hasCisEdits ? { cisOverride: cisEdits } : {}),
+              ...(simulateCron ? { simulateCron: true } : {}),
             }),
           }
         );
@@ -540,12 +544,17 @@ export function usePromptPlayground(userId: string) {
 
     // CIS preview + editing (gift generation only)
     cisPreview: cisPreviewQuery.data || null,
+    wrapperPreview: (cisPreviewQuery.data as Record<string, unknown>)?.wrapperPreview as string | undefined,
     editedCis,
     cisEdits,
     hasCisEdits,
     setCisField,
     resetCisEdits,
     isLoadingCis: cisPreviewQuery.isLoading,
+
+    // Cron simulation
+    simulateCron,
+    setSimulateCron,
 
     // Loading states
     isLoadingProfiles: allProfilesQuery.isLoading,

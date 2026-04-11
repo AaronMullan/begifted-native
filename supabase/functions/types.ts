@@ -42,10 +42,10 @@ export interface ExtractedData {
   state?: string;
   zip_code?: string;
   country?: string;
-  occasions?: Array<{
+  occasions?: {
     date: string;
     occasion_type: string;
-  }>;
+  }[];
   // For partial extractions, only include requested fields
   [key: string]: any;
 }
@@ -132,6 +132,7 @@ export interface ConversationResponse {
   reply: string;
   shouldShowNextStepButton: boolean;
   conversationContext?: any;
+  resolvedSystemPrompt?: string | null;
 }
 
 export interface ExtractionResponse {

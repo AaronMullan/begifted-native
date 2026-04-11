@@ -21,6 +21,7 @@ import {
   Chip,
   Divider,
   Badge,
+  Switch,
 } from "react-native-paper";
 import { useAuth } from "@/hooks/use-auth";
 import { fetchIsAdmin } from "@/lib/api";
@@ -89,6 +90,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
   const [newInterest, setNewInterest] = useState("");
   const [addingAvoid, setAddingAvoid] = useState(false);
   const [newAvoid, setNewAvoid] = useState("");
+  const [showProductionContext, setShowProductionContext] = useState(false);
   const [testMessageInput, setTestMessageInput] = useState("");
   const chatScrollRef = useRef<ScrollView>(null);
 
@@ -326,6 +328,24 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
           </Menu>
         </Card.Content>
       </Card>
+
+      {/* Simulate cron toggle */}
+      {playground.selectedRecipientId && (
+        <Card style={styles.card}>
+          <Card.Content style={styles.cronToggleRow}>
+            <View>
+              <Text variant="labelLarge">Simulate Cron</Text>
+              <Text variant="bodySmall" style={styles.cronToggleHint}>
+                Include existing suggestions as avoid list
+              </Text>
+            </View>
+            <Switch
+              value={playground.simulateCron}
+              onValueChange={playground.setSimulateCron}
+            />
+          </Card.Content>
+        </Card>
+      )}
 
       {/* Editable CIS card */}
       {playground.selectedRecipientId && (
@@ -989,6 +1009,72 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
         </Card>
       )}
 
+      {/* Production Context (gift generation only) */}
+      {playground.isGiftGeneration && !!playground.generationResult?.productionContext && (
+        <Card style={styles.card}>
+          <Card.Content>
+            <Button
+              mode="text"
+              onPress={() => setShowProductionContext(!showProductionContext)}
+              icon={showProductionContext ? "chevron-up" : "chevron-down"}
+              compact
+              style={styles.productionContextToggle}
+            >
+              Production Context
+            </Button>
+            {showProductionContext && (
+              <View style={styles.productionContextBox}>
+                <Text variant="labelSmall" style={styles.productionContextLabel}>
+                  Wrapper System Message
+                </Text>
+                <ScrollView style={styles.productionContextScroll} nestedScrollEnabled>
+                  <Text variant="bodySmall" style={styles.monoText}>
+                    {String(
+                      (playground.generationResult.productionContext as Record<string, unknown>)
+                        ?.wrapperMessage ?? ""
+                    )}
+                  </Text>
+                </ScrollView>
+                <Text variant="labelSmall" style={[styles.productionContextLabel, { marginTop: 12 }]}>
+                  Full Input Array
+                </Text>
+                <ScrollView style={styles.productionContextScroll} nestedScrollEnabled>
+                  <Text variant="bodySmall" style={styles.monoText}>
+                    {JSON.stringify(
+                      (playground.generationResult.productionContext as Record<string, unknown>)
+                        ?.fullInput,
+                      null,
+                      2
+                    )}
+                  </Text>
+                </ScrollView>
+              </View>
+            )}
+          </Card.Content>
+        </Card>
+      )}
+
+      {/* Cron Context (when simulateCron was used) */}
+      {playground.isGiftGeneration && !!playground.generationResult?.cronContext && (
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text variant="titleSmall" style={styles.cardTitle}>
+              Cron Context
+            </Text>
+            <View style={resultStyles.statusRow}>
+              <Chip compact style={resultStyles.contextChip}>
+                {String(
+                  (playground.generationResult.cronContext as Record<string, unknown>)
+                    ?.existingSuggestionCount ?? 0
+                )}{" "}
+                existing suggestions
+              </Chip>
+            </View>
+            <CronAvoidListView cronContext={playground.generationResult.cronContext as Record<string, unknown>} />
+          </Card.Content>
+        </Card>
+      )}
+
       {/* Test run history */}
       <Card style={styles.card}>
         <Card.Content>
@@ -1114,6 +1200,25 @@ const EditableCISSection: React.FC<EditableCISSectionProps> = ({ label, hasEdits
   </View>
 );
 
+const CronAvoidListView: React.FC<{ cronContext: Record<string, unknown> }> = ({
+  cronContext,
+}) => {
+  const avoidList = cronContext?.avoidList as string[] | undefined;
+  if (!avoidList || avoidList.length === 0) return null;
+  return (
+    <View style={styles.cronAvoidList}>
+      <Text variant="labelSmall" style={styles.productionContextLabel}>
+        Avoid List
+      </Text>
+      {avoidList.map((item, i) => (
+        <Text key={i} variant="bodySmall" style={styles.cronAvoidItem}>
+          {item}
+        </Text>
+      ))}
+    </View>
+  );
+};
+
 type GenerationResultViewProps = {
   result: Record<string, unknown>;
 };
@@ -1223,6 +1328,7 @@ const ConversationResultView: React.FC<{ result: Record<string, unknown> }> = ({
   result,
 }) => {
   const [showContext, setShowContext] = useState(true);
+  const [showResolvedPrompt, setShowResolvedPrompt] = useState(false);
   const ctx = result.conversationContext as Record<string, unknown> | undefined;
 
   if ("error" in result) {
@@ -1319,6 +1425,36 @@ const ConversationResultView: React.FC<{ result: Record<string, unknown> }> = ({
                 <Text variant="bodySmall" style={resultStyles.contextField}>
                   {"Legacy score: " + String(ctx.readiness_score) + "/10"}
                 </Text>
+              )}
+            </View>
+          )}
+        </>
+      )}
+      {"resolvedSystemPrompt" in result && (
+        <>
+          <Button
+            mode="text"
+            onPress={() => setShowResolvedPrompt(!showResolvedPrompt)}
+            icon={showResolvedPrompt ? "chevron-up" : "chevron-down"}
+            compact
+            style={resultStyles.collapseBtn}
+          >
+            {result.resolvedSystemPrompt === null
+              ? "Resolved Prompt (skipped)"
+              : "Resolved Prompt"}
+          </Button>
+          {showResolvedPrompt && (
+            <View style={resultStyles.contextBox}>
+              {result.resolvedSystemPrompt === null ? (
+                <Text variant="bodySmall" style={resultStyles.contextField}>
+                  {"Readiness state was \"ready\" — deterministic wrap-up was used. The system prompt was not sent to the LLM."}
+                </Text>
+              ) : (
+                <ScrollView style={resultStyles.resolvedPromptScroll}>
+                  <Text variant="bodySmall" style={resultStyles.resolvedPromptText}>
+                    {String(result.resolvedSystemPrompt)}
+                  </Text>
+                </ScrollView>
               )}
             </View>
           )}
@@ -1505,6 +1641,15 @@ const resultStyles = StyleSheet.create({
     backgroundColor: "#f5f5f5",
     borderRadius: 8,
     padding: 12,
+  },
+  resolvedPromptScroll: {
+    maxHeight: 300,
+  },
+  resolvedPromptText: {
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+    fontSize: 11,
+    lineHeight: 16,
+    color: Colors.darks.brown,
   },
 });
 
@@ -1972,6 +2117,46 @@ const styles = StyleSheet.create({
   },
   deployNotesInput: {
     marginTop: 8,
+  },
+
+  // Cron simulation toggle
+  cronToggleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  cronToggleHint: {
+    color: "#888",
+    marginTop: 2,
+  },
+
+  // Production context
+  productionContextToggle: {
+    alignSelf: "flex-start",
+    marginLeft: -8,
+  },
+  productionContextBox: {
+    gap: 6,
+  },
+  productionContextLabel: {
+    color: Colors.darks.brown,
+    fontWeight: "600",
+  },
+  productionContextScroll: {
+    maxHeight: 200,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 8,
+    padding: 10,
+  },
+
+  // Cron context
+  cronAvoidList: {
+    marginTop: 8,
+    gap: 4,
+  },
+  cronAvoidItem: {
+    color: Colors.darks.brown,
+    paddingLeft: 8,
   },
 });
 
