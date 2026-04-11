@@ -197,10 +197,22 @@ export default function Contacts() {
   function handleSelectContact(contact: DeviceContact) {
     setPickerVisible(false);
     const addr = contact.addresses?.[0];
+
+    // Format birthday as YYYY-MM-DD if available
+    let birthdayStr: string | undefined;
+    if (contact.birthday) {
+      const { year, month, day } = contact.birthday;
+      const y = year ?? new Date().getFullYear();
+      const m = String(month).padStart(2, "0");
+      const d = String(day).padStart(2, "0");
+      birthdayStr = `${y}-${m}-${d}`;
+    }
+
     router.push({
       pathname: "/contacts/add",
       params: {
         name: contact.name,
+        ...(birthdayStr && { birthday: birthdayStr }),
         ...(addr?.street && { address: addr.street }),
         ...(addr?.city && { city: addr.city }),
         ...(addr?.region && { state: addr.region }),
