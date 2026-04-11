@@ -1,10 +1,11 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { FlatList, ScrollView, StyleSheet, View } from "react-native";
 import { Button, Dialog, Portal, Text } from "react-native-paper";
 import { Colors } from "../../lib/colors";
 import { useAuth } from "../../hooks/use-auth";
 import { useOccasions } from "../../hooks/use-occasions";
+import { useRecipients } from "../../hooks/use-recipients";
 import { useDeleteOccasion } from "../../hooks/use-occasion-mutations";
 import { useToast } from "../../hooks/use-toast";
 import { useBottomNavScrollVisibility } from "../../hooks/use-bottom-nav-scroll-visibility";
@@ -30,10 +31,12 @@ export default function Calendar() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { data: occasions = [], isLoading: loading } = useOccasions();
+  const { data: recipients = [] } = useRecipients();
   const deleteOccasion = useDeleteOccasion();
   const { toast, showToast } = useToast();
   const { handleScroll } = useBottomNavScrollVisibility();
   const [occasionToDelete, setOccasionToDelete] = useState<Occasion | null>(null);
+  const [showRecipientPicker, setShowRecipientPicker] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -91,6 +94,11 @@ export default function Calendar() {
       ? `${shortName}'`
       : `${shortName}'s`;
     return `${possessive} ${occasionType}`;
+  }
+
+  function handleAddOccasionForRecipient(recipientId: string) {
+    setShowRecipientPicker(false);
+    router.push(`/contacts/${recipientId}?addOccasion=true`);
   }
 
   function handleOccasionPress(occasion: Occasion) {
@@ -172,9 +180,19 @@ export default function Calendar() {
 
           {/* Summary section */}
           <View style={styles.summarySection}>
-            <Text variant="titleMedium" style={styles.occasionsCount}>
-              {occasions.length} Occasion{occasions.length !== 1 ? "s" : ""}
-            </Text>
+            <View style={styles.summaryRow}>
+              <Text variant="titleMedium" style={styles.occasionsCount}>
+                {occasions.length} Occasion{occasions.length !== 1 ? "s" : ""}
+              </Text>
+              <Button
+                mode="contained"
+                icon="plus"
+                onPress={() => setShowRecipientPicker(true)}
+                compact
+              >
+                Add Occasion
+              </Button>
+            </View>
           </View>
 
           {/* Occasions list */}
@@ -257,6 +275,46 @@ export default function Calendar() {
             </Button>
           </View>
         </Dialog>
+        <Dialog
+          visible={showRecipientPicker}
+          onDismiss={() => setShowRecipientPicker(false)}
+          style={styles.dialog}
+        >
+          <Dialog.Title>
+            <Text variant="bodySmall" style={styles.dialogLabel}>Add Occasion</Text>
+          </Dialog.Title>
+          <Dialog.Content>
+            <Text variant="headlineSmall" style={styles.pickerHeadline}>
+              Choose a recipient
+            </Text>
+            {recipients.length === 0 ? (
+              <Text variant="bodyMedium" style={styles.pickerEmpty}>
+                No recipients yet. Add a recipient first.
+              </Text>
+            ) : (
+              <FlatList
+                data={recipients}
+                keyExtractor={(item) => item.id}
+                style={styles.recipientList}
+                renderItem={({ item }) => (
+                  <Button
+                    mode="text"
+                    onPress={() => handleAddOccasionForRecipient(item.id)}
+                    contentStyle={styles.recipientItemContent}
+                    icon="account"
+                  >
+                    {item.name}
+                  </Button>
+                )}
+              />
+            )}
+          </Dialog.Content>
+          <View style={styles.dialogActions}>
+            <Button mode="outlined" onPress={() => setShowRecipientPicker(false)} style={styles.dialogButton}>
+              Cancel
+            </Button>
+          </View>
+        </Dialog>
       </Portal>
       {toast}
     </View>
@@ -295,6 +353,11 @@ const styles = StyleSheet.create({
   },
   summarySection: {
     marginBottom: 24,
+  },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   occasionsCount: {
     color: Colors.darks.black,
@@ -362,5 +425,19 @@ const styles = StyleSheet.create({
   daysLabel: {
     color: Colors.white,
     opacity: 0.7,
+  },
+  pickerHeadline: {
+    marginBottom: 12,
+  },
+  pickerEmpty: {
+    color: "#888",
+    textAlign: "center",
+    paddingVertical: 16,
+  },
+  recipientList: {
+    maxHeight: 300,
+  },
+  recipientItemContent: {
+    justifyContent: "flex-start",
   },
 });

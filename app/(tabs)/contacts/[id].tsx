@@ -17,9 +17,10 @@ import { useToast } from "../../../hooks/use-toast";
 export default function RecipientEditPage() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const params = useLocalSearchParams<{ id: string; tab?: string }>();
+  const params = useLocalSearchParams<{ id: string; tab?: string; addOccasion?: string }>();
   const recipientId = params.id;
   const initialTab = (params.tab as "details" | "gifts") || "gifts";
+  const shouldAddOccasion = params.addOccasion === "true";
 
   const [recipient, setRecipient] = useState<Recipient | null>(null);
   const [loading, setLoading] = useState(true);
@@ -110,6 +111,14 @@ export default function RecipientEditPage() {
       showToast("Occasion added!");
     },
   });
+
+  // Auto-open add-occasion flow when navigated with addOccasion param
+  useEffect(() => {
+    if (shouldAddOccasion && recipient) {
+      addOccasionFlow.resetConversation();
+      setShowAddOccasionChat(true);
+    }
+  }, [shouldAddOccasion, recipient]);
 
   // Reset active tab when tab param changes
   useEffect(() => {
