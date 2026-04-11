@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { FlatList, StyleSheet, View, Pressable } from "react-native";
 import { Text, Button } from "react-native-paper";
 import { BlurView } from "expo-blur";
+import * as Notifications from "expo-notifications";
 import { Colors } from "../../lib/colors";
 import { useAuth } from "../../hooks/use-auth";
 import {
@@ -49,6 +50,14 @@ export default function NotificationsScreen() {
       router.replace("/");
     }
   }, [authLoading, user, router]);
+
+  // Auto-mark all notifications as read when viewing this screen
+  useEffect(() => {
+    if (unreadCount > 0) {
+      markAllRead.mutate();
+      Notifications.setBadgeCountAsync(0);
+    }
+  }, [unreadCount > 0]);
 
   function handleNotificationPress(notification: AppNotification) {
     if (!notification.read) {
