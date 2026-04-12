@@ -56,27 +56,27 @@ export function useAddOccasionFlow({
       return;
     }
 
-    const occasion = extracted.occasions[0];
-
-    // Always prefer lookupOccasionDate for known holidays — it returns
-    // the correct next-future date. Only fall back to the AI's date for
-    // personal occasions (anniversary, etc.) where lookup returns null.
-    const lookedUp = lookupOccasionDate(occasion.occasion_type);
-    let date = lookedUp || occasion.date;
-
-    if (!date || date === "null") {
-      // Unknown occasion with no AI date — placeholder
-      const nextYear = new Date().getFullYear() + 1;
-      date = `${nextYear}-01-01`;
-    }
-
     setIsSaving(true);
     try {
-      await createOccasion.mutateAsync({
-        recipientId,
-        date,
-        occasionType: occasion.occasion_type,
-      });
+      for (const occasion of extracted.occasions) {
+        // Always prefer lookupOccasionDate for known holidays — it returns
+        // the correct next-future date. Only fall back to the AI's date for
+        // personal occasions (anniversary, etc.) where lookup returns null.
+        const lookedUp = lookupOccasionDate(occasion.occasion_type);
+        let date = lookedUp || occasion.date;
+
+        if (!date || date === "null") {
+          // Unknown occasion with no AI date — placeholder
+          const nextYear = new Date().getFullYear() + 1;
+          date = `${nextYear}-01-01`;
+        }
+
+        await createOccasion.mutateAsync({
+          recipientId,
+          date,
+          occasionType: occasion.occasion_type,
+        });
+      }
       onSuccess();
     } catch (error) {
       console.error("Error creating occasion:", error);

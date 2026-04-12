@@ -14,6 +14,7 @@ const AddRecipient = () => {
   const router = useRouter();
   const params = useLocalSearchParams<{
     name?: string;
+    birthday?: string;
     address?: string;
     city?: string;
     state?: string;
@@ -22,6 +23,8 @@ const AddRecipient = () => {
   }>();
   const initialContactName =
     typeof params.name === "string" ? params.name : undefined;
+  const initialBirthday =
+    typeof params.birthday === "string" ? params.birthday : undefined;
   const initialAddress = {
     ...(typeof params.address === "string" && { address: params.address }),
     ...(typeof params.city === "string" && { city: params.city }),
@@ -58,7 +61,8 @@ const AddRecipient = () => {
   } = useAddRecipientFlow(
     user?.id || "",
     initialContactName,
-    Object.keys(initialAddress).length > 0 ? initialAddress : undefined
+    Object.keys(initialAddress).length > 0 ? initialAddress : undefined,
+    initialBirthday
   );
 
   // Enhanced finish conversation handler with proper error handling

@@ -41,7 +41,8 @@ export function useAddRecipientFlow(
   initialContactName?: string,
   initialAddress?: Partial<
     Pick<ExtractedData, "address" | "city" | "state" | "zip_code" | "country">
-  >
+  >,
+  initialBirthday?: string
 ): UseAddRecipientFlowReturn {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -74,9 +75,13 @@ export function useAddRecipientFlow(
     onExtractSuccess: (data) => {
       // Validate that we have required fields
       if (data.name && data.relationship_type) {
+        const merged = { ...data };
+        // Pre-fill birthday from device contact if not already extracted
+        if (!merged.birthday && initialBirthday) {
+          merged.birthday = initialBirthday;
+        }
         // Pre-fill address from device contact if not already extracted
         if (initialAddress) {
-          const merged = { ...data };
           if (!merged.address && initialAddress.address)
             merged.address = initialAddress.address;
           if (!merged.city && initialAddress.city)
@@ -87,6 +92,8 @@ export function useAddRecipientFlow(
             merged.zip_code = initialAddress.zip_code;
           if (!merged.country && initialAddress.country)
             merged.country = initialAddress.country;
+        }
+        if (initialAddress || initialBirthday) {
           genericSetExtractedData(merged);
         }
         setShowDataReview(true);
@@ -214,7 +221,7 @@ export function useAddRecipientFlow(
         name: extracted.name,
         relationship_type: extracted.relationship_type,
         interests: extracted.interests || [],
-        birthday: extracted.birthday || undefined,
+        birthday: extracted.birthday || initialBirthday || undefined,
         emotional_tone_preference:
           extracted.emotional_tone_preference || undefined,
         gift_budget_min: extracted.gift_budget_min || undefined,
