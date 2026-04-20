@@ -77,7 +77,7 @@ serve(async (req) => {
           : "";
 
     // Build messages for the LLM
-    const messages: Array<{ role: string; content: string }> = [
+    const messages: { role: string; content: string }[] = [
       { role: "system", content: META_SYSTEM_PROMPT + categoryGuidance },
     ];
 
@@ -104,7 +104,6 @@ serve(async (req) => {
         model: "gpt-4o",
         messages,
         temperature: 0.7,
-        max_tokens: 2000,
         response_format: { type: "json_object" },
       }),
     });
