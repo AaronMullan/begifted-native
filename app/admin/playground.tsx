@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   ScrollView,
@@ -109,6 +109,16 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
     setTestMessageInput("");
     playground.sendConversationMessage(msg);
   }
+
+  // Auto-generate the first LLM message when conversation prompt is selected
+  useEffect(() => {
+    if (
+      playground.selectedPromptKey === "add_recipient_conversation" &&
+      playground.testMessages.length === 0
+    ) {
+      playground.startConversation();
+    }
+  }, [playground.selectedPromptKey]);
 
   async function handleDeploy() {
     try {
@@ -691,13 +701,14 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                 conversationScrollRef.current?.scrollToEnd({ animated: true })
               }
             >
-              {playground.testMessages.length === 0 && (
-                <View style={styles.welcomeMessage}>
-                  <Text variant="bodySmall" style={styles.welcomeText}>
-                    Send a message to start testing the conversation prompt.
-                  </Text>
-                </View>
-              )}
+              {playground.testMessages.length === 0 &&
+                !playground.isConversationLoading && (
+                  <View style={styles.welcomeMessage}>
+                    <Text variant="bodySmall" style={styles.welcomeText}>
+                      Generating opening message...
+                    </Text>
+                  </View>
+                )}
               {playground.testMessages.map((msg, i) => (
                 <View
                   key={i}

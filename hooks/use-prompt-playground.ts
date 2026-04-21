@@ -435,6 +435,40 @@ export function usePromptPlayground(userId: string) {
   function clearTestMessages() {
     setTestMessages([]);
     setGenerationResult(null);
+    if (selectedPromptKey === "add_recipient_conversation") {
+      generateFirstMessage();
+    }
+  }
+
+  async function generateFirstMessage() {
+    setIsConversationLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "recipient-conversation",
+        {
+          body: {
+            action: "conversation",
+            conversationType: "add_recipient",
+            messages: [],
+            customSystemPrompt: currentPrompt,
+          },
+        }
+      );
+      if (error) throw error;
+
+      setTestMessages([{ role: "assistant", content: data.reply }]);
+      setGenerationResult(data);
+    } catch (err) {
+      setTestMessages([
+        {
+          role: "assistant",
+          content: `Error: ${err instanceof Error ? err.message : "Failed to get response"}`,
+        },
+      ]);
+    } finally {
+      setIsConversationLoading(false);
+    }
   }
 
   async function sendConversationMessage(content: string) {
@@ -539,6 +573,7 @@ export function usePromptPlayground(userId: string) {
     testMessages,
     addTestMessage,
     clearTestMessages,
+    startConversation: generateFirstMessage,
     sendConversationMessage,
     isConversationLoading,
 
