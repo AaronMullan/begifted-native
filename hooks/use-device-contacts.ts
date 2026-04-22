@@ -9,13 +9,14 @@ export interface DeviceContact {
   phoneNumbers?: string[];
   emails?: string[];
   birthday?: { month: number; day: number; year?: number };
-  addresses?: Array<{
+  addresses?: {
     street?: string;
     city?: string;
     region?: string;
     postalCode?: string;
     country?: string;
-  }>;
+  }[];
+  imageUri?: string;
 }
 
 export function useDeviceContacts() {
@@ -57,6 +58,7 @@ export function useDeviceContacts() {
           Contacts.Fields.Emails,
           Contacts.Fields.Birthday,
           Contacts.Fields.Addresses,
+          Contacts.Fields.Image,
         ],
       });
 
@@ -85,6 +87,10 @@ export function useDeviceContacts() {
             postalCode: addr.postalCode,
             country: addr.country,
           })),
+          imageUri:
+            contact.imageAvailable && contact.image?.uri
+              ? contact.image.uri
+              : undefined,
         }));
       return filteredContacts;
     } catch (error) {

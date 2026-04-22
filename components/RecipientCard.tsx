@@ -32,6 +32,7 @@ export default function RecipientCard({ recipient, onPress }: RecipientCardProps
       description={description}
       onPress={() => onPress(recipient)}
       showChevron
+      imageUri={recipient.photo_url ?? undefined}
     />
   );
 }

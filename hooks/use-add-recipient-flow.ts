@@ -1,4 +1,6 @@
 import * as Haptics from "expo-haptics";
+import * as FileSystem from "expo-file-system";
+import { toByteArray } from "base64-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -42,7 +44,8 @@ export function useAddRecipientFlow(
   initialAddress?: Partial<
     Pick<ExtractedData, "address" | "city" | "state" | "zip_code" | "country">
   >,
-  initialBirthday?: string
+  initialBirthday?: string,
+  initialPhotoUri?: string
 ): UseAddRecipientFlowReturn {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -112,6 +115,33 @@ export function useAddRecipientFlow(
       setIsSaving(true);
 
       try {
+        // Upload contact photo if one was provided
+        let photoUrl: string | null = null;
+        if (initialPhotoUri) {
+          try {
+            const base64 = await FileSystem.readAsStringAsync(initialPhotoUri, {
+              encoding: "base64",
+            });
+            const imageData = toByteArray(base64);
+            const filePath = `${userId}/${Date.now()}.jpg`;
+            const { data: uploadData, error: uploadError } =
+              await supabase.storage
+                .from("recipient-photos")
+                .upload(filePath, imageData, {
+                  contentType: "image/jpeg",
+                  upsert: true,
+                });
+            if (!uploadError && uploadData) {
+              const { data: urlData } = supabase.storage
+                .from("recipient-photos")
+                .getPublicUrl(uploadData.path);
+              photoUrl = urlData.publicUrl;
+            }
+          } catch {
+            // Photo upload failing should not block recipient creation
+          }
+        }
+
         // Prepare recipient data
         const recipientData: any = {
           user_id: userId,
@@ -130,6 +160,7 @@ export function useAddRecipientFlow(
           state: data.state?.trim() || null,
           zip_code: data.zip_code?.trim() || null,
           country: data.country?.trim() || "US",
+          photo_url: photoUrl,
         };
 
         // Insert recipient

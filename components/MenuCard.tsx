@@ -1,11 +1,13 @@
 import type { ReactNode } from "react";
 import { View, StyleSheet, Pressable } from "react-native";
 import { Text } from "react-native-paper";
+import { Image } from "expo-image";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "@/lib/colors";
 
 type MenuCardProps = {
   icon?: keyof typeof MaterialIcons.glyphMap;
+  imageUri?: string;
   title: string;
   description: string;
   onPress: () => void;
@@ -16,6 +18,7 @@ type MenuCardProps = {
 
 const MenuCard: React.FC<MenuCardProps> = ({
   icon,
+  imageUri,
   title,
   description,
   onPress,
@@ -25,11 +28,19 @@ const MenuCard: React.FC<MenuCardProps> = ({
 }) => {
   return (
     <Pressable style={styles.card} onPress={onPress} onLongPress={onLongPress}>
-      {icon && (
+      {imageUri ? (
+        <View style={styles.iconContainer}>
+          <Image
+            source={{ uri: imageUri }}
+            style={styles.recipientPhoto}
+            contentFit="cover"
+          />
+        </View>
+      ) : icon ? (
         <View style={styles.iconContainer}>
           <MaterialIcons name={icon} size={32} color={Colors.blues.medium} />
         </View>
-      )}
+      ) : null}
       <View style={styles.textContent}>
         <Text variant="titleLarge" style={styles.title}>
           {title}
@@ -68,6 +79,10 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.40)",
     borderTopLeftRadius: 18,
     borderBottomLeftRadius: 18,
+  },
+  recipientPhoto: {
+    width: 80,
+    height: "100%",
   },
   textContent: {
     flex: 1,
