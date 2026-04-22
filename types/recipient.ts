@@ -13,6 +13,7 @@ export interface Recipient {
   state?: string;
   zip_code?: string;
   country?: string;
+  photo_url?: string;
   created_at: string;
   updated_at?: string;
 }

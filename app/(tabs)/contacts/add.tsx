@@ -20,11 +20,14 @@ const AddRecipient = () => {
     state?: string;
     zip_code?: string;
     country?: string;
+    photo_url?: string;
   }>();
   const initialContactName =
     typeof params.name === "string" ? params.name : undefined;
   const initialBirthday =
     typeof params.birthday === "string" ? params.birthday : undefined;
+  const initialPhotoUri =
+    typeof params.photo_url === "string" ? params.photo_url : undefined;
   const initialAddress = {
     ...(typeof params.address === "string" && { address: params.address }),
     ...(typeof params.city === "string" && { city: params.city }),
@@ -62,7 +65,8 @@ const AddRecipient = () => {
     user?.id || "",
     initialContactName,
     Object.keys(initialAddress).length > 0 ? initialAddress : undefined,
-    initialBirthday
+    initialBirthday,
+    initialPhotoUri
   );
 
   // Enhanced finish conversation handler with proper error handling

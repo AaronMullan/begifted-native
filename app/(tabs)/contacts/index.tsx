@@ -218,6 +218,7 @@ export default function Contacts() {
         ...(addr?.region && { state: addr.region }),
         ...(addr?.postalCode && { zip_code: addr.postalCode }),
         ...(addr?.country && { country: addr.country }),
+        ...(contact.imageUri && { photo_url: contact.imageUri }),
       },
     });
   }
