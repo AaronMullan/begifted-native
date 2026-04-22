@@ -43,7 +43,7 @@ Your task:
 Return your response as a JSON object with exactly these fields:
 {
   "revisedPrompt": "The full rewritten system prompt text",
-  "explanation": "A brief 1-2 sentence summary of what you changed and why"
+  "explanation": "A brief 1-2 sentence proposal describing what you would change and why — phrase it as a suggestion awaiting approval (e.g. 'I'd propose to...' or 'Here's what I suggest changing: ...')"
 }`;
 
 serve(async (req) => {
