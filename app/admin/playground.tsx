@@ -963,6 +963,27 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                 <ActivityIndicator size="small" />
               </View>
             )}
+            {playground.pendingRefinement && !playground.isRefining && (
+              <View style={styles.approvalRow}>
+                <Button
+                  mode="contained"
+                  onPress={playground.approvePendingRefinement}
+                  icon="check"
+                  style={styles.approveButton}
+                  compact
+                >
+                  Apply Changes
+                </Button>
+                <Button
+                  mode="outlined"
+                  onPress={playground.discardPendingRefinement}
+                  icon="close"
+                  compact
+                >
+                  Discard
+                </Button>
+              </View>
+            )}
           </ScrollView>
           <View style={styles.chatInputRow}>
             <TextInput
@@ -973,6 +994,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
               onSubmitEditing={handleSendChat}
               style={styles.chatInputField}
               dense
+              disabled={playground.isRefining}
             />
             <IconButton
               icon="send"
@@ -2015,6 +2037,18 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0f0f0",
     borderRadius: 14,
     borderBottomLeftRadius: 4,
+  },
+  approvalRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#e8e8e8",
+    backgroundColor: "#f9f9f9",
+  },
+  approveButton: {
+    backgroundColor: Colors.darks.black,
   },
   chatInputRow: {
     flexDirection: "row",

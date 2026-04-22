@@ -86,6 +86,10 @@ export function usePromptPlayground(userId: string) {
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isRefining, setIsRefining] = useState(false);
+  const [pendingRefinement, setPendingRefinement] = useState<{
+    prompt: string;
+    explanation: string;
+  } | null>(null);
 
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -115,6 +119,7 @@ export function usePromptPlayground(userId: string) {
     setGenerationResult(null);
     setTestInput("");
     setTestMessages([]);
+    setPendingRefinement(null);
     // Prompt will be reset via the effect below when activePromptQuery loads
     // For now, set to the registry default
     setCurrentPrompt(def.defaultPrompt);
@@ -245,12 +250,12 @@ export function usePromptPlayground(userId: string) {
 
       const assistantMsg: ChatMessage = {
         role: "assistant",
-        content: data.explanation || "Prompt updated.",
+        content: data.explanation || "Here's my proposed change.",
       };
       setChatMessages((prev) => [...prev, assistantMsg]);
 
       if (data.revisedPrompt) {
-        setCurrentPrompt(data.revisedPrompt);
+        setPendingRefinement({ prompt: data.revisedPrompt, explanation: data.explanation });
       }
     } catch (err) {
       const errorMsg: ChatMessage = {
@@ -413,11 +418,30 @@ export function usePromptPlayground(userId: string) {
     },
   });
 
+  function approvePendingRefinement() {
+    if (!pendingRefinement) return;
+    setCurrentPrompt(pendingRefinement.prompt);
+    setPendingRefinement(null);
+    setChatMessages((prev) => [
+      ...prev,
+      { role: "user", content: "✓ Changes applied." },
+    ]);
+  }
+
+  function discardPendingRefinement() {
+    setPendingRefinement(null);
+    setChatMessages((prev) => [
+      ...prev,
+      { role: "user", content: "✗ Changes discarded." },
+    ]);
+  }
+
   // Reset prompt to the active version
   function resetPrompt() {
     setCurrentPrompt(originalPromptRef.current);
     setChatMessages([]);
     setGenerationResult(null);
+    setPendingRefinement(null);
   }
 
   // Load a previous test run
@@ -553,6 +577,9 @@ export function usePromptPlayground(userId: string) {
     chatMessages,
     isRefining,
     sendRefinementMessage,
+    pendingRefinement,
+    approvePendingRefinement,
+    discardPendingRefinement,
 
     // Generation
     isGenerating,
