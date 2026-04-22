@@ -18,14 +18,6 @@ npm run format         # Prettier format
 npm run format:check   # Check formatting
 ```
 
-**EAS Build:**
-```bash
-eas build --profile development --platform ios   # Dev client
-eas build --profile preview --platform ios       # TestFlight/store
-eas build --profile production --platform ios    # Production
-eas update --branch production                   # OTA update
-```
-
 No test framework is currently configured.
 
 ## Architecture
@@ -34,39 +26,17 @@ No test framework is currently configured.
 
 File-based routing in `app/`. Tab navigation via `(tabs)` group with custom `BottomNav` component (default tab bar hidden). Stack animations are disabled globally; screens manage their own transitions.
 
-- `app/index.tsx` — Auth/entry screen
-- `app/(tabs)/dashboard.tsx` — Home
-- `app/(tabs)/contacts/` — Recipients list, detail (`[id].tsx`), add flow
-- `app/(tabs)/calendar.tsx` — Occasions
-- `app/(tabs)/settings/` — Settings hub and sub-screens
-
 ### Data Layer
 
 All Supabase queries live in `lib/api.ts`. Query cache keys are centralized in `lib/query-keys.ts`. Custom hooks in `hooks/` wrap TanStack Query's `useQuery`/`useMutation`.
 
-**Key hooks:** `use-auth`, `use-recipients`, `use-recipient`, `use-profile`, `use-occasions`, `use-gift-suggestions`, `use-conversation-flow`, `use-add-recipient-flow`
-
-**Mutation hooks:** `use-recipient-mutations`, `use-profile-mutations` — handle create/update/delete with cache invalidation via query keys.
-
-Query client is configured with 5-min stale time, 30-min GC, and persists to AsyncStorage (24-hour max age) via `lib/query-persister.ts`.
-
-### Provider Stack (`app/_layout.tsx`)
-
-`PersistQueryClientProvider` → `PaperProvider` (with custom MD3 theme) → `Stack`. Gradient background and Header are rendered outside the Stack for persistence across routes.
-
 ### Backend (Supabase)
-
-**Tables:** `profiles`, `recipients`, `occasions`, `gift_suggestions`, `user_preferences`, `user_push_tokens`
 
 **Edge Functions** (Deno, in `supabase/functions/`):
 - `recipient-conversation` — AI conversation for extracting recipient data from natural language
 - `generate-gift-suggestions` — AI gift recommendations
 
 **Critical:** `lib/supabase.ts` must import `react-native-url-polyfill/auto` as a standard import at the top of the file, before any Supabase imports. Never use `require()` for the polyfill. Never duplicate this import in other files. Never override `global.fetch` in the Supabase client config.
-
-### Types
-
-Shared types in `types/recipient.ts`. API-layer types (`Profile`, `Occasion`) are defined in `lib/api.ts`. Component prop types are co-located with their components.
 
 ## Code Conventions
 
