@@ -34,6 +34,8 @@ type CISPreview = {
     date: string;
     significance?: string;
     budget_usd?: number;
+    budget_min_usd?: number;
+    budget_max_usd?: number;
   };
   history: {
     prior_gifts: {
