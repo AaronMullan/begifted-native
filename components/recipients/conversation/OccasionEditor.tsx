@@ -32,6 +32,18 @@ export function OccasionEditor({
     }
   }, [visible, occasion]);
 
+  const handleDateChange = (text: string) => {
+    const digits = text.replace(/\D/g, "").slice(0, 8);
+    let formatted = digits;
+    if (digits.length > 6) {
+      formatted = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+    } else if (digits.length > 4) {
+      formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
+    }
+    setDateInput(formatted);
+    setErrorMessage("");
+  };
+
   const handleSave = () => {
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -88,12 +100,9 @@ export function OccasionEditor({
                     mode="outlined"
                     label="Date"
                     value={dateInput}
-                    onChangeText={(text) => {
-                      setDateInput(text);
-                      setErrorMessage("");
-                    }}
+                    onChangeText={handleDateChange}
                     placeholder="YYYY-MM-DD"
-                    keyboardType="numeric"
+                    keyboardType="number-pad"
                     maxLength={10}
                     style={styles.input}
                   />
