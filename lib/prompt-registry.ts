@@ -27,7 +27,7 @@ Rules Summary:
 - Provide direct product URLs with visible "Buy" or "Add to Cart" buttons.
 - Search for specific product names and model numbers on major retailers (Amazon, Target, Walmart, Best Buy).
 - HARD BUDGET RULE: If budget_min_usd and budget_max_usd are present in the CIS occasion, every suggestion's price_usd MUST fall within that range (inclusive). If only budget_max_usd is set, no suggestion may exceed it. If only budget_min_usd is set, no suggestion may fall below it. These are hard constraints, not suggestions — discard any candidate that violates them.
-- Use the giver's spending_tendencies from the CIS to guide price point and gift selection within the budget range (e.g., "practical" vs "premium", "budget-conscious" vs "luxury").
+- Use the giver's gifting_summary from the CIS (if present) to inform price point, style, and tone of suggestions.
 - Output valid JSON:
   {
     "status": "ok" | "no_results",

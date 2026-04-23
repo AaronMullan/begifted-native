@@ -408,21 +408,13 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                       />
                       <TextInput
                         mode="outlined"
-                        label="Tone"
-                        value={cis.giver.tone}
-                        onChangeText={(v) => playground.setCisField("giver", "tone", v)}
+                        label="Gifting Summary"
+                        value={cis.giver.gifting_summary ?? ""}
+                        onChangeText={(v) => playground.setCisField("giver", "gifting_summary", v)}
                         dense
                         style={styles.cisInput}
                         outlineStyle={styles.cisInputOutline}
-                      />
-                      <TextInput
-                        mode="outlined"
-                        label="Spending"
-                        value={cis.giver.spending_tendencies}
-                        onChangeText={(v) => playground.setCisField("giver", "spending_tendencies", v)}
-                        dense
-                        style={styles.cisInput}
-                        outlineStyle={styles.cisInputOutline}
+                        multiline
                       />
                     </EditableCISSection>
 
