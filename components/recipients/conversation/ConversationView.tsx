@@ -3,8 +3,9 @@ import {
   View,
   ScrollView,
   StyleSheet,
-  KeyboardAvoidingView,
+  Keyboard,
   Platform,
+  Animated,
   TextInput as RNTextInput,
 } from "react-native";
 import {
@@ -44,9 +45,43 @@ export function ConversationView({
 }: ConversationViewProps) {
   const [inputMessage, setInputMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  const keyboardOffset = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
-  const inputBottomPadding = BOTTOM_NAV_HEIGHT + Math.max(insets.bottom, 0);
+  const inputBottomPadding = isKeyboardVisible
+    ? Math.max(insets.bottom, 8)
+    : BOTTOM_NAV_HEIGHT + Math.max(insets.bottom, 0);
+
+  useEffect(() => {
+    const showEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setIsKeyboardVisible(true);
+      Animated.timing(keyboardOffset, {
+        toValue: e.endCoordinates.height,
+        duration: e.duration || 250,
+        useNativeDriver: false,
+      }).start();
+    });
+
+    const hideSub = Keyboard.addListener(hideEvent, (e) => {
+      setIsKeyboardVisible(false);
+      Animated.timing(keyboardOffset, {
+        toValue: 0,
+        duration: e.duration || 250,
+        useNativeDriver: false,
+      }).start();
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     // Auto-scroll to bottom when new messages arrive
@@ -72,11 +107,7 @@ export function ConversationView({
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-    >
+    <Animated.View style={[styles.container, { paddingBottom: keyboardOffset }]}>
       {/* Header */}
       <View style={styles.header}>
         <IconButton
@@ -191,7 +222,7 @@ export function ConversationView({
           />
         </View>
       </View>
-    </KeyboardAvoidingView>
+    </Animated.View>
   );
 }
 
