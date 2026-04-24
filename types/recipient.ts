@@ -14,6 +14,7 @@ export interface Recipient {
   zip_code?: string;
   country?: string;
   photo_url?: string;
+  synthesized_profile?: string | null;
   created_at: string;
   updated_at?: string;
 }

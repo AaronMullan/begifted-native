@@ -36,6 +36,20 @@ interface UpdateRecipientData {
   country?: string | null;
 }
 
+const PROFILE_RELEVANT_FIELDS: (keyof UpdateRecipientData)[] = [
+  "interests",
+  "birthday",
+  "relationship_type",
+  "emotional_tone_preference",
+  "gift_budget_min",
+  "gift_budget_max",
+  "address",
+  "city",
+  "state",
+  "zip_code",
+  "country",
+];
+
 /**
  * Hook to create a new recipient
  */
@@ -106,6 +120,20 @@ export function useUpdateRecipient() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.occasions(variables.userId),
       });
+
+      // Re-synthesize profile in the background if any profile-relevant fields changed
+      const needsResynthesis = PROFILE_RELEVANT_FIELDS.some(
+        (field) => field in variables.data
+      );
+      if (needsResynthesis) {
+        fetch("https://be-gifted.vercel.app/api/synthesize-recipient-profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ recipientId: variables.recipientId }),
+        }).catch((err) => {
+          console.error("Failed to trigger profile synthesis:", err);
+        });
+      }
     },
   });
 }
