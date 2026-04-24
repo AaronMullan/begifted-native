@@ -461,6 +461,16 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                         style={styles.cisInput}
                         outlineStyle={styles.cisInputOutline}
                       />
+                      {cis.recipient.synthesized_profile ? (
+                        <View style={styles.synthesizedProfileBox}>
+                          <Text variant="labelSmall" style={styles.cisFieldLabel}>
+                            Synthesized Profile
+                          </Text>
+                          <Text variant="bodySmall" style={styles.synthesizedProfileText}>
+                            {cis.recipient.synthesized_profile}
+                          </Text>
+                        </View>
+                      ) : null}
                       <Text variant="labelSmall" style={styles.cisFieldLabel}>
                         Interests
                       </Text>
@@ -1899,6 +1909,17 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 4,
     marginBottom: 4,
+  },
+  synthesizedProfileBox: {
+    backgroundColor: "#f5f5f5",
+    borderRadius: 6,
+    padding: 8,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  synthesizedProfileText: {
+    color: Colors.darks.brown,
+    lineHeight: 16,
   },
   cisInterestChip: {
     backgroundColor: "#e8f4f8",
