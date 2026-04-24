@@ -16,10 +16,14 @@ export default function ProfileSettings() {
 
   // Form fields
   const [fullName, setFullName] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
 
   // Original values to track changes
   const [originalValues, setOriginalValues] = useState({
     fullName: "",
+    city: "",
+    state: "",
   });
 
   useEffect(() => {
@@ -32,10 +36,16 @@ export default function ProfileSettings() {
   useEffect(() => {
     if (profile) {
       const fetchedFullName = profile.full_name || profile.name || "";
+      const fetchedCity = profile.billing_address_city || "";
+      const fetchedState = profile.billing_address_state || "";
 
       setFullName(fetchedFullName);
+      setCity(fetchedCity);
+      setState(fetchedState);
       setOriginalValues({
         fullName: fetchedFullName,
+        city: fetchedCity,
+        state: fetchedState,
       });
     }
   }, [profile]);
@@ -48,16 +58,29 @@ export default function ProfileSettings() {
 
     const trimmedFullName = fullName.trim();
 
+    const trimmedCity = city.trim();
+    const trimmedState = state.trim();
+    const locationChanged =
+      trimmedCity !== originalValues.city ||
+      trimmedState !== originalValues.state;
+
     try {
       await updateProfile.mutateAsync({
         userId: user.id,
         data: {
           full_name: trimmedFullName || null,
+          // Only include location when it changed so the hook knows to re-synthesize
+          ...(locationChanged && {
+            billing_address_city: trimmedCity || null,
+            billing_address_state: trimmedState || null,
+          }),
         },
       });
 
       setOriginalValues({
         fullName: trimmedFullName,
+        city: trimmedCity,
+        state: trimmedState,
       });
 
       Alert.alert("Success", "Profile updated successfully!");
@@ -88,7 +111,10 @@ export default function ProfileSettings() {
   }
 
   // Check if there are unsaved changes
-  const hasChanges = fullName.trim() !== originalValues.fullName;
+  const hasChanges =
+    fullName.trim() !== originalValues.fullName ||
+    city.trim() !== originalValues.city ||
+    state.trim() !== originalValues.state;
 
   if (loading) {
     return (
@@ -166,6 +192,31 @@ export default function ProfileSettings() {
                 right={<TextInput.Icon icon="ellipsis-horizontal" />}
                 style={styles.input}
               />
+            </View>
+
+            {/* Location */}
+            <View style={styles.locationRow}>
+              <View style={styles.cityField}>
+                <TextInput
+                  mode="outlined"
+                  label="City"
+                  value={city}
+                  onChangeText={setCity}
+                  placeholder="City"
+                  style={styles.input}
+                />
+              </View>
+              <View style={styles.stateField}>
+                <TextInput
+                  mode="outlined"
+                  label="State"
+                  value={state}
+                  onChangeText={setState}
+                  placeholder="State"
+                  autoCapitalize="characters"
+                  style={styles.input}
+                />
+              </View>
             </View>
 
             {/* Email */}
@@ -260,6 +311,17 @@ const styles = StyleSheet.create({
   },
   fieldContainer: {
     marginBottom: 20,
+  },
+  locationRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 20,
+  },
+  cityField: {
+    flex: 2,
+  },
+  stateField: {
+    flex: 1,
   },
   input: {},
   emailNote: {

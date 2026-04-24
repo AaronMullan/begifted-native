@@ -130,6 +130,13 @@ export default function GiftingPreferences() {
 
       setOriginalGiftingStyleText(giftingStyleText);
       setOriginalReminderDays(reminderDays);
+
+      // Re-synthesize giver profile in the background when gifting text changed
+      if (giftingStyleText.trim() && giftingStyleText !== originalGiftingStyleText) {
+        supabase.functions
+          .invoke("synthesize-giver-profile", { body: { userId: user.id } })
+          .catch(() => {});
+      }
     } catch (error: unknown) {
       let message = "Unknown error";
       if (error instanceof Error) {

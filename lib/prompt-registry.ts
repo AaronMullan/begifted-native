@@ -27,7 +27,9 @@ Rules Summary:
 - Provide direct product URLs with visible "Buy" or "Add to Cart" buttons.
 - Search for specific product names and model numbers on major retailers (Amazon, Target, Walmart, Best Buy).
 - HARD BUDGET RULE: If budget_min_usd and budget_max_usd are present in the CIS occasion, every suggestion's price_usd MUST fall within that range (inclusive). If only budget_max_usd is set, no suggestion may exceed it. If only budget_min_usd is set, no suggestion may fall below it. These are hard constraints, not suggestions — discard any candidate that violates them.
-- Use the giver's gifting_summary from the CIS (if present) to inform price point, style, and tone of suggestions.
+- GIVER PROFILE: If the CIS giver includes a synthesized_profile field, use it as the primary lens for understanding the giver's style, budget philosophy, and taste — it captures who they are as a gift-giver more holistically than the raw tone/spending fields. If synthesized_profile is absent, fall back to gifting_summary, then tone and spending_tendencies.
+- GIVER LOCATION: If the CIS giver includes a location field, use it to inform regionally relevant suggestions and product searches (e.g. prefer local artisans, experiences available in that region, or retailers that ship there reliably).
+- RECIPIENT PROFILE: If the CIS recipient includes a synthesized_profile field, use it as the primary lens for gift selection — it captures the recipient's lifestyle, values, and aesthetic more holistically than the raw interest list. If synthesized_profile is absent, infer the recipient persona from the raw interests, age, relationship, and aesthetic fields directly.
 - Output valid JSON:
   {
     "status": "ok" | "no_results",
