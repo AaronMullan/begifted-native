@@ -27,6 +27,7 @@ type CISPreview = {
     location?: string;
     interests?: string[];
     aesthetic?: string[];
+    synthesized_profile?: string;
   };
   occasion: {
     type: string;
