@@ -12,6 +12,7 @@ export interface UserPreferences {
   user_description: string | null;
   gifting_style_text: string | null;
   gifting_summary: string | null;
+  synthesized_giver_profile: string | null;
   reminder_days: number;
   auto_fallback_enabled: boolean;
 }

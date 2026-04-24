@@ -5,6 +5,8 @@ import type { Profile } from "../lib/api";
 
 interface UpdateProfileData {
   full_name?: string | null;
+  billing_address_city?: string | null;
+  billing_address_state?: string | null;
   updated_at?: string;
 }
 
@@ -29,6 +31,9 @@ export function useUpdateProfile() {
         updated_at: new Date().toISOString(),
       };
 
+      if ("billing_address_city" in data) payload.billing_address_city = data.billing_address_city ?? null;
+      if ("billing_address_state" in data) payload.billing_address_state = data.billing_address_state ?? null;
+
       const { data: profile, error } = await supabase
         .from("profiles")
         .update(payload)
@@ -40,10 +45,19 @@ export function useUpdateProfile() {
       return profile as Profile;
     },
     onSuccess: (_, variables) => {
-      // Invalidate profile and dashboard stats
       queryClient.invalidateQueries({
         queryKey: queryKeys.profile(variables.userId),
       });
+
+      // Re-synthesize giver profile in the background when location changes
+      const locationChanged =
+        "billing_address_city" in variables.data ||
+        "billing_address_state" in variables.data;
+      if (locationChanged) {
+        supabase.functions
+          .invoke("synthesize-giver-profile", { body: { userId: variables.userId } })
+          .catch(() => {});
+      }
     },
   });
 }

@@ -40,6 +40,12 @@ export default function OnboardingIdentity() {
           },
           { onConflict: "user_id" }
         );
+
+      // Generate initial giver profile in the background (partial — no gifting style yet)
+      supabase.functions
+        .invoke("synthesize-giver-profile", { body: { userId: user.id } })
+        .catch(() => {});
+
       router.push("/onboarding/confirmation");
     } catch (error) {
       console.error("Error saving user description:", error);
