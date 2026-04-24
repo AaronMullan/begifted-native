@@ -202,23 +202,36 @@ export function useAddRecipientFlow(
         // Trigger success haptic feedback
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-        // Trigger gift generation in the background (fire-and-forget)
-        if (recipient?.id) {
-          fetch("https://be-gifted.vercel.app/api/generate-gifts", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ recipientId: recipient.id }),
-          }).catch((err) => {
-            // Log but don't fail the save flow
-            console.error("Failed to trigger gift generation:", err);
-          });
-        }
-
-        // Set success state to show success screen
+        // Show success immediately — background work happens after
         setSavedRecipientName(data.name || "Recipient");
         setSaveSuccess(true);
+
+        // Background: synthesize profile first, then gift generation so the
+        // CIS already contains synthesized_profile when gifts are generated
+        if (recipient?.id) {
+          const recipientId = recipient.id;
+          (async () => {
+            try {
+              await fetch(
+                "https://be-gifted.vercel.app/api/synthesize-recipient-profile",
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ recipientId }),
+                }
+              );
+            } catch (err) {
+              console.error("Failed to trigger profile synthesis:", err);
+            }
+            fetch("https://be-gifted.vercel.app/api/generate-gifts", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ recipientId }),
+            }).catch((err) => {
+              console.error("Failed to trigger gift generation:", err);
+            });
+          })();
+        }
       } catch (error) {
         console.error("Error saving recipient:", error);
         Alert.alert(
