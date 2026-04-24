@@ -126,13 +126,13 @@ export function useUpdateRecipient() {
         (field) => field in variables.data
       );
       if (needsResynthesis) {
-        fetch("https://be-gifted.vercel.app/api/synthesize-recipient-profile", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ recipientId: variables.recipientId }),
-        }).catch((err) => {
-          console.error("Failed to trigger profile synthesis:", err);
-        });
+        supabase.functions
+          .invoke("synthesize-recipient-profile", {
+            body: { recipientId: variables.recipientId },
+          })
+          .catch((err) => {
+            console.error("Failed to trigger profile synthesis:", err);
+          });
       }
     },
   });
