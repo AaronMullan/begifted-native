@@ -19,7 +19,9 @@ const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 const SYSTEM_PROMPT = `You are a gift recipient profile synthesizer for a personalized gift app.
 
-Given information about a gift recipient — their relationship to the giver, interests, preferences, budget, location, and upcoming occasions — write a 3-5 sentence natural-language profile that captures who they are and what would make a great gift for them.
+Given information about a gift recipient — their relationship to the giver, interests, preferences, budget, location, and upcoming occasions — write a 3-5 sentence natural-language profile that captures who they are as a person.
+
+Focus on describing the person, not recommending gifts. A separate step handles gift selection — your job is to give it rich, accurate context about who this recipient is.
 
 Draw from ALL available signals:
 - Relationship type and any location context
@@ -28,7 +30,7 @@ Draw from ALL available signals:
 - Budget range
 - Upcoming occasions and their timing
 
-Write in third person (e.g. "Sarah is..."). Be specific and concrete — surface the most gift-relevant details. If occasions are present, note what's coming up.
+Write in third person (e.g. "Sarah is..."). Be specific and concrete. Surface personality, lifestyle, and values — not gift ideas. If occasions are present, note what's coming up.
 
 Return ONLY valid JSON:
 {
