@@ -89,9 +89,8 @@ export default function GiftingPreferences() {
     try {
       setSaving(true);
 
-      let giftingSummary = undefined;
+      let userSummary = undefined;
 
-      // If gifting style text changed, extract a concise summary via edge function
       if (giftingStyleText.trim() && giftingStyleText !== originalGiftingStyleText) {
         try {
           const { data: fnData, error: fnError } = await supabase.functions.invoke(
@@ -101,8 +100,8 @@ export default function GiftingPreferences() {
 
           if (fnError) {
             console.error("Error extracting preferences:", fnError);
-          } else if (fnData) {
-            giftingSummary = fnData.gifting_summary;
+          } else if (fnData?.user_summary) {
+            userSummary = fnData.user_summary;
           }
         } catch (extractError) {
           console.error("Error calling extract function:", extractError);
@@ -116,8 +115,8 @@ export default function GiftingPreferences() {
         updated_at: new Date().toISOString(),
       };
 
-      if (giftingSummary) {
-        updates.gifting_summary = giftingSummary;
+      if (userSummary) {
+        updates.user_summary = userSummary;
       }
 
       const { error } = await supabase

@@ -6,12 +6,21 @@
 import { supabase } from "./supabase";
 import type { Recipient, GiftSuggestion } from "../types/recipient";
 
+export interface UserSummary {
+  taste_and_world: string;
+  care_and_relationship_style: string;
+  giver_style_implications: string;
+  things_to_avoid: string;
+  confidence: number;
+}
+
 export interface UserPreferences {
   user_id: string;
   onboarding_completed: boolean;
   user_description: string | null;
   gifting_style_text: string | null;
   gifting_summary: string | null;
+  user_summary: UserSummary | null;
   synthesized_giver_profile: string | null;
   reminder_days: number;
   auto_fallback_enabled: boolean;

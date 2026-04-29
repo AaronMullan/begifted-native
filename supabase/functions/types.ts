@@ -201,8 +201,16 @@ export interface ParsedGiftSuggestions {
 // User Preferences Types
 // ----------------------------------------------------------------------------
 
+export interface UserSummary {
+  taste_and_world: string;
+  care_and_relationship_style: string;
+  giver_style_implications: string;
+  things_to_avoid: string;
+  confidence: number;
+}
+
 export interface UserData {
-  gifting_summary?: string;
+  user_summary?: UserSummary;
   reminder_days?: number;
   auto_fallback_enabled?: boolean;
 }

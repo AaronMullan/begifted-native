@@ -1247,10 +1247,9 @@ const PreferencesResultView: React.FC<{ result: Record<string, unknown> }> = ({
     );
   }
 
-  const summary =
-    typeof result.gifting_summary === "string" ? result.gifting_summary : null;
+  const us = result.user_summary as Record<string, unknown> | undefined;
 
-  if (!summary) {
+  if (!us) {
     return (
       <Text variant="bodyMedium" style={{ color: Colors.darks.brown }}>
         No summary extracted.
@@ -1258,11 +1257,35 @@ const PreferencesResultView: React.FC<{ result: Record<string, unknown> }> = ({
     );
   }
 
+  const fields: { label: string; key: string }[] = [
+    { label: "Taste & World", key: "taste_and_world" },
+    { label: "Care & Relationship Style", key: "care_and_relationship_style" },
+    { label: "Giver Style Implications", key: "giver_style_implications" },
+    { label: "Things to Avoid", key: "things_to_avoid" },
+  ];
+
   return (
     <View style={resultStyles.summaryBox}>
-      <Text variant="bodyMedium" style={{ color: Colors.darks.brown }}>
-        {summary}
-      </Text>
+      {fields.map(({ label, key }) =>
+        us[key] ? (
+          <View key={key} style={{ marginBottom: 10 }}>
+            <Text
+              variant="labelSmall"
+              style={{ color: Colors.darks.brown, fontWeight: "700", marginBottom: 2 }}
+            >
+              {label}
+            </Text>
+            <Text variant="bodyMedium" style={{ color: Colors.darks.brown }}>
+              {String(us[key])}
+            </Text>
+          </View>
+        ) : null
+      )}
+      {typeof us.confidence === "number" && (
+        <Text variant="labelSmall" style={{ color: Colors.darks.brown, marginTop: 4 }}>
+          Confidence: {(us.confidence * 100).toFixed(0)}%
+        </Text>
+      )}
     </View>
   );
 };

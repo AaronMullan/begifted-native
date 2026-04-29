@@ -56,14 +56,15 @@ serve(async (req) => {
     // Fetch user preferences
     const { data: prefs } = await supabase
       .from("user_preferences")
-      .select("user_description, gifting_style_text")
+      .select("user_description, gifting_style_text, user_summary")
       .eq("user_id", userId)
       .maybeSingle();
 
     const userDescription = prefs?.user_description ?? "";
+    const userSummary = prefs?.user_summary as Record<string, string> | null ?? null;
     const giftingStyleText = prefs?.gifting_style_text ?? "";
 
-    if (!userDescription && !giftingStyleText) {
+    if (!userDescription && !userSummary && !giftingStyleText) {
       return new Response(
         JSON.stringify({ error: "No user data available for synthesis" }),
         {
@@ -119,9 +120,18 @@ serve(async (req) => {
       }
     }
 
+    const giftingContext = userSummary
+      ? [
+          userSummary.taste_and_world && `Taste & world: ${userSummary.taste_and_world}`,
+          userSummary.care_and_relationship_style && `Care & relationship style: ${userSummary.care_and_relationship_style}`,
+          userSummary.giver_style_implications && `Giver style: ${userSummary.giver_style_implications}`,
+          userSummary.things_to_avoid && `Avoid: ${userSummary.things_to_avoid}`,
+        ].filter(Boolean).join("\n")
+      : giftingStyleText;
+
     const userContext = [
       userDescription && `Self-description: ${userDescription}`,
-      giftingStyleText && `Gifting style: ${giftingStyleText}`,
+      giftingContext && `Gifting style:\n${giftingContext}`,
       historyContext,
     ]
       .filter(Boolean)

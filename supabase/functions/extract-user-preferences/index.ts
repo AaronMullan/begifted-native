@@ -44,14 +44,20 @@ serve(async (req) => {
       );
     }
 
-    const HARDCODED_FALLBACK = `You are a preference extraction assistant for a gift-planning app.
+    const HARDCODED_FALLBACK = `You are a giver profile extraction assistant for a gift-planning app.
 
-Given a user's natural-language description of their gifting style, produce a concise summary (2-4 sentences) that captures the essence of how they approach gift-giving. Preserve the user's voice and priorities — do NOT force their description into categories or labels.
+Given a user's natural-language description, build their CIS (Customer Intelligence Summary) — capturing their taste, values, relationship context, and giver lens so BeGifted can infer better recommendations.
 
 Return ONLY valid JSON:
 
 {
-  "gifting_summary": "A concise summary of the user's gifting style in their own words"
+  "user_summary": {
+    "taste_and_world": "Their aesthetic sensibility, lifestyle, and the world they inhabit",
+    "care_and_relationship_style": "How they show care, their relationship values, and how they think about the people they give to",
+    "giver_style_implications": "What this means for how BeGifted should approach gift recommendations for them",
+    "things_to_avoid": "Styles, categories, or approaches that would feel off for this person",
+    "confidence": 0.0
+  }
 }`;
 
     // Use custom prompt (playground testing) > DB active version > hardcoded fallback
@@ -101,10 +107,15 @@ Return ONLY valid JSON:
 
     const extracted = parseOpenAIJSON(rawContent);
 
+    const raw = extracted.user_summary ?? {};
     const result = {
-      gifting_summary: typeof extracted.gifting_summary === "string"
-        ? extracted.gifting_summary
-        : "",
+      user_summary: {
+        taste_and_world: typeof raw.taste_and_world === "string" ? raw.taste_and_world : "",
+        care_and_relationship_style: typeof raw.care_and_relationship_style === "string" ? raw.care_and_relationship_style : "",
+        giver_style_implications: typeof raw.giver_style_implications === "string" ? raw.giver_style_implications : "",
+        things_to_avoid: typeof raw.things_to_avoid === "string" ? raw.things_to_avoid : "",
+        confidence: typeof raw.confidence === "number" ? raw.confidence : 0,
+      },
     };
 
     return new Response(JSON.stringify(result), {
