@@ -1257,7 +1257,7 @@ const PreferencesResultView: React.FC<{ result: Record<string, unknown> }> = ({
     );
   }
 
-  const fields: { label: string; key: string }[] = [
+  const arrayFields: { label: string; key: string }[] = [
     { label: "Taste & World", key: "taste_and_world" },
     { label: "Care & Relationship Style", key: "care_and_relationship_style" },
     { label: "Giver Style Implications", key: "giver_style_implications" },
@@ -1266,8 +1266,22 @@ const PreferencesResultView: React.FC<{ result: Record<string, unknown> }> = ({
 
   return (
     <View style={resultStyles.summaryBox}>
-      {fields.map(({ label, key }) =>
-        us[key] ? (
+      {typeof us.user_summary === "string" && us.user_summary ? (
+        <View style={{ marginBottom: 10 }}>
+          <Text
+            variant="labelSmall"
+            style={{ color: Colors.darks.brown, fontWeight: "700", marginBottom: 2 }}
+          >
+            Summary
+          </Text>
+          <Text variant="bodyMedium" style={{ color: Colors.darks.brown }}>
+            {us.user_summary}
+          </Text>
+        </View>
+      ) : null}
+      {arrayFields.map(({ label, key }) => {
+        const items = Array.isArray(us[key]) ? (us[key] as string[]) : [];
+        return items.length > 0 ? (
           <View key={key} style={{ marginBottom: 10 }}>
             <Text
               variant="labelSmall"
@@ -1275,15 +1289,17 @@ const PreferencesResultView: React.FC<{ result: Record<string, unknown> }> = ({
             >
               {label}
             </Text>
-            <Text variant="bodyMedium" style={{ color: Colors.darks.brown }}>
-              {String(us[key])}
-            </Text>
+            {items.map((item, i) => (
+              <Text key={i} variant="bodyMedium" style={{ color: Colors.darks.brown }}>
+                • {item}
+              </Text>
+            ))}
           </View>
-        ) : null
-      )}
-      {typeof us.confidence === "number" && (
+        ) : null;
+      })}
+      {typeof us.confidence === "string" && (
         <Text variant="labelSmall" style={{ color: Colors.darks.brown, marginTop: 4 }}>
-          Confidence: {(us.confidence * 100).toFixed(0)}%
+          Confidence: {us.confidence}
         </Text>
       )}
     </View>
