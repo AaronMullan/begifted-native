@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 BeGifted is a gift-planning mobile app built with Expo SDK 54, React Native 0.81, React 19, and TypeScript. It uses Supabase for auth/database, TanStack Query for server state, React Native Paper for UI, and Expo Router for file-based navigation.
 
+## Git Workflow
+
+**Never commit or push directly to `main`.** Always create a feature branch, commit there, and open a PR.
+
 ## Commands
 
 ```bash
