@@ -416,6 +416,16 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                         outlineStyle={styles.cisInputOutline}
                         multiline
                       />
+                      {cis.giver.synthesized_profile ? (
+                        <View style={styles.synthesizedProfileBox}>
+                          <Text variant="labelSmall" style={styles.cisFieldLabel}>
+                            Synthesized Profile
+                          </Text>
+                          <Text variant="bodySmall" style={styles.synthesizedProfileText}>
+                            {cis.giver.synthesized_profile}
+                          </Text>
+                        </View>
+                      ) : null}
                     </EditableCISSection>
 
                     <Divider style={styles.cisDivider} />

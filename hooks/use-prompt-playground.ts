@@ -19,6 +19,7 @@ type CISPreview = {
   giver: {
     name: string;
     gifting_summary?: string;
+    synthesized_profile?: string;
   };
   recipient: {
     name: string;
