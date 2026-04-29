@@ -57,7 +57,7 @@ export default function NotificationsScreen() {
       markAllRead.mutate();
       Notifications.setBadgeCountAsync(0);
     }
-  }, [unreadCount > 0]);
+  }, [unreadCount, markAllRead]);
 
   function handleNotificationPress(notification: AppNotification) {
     if (!notification.read) {
