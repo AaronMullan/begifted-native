@@ -40,6 +40,13 @@ All Supabase queries live in `lib/api.ts`. Query cache keys are centralized in `
 - `recipient-conversation` — AI conversation for extracting recipient data from natural language
 - `generate-gift-suggestions` — AI gift recommendations
 
+**Before modifying any edge function parser or response types**, query the active prompt from `system_prompt_versions` to confirm the real JSON schema. The prompt is the source of truth — never derive types from PM descriptions or assumptions.
+
+```sql
+SELECT prompt_text FROM system_prompt_versions
+WHERE prompt_key = '<key>' AND is_active = true LIMIT 1;
+```
+
 **Critical:** `lib/supabase.ts` must import `react-native-url-polyfill/auto` as a standard import at the top of the file, before any Supabase imports. Never use `require()` for the polyfill. Never duplicate this import in other files. Never override `global.fetch` in the Supabase client config.
 
 ## Code Conventions
