@@ -75,8 +75,9 @@ export default function OnboardingIdentity() {
               Tell us about yourself
             </Text>
             <Text variant="bodyLarge" style={styles.body}>
-              How would you describe yourself? This helps us understand your
-              gifting style and personalize recommendations.
+              Tell me a little about yourself — it helps BeGifted get a feel
+              for your taste, your world, and the people you care about. A lot
+              or a little is fine. What are you like?
             </Text>
 
             <TextInput

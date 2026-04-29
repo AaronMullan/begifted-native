@@ -1,3 +1,4 @@
+import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import type {
   ContextInfo,
   ConversationResponse,
@@ -8,7 +9,6 @@ import type {
   RecipientData,
 } from "../types.ts";
 import { parseOpenAIJSON } from "./utils.ts";
-import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 // @ts-ignore - Deno environment variables are resolved at runtime
 const openAiApiKey = Deno.env.get("OPENAI_API_KEY");
 // @ts-ignore - Deno environment variables are resolved at runtime
@@ -211,10 +211,8 @@ Return JSON with what's been established:
   // If all anchors are satisfied, skip the reply LLM entirely — return a
   // deterministic wrap-up so the message and button are always in sync.
   if (contextInfo.readiness.state === "ready") {
-    const recipientName =
-      contextInfo.name || contextInfo.existing_name || "this person";
     return {
-      reply: `Great — I have everything I need to help you find the perfect gift for ${recipientName}! Feel free to keep telling me more, or tap "Let's Move to the Next Step" below whenever you're ready.`,
+      reply: `Got it. I have what I need. I'll take it from here.”`,
       shouldShowNextStepButton: true,
       conversationContext: contextInfo,
       resolvedSystemPrompt: null, // Deterministic wrap-up — LLM prompt was not used
