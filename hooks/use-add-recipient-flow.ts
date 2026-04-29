@@ -1,9 +1,8 @@
 import * as Haptics from "expo-haptics";
-import * as FileSystem from "expo-file-system";
-import { toByteArray } from "base64-js";
+import * as FileSystem from "expo-file-system/legacy";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, View } from "react-native";
 import { queryKeys } from "../lib/query-keys";
 import { supabase } from "../lib/supabase";
@@ -49,6 +48,8 @@ export function useAddRecipientFlow(
 ): UseAddRecipientFlowReturn {
   const router = useRouter();
   const queryClient = useQueryClient();
+  // Stable cached copy of the contact photo — expo-contacts temp files are cleaned up by iOS
+  const cachedPhotoUri = useRef<string | null>(initialPhotoUri ?? null);
   const [showDataReview, setShowDataReview] = useState(false);
   const [showOccasionsSelection, setShowOccasionsSelection] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -56,6 +57,16 @@ export function useAddRecipientFlow(
   const [savedRecipientName, setSavedRecipientName] = useState<string | null>(
     null
   );
+
+  // Copy contact photo to app cache immediately — the expo-contacts temp URI is
+  // cleaned up by iOS before the user finishes the flow.
+  useEffect(() => {
+    if (!initialPhotoUri) return;
+    const dest = `${FileSystem.cacheDirectory}contact-photo-${Date.now()}.jpg`;
+    FileSystem.copyAsync({ from: initialPhotoUri, to: dest })
+      .then(() => { cachedPhotoUri.current = dest; })
+      .catch(() => { /* keep original URI as fallback */ });
+  }, []);
 
   const initialUserMessage = initialContactName?.trim()
     ? `I'd like to add ${initialContactName.trim()}`
@@ -117,17 +128,16 @@ export function useAddRecipientFlow(
       try {
         // Upload contact photo if one was provided
         let photoUrl: string | null = null;
-        if (initialPhotoUri) {
+        const photoUri = cachedPhotoUri.current;
+        if (photoUri) {
           try {
-            const base64 = await FileSystem.readAsStringAsync(initialPhotoUri, {
-              encoding: "base64",
-            });
-            const imageData = toByteArray(base64);
+            const response = await fetch(photoUri);
+            const blob = await response.blob();
             const filePath = `${userId}/${Date.now()}.jpg`;
             const { data: uploadData, error: uploadError } =
               await supabase.storage
                 .from("recipient-photos")
-                .upload(filePath, imageData, {
+                .upload(filePath, blob, {
                   contentType: "image/jpeg",
                   upsert: true,
                 });
@@ -136,9 +146,11 @@ export function useAddRecipientFlow(
                 .from("recipient-photos")
                 .getPublicUrl(uploadData.path);
               photoUrl = urlData.publicUrl;
+            } else if (uploadError) {
+              console.error("Photo upload error:", uploadError);
             }
-          } catch {
-            // Photo upload failing should not block recipient creation
+          } catch (err) {
+            console.error("Photo upload failed:", err);
           }
         }
 
@@ -239,7 +251,7 @@ export function useAddRecipientFlow(
         setIsSaving(false);
       }
     },
-    [userId, router, queryClient]
+    [userId, router, queryClient, cachedPhotoUri]
   );
 
   // Wrap generic sendMessage to maintain interface
