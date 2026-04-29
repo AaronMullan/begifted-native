@@ -18,7 +18,6 @@ const VERCEL_BACKEND_URL = "https://be-gifted.vercel.app";
 export type CISPreview = {
   giver: {
     name: string;
-    gifting_summary?: string;
     synthesized_profile?: string;
   };
   recipient: {

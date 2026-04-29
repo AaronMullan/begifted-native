@@ -132,16 +132,6 @@ export const CisCard: React.FC<CisCardProps> = ({
                     style={styles.cisInput}
                     outlineStyle={styles.cisInputOutline}
                   />
-                  <TextInput
-                    mode="outlined"
-                    label="Gifting Summary"
-                    value={cis.giver.gifting_summary ?? ""}
-                    onChangeText={(v) => setCisField("giver", "gifting_summary", v)}
-                    dense
-                    style={styles.cisInput}
-                    outlineStyle={styles.cisInputOutline}
-                    multiline
-                  />
                   {cis.giver.synthesized_profile ? (
                     <View style={styles.synthesizedProfileBox}>
                       <Text variant="labelSmall" style={styles.cisFieldLabel}>
