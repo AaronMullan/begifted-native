@@ -202,11 +202,12 @@ export interface ParsedGiftSuggestions {
 // ----------------------------------------------------------------------------
 
 export interface UserSummary {
-  taste_and_world: string;
-  care_and_relationship_style: string;
-  giver_style_implications: string;
-  things_to_avoid: string;
-  confidence: number;
+  user_summary: string;
+  taste_and_world: string[];
+  care_and_relationship_style: string[];
+  giver_style_implications: string[];
+  things_to_avoid: string[];
+  confidence: "low" | "medium" | "high";
 }
 
 export interface UserData {

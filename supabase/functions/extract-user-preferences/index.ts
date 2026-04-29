@@ -44,20 +44,19 @@ serve(async (req) => {
       );
     }
 
-    const HARDCODED_FALLBACK = `You are a giver profile extraction assistant for a gift-planning app.
+    const HARDCODED_FALLBACK = `You are a user-CIS extraction assistant for BeGifted, a personal gifting concierge.
 
-Given a user's natural-language description, build their CIS (Customer Intelligence Summary) — capturing their taste, values, relationship context, and giver lens so BeGifted can infer better recommendations.
+Given a user's natural-language onboarding response, extract a profile that helps BeGifted make thoughtful, specific gift recommendations.
 
 Return ONLY valid JSON:
 
 {
-  "user_summary": {
-    "taste_and_world": "Their aesthetic sensibility, lifestyle, and the world they inhabit",
-    "care_and_relationship_style": "How they show care, their relationship values, and how they think about the people they give to",
-    "giver_style_implications": "What this means for how BeGifted should approach gift recommendations for them",
-    "things_to_avoid": "Styles, categories, or approaches that would feel off for this person",
-    "confidence": 0.0
-  }
+  "user_summary": "A concise 2-4 sentence summary of the user as a person and giver, preserving their voice and priorities.",
+  "taste_and_world": ["Stable signals about the user's taste, lifestyle, interests, or aesthetic preferences."],
+  "care_and_relationship_style": ["Signals about how the user notices, values, or supports other people."],
+  "giver_style_implications": ["Practical implications for how BeGifted should choose and frame recommendations."],
+  "things_to_avoid": ["Any stated dislikes, constraints, or recommendation types to avoid."],
+  "confidence": "low"
 }`;
 
     // Use custom prompt (playground testing) > DB active version > hardcoded fallback
@@ -107,14 +106,17 @@ Return ONLY valid JSON:
 
     const extracted = parseOpenAIJSON(rawContent);
 
-    const raw = extracted.user_summary ?? {};
+    const toStringArray = (v: any): string[] =>
+      Array.isArray(v) ? v.filter((s: any) => typeof s === "string") : [];
+
     const result = {
       user_summary: {
-        taste_and_world: typeof raw.taste_and_world === "string" ? raw.taste_and_world : "",
-        care_and_relationship_style: typeof raw.care_and_relationship_style === "string" ? raw.care_and_relationship_style : "",
-        giver_style_implications: typeof raw.giver_style_implications === "string" ? raw.giver_style_implications : "",
-        things_to_avoid: typeof raw.things_to_avoid === "string" ? raw.things_to_avoid : "",
-        confidence: typeof raw.confidence === "number" ? raw.confidence : 0,
+        user_summary: typeof extracted.user_summary === "string" ? extracted.user_summary : "",
+        taste_and_world: toStringArray(extracted.taste_and_world),
+        care_and_relationship_style: toStringArray(extracted.care_and_relationship_style),
+        giver_style_implications: toStringArray(extracted.giver_style_implications),
+        things_to_avoid: toStringArray(extracted.things_to_avoid),
+        confidence: typeof extracted.confidence === "string" ? extracted.confidence : "low",
       },
     };
 
