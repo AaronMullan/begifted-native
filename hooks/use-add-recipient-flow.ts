@@ -1,6 +1,5 @@
 import * as Haptics from "expo-haptics";
 import * as FileSystem from "expo-file-system/legacy";
-import { toByteArray } from "base64-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -132,15 +131,13 @@ export function useAddRecipientFlow(
         const photoUri = cachedPhotoUri.current;
         if (photoUri) {
           try {
-            const base64 = await FileSystem.readAsStringAsync(photoUri, {
-              encoding: "base64",
-            });
-            const imageData = toByteArray(base64);
+            const response = await fetch(photoUri);
+            const blob = await response.blob();
             const filePath = `${userId}/${Date.now()}.jpg`;
             const { data: uploadData, error: uploadError } =
               await supabase.storage
                 .from("recipient-photos")
-                .upload(filePath, imageData, {
+                .upload(filePath, blob, {
                   contentType: "image/jpeg",
                   upsert: true,
                 });
@@ -149,9 +146,11 @@ export function useAddRecipientFlow(
                 .from("recipient-photos")
                 .getPublicUrl(uploadData.path);
               photoUrl = urlData.publicUrl;
+            } else if (uploadError) {
+              console.error("Photo upload error:", uploadError);
             }
-          } catch {
-            // Photo upload failing should not block recipient creation
+          } catch (err) {
+            console.error("Photo upload failed:", err);
           }
         }
 
