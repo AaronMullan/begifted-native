@@ -89,7 +89,9 @@ export function useDeviceContacts() {
           })),
           imageUri:
             contact.imageAvailable && contact.image?.uri
-              ? contact.image.uri
+              ? contact.image.uri.startsWith("/")
+                ? `file://${contact.image.uri}`
+                : contact.image.uri
               : undefined,
         }));
       return filteredContacts;
