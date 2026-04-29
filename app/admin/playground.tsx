@@ -20,12 +20,12 @@ import {
   Menu,
   Chip,
   Divider,
-  Badge,
   Switch,
 } from "react-native-paper";
 import { useAuth } from "@/hooks/use-auth";
 import { fetchIsAdmin } from "@/lib/api";
 import { usePromptPlayground } from "@/hooks/use-prompt-playground";
+import { CisCard } from "@/components/admin/CisCard";
 import { useQuery } from "@tanstack/react-query";
 import { Colors } from "@/lib/colors";
 import type { Profile } from "@/lib/api";
@@ -81,15 +81,10 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
   const [showDeployDialog, setShowDeployDialog] = useState(false);
   const [deployNotes, setDeployNotes] = useState("");
   const [showDefaultPrompt, setShowDefaultPrompt] = useState(false);
-  const [showCisPanel, setShowCisPanel] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const [giverMenuVisible, setGiverMenuVisible] = useState(false);
   const [recipientMenuVisible, setRecipientMenuVisible] = useState(false);
   const [promptMenuVisible, setPromptMenuVisible] = useState(false);
-  const [addingInterest, setAddingInterest] = useState(false);
-  const [newInterest, setNewInterest] = useState("");
-  const [addingAvoid, setAddingAvoid] = useState(false);
-  const [newAvoid, setNewAvoid] = useState("");
   const [showProductionContext, setShowProductionContext] = useState(false);
   const [testMessageInput, setTestMessageInput] = useState("");
   const chatScrollRef = useRef<ScrollView>(null);
@@ -137,48 +132,6 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
     (r: Recipient) => r.id === playground.selectedRecipientId
   );
 
-  // Editable CIS helpers
-  const cis = playground.editedCis;
-
-  function handleRemoveInterest(index: number) {
-    const current = cis?.recipient.interests || [];
-    const updated = current.filter((_, i) => i !== index);
-    playground.setCisField("recipient", "interests", updated);
-  }
-
-  function handleAddInterest() {
-    const val = newInterest.trim();
-    if (!val) return;
-    const current = cis?.recipient.interests || [];
-    playground.setCisField("recipient", "interests", [...current, val]);
-    setNewInterest("");
-    setAddingInterest(false);
-  }
-
-  function handleRemoveAvoid(index: number) {
-    const current = cis?.history.avoid || [];
-    const updated = current.filter((_, i) => i !== index);
-    playground.setCisField("history", "avoid", updated);
-  }
-
-  function handleAddAvoid() {
-    const val = newAvoid.trim();
-    if (!val) return;
-    const current = cis?.history.avoid || [];
-    playground.setCisField("history", "avoid", [...current, val]);
-    setNewAvoid("");
-    setAddingAvoid(false);
-  }
-
-  function handleRemovePriorGift(index: number) {
-    const current = cis?.history.prior_gifts || [];
-    const updated = current.filter((_, i) => i !== index);
-    playground.setCisField("history", "prior_gifts", updated);
-  }
-
-  function sectionHasEdits(section: string) {
-    return !!(playground.cisEdits as Record<string, unknown>)[section];
-  }
 
 
   // --- Header with title + prompt selector + actions ---
@@ -359,300 +312,14 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
 
       {/* Editable CIS card */}
       {playground.selectedRecipientId && (
-        <Card style={styles.card}>
-          <Card.Content>
-            <View style={styles.cardTitleRow}>
-              <View style={styles.cisTitleGroup}>
-                <Text variant="titleSmall" style={styles.cardTitle}>
-                  CIS Data
-                </Text>
-                {playground.hasCisEdits && (
-                  <Badge size={8} style={styles.editedBadgeTitle} />
-                )}
-              </View>
-              <View style={styles.cisHeaderActions}>
-                {playground.hasCisEdits && (
-                  <Button
-                    mode="text"
-                    onPress={playground.resetCisEdits}
-                    compact
-                    icon="refresh"
-                  >
-                    Reset
-                  </Button>
-                )}
-                <IconButton
-                  icon={showCisPanel ? "chevron-up" : "chevron-down"}
-                  size={18}
-                  onPress={() => setShowCisPanel(!showCisPanel)}
-                  style={styles.collapseIcon}
-                />
-              </View>
-            </View>
-            {showCisPanel && (
-              <>
-                {playground.isLoadingCis ? (
-                  <ActivityIndicator size="small" style={styles.cisLoading} />
-                ) : cis ? (
-                  <View style={styles.cisSections}>
-                    {/* Giver section */}
-                    <EditableCISSection label="Giver" hasEdits={sectionHasEdits("giver")}>
-                      <TextInput
-                        mode="outlined"
-                        label="Name"
-                        value={cis.giver.name}
-                        onChangeText={(v) => playground.setCisField("giver", "name", v)}
-                        dense
-                        style={styles.cisInput}
-                        outlineStyle={styles.cisInputOutline}
-                      />
-                      <TextInput
-                        mode="outlined"
-                        label="Gifting Summary"
-                        value={cis.giver.gifting_summary ?? ""}
-                        onChangeText={(v) => playground.setCisField("giver", "gifting_summary", v)}
-                        dense
-                        style={styles.cisInput}
-                        outlineStyle={styles.cisInputOutline}
-                        multiline
-                      />
-                      {cis.giver.synthesized_profile ? (
-                        <View style={styles.synthesizedProfileBox}>
-                          <Text variant="labelSmall" style={styles.cisFieldLabel}>
-                            Synthesized Profile
-                          </Text>
-                          <Text variant="bodySmall" style={styles.synthesizedProfileText}>
-                            {cis.giver.synthesized_profile}
-                          </Text>
-                        </View>
-                      ) : null}
-                    </EditableCISSection>
-
-                    <Divider style={styles.cisDivider} />
-
-                    {/* Recipient section */}
-                    <EditableCISSection label="Recipient" hasEdits={sectionHasEdits("recipient")}>
-                      <TextInput
-                        mode="outlined"
-                        label="Name"
-                        value={cis.recipient.name}
-                        onChangeText={(v) => playground.setCisField("recipient", "name", v)}
-                        dense
-                        style={styles.cisInput}
-                        outlineStyle={styles.cisInputOutline}
-                      />
-                      <View style={styles.cisInputRow}>
-                        <TextInput
-                          mode="outlined"
-                          label="Relationship"
-                          value={cis.recipient.relationship}
-                          onChangeText={(v) => playground.setCisField("recipient", "relationship", v)}
-                          dense
-                          style={[styles.cisInput, styles.cisInputFlex]}
-                          outlineStyle={styles.cisInputOutline}
-                        />
-                        <TextInput
-                          mode="outlined"
-                          label="Age"
-                          value={cis.recipient.age != null ? String(cis.recipient.age) : ""}
-                          onChangeText={(v) => playground.setCisField("recipient", "age", v ? Number(v) : undefined)}
-                          dense
-                          keyboardType="numeric"
-                          style={[styles.cisInput, { width: 70 }]}
-                          outlineStyle={styles.cisInputOutline}
-                        />
-                      </View>
-                      <TextInput
-                        mode="outlined"
-                        label="Location"
-                        value={cis.recipient.location || ""}
-                        onChangeText={(v) => playground.setCisField("recipient", "location", v || undefined)}
-                        dense
-                        style={styles.cisInput}
-                        outlineStyle={styles.cisInputOutline}
-                      />
-                      {cis.recipient.synthesized_profile ? (
-                        <View style={styles.synthesizedProfileBox}>
-                          <Text variant="labelSmall" style={styles.cisFieldLabel}>
-                            Synthesized Profile
-                          </Text>
-                          <Text variant="bodySmall" style={styles.synthesizedProfileText}>
-                            {cis.recipient.synthesized_profile}
-                          </Text>
-                        </View>
-                      ) : null}
-                      <Text variant="labelSmall" style={styles.cisFieldLabel}>
-                        Interests
-                      </Text>
-                      <View style={styles.cisChipRow}>
-                        {(cis.recipient.interests || []).map((interest, i) => (
-                          <Chip
-                            key={i}
-                            compact
-                            style={styles.cisInterestChip}
-                            onClose={() => handleRemoveInterest(i)}
-                          >
-                            {interest}
-                          </Chip>
-                        ))}
-                        {addingInterest ? (
-                          <View style={styles.inlineAddRow}>
-                            <TextInput
-                              mode="outlined"
-                              value={newInterest}
-                              onChangeText={setNewInterest}
-                              onSubmitEditing={handleAddInterest}
-                              placeholder="Add..."
-                              dense
-                              style={styles.inlineAddInput}
-                              outlineStyle={styles.cisInputOutline}
-                              autoFocus
-                            />
-                            <IconButton icon="check" size={16} onPress={handleAddInterest} />
-                            <IconButton icon="close" size={16} onPress={() => { setAddingInterest(false); setNewInterest(""); }} />
-                          </View>
-                        ) : (
-                          <Chip
-                            compact
-                            icon="plus"
-                            style={styles.addChip}
-                            onPress={() => setAddingInterest(true)}
-                          >
-                            Add
-                          </Chip>
-                        )}
-                      </View>
-                      <TextInput
-                        mode="outlined"
-                        label="Aesthetic"
-                        value={(cis.recipient.aesthetic || []).join(", ")}
-                        onChangeText={(v) => playground.setCisField("recipient", "aesthetic", v ? v.split(",").map((s) => s.trim()).filter(Boolean) : [])}
-                        dense
-                        style={styles.cisInput}
-                        outlineStyle={styles.cisInputOutline}
-                      />
-                    </EditableCISSection>
-
-                    <Divider style={styles.cisDivider} />
-
-                    {/* Occasion section */}
-                    <EditableCISSection label="Occasion" hasEdits={sectionHasEdits("occasion")}>
-                      <View style={styles.cisInputRow}>
-                        <TextInput
-                          mode="outlined"
-                          label="Type"
-                          value={cis.occasion.type}
-                          onChangeText={(v) => playground.setCisField("occasion", "type", v)}
-                          dense
-                          style={[styles.cisInput, styles.cisInputFlex]}
-                          outlineStyle={styles.cisInputOutline}
-                        />
-                        <TextInput
-                          mode="outlined"
-                          label="Budget $"
-                          value={cis.occasion.budget_usd != null ? String(cis.occasion.budget_usd) : ""}
-                          onChangeText={(v) => playground.setCisField("occasion", "budget_usd", v ? Number(v) : undefined)}
-                          dense
-                          keyboardType="numeric"
-                          style={[styles.cisInput, { width: 90 }]}
-                          outlineStyle={styles.cisInputOutline}
-                        />
-                      </View>
-                      <TextInput
-                        mode="outlined"
-                        label="Date"
-                        value={cis.occasion.date}
-                        onChangeText={(v) => playground.setCisField("occasion", "date", v)}
-                        dense
-                        style={styles.cisInput}
-                        outlineStyle={styles.cisInputOutline}
-                      />
-                      <TextInput
-                        mode="outlined"
-                        label="Significance"
-                        value={cis.occasion.significance || ""}
-                        onChangeText={(v) => playground.setCisField("occasion", "significance", v || undefined)}
-                        dense
-                        style={styles.cisInput}
-                        outlineStyle={styles.cisInputOutline}
-                      />
-                    </EditableCISSection>
-
-                    <Divider style={styles.cisDivider} />
-
-                    {/* History section */}
-                    <EditableCISSection label="History" hasEdits={sectionHasEdits("history")}>
-                      {cis.history.prior_gifts.length > 0 ? (
-                        cis.history.prior_gifts.map((gift, i) => (
-                          <View key={i} style={styles.priorGiftRow}>
-                            <Text variant="bodySmall" style={styles.priorGiftText}>
-                              {gift.name}{gift.reaction ? ` — ${gift.reaction}` : ""}
-                            </Text>
-                            <IconButton
-                              icon="close"
-                              size={14}
-                              onPress={() => handleRemovePriorGift(i)}
-                              style={styles.removeGiftButton}
-                            />
-                          </View>
-                        ))
-                      ) : (
-                        <Text variant="bodySmall" style={styles.cisSecondary}>
-                          No prior gifts
-                        </Text>
-                      )}
-                      <Text variant="labelSmall" style={styles.cisFieldLabel}>
-                        Avoid
-                      </Text>
-                      <View style={styles.cisChipRow}>
-                        {(cis.history.avoid || []).map((item, i) => (
-                          <Chip
-                            key={i}
-                            compact
-                            style={styles.cisAvoidChip}
-                            onClose={() => handleRemoveAvoid(i)}
-                          >
-                            {item}
-                          </Chip>
-                        ))}
-                        {addingAvoid ? (
-                          <View style={styles.inlineAddRow}>
-                            <TextInput
-                              mode="outlined"
-                              value={newAvoid}
-                              onChangeText={setNewAvoid}
-                              onSubmitEditing={handleAddAvoid}
-                              placeholder="Add..."
-                              dense
-                              style={styles.inlineAddInput}
-                              outlineStyle={styles.cisInputOutline}
-                              autoFocus
-                            />
-                            <IconButton icon="check" size={16} onPress={handleAddAvoid} />
-                            <IconButton icon="close" size={16} onPress={() => { setAddingAvoid(false); setNewAvoid(""); }} />
-                          </View>
-                        ) : (
-                          <Chip
-                            compact
-                            icon="plus"
-                            style={styles.addChip}
-                            onPress={() => setAddingAvoid(true)}
-                          >
-                            Add
-                          </Chip>
-                        )}
-                      </View>
-                    </EditableCISSection>
-                  </View>
-                ) : (
-                  <Text variant="bodySmall" style={styles.cisSecondary}>
-                    Failed to load CIS data.
-                  </Text>
-                )}
-              </>
-            )}
-          </Card.Content>
-        </Card>
+        <CisCard
+          isLoadingCis={playground.isLoadingCis}
+          hasCisEdits={playground.hasCisEdits}
+          editedCis={playground.editedCis}
+          cisEdits={playground.cisEdits}
+          resetCisEdits={playground.resetCisEdits}
+          setCisField={playground.setCisField}
+        />
       )}
     </View>
   ) : (
@@ -1226,24 +893,6 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
 };
 
 // --- Small helper components ---
-
-type EditableCISSectionProps = {
-  label: string;
-  hasEdits: boolean;
-  children: React.ReactNode;
-};
-
-const EditableCISSection: React.FC<EditableCISSectionProps> = ({ label, hasEdits, children }) => (
-  <View style={styles.cisSection}>
-    <View style={styles.cisSectionHeader}>
-      <Text variant="labelSmall" style={styles.cisSectionLabel}>
-        {label}
-      </Text>
-      {hasEdits && <Badge size={8} style={styles.editedBadge} />}
-    </View>
-    {children}
-  </View>
-);
 
 const CronAvoidListView: React.FC<{ cronContext: Record<string, unknown> }> = ({
   cronContext,
@@ -1847,64 +1496,13 @@ const styles = StyleSheet.create({
     color: Colors.darks.brown,
   },
 
-  // CIS Editable
-  cisTitleGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  cisHeaderActions: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  editedBadgeTitle: {
-    backgroundColor: Colors.yellows.amber,
-  },
-  cisLoading: {
-    padding: 20,
-  },
-  cisSections: {
-    gap: 0,
-  },
-  cisDivider: {
-    marginVertical: 6,
-  },
-  cisSection: {
-    paddingVertical: 4,
-  },
-  cisSectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginBottom: 4,
-  },
-  cisSectionLabel: {
-    color: Colors.darks.brown,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    fontSize: 10,
-  },
-  editedBadge: {
-    backgroundColor: Colors.yellows.amber,
-  },
+  // CIS
   cisSecondary: {
     color: Colors.darks.brown,
     fontStyle: "italic",
   },
-  cisInput: {
-    backgroundColor: Colors.white,
-    marginBottom: 4,
-    fontSize: 12,
-  },
   cisInputOutline: {
     borderRadius: 6,
-  },
-  cisInputRow: {
-    flexDirection: "row",
-    gap: 6,
-  },
-  cisInputFlex: {
-    flex: 1,
   },
   cisFieldLabel: {
     color: Colors.darks.brown,
@@ -1919,48 +1517,6 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 4,
     marginBottom: 4,
-  },
-  synthesizedProfileBox: {
-    backgroundColor: "#f5f5f5",
-    borderRadius: 6,
-    padding: 8,
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  synthesizedProfileText: {
-    color: Colors.darks.brown,
-    lineHeight: 16,
-  },
-  cisInterestChip: {
-    backgroundColor: "#e8f4f8",
-  },
-  cisAvoidChip: {
-    backgroundColor: "#fce4ec",
-  },
-  addChip: {
-    backgroundColor: "#f0f0f0",
-    borderStyle: "dashed",
-  },
-  inlineAddRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-  },
-  inlineAddInput: {
-    width: 100,
-    backgroundColor: Colors.white,
-    fontSize: 12,
-  },
-  priorGiftRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  priorGiftText: {
-    flex: 1,
-  },
-  removeGiftButton: {
-    margin: 0,
   },
 
   // Prompt editor

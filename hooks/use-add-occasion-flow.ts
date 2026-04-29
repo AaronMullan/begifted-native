@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert } from "react-native";
+import { Alert, View } from "react-native";
 import { lookupOccasionDate } from "../utils/occasion-dates";
 import { useCreateOccasion } from "./use-occasion-mutations";
 import {
@@ -18,7 +18,7 @@ interface UseAddOccasionFlowReturn {
   isLoading: boolean;
   shouldShowNextStepButton: boolean;
   conversationContext: string;
-  messagesEndRef: React.RefObject<any>;
+  messagesEndRef: React.RefObject<View | null>;
   sendMessage: (message: string) => Promise<void>;
   handleFinishConversation: () => Promise<void>;
   resetConversation: () => void;

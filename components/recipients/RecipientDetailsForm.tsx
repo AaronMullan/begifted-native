@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { StyleSheet, View, KeyboardAvoidingView, ScrollView, Keyboard, Platform, Pressable } from "react-native";
-import { Text, TextInput, Button, Dialog, IconButton, Portal } from "react-native-paper";
+import { Text, Button, Dialog, IconButton, Portal } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import type { Occasion } from "@/lib/api";
 import { useRecipientOccasions, useDeleteOccasion, useUpdateOccasion } from "@/hooks/use-occasion-mutations";
 import { OccasionEditor } from "@/components/recipients/conversation/OccasionEditor";
+import { RecipientFields } from "@/components/recipients/RecipientFields";
 
 type RecipientDetailsFormProps = {
   name: string;
@@ -111,7 +112,6 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.form}>
-            {/* Occasions */}
             <Text variant="titleMedium" style={styles.sectionTitle}>
               Occasions
             </Text>
@@ -152,178 +152,35 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
               Add Occasion
             </Button>
 
-      <Text variant="titleMedium" style={styles.sectionTitle}>
-        Interests
-      </Text>
-      <TextInput
-        mode="outlined"
-        value={interests}
-        onChangeText={onChangeInterests}
-        placeholder="e.g., reading, hiking, coffee (comma-separated)"
-        multiline
-        style={[styles.input, styles.interestsInput]}
-      />
+            <RecipientFields
+              name={name}
+              relationshipType={relationshipType}
+              interests={interests}
+              birthday={birthday}
+              emotionalTone={emotionalTone}
+              budgetMin={budgetMin}
+              budgetMax={budgetMax}
+              address={address}
+              addressLine2={addressLine2}
+              city={city}
+              state={state}
+              zipCode={zipCode}
+              country={country}
+              onChangeName={onChangeName}
+              onChangeRelationshipType={onChangeRelationshipType}
+              onChangeInterests={onChangeInterests}
+              onChangeBirthday={onChangeBirthday}
+              onChangeEmotionalTone={onChangeEmotionalTone}
+              onChangeBudgetMin={onChangeBudgetMin}
+              onChangeBudgetMax={onChangeBudgetMax}
+              onChangeAddress={onChangeAddress}
+              onChangeAddressLine2={onChangeAddressLine2}
+              onChangeCity={onChangeCity}
+              onChangeState={onChangeState}
+              onChangeZipCode={onChangeZipCode}
+              onChangeCountry={onChangeCountry}
+            />
 
-      <Text variant="titleMedium" style={styles.sectionTitle}>
-        Gift Preferences
-      </Text>
-
-      <Text variant="bodyMedium" style={styles.label}>
-        Emotional Tone
-      </Text>
-      <TextInput
-        mode="outlined"
-        value={emotionalTone}
-        onChangeText={onChangeEmotionalTone}
-        placeholder="e.g., heartfelt, playful, elegant"
-        style={styles.input}
-      />
-
-      <Text variant="bodyMedium" style={styles.label}>
-        Budget Range
-      </Text>
-      <View style={styles.budgetRow}>
-        <View style={styles.budgetField}>
-          <TextInput
-            mode="outlined"
-            value={budgetMin}
-            onChangeText={onChangeBudgetMin}
-            placeholder="Min ($)"
-            keyboardType="numeric"
-            style={styles.input}
-          />
-        </View>
-        <View style={styles.budgetField}>
-          <TextInput
-            mode="outlined"
-            value={budgetMax}
-            onChangeText={onChangeBudgetMax}
-            placeholder="Max ($)"
-            keyboardType="numeric"
-            style={styles.input}
-          />
-        </View>
-      </View>
-
-            <Text variant="titleMedium" style={styles.sectionTitle}>
-              Basic Information
-            </Text>
-
-      <Text variant="bodyMedium" style={styles.label}>
-        Name *
-      </Text>
-      <TextInput
-        mode="outlined"
-        value={name}
-        onChangeText={onChangeName}
-        placeholder="e.g., Sarah Johnson"
-        style={styles.input}
-      />
-
-      <Text variant="bodyMedium" style={styles.label}>
-        Relationship *
-      </Text>
-      <TextInput
-        mode="outlined"
-        value={relationshipType}
-        onChangeText={onChangeRelationshipType}
-        placeholder="e.g., Sister, Friend, Colleague"
-        style={styles.input}
-      />
-
-      <Text variant="bodyMedium" style={styles.label}>
-        Birthday
-      </Text>
-      <TextInput
-        mode="outlined"
-        value={birthday}
-        onChangeText={onChangeBirthday}
-        placeholder="YYYY-MM-DD"
-        style={styles.input}
-      />
-
-      <Text variant="titleMedium" style={styles.sectionTitle}>
-        Shipping Address
-      </Text>
-
-      <Text variant="bodyMedium" style={styles.label}>
-        Address Line 1
-      </Text>
-      <TextInput
-        mode="outlined"
-        value={address}
-        onChangeText={onChangeAddress}
-        placeholder="123 Main St"
-        style={styles.input}
-      />
-
-      <Text variant="bodyMedium" style={styles.label}>
-        Address Line 2
-      </Text>
-      <TextInput
-        mode="outlined"
-        value={addressLine2}
-        onChangeText={onChangeAddressLine2}
-        placeholder="Apt 4B"
-        style={styles.input}
-      />
-
-      <View style={styles.addressRow}>
-        <View style={styles.cityField}>
-          <Text variant="bodyMedium" style={styles.label}>
-            City
-          </Text>
-          <TextInput
-            mode="outlined"
-            value={city}
-            onChangeText={onChangeCity}
-            placeholder="New York"
-            style={styles.input}
-          />
-        </View>
-        <View style={styles.stateField}>
-          <Text variant="bodyMedium" style={styles.label}>
-            State
-          </Text>
-          <TextInput
-            mode="outlined"
-            value={state}
-            onChangeText={onChangeState}
-            placeholder="NY"
-            style={styles.input}
-          />
-        </View>
-      </View>
-
-      <View style={styles.addressRow}>
-        <View style={styles.zipField}>
-          <Text variant="bodyMedium" style={styles.label}>
-            Zip Code
-          </Text>
-          <TextInput
-            mode="outlined"
-            value={zipCode}
-            onChangeText={onChangeZipCode}
-            placeholder="10001"
-            keyboardType="numeric"
-            style={styles.input}
-          />
-        </View>
-        <View style={styles.countryField}>
-          <Text variant="bodyMedium" style={styles.label}>
-            Country
-          </Text>
-          <TextInput
-            mode="outlined"
-            value={country}
-            onChangeText={onChangeCountry}
-            placeholder="US"
-            style={styles.input}
-          />
-        </View>
-      </View>
-
-            {/* Delete Button */}
             <Button
               mode="outlined"
               buttonColor="#000000"
@@ -402,39 +259,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     marginTop: 24,
     marginBottom: 12,
-  },
-  label: {
-    marginBottom: 4,
-  },
-  input: {
-    marginBottom: 16,
-    backgroundColor: "#fff",
-  },
-  interestsInput: {
-    minHeight: 80,
-  },
-  budgetRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  budgetField: {
-    flex: 1,
-  },
-  addressRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  cityField: {
-    flex: 2,
-  },
-  stateField: {
-    flex: 1,
-  },
-  zipField: {
-    flex: 1,
-  },
-  countryField: {
-    flex: 1,
   },
   dialog: {
     borderRadius: 16,

@@ -19,10 +19,10 @@ Generated from a full codebase audit. Work through items top-to-bottom; check of
 - [x] **Add `onError` to all mutation hooks** — added `console.error` default to all 6 mutations; fixed silent `.catch(() => {})` in profile synthesis to log the error.
   - Files: `hooks/use-profile-mutations.ts`, `hooks/use-recipient-mutations.ts`, `hooks/use-occasion-mutations.ts`
 
-- [ ] **Replace `any` types in flow hooks** — 8+ instances; `React.RefObject<any>` → `React.RefObject<View>`, type `conversationContext`, `requestBody`, `occasions: any[]` → `Occasion[]`
-  - Files: `hooks/use-conversation-flow.ts`, `hooks/use-add-recipient-flow.ts`, `hooks/use-add-occasion-flow.ts`, `hooks/use-occasion-recommendations.ts`
+- [x] **Replace `any` types in flow hooks** — `React.RefObject<View | null>`, `string | null` for `conversationContext`, `ConversationRequestBody` for `requestBody`, `NonNullable<ExtractedData["occasions"]>` for occasions; removed dead `scrollToEnd` call; `(error as { context?: Response })` in occasion recommendations.
+  - Files: `hooks/use-conversation-flow.ts`, `hooks/use-add-recipient-flow.ts`, `hooks/use-add-occasion-flow.ts`, `hooks/use-occasion-recommendations.ts`, `components/recipients/conversation/ConversationView.tsx`
 
-- [ ] **Standardize error handling in `lib/api.ts`** — 5 different patterns currently; standardize to throw, add error boundary in root layout
+- [x] **Standardize error handling in `lib/api.ts`** — `fetchUserPreferences` and `fetchProfile` (non-406) now throw; `fetchOccasions` throws real DB errors, returns `[]` only for network/timeout; `fetchIsAdmin`/`fetchActiveSystemPrompt` retain silent defaults (intentional fail-safe). Added `ErrorBoundary` class component in root layout.
   - Files: `lib/api.ts`, `app/_layout.tsx`
 
 - [x] **Align version strings** — `package.json` updated to `1.0.1` to match `app.json`.
@@ -33,13 +33,13 @@ Generated from a full codebase audit. Work through items top-to-bottom; check of
 
 - [x] **Delete dead code** — deleted `HamburgerMenu.tsx`, `ContentBlock.tsx`, `BrandGrid.tsx`, `Hero.tsx`, and `app/_archive/`.
 
-- [ ] **Audit RecipientForm duplication** — `RecipientForm.tsx` (15KB) vs `RecipientDetailsForm.tsx`; consolidate or document distinction
-  - Files: `components/RecipientForm.tsx`, `components/recipients/RecipientDetailsForm.tsx`
+- [x] **Audit RecipientForm duplication** — extracted shared `RecipientFields` component; both forms use it. Standardized all onChange props to `onChangeName` convention. `RecipientForm` = create/edit modal (contacts list); `RecipientDetailsForm` = full detail screen with occasions + delete.
+  - Files: `components/recipients/RecipientFields.tsx` (new), `components/RecipientForm.tsx`, `components/recipients/RecipientDetailsForm.tsx`, `app/(tabs)/contacts/index.tsx`
 
-- [ ] **Split `admin/playground.tsx`** — 69KB; extract CIS card sections into sub-components
-  - File: `app/admin/playground.tsx`
+- [x] **Split `admin/playground.tsx`** — extracted CIS card (4 sections + all local state + handlers) into `components/admin/CisCard.tsx`; playground.tsx reduced from 2231 → 1787 lines.
+  - Files: `components/admin/CisCard.tsx` (new), `app/admin/playground.tsx`, `hooks/use-prompt-playground.ts` (exported `CISPreview`)
 
-- [ ] **Add pagination to list queries** — `fetchRecipients`, `fetchOccasions`, `fetchNotifications` return all rows
+- [ ] **Add pagination to list queries** — `fetchRecipients` has no limit; `fetchNotifications` already has `.limit(50)`; `fetchOccasions` is bounded by a 90-day date filter. For beta user counts `fetchRecipients` is acceptable unbounded, but add `.limit(500)` safety cap before wider launch.
   - File: `lib/api.ts`
 
 ---
