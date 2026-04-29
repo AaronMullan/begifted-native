@@ -29,10 +29,7 @@ export async function fetchUserPreferences(
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (error) {
-    console.error("Error fetching user preferences:", error);
-    return null;
-  }
+  if (error) throw error;
 
   return data;
 }
@@ -129,10 +126,10 @@ export async function fetchOccasions(userId: string): Promise<Occasion[]> {
       occasionsError instanceof Error
         ? occasionsError.message
         : String(occasionsError);
-    if (!msg.includes("Network request failed") && !msg.includes("timed out")) {
-      console.error("Error fetching occasions:", occasionsError);
+    if (msg.includes("Network request failed") || msg.includes("timed out")) {
+      return [];
     }
-    return [];
+    throw occasionsError;
   }
 
   if (!occasionsData || occasionsData.length === 0) {
@@ -152,7 +149,7 @@ export async function fetchOccasions(userId: string): Promise<Occasion[]> {
         ? recipientsError.message
         : String(recipientsError);
     if (!msg.includes("Network request failed") && !msg.includes("timed out")) {
-      console.error("Error fetching recipients:", recipientsError);
+      console.error("Error fetching recipient names for occasions:", recipientsError);
     }
   }
 
@@ -160,8 +157,7 @@ export async function fetchOccasions(userId: string): Promise<Occasion[]> {
   const recipientsMap = new Map((recipientsData || []).map((r) => [r.id, r]));
 
   // Transform the data to include recipient info
-  const transformedOccasions: Occasion[] = occasionsData.map(
-    (occasion: any) => {
+  const transformedOccasions: Occasion[] = occasionsData.map((occasion) => {
       const recipient = recipientsMap.get(occasion.recipient_id);
       return {
         id: occasion.id,
@@ -261,11 +257,7 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
     .eq("id", userId)
     .single();
 
-  if (error && status !== 406) {
-    console.error("Error fetching profile:", error);
-    // If profile doesn't exist, return null (we'll create it on save)
-    return null;
-  }
+  if (error && status !== 406) throw error;
 
   return data || null;
 }

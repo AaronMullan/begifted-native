@@ -42,6 +42,7 @@ export function useUpdateOccasion() {
         queryKey: queryKeys.recipientOccasions(variables.recipientId),
       });
     },
+    onError: (error) => console.error("useUpdateOccasion failed:", error),
   });
 }
 
@@ -75,6 +76,7 @@ export function useCreateOccasion() {
         queryKey: queryKeys.recipientOccasions(variables.recipientId),
       });
     },
+    onError: (error) => console.error("useCreateOccasion failed:", error),
   });
 }
 
@@ -104,5 +106,6 @@ export function useDeleteOccasion() {
         queryKey: queryKeys.recipientOccasions(variables.recipientId),
       });
     },
+    onError: (error) => console.error("useDeleteOccasion failed:", error),
   });
 }

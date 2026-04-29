@@ -21,7 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 interface ConversationViewProps {
   messages: Message[];
   isLoading: boolean;
-  messagesEndRef: React.RefObject<any>;
+  messagesEndRef: React.RefObject<View | null>;
   onNavigateBack: () => void;
   onSendMessage: (message: string) => Promise<void>;
   onFinishConversation: () => Promise<void>;

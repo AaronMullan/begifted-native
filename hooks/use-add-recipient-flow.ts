@@ -4,7 +4,7 @@ import { toByteArray } from "base64-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Alert } from "react-native";
+import { Alert, View } from "react-native";
 import { queryKeys } from "../lib/query-keys";
 import { supabase } from "../lib/supabase";
 import {
@@ -22,7 +22,7 @@ interface UseAddRecipientFlowReturn {
   isSaving: boolean;
   saveSuccess: boolean;
   savedRecipientName: string | null;
-  messagesEndRef: React.RefObject<any>;
+  messagesEndRef: React.RefObject<View | null>;
   shouldShowNextStepButton: boolean;
   conversationContext: string;
   sendMessage: (message: string) => Promise<void>;
@@ -30,7 +30,7 @@ interface UseAddRecipientFlowReturn {
   handleFinishConversation: () => Promise<boolean>;
   handleDataReviewContinue: () => Promise<void>;
   handleOccasionsBack: () => void;
-  handleOccasionsContinue: (occasions: any[]) => Promise<void>;
+  handleOccasionsContinue: (occasions: NonNullable<ExtractedData["occasions"]>) => Promise<void>;
   handleOccasionsSkip: () => Promise<void>;
   handleViewRecipients: () => void;
   setShowDataReview: (show: boolean) => void;
@@ -143,7 +143,7 @@ export function useAddRecipientFlow(
         }
 
         // Prepare recipient data
-        const recipientData: any = {
+        const recipientData = {
           user_id: userId,
           name: data.name!.trim(),
           relationship_type: data.relationship_type!.trim(),
@@ -302,7 +302,7 @@ export function useAddRecipientFlow(
   }, []);
 
   const handleOccasionsContinue = useCallback(
-    async (occasions: any[]) => {
+    async (occasions: NonNullable<ExtractedData["occasions"]>) => {
       if (!extractedData) return;
 
       const dataWithOccasions = {

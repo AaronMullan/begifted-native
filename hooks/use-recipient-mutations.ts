@@ -76,6 +76,7 @@ export function useCreateRecipient() {
         queryKey: queryKeys.occasions(variables.user_id),
       });
     },
+    onError: (error) => console.error("useCreateRecipient failed:", error),
   });
 }
 
@@ -135,6 +136,7 @@ export function useUpdateRecipient() {
           });
       }
     },
+    onError: (error) => console.error("useUpdateRecipient failed:", error),
   });
 }
 
@@ -176,5 +178,6 @@ export function useDeleteRecipient() {
         queryKey: queryKeys.giftSuggestions(variables.recipientId),
       });
     },
+    onError: (error) => console.error("useDeleteRecipient failed:", error),
   });
 }

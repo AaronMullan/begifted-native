@@ -63,12 +63,13 @@ export function useOccasionRecommendations(
         );
 
         if (error) {
-          if (typeof (error as any).context?.json === "function") {
+          const httpError = error as { context?: Response };
+          if (httpError.context?.json) {
             try {
-              const body = await (error as any).context.json();
+              const body = await httpError.context.json();
               console.warn(
                 "[occasion-recommendations] Edge Function non-2xx:",
-                (error as any).context?.status,
+                httpError.context.status,
                 body
               );
             } catch {

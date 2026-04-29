@@ -1,9 +1,9 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import { Provider as PaperProvider, MD3LightTheme } from "react-native-paper";
+import { Provider as PaperProvider, MD3LightTheme, Text } from "react-native-paper";
 import { View, StyleSheet } from "react-native";
 import Header from "../components/Header";
 import GradientBackground from "../components/GradientBackground";
@@ -13,6 +13,32 @@ import { useFontsLoader } from "../hooks/use-fonts-loader";
 import { usePushNotifications } from "../hooks/use-push-notifications";
 import { defaultQueryOptions } from "../lib/query-defaults";
 import { persistOptions } from "../lib/query-persister";
+
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: Error) {
+    console.error("Uncaught render error:", error);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text variant="titleMedium">Something went wrong.</Text>
+          <Text variant="bodyMedium" style={styles.errorBody}>
+            Please restart the app.
+          </Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -92,7 +118,9 @@ export default function RootLayout() {
       persistOptions={persistOptions}
     >
       <PaperProvider theme={customTheme}>
-        <AppShell />
+        <ErrorBoundary>
+          <AppShell />
+        </ErrorBoundary>
         {!splashDone && (
           <AnimatedSplash
             ready={splashReady}
@@ -111,5 +139,15 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     width: "100%",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  errorBody: {
+    marginTop: 8,
+    color: "#666",
   },
 });

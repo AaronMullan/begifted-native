@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import { Alert } from "react-native";
+import { Alert, View } from "react-native";
 
 export interface Message {
   id: string;
@@ -32,11 +32,11 @@ export interface ExtractedData {
   state?: string;
   zip_code?: string;
   country?: string;
-  occasions?: Array<{
+  occasions?: {
     date: string;
     occasion_type: string;
-  }>;
-  [key: string]: any; // Allow additional fields
+  }[];
+  [key: string]: unknown;
 }
 
 export interface RecipientData {
@@ -54,7 +54,7 @@ export interface RecipientData {
   state?: string;
   zip_code?: string;
   country?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface UseConversationFlowOptions {
@@ -74,14 +74,22 @@ interface UseConversationFlowReturn {
   isLoading: boolean;
   extractedData: ExtractedData | null;
   shouldShowNextStepButton: boolean;
-  conversationContext: any;
-  messagesEndRef: React.RefObject<any>;
+  conversationContext: string | null;
+  messagesEndRef: React.RefObject<View | null>;
   sendMessage: (message: string) => Promise<void>;
   handleFinishConversation: () => Promise<ExtractedData | null>;
   setMessages: (messages: Message[]) => void;
   setExtractedData: (data: ExtractedData | null) => void;
   resetConversation: () => void;
 }
+
+type ConversationRequestBody = {
+  action: "conversation" | "extract";
+  conversationType: ConversationType;
+  messages: { role: "user" | "assistant"; content: string }[];
+  targetFields?: string[];
+  existingData?: RecipientData;
+};
 
 // Default welcome messages based on conversation type
 const getDefaultWelcomeMessage = (
@@ -120,14 +128,14 @@ export function useConversationFlow(
     onExtractError,
   } = options;
 
-  const messagesEndRef = useRef<any>(null);
+  const messagesEndRef = useRef<View | null>(null);
   const initialUserMessageSentRef = useRef(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(
     null
   );
-  const [conversationContext, setConversationContext] = useState<any>(null);
+  const [conversationContext, setConversationContext] = useState<string | null>(null);
   const [shouldShowNextStepButton, setShouldShowNextStepButton] =
     useState(false);
 
@@ -172,7 +180,7 @@ export function useConversationFlow(
         }
 
         // Prepare request body
-        const requestBody: any = {
+        const requestBody: ConversationRequestBody = {
           action: "conversation",
           conversationType,
           messages: [...messages, userMessage].map((m) => ({
@@ -213,11 +221,6 @@ export function useConversationFlow(
         setMessages((prev) => [...prev, assistantMessage]);
         setConversationContext(data.conversationContext || conversationContext);
         setShouldShowNextStepButton(data.shouldShowNextStepButton || false);
-
-        // Auto-scroll to bottom
-        setTimeout(() => {
-          messagesEndRef.current?.scrollToEnd?.({ animated: true });
-        }, 100);
       } catch (error) {
         console.error("Error sending message:", error);
         console.error("Error details:", JSON.stringify(error, null, 2));
@@ -276,7 +279,7 @@ export function useConversationFlow(
         }
 
         // Prepare request body
-        const requestBody: any = {
+        const requestBody: ConversationRequestBody = {
           action: "extract",
           conversationType,
           messages: messages.map((m) => ({

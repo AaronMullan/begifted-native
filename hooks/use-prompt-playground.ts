@@ -15,10 +15,9 @@ import { PROMPT_REGISTRY, getPromptByKey } from "@/lib/prompt-registry";
 
 const VERCEL_BACKEND_URL = "https://be-gifted.vercel.app";
 
-type CISPreview = {
+export type CISPreview = {
   giver: {
     name: string;
-    gifting_summary?: string;
     synthesized_profile?: string;
   };
   recipient: {
