@@ -87,15 +87,23 @@ Return JSON with what's been established:
   "occasions_mentioned": ["array of holidays/occasions mentioned (e.g., 'christmas', 'anniversary', 'kwanzaa')"],
   "needs_occasion_date": false,
   "occasion_needing_date": null,
+  "occasions_needing_dates": ["array of occasion names that still require user-provided timing — exclude fixed holidays like Christmas, Valentine's Day, Mother's Day, Father's Day, Thanksgiving, Halloween, Easter, etc."],
+  "has_price_guidance": false,
+  "price_guidance_raw": "exact quote or paraphrase of price/spend mentioned, null if none",
+  "has_age_context": false,
+  "age_context_raw": "exact age, grade, stage, or life-stage mentioned (e.g. '17', 'high school senior', 'retired', 'toddler'), null if none — do NOT infer from relationship, hobbies, graduation, or occasion alone",
   "user_skipped_specificity": false,
   "other_details": "brief summary of other key details gathered",
   "readiness": {
-    "state": "not_captured | captured_needs_both | captured_needs_occasion | captured_needs_specificity | ready",
+    "state": "not_captured | captured_needs_both | captured_needs_occasion | captured_needs_timing | captured_needs_price | captured_needs_age | captured_needs_specificity | ready",
     "gift_ready": false,
     "has_recipient_anchor": false,
     "has_occasion_anchor": false,
+    "has_timing_anchor": false,
+    "has_price_anchor": false,
+    "has_age_anchor": false,
     "has_specificity_anchor": false,
-    "missing_requirements": ["recipient_anchor", "occasion_anchor", "specificity_anchor"],
+    "missing_requirements": ["recipient_anchor", "occasion_anchor", "timing_anchor", "price_anchor", "age_anchor", "specificity_anchor"],
     "reason": "One-sentence explanation of the assessment"
   },
   "conversation_length": ${messages.length},
@@ -140,8 +148,11 @@ Return JSON with what's been established:
               gift_ready: false,
               has_recipient_anchor: false,
               has_occasion_anchor: false,
+              has_timing_anchor: false,
+              has_price_anchor: false,
+              has_age_anchor: false,
               has_specificity_anchor: false,
-              missing_requirements: ["recipient_anchor", "occasion_anchor", "specificity_anchor"],
+              missing_requirements: ["recipient_anchor", "occasion_anchor", "timing_anchor", "price_anchor", "age_anchor", "specificity_anchor"],
               reason: "Failed to parse context extraction.",
             },
           };
@@ -157,8 +168,11 @@ Return JSON with what's been established:
           gift_ready: false,
           has_recipient_anchor: false,
           has_occasion_anchor: false,
+          has_timing_anchor: false,
+          has_price_anchor: false,
+          has_age_anchor: false,
           has_specificity_anchor: false,
-          missing_requirements: ["recipient_anchor", "occasion_anchor", "specificity_anchor"],
+          missing_requirements: ["recipient_anchor", "occasion_anchor", "timing_anchor", "price_anchor", "age_anchor", "specificity_anchor"],
           reason: "Error in context extraction.",
         },
       };
@@ -173,6 +187,9 @@ Return JSON with what's been established:
       gift_ready: false,
       has_recipient_anchor: false,
       has_occasion_anchor: false,
+      has_timing_anchor: false,
+      has_price_anchor: false,
+      has_age_anchor: false,
       has_specificity_anchor: false,
       missing_requirements: [],
       reason: "",
@@ -188,24 +205,35 @@ Return JSON with what's been established:
     (Array.isArray(contextInfo.occasions_mentioned) && contextInfo.occasions_mentioned.length > 0);
   contextInfo.readiness.has_occasion_anchor = hasOccasion;
 
+  // Timing: no pending occasion dates required from user
+  const pendingDates = contextInfo.occasions_needing_dates ?? [];
+  const hasTiming = !contextInfo.needs_occasion_date && pendingDates.length === 0;
+  contextInfo.readiness.has_timing_anchor = hasTiming;
+
+  const hasPrice = !!contextInfo.has_price_guidance;
+  contextInfo.readiness.has_price_anchor = hasPrice;
+
+  const hasAge = !!contextInfo.has_age_context;
+  contextInfo.readiness.has_age_anchor = hasAge;
+
   const interestCount = (contextInfo.interests || contextInfo.existing_interests || []).length;
-  const hasSpecificity =
-    interestCount >= 1 ||
-    !!contextInfo.user_skipped_specificity;
+  const hasSpecificity = interestCount >= 1 || !!contextInfo.user_skipped_specificity;
   contextInfo.readiness.has_specificity_anchor = hasSpecificity;
 
-  const effectiveSpecificity = hasSpecificity || !!contextInfo.user_skipped_specificity;
-
-  if (contextInfo.readiness.has_recipient_anchor && hasOccasion && effectiveSpecificity) {
-    contextInfo.readiness.state = "ready";
-  } else if (contextInfo.readiness.has_recipient_anchor && !hasOccasion && !effectiveSpecificity) {
-    contextInfo.readiness.state = "captured_needs_both";
-  } else if (contextInfo.readiness.has_recipient_anchor && !hasOccasion) {
-    contextInfo.readiness.state = "captured_needs_occasion";
-  } else if (contextInfo.readiness.has_recipient_anchor && hasOccasion && !effectiveSpecificity) {
+  if (!contextInfo.readiness.has_recipient_anchor) {
+    contextInfo.readiness.state = "not_captured";
+  } else if (!hasOccasion) {
+    contextInfo.readiness.state = hasSpecificity ? "captured_needs_occasion" : "captured_needs_both";
+  } else if (!hasTiming) {
+    contextInfo.readiness.state = "captured_needs_timing";
+  } else if (!hasPrice) {
+    contextInfo.readiness.state = "captured_needs_price";
+  } else if (!hasAge) {
+    contextInfo.readiness.state = "captured_needs_age";
+  } else if (!hasSpecificity) {
     contextInfo.readiness.state = "captured_needs_specificity";
   } else {
-    contextInfo.readiness.state = "not_captured";
+    contextInfo.readiness.state = "ready";
   }
 
   // If all anchors are satisfied, skip the reply LLM entirely — return a
@@ -356,27 +384,35 @@ function buildStateGuidance(readinessState: string, recipientName: string): stri
       return "→ We know the person but need both an occasion and more specificity. Follow priority order above.";
     case "captured_needs_occasion":
       return "→ We know the person well but need a giftable moment. Ask what occasion they're thinking about.";
+    case "captured_needs_timing":
+      return "→ Occasion timing is incomplete. Ask for the next required date (one at a time). Do not move to price, age, or texture until all required dates are captured.";
+    case "captured_needs_price":
+      return `→ Timing is complete. Ask how much the user would like to spend for ${recipientName}.`;
+    case "captured_needs_age":
+      return `→ Price is captured. Ask for ${recipientName}'s age, grade, or life-stage context. Do not infer from relationship, hobbies, or occasion.`;
     case "captured_needs_specificity":
-      return "→ We know the person and occasion but need more detail to avoid generic gifts. Ask one targeted question about interests or preferences.";
+      return `→ Ask the user to describe ${recipientName} naturally — what they're like, their interests, personality, or lifestyle.`;
     case "ready":
-      return `→ All anchors are captured. Say something like: "I have everything I need to help you find great gifts for ${recipientName}. Click 'Let's move to the next step' below to continue."`;
+      return `→ All required information is captured. Use the exact ready response.`;
     default:
       return "";
   }
 }
 
 function buildPriorityGuidance(contextInfo: ContextInfo, recipientName: string): string {
-  const needsOccasionDate = contextInfo.needs_occasion_date ?? false;
-  const dateFollowUp = needsOccasionDate
-    ? `Ask ONLY for the date of "${contextInfo.occasion_needing_date}". Use warm phrasing like "Do you happen to know the date of ${recipientName}'s ${contextInfo.occasion_needing_date}? I'd love to keep track of it."`
+  const pendingDates = contextInfo.occasions_needing_dates ?? [];
+  const nextPendingDate = pendingDates[0] ?? contextInfo.occasion_needing_date ?? null;
+  const timingGuidance = nextPendingDate
+    ? `Ask ONLY for the date of "${nextPendingDate}" (pending: ${pendingDates.join(", ") || nextPendingDate}).`
     : "Not currently needed.";
 
   return `1. RECIPIENT IDENTITY (name + relationship) — if not yet captured, ask about who this person is.
-2. DATE FOLLOW-UP — HIGHEST PRIORITY when a personal occasion was mentioned without a date. ${dateFollowUp}
-3. OCCASION — if recipient is known but no giftable moment identified, ask about what occasion they're shopping for (birthday, holiday, anniversary, etc.).
-4. SPECIFICITY — if recipient and occasion are known but the person still feels generic, ask one specific probing question about their interests, hobbies, or preferences.
-5. SKIP OFFER — if the user seems unsure after a specificity probe, offer to skip: "If you're not sure what else to add right now, that's totally fine — we can always update their profile later. Would you like to move on?"
-6. WRAP-UP — all anchors captured. Direct user to the Next Step button.`;
+2. OCCASION — if no giftable moment identified, ask what occasion(s) they're shopping for.
+3. REQUIRED OCCASION TIMING — for every non-inferable occasion lacking a date, ask one at a time. ${timingGuidance}
+4. DEFAULT PRICE GUIDANCE — ask how much the user would like to spend for ${recipientName}. If multiple occasions, ask person-level (not occasion-specific).
+5. AGE OR LIFE STAGE — ask about ${recipientName}'s age, grade, school stage, or life stage. Do not infer from relationship, hobbies, or occasion.
+6. RECIPIENT TEXTURE — ask the user to describe ${recipientName} naturally ("Tell me a little about ${recipientName} — what's [he/she/they] like?").
+7. WRAP-UP — all required information captured. Use the exact ready response.`;
 }
 
 // Default template for add_recipient_conversation — single source of truth.
