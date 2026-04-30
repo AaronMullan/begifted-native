@@ -76,6 +76,9 @@ export type ReadinessState =
   | "not_captured"
   | "captured_needs_both"
   | "captured_needs_occasion"
+  | "captured_needs_timing"
+  | "captured_needs_price"
+  | "captured_needs_age"
   | "captured_needs_specificity"
   | "ready";
 
@@ -84,6 +87,9 @@ export interface Readiness {
   gift_ready: boolean;
   has_recipient_anchor: boolean;
   has_occasion_anchor: boolean;
+  has_timing_anchor: boolean;
+  has_price_anchor: boolean;
+  has_age_anchor: boolean;
   has_specificity_anchor: boolean;
   missing_requirements: string[];
   reason: string;
@@ -101,6 +107,11 @@ export interface ContextInfo {
   occasions_mentioned?: string[];
   needs_occasion_date?: boolean;
   occasion_needing_date?: string | null;
+  occasions_needing_dates?: string[];
+  has_price_guidance?: boolean;
+  price_guidance_raw?: string | null;
+  has_age_context?: boolean;
+  age_context_raw?: string | null;
   user_skipped_specificity?: boolean;
   other_details?: string;
   readiness?: Readiness;
