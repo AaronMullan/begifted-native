@@ -17,7 +17,7 @@ import { useToast } from "../../../hooks/use-toast";
 export default function RecipientEditPage() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const params = useLocalSearchParams<{ id: string; tab?: string; addOccasion?: string }>();
+  const params = useLocalSearchParams<{ id: string; tab?: string; addOccasion?: string; generating?: string }>();
   const recipientId = params.id;
   const initialTab = (params.tab as "details" | "gifts") || "gifts";
   const shouldAddOccasion = params.addOccasion === "true";
@@ -179,6 +179,13 @@ export default function RecipientEditPage() {
       fetchSuggestions(recipient.id);
     }
   }, [recipient, fetchSuggestions]);
+
+  // Auto-start polling when navigated from the add flow with generating=true
+  useEffect(() => {
+    if (recipient && params.generating === "true" && suggestions.length === 0) {
+      setIsGenerating(true);
+    }
+  }, [recipient, params.generating]);
 
   // Polling logic for gift generation
   useEffect(() => {

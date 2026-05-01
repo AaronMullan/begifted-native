@@ -1,3 +1,4 @@
+import * as FileSystem from "expo-file-system/legacy";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -194,7 +195,7 @@ export default function Contacts() {
     }
   }
 
-  function handleSelectContact(contact: DeviceContact) {
+  async function handleSelectContact(contact: DeviceContact) {
     setPickerVisible(false);
     const addr = contact.addresses?.[0];
 
@@ -208,6 +209,24 @@ export default function Contacts() {
       birthdayStr = `${y}-${m}-${d}`;
     }
 
+    // Copy contact photo to app cache now — the temp URI from expo-contacts
+    // is cleaned up by iOS before the add screen mounts.
+    let stablePhotoUri: string | undefined;
+    if (contact.imageUri) {
+      console.log("[photo] source URI:", contact.imageUri);
+      try {
+        const dest = `${FileSystem.cacheDirectory}contact-photo-${Date.now()}.jpg`;
+        await FileSystem.copyAsync({ from: contact.imageUri, to: dest });
+        stablePhotoUri = dest;
+        console.log("[photo] copied to cache:", dest);
+      } catch (err) {
+        console.error("[photo] copy failed, using original:", err);
+        stablePhotoUri = contact.imageUri;
+      }
+    } else {
+      console.log("[photo] no imageUri on contact");
+    }
+
     router.push({
       pathname: "/contacts/add",
       params: {
@@ -218,7 +237,7 @@ export default function Contacts() {
         ...(addr?.region && { state: addr.region }),
         ...(addr?.postalCode && { zip_code: addr.postalCode }),
         ...(addr?.country && { country: addr.country }),
-        ...(contact.imageUri && { photo_url: contact.imageUri }),
+        ...(stablePhotoUri && { photo_url: stablePhotoUri }),
       },
     });
   }
