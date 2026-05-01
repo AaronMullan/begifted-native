@@ -24,6 +24,8 @@ export function useUpdateAppConfig() {
           | "recommendations_enabled"
           | "notifications_enabled"
           | "signups_enabled"
+          | "ai_provider"
+          | "ai_model"
         >
       >
     ) => updateAppConfig(flags, user!.id),

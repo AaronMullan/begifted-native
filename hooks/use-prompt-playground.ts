@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { useAppConfig } from "@/hooks/use-app-config";
+import type { Provider } from "@/lib/ai-models";
 import { queryKeys } from "@/lib/query-keys";
 import {
   fetchPromptTestRuns,
@@ -14,6 +16,24 @@ import type { PromptTestRun } from "@/lib/api";
 import { PROMPT_REGISTRY, getPromptByKey } from "@/lib/prompt-registry";
 
 const VERCEL_BACKEND_URL = "https://be-gifted.vercel.app";
+
+async function extractInvokeError(error: unknown): Promise<string> {
+  if (!(error instanceof Error)) return String(error);
+  const ctx = (error as Record<string, unknown>).context;
+  if (ctx && typeof (ctx as Response).json === "function") {
+    try {
+      const body = await (ctx as Response).json();
+      if (body?.error) return String(body.error);
+      if (body?.message) return String(body.message);
+    } catch {
+      try {
+        const text = await (ctx as Response).text();
+        if (text) return text;
+      } catch {}
+    }
+  }
+  return error.message;
+}
 
 export type CISPreview = {
   giver: {
@@ -58,6 +78,20 @@ interface ChatMessage {
 
 export function usePromptPlayground(userId: string) {
   const queryClient = useQueryClient();
+  const configQuery = useAppConfig();
+
+  // Playground model selection (independent from production)
+  const [playgroundProvider, setPlaygroundProvider] = useState<Provider>("openai");
+  const [playgroundModel, setPlaygroundModel] = useState<string>("gpt-4o-mini");
+  const hasInitializedPlaygroundModel = useRef(false);
+
+  useEffect(() => {
+    if (configQuery.data && !hasInitializedPlaygroundModel.current) {
+      hasInitializedPlaygroundModel.current = true;
+      setPlaygroundProvider(configQuery.data.ai_provider);
+      setPlaygroundModel(configQuery.data.ai_model);
+    }
+  }, [configQuery.data]);
 
   // Prompt key selection
   const [selectedPromptKey, setSelectedPromptKeyRaw] = useState(
@@ -244,11 +278,13 @@ export function usePromptPlayground(userId: string) {
             userInstruction: message,
             chatHistory: chatMessages,
             promptCategory: isGiftGeneration ? undefined : selectedPromptKey,
+            overrideProvider: playgroundProvider,
+            overrideModel: playgroundModel,
           },
         }
       );
 
-      if (error) throw error;
+      if (error) throw new Error(await extractInvokeError(error));
 
       const assistantMsg: ChatMessage = {
         role: "assistant",
@@ -289,6 +325,8 @@ export function usePromptPlayground(userId: string) {
             body: JSON.stringify({
               recipientId: selectedRecipientId,
               customSystemPrompt: currentPrompt,
+              overrideProvider: playgroundProvider,
+              overrideModel: playgroundModel,
               ...(hasCisEdits ? { cisOverride: cisEdits } : {}),
               ...(simulateCron ? { simulateCron: true } : {}),
             }),
@@ -318,10 +356,12 @@ export function usePromptPlayground(userId: string) {
               conversationType: "add_recipient",
               messages: msgs,
               customSystemPrompt: currentPrompt,
+              overrideProvider: playgroundProvider,
+              overrideModel: playgroundModel,
             },
           }
         );
-        if (error) throw error;
+        if (error) throw new Error(await extractInvokeError(error));
         data = result;
       } else if (selectedPromptKey === "occasion_recommendations") {
         // Test occasion recommendations — needs recipient data
@@ -343,10 +383,12 @@ export function usePromptPlayground(userId: string) {
                 interests: recipient.interests,
               },
               customSystemPrompt: currentPrompt,
+              overrideProvider: playgroundProvider,
+              overrideModel: playgroundModel,
             },
           }
         );
-        if (error) throw error;
+        if (error) throw new Error(await extractInvokeError(error));
         data = result;
       } else if (selectedPromptKey === "user_preferences_extraction") {
         // Test user preferences extraction
@@ -360,10 +402,12 @@ export function usePromptPlayground(userId: string) {
             body: {
               text: sampleText,
               customSystemPrompt: currentPrompt,
+              overrideProvider: playgroundProvider,
+              overrideModel: playgroundModel,
             },
           }
         );
-        if (error) throw error;
+        if (error) throw new Error(await extractInvokeError(error));
         data = result;
       } else {
         throw new Error(`Unknown prompt key: ${selectedPromptKey}`);
@@ -381,6 +425,8 @@ export function usePromptPlayground(userId: string) {
           chat_messages: chatMessages,
           generation_result: data,
           prompt_key: selectedPromptKey,
+          ai_provider: playgroundProvider,
+          ai_model: playgroundModel,
         });
 
         queryClient.invalidateQueries({
@@ -392,8 +438,7 @@ export function usePromptPlayground(userId: string) {
     } catch (err) {
       console.error("Generation error:", err);
       setGenerationResult({
-        error:
-          err instanceof Error ? err.message : "Failed to generate",
+        error: `[${playgroundProvider}/${playgroundModel}] ${err instanceof Error ? err.message : "Failed to generate"}`,
       });
     } finally {
       setIsGenerating(false);
@@ -478,10 +523,12 @@ export function usePromptPlayground(userId: string) {
             conversationType: "add_recipient",
             messages: [],
             customSystemPrompt: currentPrompt,
+            overrideProvider: playgroundProvider,
+            overrideModel: playgroundModel,
           },
         }
       );
-      if (error) throw error;
+      if (error) throw new Error(await extractInvokeError(error));
 
       setTestMessages([{ role: "assistant", content: data.reply }]);
       setGenerationResult(data);
@@ -489,7 +536,7 @@ export function usePromptPlayground(userId: string) {
       setTestMessages([
         {
           role: "assistant",
-          content: `Error: ${err instanceof Error ? err.message : "Failed to get response"}`,
+          content: `[${playgroundProvider}/${playgroundModel}] Error: ${err instanceof Error ? err.message : "Failed to get response"}`,
         },
       ]);
     } finally {
@@ -512,10 +559,12 @@ export function usePromptPlayground(userId: string) {
             conversationType: "add_recipient",
             messages: updatedMessages,
             customSystemPrompt: currentPrompt,
+            overrideProvider: playgroundProvider,
+            overrideModel: playgroundModel,
           },
         }
       );
-      if (error) throw error;
+      if (error) throw new Error(await extractInvokeError(error));
 
       setTestMessages((prev) => [
         ...prev,
@@ -549,6 +598,14 @@ export function usePromptPlayground(userId: string) {
   })();
 
   return {
+    // Playground model (independent from production)
+    playgroundProvider,
+    playgroundModel,
+    setPlaygroundProvider,
+    setPlaygroundModel,
+    productionProvider: configQuery.data?.ai_provider,
+    productionModel: configQuery.data?.ai_model,
+
     // Prompt key
     selectedPromptKey,
     setSelectedPromptKey,

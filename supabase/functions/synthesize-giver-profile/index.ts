@@ -2,6 +2,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // @ts-ignore - Deno/Supabase client types
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { loadAIConfig } from "../_shared/ai-config-loader.ts";
+import { callAI, getApiKey } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,8 +12,6 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// @ts-ignore - Deno environment variables are resolved at runtime
-const openAiApiKey = Deno.env.get("OPENAI_API_KEY");
 // @ts-ignore - Deno environment variables are resolved at runtime
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 // @ts-ignore - Deno environment variables are resolved at runtime
@@ -141,30 +141,17 @@ serve(async (req) => {
       .filter(Boolean)
       .join("\n\n");
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAiApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        temperature: 0.4,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userContext },
-        ],
-      }),
+    const { provider, model } = await loadAIConfig(supabaseUrl, supabaseServiceKey);
+    const apiKey = getApiKey(provider);
+    const rawContent = await callAI(provider, model, apiKey, {
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: userContext },
+      ],
+      maxTokens: 1024,
+      temperature: 0.4,
+      jsonMode: true,
     });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error("OpenAI API error:", errorBody);
-      throw new Error(`OpenAI API error: ${response.status}`);
-    }
-
-    const completion = await response.json();
-    const rawContent = completion.choices?.[0]?.message?.content ?? "";
 
     let cleanContent = rawContent.trim();
     if (cleanContent.startsWith("```json")) {

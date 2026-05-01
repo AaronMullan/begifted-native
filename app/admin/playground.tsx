@@ -1,37 +1,41 @@
-import React, { useState, useRef, useEffect } from "react";
+import { AdminNavbar } from "@/components/admin/AdminNavbar";
+import { CisCard } from "@/components/admin/CisCard";
+import { useAuth } from "@/hooks/use-auth";
+import { usePromptPlayground } from "@/hooks/use-prompt-playground";
+import type { Provider } from "@/lib/ai-models";
+import { PROVIDER_MODELS } from "@/lib/ai-models";
+import type { Profile } from "@/lib/api";
+import { fetchIsAdmin } from "@/lib/api";
+import { Colors } from "@/lib/colors";
+import type { PromptDefinition } from "@/lib/prompt-registry";
+import type { Recipient } from "@/types/recipient";
+import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  View,
+  KeyboardAvoidingView,
+  Linking,
+  Platform,
   ScrollView,
   StyleSheet,
   useWindowDimensions,
-  KeyboardAvoidingView,
-  Platform,
-  Linking,
+  View,
 } from "react-native";
 import {
-  Text,
-  Button,
-  TextInput,
-  Card,
   ActivityIndicator,
+  Button,
+  Card,
+  Chip,
   Dialog,
-  Portal,
+  Divider,
   IconButton,
   Menu,
-  Chip,
-  Divider,
+  Portal,
+  SegmentedButtons,
   Switch,
+  Text,
+  TextInput,
 } from "react-native-paper";
-import { useRouter } from "expo-router";
-import { useAuth } from "@/hooks/use-auth";
-import { fetchIsAdmin } from "@/lib/api";
-import { usePromptPlayground } from "@/hooks/use-prompt-playground";
-import { CisCard } from "@/components/admin/CisCard";
-import { useQuery } from "@tanstack/react-query";
-import { Colors } from "@/lib/colors";
-import type { Profile } from "@/lib/api";
-import type { Recipient } from "@/types/recipient";
-import type { PromptDefinition } from "@/lib/prompt-registry";
 
 const DESKTOP_BREAKPOINT = 900;
 
@@ -87,6 +91,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
   const [giverMenuVisible, setGiverMenuVisible] = useState(false);
   const [recipientMenuVisible, setRecipientMenuVisible] = useState(false);
   const [promptMenuVisible, setPromptMenuVisible] = useState(false);
+  const [testModelMenuVisible, setTestModelMenuVisible] = useState(false);
   const [showProductionContext, setShowProductionContext] = useState(false);
   const [testMessageInput, setTestMessageInput] = useState("");
   const chatScrollRef = useRef<ScrollView>(null);
@@ -138,92 +143,145 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
 
   // --- Header with title + prompt selector + actions ---
   const header = (
-    <View style={styles.header}>
-      <View style={styles.headerLeft}>
-        <Text variant="headlineSmall" style={styles.headerTitle}>
-          Prompt Playground
-        </Text>
+    <AdminNavbar
+      title="Prompt Playground"
+      actions={
+        <>
+          <Button
+            mode="contained"
+            onPress={playground.generateWithPrompt}
+            disabled={!playground.canGenerate}
+            loading={playground.isGenerating}
+            icon="auto-fix"
+            style={styles.headerButton}
+          >
+            {playground.isGiftGeneration ? "Generate" : "Test"}
+          </Button>
+          <Button
+            mode="contained"
+            onPress={() => setShowDeployDialog(true)}
+            disabled={!playground.hasPromptChanged || playground.isDeploying}
+            loading={playground.isDeploying}
+            buttonColor={Colors.blues.teal}
+            icon="rocket-launch"
+            style={styles.headerButton}
+          >
+            Deploy Prompt
+          </Button>
+        </>
+      }
+    >
+      <Menu
+        visible={promptMenuVisible}
+        onDismiss={() => setPromptMenuVisible(false)}
+        anchor={
+          <Button
+            mode="outlined"
+            onPress={() => setPromptMenuVisible(true)}
+            icon="swap-horizontal"
+            style={styles.promptSelector}
+            contentStyle={styles.selectorContent}
+          >
+            {playground.selectedPromptDef?.label ?? "Select Prompt"}
+          </Button>
+        }
+        contentStyle={styles.menuContent}
+      >
+        {playground.promptRegistry.map((def: PromptDefinition) => (
+          <Menu.Item
+            key={def.key}
+            onPress={() => {
+              playground.setSelectedPromptKey(def.key);
+              setPromptMenuVisible(false);
+            }}
+            title={def.label}
+            description={def.description}
+            leadingIcon={
+              def.key === playground.selectedPromptKey ? "check" : undefined
+            }
+          />
+        ))}
+      </Menu>
+    </AdminNavbar>
+  );
+
+  const isModelDifferentFromProd =
+    playground.playgroundProvider !== playground.productionProvider ||
+    playground.playgroundModel !== playground.productionModel;
+
+  const testModelCard = (
+    <Card style={styles.card}>
+      <Card.Content>
+        <View style={styles.cardTitleRow}>
+          <Text variant="titleSmall" style={styles.cardTitle}>
+            Test Model
+          </Text>
+          {isModelDifferentFromProd && (
+            <Chip compact style={styles.diffFromProdBadge}>
+              ≠ production
+            </Chip>
+          )}
+        </View>
+        <SegmentedButtons
+          value={playground.playgroundProvider}
+          onValueChange={(v) => {
+            const p = v as Provider;
+            playground.setPlaygroundProvider(p);
+            playground.setPlaygroundModel(PROVIDER_MODELS[p][0]);
+          }}
+          buttons={[
+            { value: "openai", label: "OpenAI", showSelectedCheck: false },
+            { value: "anthropic", label: "Claude", showSelectedCheck: false },
+            { value: "google", label: "Google", showSelectedCheck: false },
+          ]}
+          style={styles.segmentedButtons}
+          density="small"
+        />
         <Menu
-          visible={promptMenuVisible}
-          onDismiss={() => setPromptMenuVisible(false)}
+          visible={testModelMenuVisible}
+          onDismiss={() => setTestModelMenuVisible(false)}
           anchor={
             <Button
               mode="outlined"
-              onPress={() => setPromptMenuVisible(true)}
-              icon="swap-horizontal"
-              style={styles.promptSelector}
-              contentStyle={styles.selectorContent}
+              onPress={() => setTestModelMenuVisible(true)}
+              compact
+              icon="chevron-down"
+              style={styles.modelButton}
             >
-              {playground.selectedPromptDef?.label ?? "Select Prompt"}
+              {playground.playgroundModel}
             </Button>
           }
-          contentStyle={styles.menuContent}
         >
-          {playground.promptRegistry.map((def: PromptDefinition) => (
+          {PROVIDER_MODELS[playground.playgroundProvider].map((m) => (
             <Menu.Item
-              key={def.key}
+              key={m}
               onPress={() => {
-                playground.setSelectedPromptKey(def.key);
-                setPromptMenuVisible(false);
+                playground.setPlaygroundModel(m);
+                setTestModelMenuVisible(false);
               }}
-              title={def.label}
-              description={def.description}
-              leadingIcon={
-                def.key === playground.selectedPromptKey
-                  ? "check"
-                  : undefined
-              }
+              title={m}
             />
           ))}
         </Menu>
-        <Button
-          mode="text"
-          onPress={() => router.push("/admin/prompts")}
-          icon="history"
-          compact
-          style={styles.historyLink}
-        >
-          Version History
-        </Button>
-        <Button
-          mode="text"
-          onPress={() => router.push("/admin/kill-switch")}
-          icon="power"
-          compact
-          style={styles.historyLink}
-        >
-          Kill Switch
-        </Button>
-      </View>
-      <View style={styles.headerActions}>
-        <Button
-          mode="contained"
-          onPress={playground.generateWithPrompt}
-          disabled={!playground.canGenerate}
-          loading={playground.isGenerating}
-          icon="auto-fix"
-          style={styles.headerButton}
-        >
-          {playground.isGiftGeneration ? "Generate" : "Test"}
-        </Button>
-        <Button
-          mode="contained"
-          onPress={() => setShowDeployDialog(true)}
-          disabled={!playground.hasPromptChanged || playground.isDeploying}
-          loading={playground.isDeploying}
-          buttonColor={Colors.blues.teal}
-          icon="rocket-launch"
-          style={styles.headerButton}
-        >
-          Deploy
-        </Button>
-      </View>
-    </View>
+        <Text variant="bodySmall" style={styles.testModelHint}>
+          {"To update the production model, go to "}
+          <Text
+            variant="bodySmall"
+            style={styles.testModelHintLink}
+            onPress={() => router.push("/admin/ai-model")}
+          >
+            Admin → AI Model
+          </Text>
+          .
+        </Text>
+      </Card.Content>
+    </Card>
   );
 
   // --- Context panel: differs by prompt type ---
   const contextPanel = playground.isGiftGeneration ? (
     <View style={[styles.panel, isDesktop && styles.contextPanelDesktop]}>
+      {testModelCard}
       {/* Selectors card */}
       <Card style={styles.card}>
         <Card.Content>
@@ -332,6 +390,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
   ) : (
     // Non-gift prompt context panel
     <View style={[styles.panel, isDesktop && styles.contextPanelDesktop]}>
+      {testModelCard}
       <Card style={styles.card}>
         <Card.Content>
           <Text variant="titleSmall" style={styles.cardTitle}>
@@ -817,9 +876,16 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                   onPress={() => playground.loadTestRun(run)}
                 >
                   <Card.Content style={styles.historyItemContent}>
-                    <Text variant="labelSmall" style={styles.historyDate}>
-                      {new Date(run.created_at).toLocaleString()}
-                    </Text>
+                    <View style={styles.historyHeader}>
+                      <Text variant="labelSmall" style={styles.historyDate}>
+                        {new Date(run.created_at).toLocaleString()}
+                      </Text>
+                      {run.ai_provider && run.ai_model && (
+                        <Chip compact style={styles.historyModelChip}>
+                          {`${run.ai_provider} · ${run.ai_model}`}
+                        </Chip>
+                      )}
+                    </View>
                     <Text variant="bodySmall" numberOfLines={2} style={styles.historyPreview}>
                       {run.custom_system_prompt.substring(0, 100)}...
                     </Text>
@@ -1420,31 +1486,8 @@ const styles = StyleSheet.create({
   },
 
   // Header
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    flexWrap: "wrap",
-  },
-  headerTitle: {
-    fontWeight: "700",
-  },
   promptSelector: {
     borderRadius: 8,
-  },
-  historyLink: {
-    marginLeft: 4,
   },
   headerActions: {
     flexDirection: "row",
@@ -1493,6 +1536,26 @@ const styles = StyleSheet.create({
   },
   collapseIcon: {
     margin: 0,
+  },
+
+  // Test model card
+  diffFromProdBadge: {
+    backgroundColor: Colors.yellows.amber,
+  },
+  testModelHint: {
+    color: "#888",
+    marginTop: 8,
+  },
+  testModelHintLink: {
+    color: Colors.blues.dark,
+    textDecorationLine: "underline",
+  },
+  segmentedButtons: {
+    marginVertical: 8,
+  },
+  modelButton: {
+    alignSelf: "flex-start",
+    borderRadius: 8,
   },
 
   // Selectors
@@ -1576,7 +1639,6 @@ const styles = StyleSheet.create({
   },
   modifiedBadge: {
     backgroundColor: Colors.yellows.amber,
-    height: 26,
   },
   promptInput: {
     fontSize: 13,
@@ -1776,9 +1838,17 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
   },
+  historyHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 2,
+  },
+  historyModelChip: {
+    backgroundColor: Colors.neutrals.medium,
+  },
   historyDate: {
     color: Colors.darks.brown,
-    marginBottom: 2,
   },
   historyPreview: {
     color: "#555",

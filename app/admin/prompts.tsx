@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useRouter } from "expo-router";
 import { View, ScrollView, StyleSheet, Platform } from "react-native";
 import {
   Text,
@@ -10,6 +9,7 @@ import {
   Portal,
   Menu,
 } from "react-native-paper";
+import { AdminNavbar } from "@/components/admin/AdminNavbar";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -56,7 +56,6 @@ const PromptsScreen: React.FC = () => {
 };
 
 const PromptsContent: React.FC = () => {
-  const router = useRouter();
   const queryClient = useQueryClient();
   const [selectedPromptKey, setSelectedPromptKey] = useState(
     "gift_generation_system"
@@ -108,50 +107,38 @@ const PromptsContent: React.FC = () => {
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
     >
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerTitleRow}>
-          <Button
-            mode="text"
-            onPress={() => router.push("/admin/playground")}
-            icon="arrow-left"
-            compact
-          >
-            Playground
-          </Button>
-          <Text variant="headlineSmall">Prompt Versions</Text>
-          <Menu
-            visible={promptMenuVisible}
-            onDismiss={() => setPromptMenuVisible(false)}
-            anchor={
-              <Button
-                mode="outlined"
-                onPress={() => setPromptMenuVisible(true)}
-                icon="swap-horizontal"
-                compact
-              >
-                {selectedDef?.label ?? "Select Prompt"}
-              </Button>
-            }
-            contentStyle={styles.promptMenuContent}
-          >
-            {PROMPT_REGISTRY.map((def: PromptDefinition) => (
-              <Menu.Item
-                key={def.key}
-                onPress={() => {
-                  setSelectedPromptKey(def.key);
-                  setPromptMenuVisible(false);
-                  setExpandedVersionId(null);
-                }}
-                title={def.label}
-                leadingIcon={
-                  def.key === selectedPromptKey ? "check" : undefined
-                }
-              />
-            ))}
-          </Menu>
-        </View>
-      </View>
+      <AdminNavbar title="Prompt Versions">
+        <Menu
+          visible={promptMenuVisible}
+          onDismiss={() => setPromptMenuVisible(false)}
+          anchor={
+            <Button
+              mode="outlined"
+              onPress={() => setPromptMenuVisible(true)}
+              icon="swap-horizontal"
+              compact
+            >
+              {selectedDef?.label ?? "Select Prompt"}
+            </Button>
+          }
+          contentStyle={styles.promptMenuContent}
+        >
+          {PROMPT_REGISTRY.map((def: PromptDefinition) => (
+            <Menu.Item
+              key={def.key}
+              onPress={() => {
+                setSelectedPromptKey(def.key);
+                setPromptMenuVisible(false);
+                setExpandedVersionId(null);
+              }}
+              title={def.label}
+              leadingIcon={
+                def.key === selectedPromptKey ? "check" : undefined
+              }
+            />
+          ))}
+        </Menu>
+      </AdminNavbar>
 
       {/* Active version */}
       {active && (
@@ -325,18 +312,6 @@ const styles = StyleSheet.create({
   accessDeniedBody: {
     marginTop: 8,
     color: Colors.darks.brown,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  headerTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
   },
   promptMenuContent: {
     maxHeight: 300,
