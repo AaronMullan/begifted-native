@@ -187,6 +187,19 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
         >
           Version History
         </Button>
+        <Button
+          mode="text"
+          onPress={() => {
+            if (Platform.OS === "web") {
+              window.location.href = "/admin/kill-switch";
+            }
+          }}
+          icon="power"
+          compact
+          style={styles.historyLink}
+        >
+          Kill Switch
+        </Button>
       </View>
       <View style={styles.headerActions}>
         <Button

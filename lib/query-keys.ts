@@ -45,4 +45,7 @@ export const queryKeys = {
   allProfiles: () => ["allProfiles"] as const,
   recipientsForUser: (userId: string) =>
     ["recipientsForUser", userId] as const,
+
+  // App Config (Kill Switch)
+  appConfig: ["appConfig"] as const,
 };

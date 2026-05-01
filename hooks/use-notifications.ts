@@ -7,17 +7,20 @@ import {
   markAllNotificationsRead,
 } from "../lib/api";
 import { useAuth } from "./use-auth";
+import { useAppConfig } from "./use-app-config";
 
 /**
  * Hook to fetch notifications for the current user
  */
 export function useNotifications() {
   const { user } = useAuth();
+  const { data: appConfig } = useAppConfig();
+  const notificationsEnabled = appConfig?.notifications_enabled !== false;
 
   return useQuery({
     queryKey: queryKeys.notifications(user?.id || ""),
     queryFn: () => fetchNotifications(user!.id),
-    enabled: !!user,
+    enabled: !!user && notificationsEnabled,
   });
 }
 
@@ -26,11 +29,13 @@ export function useNotifications() {
  */
 export function useUnreadCount() {
   const { user } = useAuth();
+  const { data: appConfig } = useAppConfig();
+  const notificationsEnabled = appConfig?.notifications_enabled !== false;
 
   return useQuery({
     queryKey: queryKeys.unreadNotificationCount(user?.id || ""),
     queryFn: () => fetchUnreadCount(user!.id),
-    enabled: !!user,
+    enabled: !!user && notificationsEnabled,
     refetchInterval: 30_000, // Poll every 30s so badge updates even without push
     staleTime: 0, // Always refetch on mount
   });
