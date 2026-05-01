@@ -1,7 +1,13 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { loadAIConfig } from "../_shared/ai-config-loader.ts";
+import { callAI, getApiKey } from "../_shared/ai-client.ts";
+import type { AIMessage } from "../_shared/ai-client.ts";
 
-const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
+// @ts-ignore - Deno environment variables are resolved at runtime
+const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+// @ts-ignore - Deno environment variables are resolved at runtime
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,7 +58,7 @@ serve(async (req) => {
   }
 
   try {
-    const { currentPrompt, userInstruction, chatHistory, promptCategory } =
+    const { currentPrompt, userInstruction, chatHistory, promptCategory, overrideProvider, overrideModel } =
       await req.json();
 
     if (!currentPrompt || !userInstruction) {
@@ -94,28 +100,19 @@ serve(async (req) => {
       content: `Here is the current system prompt:\n\n---\n${currentPrompt}\n---\n\nPlease make the following change: ${userInstruction}`,
     });
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAIApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o",
-        messages,
-        temperature: 0.7,
-        response_format: { type: "json_object" },
-      }),
+    const { provider, model } = await loadAIConfig(supabaseUrl, supabaseServiceKey, {
+      provider: overrideProvider,
+      model: overrideModel,
+    });
+    const apiKey = getApiKey(provider);
+    const rawContent = await callAI(provider, model, apiKey, {
+      messages: messages as AIMessage[],
+      maxTokens: 2048,
+      temperature: 0.7,
+      jsonMode: true,
     });
 
-    const data = await response.json();
-
-    if (!data.choices || !data.choices[0]?.message?.content) {
-      console.error("Invalid OpenAI response:", JSON.stringify(data, null, 2));
-      throw new Error("Invalid OpenAI response structure");
-    }
-
-    const result = JSON.parse(data.choices[0].message.content);
+    const result = JSON.parse(rawContent);
 
     return new Response(
       JSON.stringify({

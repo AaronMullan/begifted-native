@@ -1,4 +1,6 @@
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
+import { loadAIConfig, type Provider, type AIOverride } from "../_shared/ai-config-loader.ts";
+import { callAI, getApiKey } from "../_shared/ai-client.ts";
 import type {
   ContextInfo,
   ConversationResponse,
@@ -10,18 +12,25 @@ import type {
 } from "../types.ts";
 import { parseOpenAIJSON } from "./utils.ts";
 // @ts-ignore - Deno environment variables are resolved at runtime
-const openAiApiKey = Deno.env.get("OPENAI_API_KEY");
-// @ts-ignore - Deno environment variables are resolved at runtime
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 // @ts-ignore - Deno environment variables are resolved at runtime
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+type AIConfig = { provider: Provider; model: string; apiKey: string };
+
+async function resolveAIConfig(override?: AIOverride): Promise<AIConfig> {
+  const { provider, model } = await loadAIConfig(supabaseUrl, supabaseServiceKey, override);
+  return { provider, model, apiKey: getApiKey(provider) };
+}
 // Generalized conversation handler - supports different conversation types
 export async function handleConversation(
   messages: Message[],
   conversationType: ConversationType = "add_recipient",
   existingData?: RecipientData,
-  customSystemPrompt?: string
+  customSystemPrompt?: string,
+  aiOverride?: AIOverride
 ): Promise<ConversationResponse> {
+  const aiConfig = await resolveAIConfig(aiOverride);
   const conversationHistory = messages
     .map((m) => `${m.role}: ${m.content}`)
     .join("\n");
@@ -110,53 +119,32 @@ Return JSON with what's been established:
   "readiness_score": "0-10 scale (debugging only)"
 }`;
     try {
-      const contextResponse = await fetch(
-        "https://api.openai.com/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${openAiApiKey}`,
-            "Content-Type": "application/json",
+      const contextRaw = await callAI(aiConfig.provider, aiConfig.model, aiConfig.apiKey, {
+        messages: [{ role: "user", content: quickExtractionPrompt }],
+        maxTokens: 500,
+        temperature: 0.5,
+        jsonMode: true,
+      });
+      try {
+        contextInfo = parseOpenAIJSON(contextRaw);
+      } catch (e) {
+        console.error("Failed to parse context extraction:", e);
+        contextInfo = {
+          conversation_length: messages.length,
+          readiness_score: 3,
+          readiness: {
+            state: "not_captured",
+            gift_ready: false,
+            has_recipient_anchor: false,
+            has_occasion_anchor: false,
+            has_timing_anchor: false,
+            has_price_anchor: false,
+            has_age_anchor: false,
+            has_specificity_anchor: false,
+            missing_requirements: ["recipient_anchor", "occasion_anchor", "timing_anchor", "price_anchor", "age_anchor", "specificity_anchor"],
+            reason: "Failed to parse context extraction.",
           },
-          body: JSON.stringify({
-            model: "gpt-4o-mini",
-            messages: [
-              {
-                role: "user",
-                content: quickExtractionPrompt,
-              },
-            ],
-            max_tokens: 500,
-            temperature: 0.5,
-            response_format: {
-              type: "json_object",
-            },
-          }),
-        }
-      );
-      const contextData = await contextResponse.json();
-      if (contextResponse.ok && contextData.choices && contextData.choices[0]) {
-        try {
-          contextInfo = parseOpenAIJSON(contextData.choices[0].message.content);
-        } catch (e) {
-          console.error("Failed to parse context extraction:", e);
-          contextInfo = {
-            conversation_length: messages.length,
-            readiness_score: 3,
-            readiness: {
-              state: "not_captured",
-              gift_ready: false,
-              has_recipient_anchor: false,
-              has_occasion_anchor: false,
-              has_timing_anchor: false,
-              has_price_anchor: false,
-              has_age_anchor: false,
-              has_specificity_anchor: false,
-              missing_requirements: ["recipient_anchor", "occasion_anchor", "timing_anchor", "price_anchor", "age_anchor", "specificity_anchor"],
-              reason: "Failed to parse context extraction.",
-            },
-          };
-        }
+        };
       }
     } catch (e) {
       console.error("Error in context extraction:", e);
@@ -320,37 +308,14 @@ Return JSON with what's been established:
     default:
       systemPrompt = interpolatePrompt(ADD_RECIPIENT_DEFAULT_TEMPLATE);
   }
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${openAiApiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt,
-        },
-        {
-          role: "user",
-          content: "Please respond to continue the conversation.",
-        },
-      ],
-      max_tokens: 300,
-      temperature: 0.7,
-    }),
+  let reply = await callAI(aiConfig.provider, aiConfig.model, aiConfig.apiKey, {
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: "Please respond to continue the conversation." },
+    ],
+    maxTokens: 300,
+    temperature: 0.7,
   });
-  const data = await response.json();
-  console.log("Conversation API response:", JSON.stringify(data, null, 2));
-  if (!response.ok || !data.choices || !data.choices[0]) {
-    console.error("OpenAI API Error (conversation):", data);
-    throw new Error(
-      `OpenAI API failed: ${data.error?.message || "Unknown error"}`
-    );
-  }
-  let reply = data.choices[0].message.content;
 
   // Guard: if the LLM returned a JSON object instead of plain text, extract the
   // reply field so we never display raw JSON to the user.
@@ -498,8 +463,10 @@ Current exchange #${messageCount}:`;
 // Full recipient extraction (for adding new recipients)
 // Line 277: extractFullRecipient
 export async function extractFullRecipient(
-  messages: Message[]
+  messages: Message[],
+  aiOverride?: AIOverride
 ): Promise<ExtractionResponse> {
+  const aiConfig = await resolveAIConfig(aiOverride);
   console.log("=== FULL RECIPIENT EXTRACTION ===");
   console.log("Total messages:", messages.length);
   const conversationHistory = messages
@@ -529,52 +496,16 @@ Return ONLY valid JSON (no markdown formatting):
   "relationship_type": "exact relationship found or null"
 }`;
   console.log("🔍 PASS 1: Extracting critical fields...");
-  const criticalResponse = await fetch(
-    "https://api.openai.com/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAiApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "user",
-            content: criticalFieldsPrompt,
-          },
-        ],
-        max_tokens: 150,
-        temperature: 0.3,
-        response_format: {
-          type: "json_object",
-        },
-      }),
-    }
-  );
-  const criticalData = await criticalResponse.json();
-  console.log(
-    "Critical fields API response:",
-    JSON.stringify(criticalData, null, 2)
-  );
-  if (
-    !criticalResponse.ok ||
-    !criticalData.choices ||
-    !criticalData.choices[0]
-  ) {
-    console.error("❌ OpenAI API Error (critical fields):", criticalData);
-    throw new Error(
-      `OpenAI API failed: ${criticalData.error?.message || "Unknown error"}`
-    );
-  }
-  console.log(
-    "Critical fields raw response:",
-    criticalData.choices[0].message.content
-  );
+  const criticalRaw = await callAI(aiConfig.provider, aiConfig.model, aiConfig.apiKey, {
+    messages: [{ role: "user", content: criticalFieldsPrompt }],
+    maxTokens: 150,
+    temperature: 0.3,
+    jsonMode: true,
+  });
+  console.log("Critical fields raw response:", criticalRaw);
   let criticalFields;
   try {
-    criticalFields = parseOpenAIJSON(criticalData.choices[0].message.content);
+    criticalFields = parseOpenAIJSON(criticalRaw);
     console.log("✅ Successfully parsed critical fields:", criticalFields);
   } catch (e) {
     console.error("❌ Failed to parse critical fields, using fallback:", e);
@@ -629,48 +560,16 @@ IMPORTANT:
 - Use descriptive occasion_type names (e.g., "anniversary", "spring_equinox", "new_years", "christmas")
 - If the priority fields have values, use them exactly as provided above.`;
   console.log("🔍 PASS 2: Full extraction with context...");
-  const fullResponse = await fetch(
-    "https://api.openai.com/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAiApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "user",
-            content: fullExtractionPrompt,
-          },
-        ],
-        max_tokens: 500,
-        temperature: 0.3,
-        response_format: {
-          type: "json_object",
-        },
-      }),
-    }
-  );
-  const fullData = await fullResponse.json();
-  console.log(
-    "Full extraction API response:",
-    JSON.stringify(fullData, null, 2)
-  );
-  if (!fullResponse.ok || !fullData.choices || !fullData.choices[0]) {
-    console.error("❌ OpenAI API Error (full extraction):", fullData);
-    throw new Error(
-      `OpenAI API failed: ${fullData.error?.message || "Unknown error"}`
-    );
-  }
-  console.log(
-    "Full extraction raw response:",
-    fullData.choices[0].message.content
-  );
+  const fullRaw = await callAI(aiConfig.provider, aiConfig.model, aiConfig.apiKey, {
+    messages: [{ role: "user", content: fullExtractionPrompt }],
+    maxTokens: 500,
+    temperature: 0.3,
+    jsonMode: true,
+  });
+  console.log("Full extraction raw response:", fullRaw);
   let extractedData;
   try {
-    extractedData = parseOpenAIJSON(fullData.choices[0].message.content);
+    extractedData = parseOpenAIJSON(fullRaw);
     console.log("✅ Successfully parsed full extraction:", extractedData);
   } catch (e) {
     console.error(
@@ -794,8 +693,10 @@ IMPORTANT:
 export async function extractFields(
   messages: Message[],
   targetFields: string[],
-  existingData?: RecipientData
+  existingData?: RecipientData,
+  aiOverride?: AIOverride
 ): Promise<ExtractionResponse> {
+  const aiConfig = await resolveAIConfig(aiOverride);
   console.log("=== PARTIAL FIELD EXTRACTION ===");
   console.log("Target fields:", targetFields);
   console.log("Existing data:", existingData);
@@ -853,42 +754,16 @@ Return ONLY valid JSON (no markdown formatting) with these fields:
 
 Only include the requested fields. If a field wasn't mentioned, set it to null.`;
   console.log("🔍 Extracting fields:", targetFields);
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${openAiApiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "user",
-          content: extractionPrompt,
-        },
-      ],
-      max_tokens: 300,
-      temperature: 0.3,
-      response_format: {
-        type: "json_object",
-      },
-    }),
+  const fieldsRaw = await callAI(aiConfig.provider, aiConfig.model, aiConfig.apiKey, {
+    messages: [{ role: "user", content: extractionPrompt }],
+    maxTokens: 300,
+    temperature: 0.3,
+    jsonMode: true,
   });
-  const data = await response.json();
-  console.log("Field extraction API response:", JSON.stringify(data, null, 2));
-  if (!response.ok || !data.choices || !data.choices[0]) {
-    console.error("❌ OpenAI API Error (field extraction):", data);
-    throw new Error(
-      `OpenAI API failed: ${data.error?.message || "Unknown error"}`
-    );
-  }
-  console.log(
-    "Field extraction raw response:",
-    data.choices[0].message.content
-  );
+  console.log("Field extraction raw response:", fieldsRaw);
   let extractedData;
   try {
-    extractedData = parseOpenAIJSON(data.choices[0].message.content);
+    extractedData = parseOpenAIJSON(fieldsRaw);
     console.log("✅ Successfully parsed field extraction:", extractedData);
   } catch (e) {
     console.error("❌ Failed to parse field extraction:", e);
@@ -905,9 +780,10 @@ Only include the requested fields. If a field wasn't mentioned, set it to null.`
 export async function extractField(
   messages: Message[],
   field: string,
-  existingData?: RecipientData
+  existingData?: RecipientData,
+  aiOverride?: AIOverride
 ): Promise<ExtractionResponse> {
-  return extractFields(messages, [field], existingData);
+  return extractFields(messages, [field], existingData, aiOverride);
 }
 
 // Occasion recommendation types for suggest-occasions-from-interests
@@ -930,8 +806,10 @@ export interface OccasionRecommendations {
  */
 export async function recommendOccasions(
   extractedData: ExtractedData | RecipientData,
-  customSystemPrompt?: string
+  customSystemPrompt?: string,
+  aiOverride?: AIOverride
 ): Promise<OccasionRecommendations> {
+  const aiConfig = await resolveAIConfig(aiOverride);
   const name = extractedData.name || "this person";
   const relationship = extractedData.relationship_type || "";
   const birthday = extractedData.birthday || null;
@@ -1005,29 +883,21 @@ Return JSON only, no markdown:
     .replace("{{birthday}}", birthdayStr)
     .replace("{{interests}}", interestsStr);
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${openAiApiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
+  let occasionsRaw: string;
+  try {
+    occasionsRaw = await callAI(aiConfig.provider, aiConfig.model, aiConfig.apiKey, {
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 900,
+      maxTokens: 900,
       temperature: 0.75,
-      response_format: { type: "json_object" },
-    }),
-  });
-
-  const data = await res.json();
-  if (!res.ok || !data.choices?.[0]?.message?.content) {
-    console.error("recommendOccasions OpenAI error:", data);
+      jsonMode: true,
+    });
+  } catch (err) {
+    console.error("recommendOccasions AI error:", err);
     return getFallbackOccasionRecommendations(birthday);
   }
 
   try {
-    const parsed = parseOpenAIJSON(data.choices[0].message.content);
+    const parsed = parseOpenAIJSON(occasionsRaw);
     const primary = Array.isArray(parsed.primaryOccasions)
       ? parsed.primaryOccasions
       : [];

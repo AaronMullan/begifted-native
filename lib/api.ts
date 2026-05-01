@@ -363,6 +363,8 @@ export interface PromptTestRun {
   chat_messages: { role: string; content: string }[];
   generation_result: Record<string, unknown> | null;
   prompt_key: string | null;
+  ai_provider: string | null;
+  ai_model: string | null;
   created_at: string;
 }
 
@@ -546,6 +548,8 @@ export interface AppConfig {
   recommendations_enabled: boolean;
   notifications_enabled: boolean;
   signups_enabled: boolean;
+  ai_provider: 'openai' | 'anthropic' | 'google';
+  ai_model: string;
   updated_at: string;
   updated_by: string | null;
 }
@@ -564,7 +568,11 @@ export async function updateAppConfig(
   flags: Partial<
     Pick<
       AppConfig,
-      "recommendations_enabled" | "notifications_enabled" | "signups_enabled"
+      | "recommendations_enabled"
+      | "notifications_enabled"
+      | "signups_enabled"
+      | "ai_provider"
+      | "ai_model"
     >
   >,
   userId: string

@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { fetchIsAdmin } from "@/lib/api";
 import { useAppConfig, useUpdateAppConfig } from "@/hooks/use-app-config";
+import { AdminNavbar } from "@/components/admin/AdminNavbar";
 import { Colors } from "@/lib/colors";
 
 const KillSwitchScreen: React.FC = () => {
@@ -66,17 +67,7 @@ const KillSwitchContent: React.FC = () => {
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
     >
-      <View style={styles.header}>
-        <Button
-          mode="text"
-          onPress={() => router.push("/admin/playground")}
-          icon="arrow-left"
-          compact
-        >
-          Playground
-        </Button>
-        <Text variant="headlineSmall">Kill Switch</Text>
-      </View>
+      <AdminNavbar title="Kill Switch" />
 
       <Text variant="bodyMedium" style={styles.subtitle}>
         Immediately disable features across the app. Changes take effect within
@@ -208,13 +199,6 @@ const styles = StyleSheet.create({
   accessDeniedBody: {
     marginTop: 8,
     color: Colors.darks.brown,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-    flexWrap: "wrap",
-    gap: 8,
   },
   subtitle: {
     color: Colors.darks.brown,

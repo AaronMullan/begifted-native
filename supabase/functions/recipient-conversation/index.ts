@@ -9,9 +9,13 @@ import {
 } from "./data-extractor.ts";
 
 import { parseOpenAIJSON } from "./utils.ts";
+import { loadAIConfig, type AIOverride } from "../_shared/ai-config-loader.ts";
+import { callAI, getApiKey } from "../_shared/ai-client.ts";
 
 // @ts-ignore - Deno environment variables are resolved at runtime
-const openAiApiKey = Deno.env.get("OPENAI_API_KEY");
+const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+// @ts-ignore - Deno environment variables are resolved at runtime
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,7 +28,8 @@ const corsHeaders = {
 
 async function handleAddOccasionConversation(
   messages: { role: string; content: string }[],
-  recipientName: string | null
+  recipientName: string | null,
+  aiOverride?: AIOverride
 ) {
   const nameRef = recipientName ? ` for ${recipientName}` : "";
 
@@ -36,31 +41,16 @@ Rules:
 - Personal occasion WITHOUT a date → ask ONLY for the date. Example: "When is the anniversary?"
 - Max 1–2 sentences per response. Never mention gifts, relationships, or the person's details.`;
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${openAiApiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...messages.map((m) => ({ role: m.role, content: m.content })),
-      ],
-      max_tokens: 150,
-      temperature: 0.3,
-    }),
+  const { provider, model } = await loadAIConfig(supabaseUrl, supabaseServiceKey, aiOverride);
+  const apiKey = getApiKey(provider);
+  const reply = await callAI(provider, model, apiKey, {
+    messages: [
+      { role: "system", content: systemPrompt },
+      ...messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
+    ],
+    maxTokens: 150,
+    temperature: 0.3,
   });
-
-  const data = await response.json();
-  if (!response.ok || !data.choices?.[0]) {
-    throw new Error(
-      `OpenAI API failed: ${data.error?.message || "Unknown error"}`
-    );
-  }
-
-  const reply = data.choices[0].message.content;
   // Show the save button after the first AI response (user has stated the occasion)
   const userMessages = messages.filter((m) => m.role === "user");
   const shouldShowNextStepButton = userMessages.length >= 1;
@@ -69,7 +59,8 @@ Rules:
 }
 
 async function handleAddOccasionExtract(
-  messages: { role: string; content: string }[]
+  messages: { role: string; content: string }[],
+  aiOverride?: AIOverride
 ) {
   const conversationHistory = messages
     .map((m) => `${m.role}: ${m.content}`)
@@ -84,31 +75,18 @@ async function handleAddOccasionExtract(
 Conversation:
 ${conversationHistory}`;
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${openAiApiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 100,
-      temperature: 0.2,
-      response_format: { type: "json_object" },
-    }),
+  const { provider: p2, model: m2 } = await loadAIConfig(supabaseUrl, supabaseServiceKey, aiOverride);
+  const key2 = getApiKey(p2);
+  const extractRaw = await callAI(p2, m2, key2, {
+    messages: [{ role: "user", content: prompt }],
+    maxTokens: 100,
+    temperature: 0.2,
+    jsonMode: true,
   });
-
-  const data = await response.json();
-  if (!response.ok || !data.choices?.[0]?.message?.content) {
-    throw new Error(
-      `OpenAI API failed: ${data.error?.message || "Unknown error"}`
-    );
-  }
 
   let parsed;
   try {
-    parsed = parseOpenAIJSON(data.choices[0].message.content);
+    parsed = parseOpenAIJSON(extractRaw);
   } catch {
     parsed = { occasion_type: "custom", date: null };
   }
@@ -144,7 +122,11 @@ serve(async (req) => {
       existingData,
       extractedData,
       customSystemPrompt,
+      overrideProvider,
+      overrideModel,
     } = requestBody;
+
+    const aiOverride: AIOverride = { provider: overrideProvider, model: overrideModel };
 
     if (!action) {
       return new Response(
@@ -170,7 +152,7 @@ serve(async (req) => {
           }
         );
       }
-      const result = await recommendOccasions(data, customSystemPrompt);
+      const result = await recommendOccasions(data, customSystemPrompt, aiOverride);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
@@ -213,10 +195,11 @@ serve(async (req) => {
       if (action === "conversation") {
         result = await handleAddOccasionConversation(
           messages,
-          existingData?.name || null
+          existingData?.name || null,
+          aiOverride
         );
       } else if (action === "extract") {
-        result = await handleAddOccasionExtract(messages);
+        result = await handleAddOccasionExtract(messages, aiOverride);
       } else {
         return new Response(
           JSON.stringify({ error: `Invalid action: ${action}` }),
@@ -238,7 +221,8 @@ serve(async (req) => {
         messages,
         conversationType,
         existingData,
-        customSystemPrompt
+        customSystemPrompt,
+        aiOverride
       );
       return new Response(JSON.stringify(result), {
         headers: {
@@ -255,7 +239,7 @@ serve(async (req) => {
       switch (conversationType) {
         case "add_recipient":
           // Full recipient extraction
-          result = await extractFullRecipient(messages);
+          result = await extractFullRecipient(messages, aiOverride);
           break;
         case "update_field":
         case "extract_interests":
@@ -265,7 +249,7 @@ serve(async (req) => {
           // Partial field extraction
           if (targetFields && targetFields.length > 0) {
             // Extract specific fields
-            result = await extractFields(messages, targetFields, existingData);
+            result = await extractFields(messages, targetFields, existingData, aiOverride);
           } else {
             // Extract based on conversation type
             const fieldMap = {
@@ -278,7 +262,7 @@ serve(async (req) => {
             };
             const targetField = fieldMap[conversationType];
             if (targetField) {
-              result = await extractField(messages, targetField, existingData);
+              result = await extractField(messages, targetField, existingData, aiOverride);
             } else {
               throw new Error(
                 `No target field specified for conversation type: ${conversationType}`

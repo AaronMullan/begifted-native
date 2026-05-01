@@ -1,6 +1,8 @@
 // @ts-ignore - Deno HTTP imports are resolved at runtime
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
+import { loadAIConfig } from "../_shared/ai-config-loader.ts";
+import { callAI, getApiKey } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,8 +11,6 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// @ts-ignore - Deno environment variables are resolved at runtime
-const openAiApiKey = Deno.env.get("OPENAI_API_KEY");
 // @ts-ignore - Deno environment variables are resolved at runtime
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 // @ts-ignore - Deno environment variables are resolved at runtime
@@ -32,7 +32,7 @@ serve(async (req) => {
   }
 
   try {
-    const { text, customSystemPrompt } = await req.json();
+    const { text, customSystemPrompt, overrideProvider, overrideModel } = await req.json();
 
     if (!text || typeof text !== "string") {
       return new Response(
@@ -69,40 +69,20 @@ Return ONLY valid JSON:
           HARDCODED_FALLBACK
         );
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAiApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        temperature: 0.3,
-        messages: [
-          {
-            role: "system",
-            content: systemPrompt,
-          },
-          {
-            role: "user",
-            content: text,
-          },
-        ],
-      }),
+    const { provider, model } = await loadAIConfig(supabaseUrl, supabaseServiceKey, {
+      provider: overrideProvider,
+      model: overrideModel,
     });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error("OpenAI API error:", errorBody);
-      throw new Error(`OpenAI API error: ${response.status}`);
-    }
-
-    const completion = await response.json();
-    const rawContent = completion.choices?.[0]?.message?.content;
-
-    if (!rawContent) {
-      throw new Error("No content in OpenAI response");
-    }
+    const apiKey = getApiKey(provider);
+    const rawContent = await callAI(provider, model, apiKey, {
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: text },
+      ],
+      maxTokens: 1024,
+      temperature: 0.3,
+      jsonMode: true,
+    });
 
     const extracted = parseOpenAIJSON(rawContent);
 
