@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, Platform, ScrollView, StyleSheet, View } from "react-native";
-import { Text, Button } from "react-native-paper";
+import { Text, Button, TextInput } from "react-native-paper";
 import { Colors } from "../../../lib/colors";
 import ContactFileImport from "../../../components/ContactFileImport";
 import ContactPicker from "../../../components/ContactPicker";
@@ -48,6 +48,7 @@ export default function Contacts() {
   const [state, setState] = useState("");
   const [zipCode, setZipCode] = useState("");
   const [country, setCountry] = useState("US");
+  const [searchQuery, setSearchQuery] = useState("");
   const [pickerVisible, setPickerVisible] = useState(false);
   const [contactsAccessIntroVisible, setContactsAccessIntroVisible] =
     useState(false);
@@ -340,6 +341,22 @@ export default function Contacts() {
             />
           )}
 
+          {!formVisible && recipients.length > 0 && (
+            <TextInput
+              mode="outlined"
+              placeholder="Search recipients..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              left={<TextInput.Icon icon="magnify" />}
+              right={
+                searchQuery.length > 0 ? (
+                  <TextInput.Icon icon="close" onPress={() => setSearchQuery("")} />
+                ) : undefined
+              }
+              style={styles.searchInput}
+            />
+          )}
+
           {loading && recipients.length === 0 ? (
             <Text variant="bodyLarge" style={styles.loadingText}>
               Loading...
@@ -353,17 +370,36 @@ export default function Contacts() {
                 Add your first recipient to get started!
               </Text>
             </View>
-          ) : (
-            <View style={styles.list}>
-              {recipients.map((recipient) => (
-                <RecipientCard
-                  key={recipient.id}
-                  recipient={recipient}
-                  onPress={openEditForm}
-                />
-              ))}
-            </View>
-          )}
+          ) : (() => {
+            const q = searchQuery.trim().toLowerCase();
+            const filtered = q
+              ? recipients.filter(
+                  (r) =>
+                    r.name.toLowerCase().includes(q) ||
+                    r.relationship_type.toLowerCase().includes(q)
+                )
+              : recipients;
+            return filtered.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text variant="titleLarge" style={styles.emptyText}>
+                  No results.
+                </Text>
+                <Text variant="bodyMedium" style={styles.emptySubtext}>
+                  {`No recipients match "${searchQuery}".`}
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.list}>
+                {filtered.map((recipient) => (
+                  <RecipientCard
+                    key={recipient.id}
+                    recipient={recipient}
+                    onPress={openEditForm}
+                  />
+                ))}
+              </View>
+            );
+          })()}
         </View>
         <ContactsAccessIntro
           visible={contactsAccessIntroVisible}
@@ -437,6 +473,9 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   importButton: {
+    marginBottom: 20,
+  },
+  searchInput: {
     marginBottom: 20,
   },
 });
