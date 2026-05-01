@@ -617,7 +617,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
       {/* Refinement chat */}
       <Card style={styles.card}>
         <Card.Content style={styles.chatCardContent}>
-          <Text variant="titleSmall" style={styles.cardTitle}>
+          <Text variant="titleSmall" style={[styles.cardTitle, styles.chatCardTitle]}>
             Refinement Chat
           </Text>
           <ScrollView
@@ -1602,6 +1602,9 @@ const styles = StyleSheet.create({
   chatCardContent: {
     paddingBottom: 0,
     paddingHorizontal: 0,
+  },
+  chatCardTitle: {
+    paddingHorizontal: 16,
   },
   chatScroll: {
     maxHeight: 250,
