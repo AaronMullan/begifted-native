@@ -314,6 +314,8 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 40,
     maxWidth: 800,
+    width: "100%",
+    alignSelf: "center",
   },
   center: {
     flex: 1,
@@ -350,9 +352,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 2,
     borderColor: Colors.blues.teal,
+    borderRadius: 8,
   },
   versionCard: {
     marginBottom: 8,
+    borderRadius: 8,
   },
   activeVersionCard: {
     borderWidth: 1,

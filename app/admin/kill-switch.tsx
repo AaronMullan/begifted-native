@@ -201,6 +201,8 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 40,
     maxWidth: 800,
+    width: "100%",
+    alignSelf: "center",
   },
   center: {
     flex: 1,
@@ -227,6 +229,7 @@ const styles = StyleSheet.create({
   },
   card: {
     marginBottom: 8,
+    borderRadius: 8,
   },
   row: {
     flexDirection: "row",
@@ -276,6 +279,7 @@ const styles = StyleSheet.create({
   promptButton: {
     marginTop: 8,
     alignSelf: "flex-start",
+    borderRadius: 8,
   },
 });
 
