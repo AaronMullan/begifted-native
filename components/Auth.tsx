@@ -3,6 +3,7 @@ import { StyleSheet, View, KeyboardAvoidingView, ScrollView, Platform } from "re
 import { TextInput, Button, Text } from "react-native-paper";
 import { useForm, Controller } from "react-hook-form";
 import { supabase } from "../lib/supabase";
+import { fetchAppConfig } from "../lib/api";
 import { Session } from "@supabase/supabase-js";
 
 type FormData = {
@@ -59,6 +60,17 @@ export default function Auth() {
   async function handleSignUp(data: FormData) {
     setLoading(true);
     setMessage("");
+
+    try {
+      const config = await fetchAppConfig();
+      if (!config.signups_enabled) {
+        setMessage("New signups are temporarily disabled. Please check back soon.");
+        setLoading(false);
+        return;
+      }
+    } catch {
+      // If config fetch fails, allow signup to proceed
+    }
 
     const { data: signUpData, error } = await supabase.auth.signUp({
       email: data.email,

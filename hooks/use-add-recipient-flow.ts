@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, View } from "react-native";
 import { queryKeys } from "../lib/query-keys";
 import { supabase } from "../lib/supabase";
+import { fetchAppConfig } from "../lib/api";
 import {
   ExtractedData,
   Message,
@@ -230,13 +231,16 @@ export function useAddRecipientFlow(
             } catch (err) {
               console.error("Failed to trigger profile synthesis:", err);
             }
-            fetch("https://be-gifted.vercel.app/api/generate-gifts", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ recipientId }),
-            }).catch((err) => {
-              console.error("Failed to trigger gift generation:", err);
-            });
+            const config = await fetchAppConfig().catch(() => null);
+            if (config?.recommendations_enabled !== false) {
+              fetch("https://be-gifted.vercel.app/api/generate-gifts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ recipientId }),
+              }).catch((err) => {
+                console.error("Failed to trigger gift generation:", err);
+              });
+            }
           })();
         }
       } catch (error) {

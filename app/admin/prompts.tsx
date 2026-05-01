@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useRouter } from "expo-router";
 import { View, ScrollView, StyleSheet, Platform } from "react-native";
 import {
   Text,
@@ -55,6 +56,7 @@ const PromptsScreen: React.FC = () => {
 };
 
 const PromptsContent: React.FC = () => {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [selectedPromptKey, setSelectedPromptKey] = useState(
     "gift_generation_system"
@@ -109,6 +111,14 @@ const PromptsContent: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTitleRow}>
+          <Button
+            mode="text"
+            onPress={() => router.push("/admin/playground")}
+            icon="arrow-left"
+            compact
+          >
+            Playground
+          </Button>
           <Text variant="headlineSmall">Prompt Versions</Text>
           <Menu
             visible={promptMenuVisible}
@@ -141,18 +151,6 @@ const PromptsContent: React.FC = () => {
             ))}
           </Menu>
         </View>
-        <Button
-          mode="text"
-          onPress={() => {
-            if (Platform.OS === "web") {
-              window.location.href = "/admin/playground";
-            }
-          }}
-          icon="arrow-left"
-          compact
-        >
-          Back to Playground
-        </Button>
       </View>
 
       {/* Active version */}
@@ -314,6 +312,8 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 40,
     maxWidth: 800,
+    width: "100%",
+    alignSelf: "center",
   },
   center: {
     flex: 1,
@@ -328,7 +328,6 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
     flexWrap: "wrap",
@@ -350,9 +349,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 2,
     borderColor: Colors.blues.teal,
+    borderRadius: 8,
   },
   versionCard: {
     marginBottom: 8,
+    borderRadius: 8,
   },
   activeVersionCard: {
     borderWidth: 1,

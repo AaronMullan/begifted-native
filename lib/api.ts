@@ -539,6 +539,43 @@ export async function deployNewPromptVersion(
   return data;
 }
 
+// ─── App Config (Kill Switch) ───────────────────────────────────────────────
+
+export interface AppConfig {
+  id: number;
+  recommendations_enabled: boolean;
+  notifications_enabled: boolean;
+  signups_enabled: boolean;
+  updated_at: string;
+  updated_by: string | null;
+}
+
+export async function fetchAppConfig(): Promise<AppConfig> {
+  const { data, error } = await supabase
+    .from("app_config")
+    .select("*")
+    .eq("id", 1)
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateAppConfig(
+  flags: Partial<
+    Pick<
+      AppConfig,
+      "recommendations_enabled" | "notifications_enabled" | "signups_enabled"
+    >
+  >,
+  userId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("app_config")
+    .update({ ...flags, updated_at: new Date().toISOString(), updated_by: userId })
+    .eq("id", 1);
+  if (error) throw error;
+}
+
 /**
  * Rollback to a specific prompt version
  */

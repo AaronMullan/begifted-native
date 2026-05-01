@@ -22,6 +22,7 @@ import {
   Divider,
   Switch,
 } from "react-native-paper";
+import { useRouter } from "expo-router";
 import { useAuth } from "@/hooks/use-auth";
 import { fetchIsAdmin } from "@/lib/api";
 import { usePromptPlayground } from "@/hooks/use-prompt-playground";
@@ -76,6 +77,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
   userId,
   isDesktop,
 }) => {
+  const router = useRouter();
   const playground = usePromptPlayground(userId);
   const [chatInput, setChatInput] = useState("");
   const [showDeployDialog, setShowDeployDialog] = useState(false);
@@ -176,16 +178,21 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
         </Menu>
         <Button
           mode="text"
-          onPress={() => {
-            if (Platform.OS === "web") {
-              window.location.href = "/admin/prompts";
-            }
-          }}
+          onPress={() => router.push("/admin/prompts")}
           icon="history"
           compact
           style={styles.historyLink}
         >
           Version History
+        </Button>
+        <Button
+          mode="text"
+          onPress={() => router.push("/admin/kill-switch")}
+          icon="power"
+          compact
+          style={styles.historyLink}
+        >
+          Kill Switch
         </Button>
       </View>
       <View style={styles.headerActions}>
@@ -604,7 +611,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
       {/* Refinement chat */}
       <Card style={styles.card}>
         <Card.Content style={styles.chatCardContent}>
-          <Text variant="titleSmall" style={styles.cardTitle}>
+          <Text variant="titleSmall" style={[styles.cardTitle, styles.chatCardTitle]}>
             Refinement Chat
           </Text>
           <ScrollView
@@ -1605,6 +1612,9 @@ const styles = StyleSheet.create({
   chatCardContent: {
     paddingBottom: 0,
     paddingHorizontal: 0,
+  },
+  chatCardTitle: {
+    paddingHorizontal: 16,
   },
   chatScroll: {
     maxHeight: 250,
