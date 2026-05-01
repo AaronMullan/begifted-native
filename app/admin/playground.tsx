@@ -113,14 +113,16 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
   }
 
   // Auto-generate the first LLM message when conversation prompt is selected
+  const { selectedPromptKey, testMessages, startConversation, isConversationLoading } = playground;
   useEffect(() => {
     if (
-      playground.selectedPromptKey === "add_recipient_conversation" &&
-      playground.testMessages.length === 0
+      selectedPromptKey === "add_recipient_conversation" &&
+      testMessages.length === 0 &&
+      !isConversationLoading
     ) {
-      playground.startConversation();
+      startConversation();
     }
-  }, [playground.selectedPromptKey]);
+  }, [selectedPromptKey, testMessages.length, isConversationLoading, startConversation]);
 
   async function handleDeploy() {
     try {
