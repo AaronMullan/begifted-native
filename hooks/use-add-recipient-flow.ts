@@ -22,6 +22,7 @@ interface UseAddRecipientFlowReturn {
   isSaving: boolean;
   saveSuccess: boolean;
   savedRecipientName: string | null;
+  savedRecipientId: string | null;
   messagesEndRef: React.RefObject<View | null>;
   shouldShowNextStepButton: boolean;
   conversationContext: string;
@@ -55,18 +56,21 @@ export function useAddRecipientFlow(
   const [showOccasionsSelection, setShowOccasionsSelection] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [savedRecipientName, setSavedRecipientName] = useState<string | null>(
-    null
-  );
+  const [savedRecipientName, setSavedRecipientName] = useState<string | null>(null);
+  const [savedRecipientId, setSavedRecipientId] = useState<string | null>(null);
 
-  // Copy contact photo to app cache immediately — the expo-contacts temp URI is
-  // cleaned up by iOS before the user finishes the flow.
   useEffect(() => {
+    console.log("[photo] hook init, initialPhotoUri:", initialPhotoUri);
     if (!initialPhotoUri) return;
     const dest = `${FileSystem.cacheDirectory}contact-photo-${Date.now()}.jpg`;
     FileSystem.copyAsync({ from: initialPhotoUri, to: dest })
-      .then(() => { cachedPhotoUri.current = dest; })
-      .catch(() => { /* keep original URI as fallback */ });
+      .then(() => {
+        cachedPhotoUri.current = dest;
+        console.log("[photo] hook re-cached to:", dest);
+      })
+      .catch((err) => {
+        console.error("[photo] hook cache copy failed:", err);
+      });
   }, []);
 
   const initialUserMessage = initialContactName?.trim()
@@ -130,15 +134,25 @@ export function useAddRecipientFlow(
         // Upload contact photo if one was provided
         let photoUrl: string | null = null;
         const photoUri = cachedPhotoUri.current;
+        console.log("[photo] saveRecipient, cachedPhotoUri:", photoUri);
         if (photoUri) {
           try {
-            const response = await fetch(photoUri);
-            const blob = await response.blob();
+            console.log("[photo] reading file as base64...");
+            const base64 = await FileSystem.readAsStringAsync(photoUri, {
+              encoding: FileSystem.EncodingType.Base64,
+            });
+            console.log("[photo] base64 length:", base64.length);
+            const binary = atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+              bytes[i] = binary.charCodeAt(i);
+            }
+            console.log("[photo] uploading", bytes.length, "bytes to Supabase...");
             const filePath = `${userId}/${Date.now()}.jpg`;
             const { data: uploadData, error: uploadError } =
               await supabase.storage
                 .from("recipient-photos")
-                .upload(filePath, blob, {
+                .upload(filePath, bytes, {
                   contentType: "image/jpeg",
                   upsert: true,
                 });
@@ -147,11 +161,12 @@ export function useAddRecipientFlow(
                 .from("recipient-photos")
                 .getPublicUrl(uploadData.path);
               photoUrl = urlData.publicUrl;
+              console.log("[photo] upload success:", photoUrl);
             } else if (uploadError) {
-              console.error("Photo upload error:", uploadError);
+              console.error("[photo] upload error:", uploadError);
             }
           } catch (err) {
-            console.error("Photo upload failed:", err);
+            console.error("[photo] upload failed:", err);
           }
         }
 
@@ -217,6 +232,7 @@ export function useAddRecipientFlow(
 
         // Show success immediately — background work happens after
         setSavedRecipientName(data.name || "Recipient");
+        setSavedRecipientId(recipient.id);
         setSaveSuccess(true);
 
         // Background: synthesize profile first, then gift generation so the
@@ -341,9 +357,12 @@ export function useAddRecipientFlow(
   }, [router]);
 
   const handleViewRecipients = useCallback(() => {
-    // Replace so user can't navigate back to the completed add flow
-    router.replace("/contacts");
-  }, [router]);
+    if (savedRecipientId) {
+      router.replace(`/contacts/${savedRecipientId}?tab=gifts&generating=true`);
+    } else {
+      router.replace("/contacts");
+    }
+  }, [router, savedRecipientId]);
 
   // Background enrichment of occasions with dates
   useEffect(() => {
@@ -396,6 +415,7 @@ export function useAddRecipientFlow(
     isSaving,
     saveSuccess,
     savedRecipientName,
+    savedRecipientId,
     messagesEndRef,
     shouldShowNextStepButton,
     conversationContext: conversationContext || "",
