@@ -94,6 +94,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
   const [testModelMenuVisible, setTestModelMenuVisible] = useState(false);
   const [showProductionContext, setShowProductionContext] = useState(false);
   const [testMessageInput, setTestMessageInput] = useState("");
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const chatScrollRef = useRef<ScrollView>(null);
 
   const conversationScrollRef = useRef<ScrollView>(null);
@@ -894,6 +895,179 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
     </View>
   );
 
+  const resultsDesktop = (
+    <View style={styles.resultsDesktopRow}>
+      {/* Test run selector column */}
+      <Card style={[styles.card, styles.testRunSelectorCard]}>
+        <Card.Content>
+          <Text variant="titleSmall" style={styles.cardTitle}>
+            Test Runs ({playground.testRuns.length})
+          </Text>
+          <ScrollView style={styles.testRunScrollList} nestedScrollEnabled>
+            {playground.testRuns.length === 0 ? (
+              <Text variant="bodySmall" style={styles.cisSecondary}>
+                No test runs yet.
+              </Text>
+            ) : (
+              playground.testRuns.map((run) => {
+                const isActive = run.id === activeRunId;
+                return (
+                  <Card
+                    key={run.id}
+                    style={[styles.historyItem, isActive && styles.historyItemActive]}
+                    onPress={() => {
+                      playground.loadTestRun(run);
+                      setActiveRunId(run.id);
+                    }}
+                  >
+                    <Card.Content style={styles.historyItemContent}>
+                      <View style={styles.historyHeader}>
+                        <Text variant="labelSmall" style={styles.historyDate}>
+                          {new Date(run.created_at).toLocaleString()}
+                        </Text>
+                        {isActive && (
+                          <Chip compact style={styles.activeRunChip}>
+                            Active
+                          </Chip>
+                        )}
+                      </View>
+                      {run.ai_provider && run.ai_model && (
+                        <Chip compact style={styles.historyModelChip}>
+                          {`${run.ai_provider} · ${run.ai_model}`}
+                        </Chip>
+                      )}
+                    </Card.Content>
+                  </Card>
+                );
+              })
+            )}
+          </ScrollView>
+        </Card.Content>
+      </Card>
+
+      {/* Result content column */}
+      <View style={styles.resultContentColumn}>
+        {playground.generationResult && (
+          <View style={styles.resultMetaHeader}>
+            <Chip compact style={styles.metaProviderChip}>
+              {`${playground.playgroundProvider} · ${playground.playgroundModel}`}
+            </Chip>
+            {selectedGiver && (
+              <Chip compact style={styles.metaChip}>
+                {selectedGiver.full_name || selectedGiver.username || "Unknown"}
+              </Chip>
+            )}
+            {selectedRecipient && (
+              <Chip compact style={styles.metaChip}>
+                {selectedRecipient.name}
+              </Chip>
+            )}
+          </View>
+        )}
+
+        {playground.generationResult ? (
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="titleSmall" style={styles.cardTitle}>
+                {playground.isGiftGeneration ? "Generation Results" : "Test Results"}
+              </Text>
+              {playground.isGiftGeneration ? (
+                <GenerationResultView result={playground.generationResult} horizontal />
+              ) : playground.selectedPromptKey === "add_recipient_conversation" ? (
+                <ConversationResultView result={playground.generationResult} />
+              ) : playground.selectedPromptKey === "occasion_recommendations" ? (
+                <OccasionResultView result={playground.generationResult} />
+              ) : playground.selectedPromptKey === "user_preferences_extraction" ? (
+                <PreferencesResultView result={playground.generationResult} />
+              ) : (
+                <JsonResultView result={playground.generationResult} />
+              )}
+            </Card.Content>
+          </Card>
+        ) : (
+          <Card style={[styles.card, styles.emptyResultsCard]}>
+            <Card.Content style={styles.emptyResultsContent}>
+              <Text variant="bodyMedium" style={styles.emptyResultsText}>
+                {playground.isGiftGeneration
+                  ? "Select a giver and recipient, then click Generate to see results here."
+                  : `Click Test to run the ${playground.selectedPromptDef?.label ?? "prompt"} and see results here.`}
+              </Text>
+            </Card.Content>
+          </Card>
+        )}
+
+        {playground.isGiftGeneration && !!playground.generationResult?.productionContext && (
+          <Card style={styles.card}>
+            <Card.Content>
+              <Button
+                mode="text"
+                onPress={() => setShowProductionContext(!showProductionContext)}
+                icon={showProductionContext ? "chevron-up" : "chevron-down"}
+                compact
+                style={styles.productionContextToggle}
+              >
+                Production Context
+              </Button>
+              {showProductionContext && (
+                <View style={styles.productionContextBox}>
+                  <Text variant="labelSmall" style={styles.productionContextLabel}>
+                    Wrapper System Message
+                  </Text>
+                  <ScrollView style={styles.productionContextScroll} nestedScrollEnabled>
+                    <Text variant="bodySmall" style={styles.monoText}>
+                      {String(
+                        (playground.generationResult.productionContext as Record<string, unknown>)
+                          ?.wrapperMessage ?? ""
+                      )}
+                    </Text>
+                  </ScrollView>
+                  <Text
+                    variant="labelSmall"
+                    style={[styles.productionContextLabel, { marginTop: 12 }]}
+                  >
+                    Full Input Array
+                  </Text>
+                  <ScrollView style={styles.productionContextScroll} nestedScrollEnabled>
+                    <Text variant="bodySmall" style={styles.monoText}>
+                      {JSON.stringify(
+                        (playground.generationResult.productionContext as Record<string, unknown>)
+                          ?.fullInput,
+                        null,
+                        2
+                      )}
+                    </Text>
+                  </ScrollView>
+                </View>
+              )}
+            </Card.Content>
+          </Card>
+        )}
+
+        {playground.isGiftGeneration && !!playground.generationResult?.cronContext && (
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="titleSmall" style={styles.cardTitle}>
+                Cron Context
+              </Text>
+              <View style={resultStyles.statusRow}>
+                <Chip compact style={resultStyles.contextChip}>
+                  {String(
+                    (playground.generationResult.cronContext as Record<string, unknown>)
+                      ?.existingSuggestionCount ?? 0
+                  )}{" "}
+                  existing suggestions
+                </Chip>
+              </View>
+              <CronAvoidListView
+                cronContext={playground.generationResult.cronContext as Record<string, unknown>}
+              />
+            </Card.Content>
+          </Card>
+        )}
+      </View>
+    </View>
+  );
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -903,10 +1077,12 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
         <View style={styles.maxWidth}>
           {header}
           {isDesktop ? (
-            <View style={styles.desktopLayout}>
-              {contextPanel}
-              {promptPanel}
-              {resultsPanel}
+            <View style={styles.desktopColumn}>
+              <View style={styles.desktopTopRow}>
+                {contextPanel}
+                {promptPanel}
+              </View>
+              {resultsDesktop}
             </View>
           ) : (
             <>
@@ -978,6 +1154,7 @@ const CronAvoidListView: React.FC<{ cronContext: Record<string, unknown> }> = ({
 
 type GenerationResultViewProps = {
   result: Record<string, unknown>;
+  horizontal?: boolean;
 };
 
 type Suggestion = {
@@ -993,6 +1170,7 @@ type Suggestion = {
 
 const GenerationResultView: React.FC<GenerationResultViewProps> = ({
   result,
+  horizontal = false,
 }) => {
   if ("error" in result) {
     return (
@@ -1011,9 +1189,9 @@ const GenerationResultView: React.FC<GenerationResultViewProps> = ({
   }
 
   return (
-    <View style={styles.suggestionsList}>
+    <View style={horizontal ? styles.suggestionsRow : styles.suggestionsList}>
       {suggestions.map((suggestion, i) => (
-        <View key={i} style={styles.suggestionItem}>
+        <View key={i} style={horizontal ? styles.suggestionCard : styles.suggestionItem}>
           <View style={styles.suggestionHeader}>
             <Chip compact style={i === 0 ? styles.primaryChip : styles.altChip}>
               {i === 0 ? "Top Pick" : `#${i + 1}`}
@@ -1048,7 +1226,9 @@ const GenerationResultView: React.FC<GenerationResultViewProps> = ({
               ))}
             </View>
           )}
-          {i < suggestions.length - 1 && <Divider style={styles.suggestionDivider} />}
+          {!horizontal && i < suggestions.length - 1 && (
+            <Divider style={styles.suggestionDivider} />
+          )}
         </View>
       ))}
     </View>
@@ -1493,6 +1673,50 @@ const styles = StyleSheet.create({
     gap: 16,
     alignItems: "flex-start",
   },
+  desktopColumn: {
+    flexDirection: "column",
+    gap: 16,
+  },
+  desktopTopRow: {
+    flexDirection: "row",
+    gap: 16,
+    alignItems: "flex-start",
+  },
+  resultsDesktopRow: {
+    flexDirection: "row",
+    gap: 16,
+    alignItems: "flex-start",
+  },
+  testRunSelectorCard: {
+    width: 240,
+    minWidth: 240,
+  },
+  testRunScrollList: {
+    maxHeight: 500,
+  },
+  historyItemActive: {
+    borderWidth: 2,
+    borderColor: Colors.darks.black,
+  },
+  activeRunChip: {
+    backgroundColor: Colors.darks.black,
+  },
+  resultContentColumn: {
+    flex: 1,
+    gap: 12,
+  },
+  resultMetaHeader: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    alignItems: "center",
+  },
+  metaProviderChip: {
+    backgroundColor: "#e8f4f8",
+  },
+  metaChip: {
+    backgroundColor: "#f0f0f0",
+  },
   panel: {
     gap: 12,
   },
@@ -1776,6 +2000,19 @@ const styles = StyleSheet.create({
   },
   suggestionItem: {
     paddingVertical: 8,
+  },
+  suggestionsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  suggestionCard: {
+    flex: 1,
+    minWidth: 200,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: "#e8e8e8",
+    borderRadius: 8,
   },
   suggestionHeader: {
     flexDirection: "row",
