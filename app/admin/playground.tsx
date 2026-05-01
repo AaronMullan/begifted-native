@@ -947,30 +947,29 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
 
       {/* Result content column */}
       <View style={styles.resultContentColumn}>
-        {playground.generationResult && (
-          <View style={styles.resultMetaHeader}>
-            <Chip compact style={styles.metaProviderChip}>
-              {`${playground.playgroundProvider} · ${playground.playgroundModel}`}
-            </Chip>
-            {selectedGiver && (
-              <Chip compact style={styles.metaChip}>
-                {selectedGiver.full_name || selectedGiver.username || "Unknown"}
-              </Chip>
-            )}
-            {selectedRecipient && (
-              <Chip compact style={styles.metaChip}>
-                {selectedRecipient.name}
-              </Chip>
-            )}
-          </View>
-        )}
-
         {playground.generationResult ? (
           <Card style={styles.card}>
             <Card.Content>
-              <Text variant="titleSmall" style={styles.cardTitle}>
-                {playground.isGiftGeneration ? "Generation Results" : "Test Results"}
-              </Text>
+              <View style={styles.resultTitleRow}>
+                <Text variant="titleSmall" style={[styles.cardTitle, { marginBottom: 0 }]}>
+                  {playground.isGiftGeneration ? "Generation Results" : "Test Results"}
+                </Text>
+                <View style={styles.resultMetaHeader}>
+                  <Chip compact style={styles.metaProviderChip}>
+                    {`${playground.playgroundProvider} · ${playground.playgroundModel}`}
+                  </Chip>
+                  {selectedGiver && (
+                    <Chip compact style={styles.metaChip}>
+                      {selectedGiver.full_name || selectedGiver.username || "Unknown"}
+                    </Chip>
+                  )}
+                  {selectedRecipient && (
+                    <Chip compact style={styles.metaChip}>
+                      {selectedRecipient.name}
+                    </Chip>
+                  )}
+                </View>
+              </View>
               {playground.isGiftGeneration ? (
                 <GenerationResultView result={playground.generationResult} horizontal />
               ) : playground.selectedPromptKey === "add_recipient_conversation" ? (
@@ -1705,10 +1704,17 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 12,
   },
+  resultTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 8,
+  },
   resultMetaHeader: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    gap: 6,
     alignItems: "center",
   },
   metaProviderChip: {
