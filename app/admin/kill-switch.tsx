@@ -1,5 +1,6 @@
 import React from "react";
-import { View, ScrollView, StyleSheet, Platform } from "react-native";
+import { View, ScrollView, StyleSheet } from "react-native";
+import { useRouter } from "expo-router";
 import {
   Text,
   Button,
@@ -46,6 +47,7 @@ const KillSwitchScreen: React.FC = () => {
 };
 
 const KillSwitchContent: React.FC = () => {
+  const router = useRouter();
   const configQuery = useAppConfig();
   const updateConfig = useUpdateAppConfig();
 
@@ -68,11 +70,7 @@ const KillSwitchContent: React.FC = () => {
         <Text variant="headlineSmall">Kill Switch</Text>
         <Button
           mode="text"
-          onPress={() => {
-            if (Platform.OS === "web") {
-              window.location.href = "/admin/playground";
-            }
-          }}
+          onPress={() => router.push("/admin/playground")}
           icon="arrow-left"
           compact
         >
@@ -143,11 +141,7 @@ const KillSwitchContent: React.FC = () => {
         </Text>
         <Button
           mode="outlined"
-          onPress={() => {
-            if (Platform.OS === "web") {
-              window.location.href = "/admin/prompts";
-            }
-          }}
+          onPress={() => router.push("/admin/prompts")}
           icon="history"
           style={styles.promptButton}
         >

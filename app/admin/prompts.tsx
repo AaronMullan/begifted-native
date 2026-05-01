@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useRouter } from "expo-router";
 import { View, ScrollView, StyleSheet, Platform } from "react-native";
 import {
   Text,
@@ -55,6 +56,7 @@ const PromptsScreen: React.FC = () => {
 };
 
 const PromptsContent: React.FC = () => {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [selectedPromptKey, setSelectedPromptKey] = useState(
     "gift_generation_system"
@@ -143,11 +145,7 @@ const PromptsContent: React.FC = () => {
         </View>
         <Button
           mode="text"
-          onPress={() => {
-            if (Platform.OS === "web") {
-              window.location.href = "/admin/playground";
-            }
-          }}
+          onPress={() => router.push("/admin/playground")}
           icon="arrow-left"
           compact
         >
