@@ -111,6 +111,14 @@ const PromptsContent: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTitleRow}>
+          <Button
+            mode="text"
+            onPress={() => router.push("/admin/playground")}
+            icon="arrow-left"
+            compact
+          >
+            Playground
+          </Button>
           <Text variant="headlineSmall">Prompt Versions</Text>
           <Menu
             visible={promptMenuVisible}
@@ -143,14 +151,6 @@ const PromptsContent: React.FC = () => {
             ))}
           </Menu>
         </View>
-        <Button
-          mode="text"
-          onPress={() => router.push("/admin/playground")}
-          icon="arrow-left"
-          compact
-        >
-          Back to Playground
-        </Button>
       </View>
 
       {/* Active version */}
@@ -328,7 +328,6 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
     flexWrap: "wrap",

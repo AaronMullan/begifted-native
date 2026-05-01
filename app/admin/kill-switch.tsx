@@ -67,15 +67,15 @@ const KillSwitchContent: React.FC = () => {
       contentContainerStyle={styles.scrollContent}
     >
       <View style={styles.header}>
-        <Text variant="headlineSmall">Kill Switch</Text>
         <Button
           mode="text"
           onPress={() => router.push("/admin/playground")}
           icon="arrow-left"
           compact
         >
-          Back to Playground
+          Playground
         </Button>
+        <Text variant="headlineSmall">Kill Switch</Text>
       </View>
 
       <Text variant="bodyMedium" style={styles.subtitle}>
@@ -211,7 +211,6 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 8,
     flexWrap: "wrap",
