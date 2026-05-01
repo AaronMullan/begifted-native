@@ -92,7 +92,7 @@ export async function fetchRecipients(userId: string): Promise<Recipient[]> {
       "id, name, relationship_type, interests, birthday, emotional_tone_preference, gift_budget_min, gift_budget_max, address, address_line_2, city, state, zip_code, country, photo_url, synthesized_profile, created_at, updated_at"
     )
     .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+    .order("name", { ascending: true });
 
   if (error) throw error;
   return data || [];

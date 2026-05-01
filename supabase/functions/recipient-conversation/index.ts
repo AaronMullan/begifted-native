@@ -175,10 +175,10 @@ serve(async (req) => {
         }
       );
     }
-    if (!Array.isArray(messages) || messages.length === 0) {
+    if (!Array.isArray(messages)) {
       return new Response(
         JSON.stringify({
-          error: "Messages must be a non-empty array",
+          error: "Messages must be an array",
         }),
         {
           headers: {
