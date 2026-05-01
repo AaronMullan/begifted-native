@@ -11,7 +11,7 @@ import type { PromptDefinition } from "@/lib/prompt-registry";
 import type { Recipient } from "@/types/recipient";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
   Linking,
@@ -111,18 +111,6 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
     setTestMessageInput("");
     playground.sendConversationMessage(msg);
   }
-
-  // Auto-generate the first LLM message when conversation prompt is selected
-  const { selectedPromptKey, testMessages, startConversation, isConversationLoading } = playground;
-  useEffect(() => {
-    if (
-      selectedPromptKey === "add_recipient_conversation" &&
-      testMessages.length === 0 &&
-      !isConversationLoading
-    ) {
-      startConversation();
-    }
-  }, [selectedPromptKey, testMessages.length, isConversationLoading, startConversation]);
 
   async function handleDeploy() {
     try {
@@ -452,7 +440,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                 !playground.isConversationLoading && (
                   <View style={styles.welcomeMessage}>
                     <Text variant="bodySmall" style={styles.welcomeText}>
-                      Generating opening message...
+                      Type a message to start the conversation test.
                     </Text>
                   </View>
                 )}
@@ -1696,6 +1684,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f5f5",
     borderRadius: 10,
     marginBottom: 8,
+    gap: 8,
   },
   welcomeText: {
     color: Colors.darks.brown,

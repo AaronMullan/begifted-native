@@ -506,9 +506,6 @@ export function usePromptPlayground(userId: string) {
   function clearTestMessages() {
     setTestMessages([]);
     setGenerationResult(null);
-    if (selectedPromptKey === "add_recipient_conversation") {
-      generateFirstMessage();
-    }
   }
 
   async function generateFirstMessage() {
