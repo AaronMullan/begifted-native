@@ -129,6 +129,9 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
   const selectedRecipient = playground.recipients.find(
     (r: Recipient) => r.id === playground.selectedRecipientId
   );
+  const activeRun = playground.testRuns.find((r) => r.id === activeRunId);
+  const displayProvider = activeRun?.ai_provider ?? playground.playgroundProvider;
+  const displayModel = activeRun?.ai_model ?? playground.playgroundModel;
 
 
 
@@ -956,7 +959,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                 </Text>
                 <View style={styles.resultMetaHeader}>
                   <Chip compact style={styles.metaProviderChip}>
-                    {`${playground.playgroundProvider} · ${playground.playgroundModel}`}
+                    {`${displayProvider} · ${displayModel}`}
                   </Chip>
                   {selectedGiver && (
                     <Chip compact style={styles.metaChip}>
