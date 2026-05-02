@@ -972,14 +972,9 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                       {`${displayProvider} · ${displayModel}`}
                     </Chip>
                   )}
-                  {displayGiverName && (
+                  {(displayGiverName || displayRecipientName) && (
                     <Chip compact style={styles.metaChip}>
-                      {displayGiverName}
-                    </Chip>
-                  )}
-                  {displayRecipientName && (
-                    <Chip compact style={styles.metaChip}>
-                      {displayRecipientName}
+                      {`${displayGiverName ?? "?"} → ${displayRecipientName ?? "?"}`}
                     </Chip>
                   )}
                 </View>
