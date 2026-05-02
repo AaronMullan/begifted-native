@@ -924,20 +924,13 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                     }}
                   >
                     <Card.Content style={styles.historyItemContent}>
-                      <View style={styles.historyHeader}>
-                        <Text variant="labelSmall" style={styles.historyDate}>
-                          {new Date(run.created_at).toLocaleString()}
-                        </Text>
-                        {isActive && (
-                          <Chip compact style={styles.activeRunChip} textStyle={styles.activeRunChipText}>
-                            Active
-                          </Chip>
-                        )}
-                      </View>
+                      <Text variant="labelSmall" style={styles.historyDate}>
+                        {new Date(run.created_at).toLocaleString()}
+                      </Text>
                       {run.ai_provider && run.ai_model && (
-                        <Chip compact style={styles.historyModelChip}>
+                        <Text variant="bodySmall" style={styles.historyModelText}>
                           {`${run.ai_provider} · ${run.ai_model}`}
-                        </Chip>
+                        </Text>
                       )}
                     </Card.Content>
                   </Card>
@@ -2084,8 +2077,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 2,
   },
-  historyModelChip: {
-    backgroundColor: Colors.neutrals.medium,
+  historyModelText: {
+    color: Colors.darks.brown,
+    marginTop: 2,
   },
   historyDate: {
     color: Colors.darks.brown,
