@@ -9,6 +9,12 @@ type CallAIOptions = {
   jsonMode?: boolean;
 };
 
+export type WebSearchCallOptions = {
+  protocolPrompt: string;
+  wrapperMessage: string;
+  userInstruction: string;
+};
+
 export function getApiKey(provider: Provider): string {
   const envMap: Record<Provider, string> = {
     openai: "OPENAI_API_KEY",
@@ -138,4 +144,114 @@ async function callGoogle(model: string, apiKey: string, opts: CallAIOptions): P
   const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!content) throw new Error("No content in Google AI response");
   return content;
+}
+
+// ── Web-search-enabled generation (for gift suggestions) ──────────────────────
+
+export async function callAIWithWebSearch(
+  provider: Provider,
+  model: string,
+  apiKey: string,
+  opts: WebSearchCallOptions,
+): Promise<string> {
+  switch (provider) {
+    case "openai":
+      return callOpenAIWithWebSearch(model, apiKey, opts);
+    case "google":
+      return callGoogleWithSearch(model, apiKey, opts);
+    case "anthropic":
+      return callAnthropicWithWebSearch(model, apiKey, opts);
+  }
+}
+
+async function callOpenAIWithWebSearch(
+  model: string,
+  apiKey: string,
+  opts: WebSearchCallOptions,
+): Promise<string> {
+  const res = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model,
+      tool_choice: "auto",
+      tools: [{ type: "web_search" }],
+      input: [
+        { role: "system", content: opts.protocolPrompt },
+        { role: "system", content: opts.wrapperMessage },
+        { role: "user", content: opts.userInstruction },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`${res.status} ${err}`);
+  }
+
+  const data = await res.json();
+  const messageItem = data.output?.find((item: { type: string }) => item.type === "message");
+  const text = messageItem?.content?.find((c: { type: string }) => c.type === "output_text")?.text;
+  if (!text) throw new Error("No content in OpenAI response");
+  return text;
+}
+
+async function callGoogleWithSearch(
+  model: string,
+  apiKey: string,
+  opts: WebSearchCallOptions,
+): Promise<string> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ role: "user", parts: [{ text: opts.userInstruction }] }],
+      systemInstruction: { parts: [{ text: `${opts.protocolPrompt}\n\n${opts.wrapperMessage}` }] },
+      tools: [{ googleSearch: {} }],
+      generationConfig: { temperature: 0.7, maxOutputTokens: 4096 },
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`${res.status} ${err}`);
+  }
+
+  const data = await res.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error("No content in Google AI response");
+  return text;
+}
+
+async function callAnthropicWithWebSearch(
+  model: string,
+  apiKey: string,
+  opts: WebSearchCallOptions,
+): Promise<string> {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 4096,
+      system: `${opts.protocolPrompt}\n\n${opts.wrapperMessage}`,
+      tools: [{ type: "web_search_20250305", name: "web_search" }],
+      messages: [{ role: "user", content: opts.userInstruction }],
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`${res.status} ${err}`);
+  }
+
+  const data = await res.json();
+  const textBlock = data.content?.filter((c: { type: string }) => c.type === "text").pop();
+  if (!textBlock?.text) throw new Error("No content in Anthropic response");
+  return textBlock.text;
 }
