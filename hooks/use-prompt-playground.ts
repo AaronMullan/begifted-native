@@ -315,32 +315,37 @@ export function usePromptPlayground(userId: string) {
       let data: Record<string, unknown>;
 
       if (isGiftGeneration) {
-        // Gift generation — existing Vercel backend
-        if (!selectedRecipientId || !selectedGiverId) return;
-        const response = await fetch(
-          `${VERCEL_BACKEND_URL}/api/admin/test-generate`,
+        if (!selectedRecipientId || !selectedGiverId || !editedCis) return;
+
+        let existingSuggestionsForCron: { title: string | null; price: number | null; link: string | null }[] = [];
+        if (simulateCron) {
+          const { data: existing } = await supabase
+            .from("gift_suggestions")
+            .select("title, price, link")
+            .eq("recipient_id", selectedRecipientId);
+          existingSuggestionsForCron = (existing || []).map((s) => ({
+            title: s.title,
+            price: s.price,
+            link: s.link,
+          }));
+        }
+
+        const { data: result, error: fnError } = await supabase.functions.invoke(
+          "generate-gift-suggestions",
           {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              recipientId: selectedRecipientId,
+            body: {
+              cis: editedCis,
               customSystemPrompt: currentPrompt,
               overrideProvider: playgroundProvider,
               overrideModel: playgroundModel,
-              ...(hasCisEdits ? { cisOverride: cisEdits } : {}),
-              ...(simulateCron ? { simulateCron: true } : {}),
-            }),
+              existingSuggestions: simulateCron ? existingSuggestionsForCron : [],
+              returnContext: true,
+            },
           }
         );
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(
-            errorData.error || `Request failed with status ${response.status}`
-          );
-        }
-
-        data = await response.json();
+        if (fnError) throw new Error(await extractInvokeError(fnError));
+        data = result;
       } else if (selectedPromptKey === "add_recipient_conversation") {
         // Test the add-recipient conversation prompt
         const msgs =
@@ -506,9 +511,6 @@ export function usePromptPlayground(userId: string) {
   function clearTestMessages() {
     setTestMessages([]);
     setGenerationResult(null);
-    if (selectedPromptKey === "add_recipient_conversation") {
-      generateFirstMessage();
-    }
   }
 
   async function generateFirstMessage() {
