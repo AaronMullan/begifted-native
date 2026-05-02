@@ -929,7 +929,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                           {new Date(run.created_at).toLocaleString()}
                         </Text>
                         {isActive && (
-                          <Chip compact style={styles.activeRunChip}>
+                          <Chip compact style={styles.activeRunChip} textStyle={styles.activeRunChipText}>
                             Active
                           </Chip>
                         )}
@@ -1702,6 +1702,9 @@ const styles = StyleSheet.create({
   },
   activeRunChip: {
     backgroundColor: Colors.darks.black,
+  },
+  activeRunChipText: {
+    color: Colors.white,
   },
   resultContentColumn: {
     flex: 1,
