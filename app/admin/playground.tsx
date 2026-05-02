@@ -92,7 +92,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
   const [recipientMenuVisible, setRecipientMenuVisible] = useState(false);
   const [promptMenuVisible, setPromptMenuVisible] = useState(false);
   const [testModelMenuVisible, setTestModelMenuVisible] = useState(false);
-  const [showProductionContext, setShowProductionContext] = useState(false);
+  const [showProductionContext, setShowProductionContext] = useState(true);
   const [testMessageInput, setTestMessageInput] = useState("");
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const chatScrollRef = useRef<ScrollView>(null);
@@ -132,6 +132,22 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
   const activeRun = playground.testRuns.find((r) => r.id === activeRunId);
   const displayProvider = activeRun?.ai_provider;
   const displayModel = activeRun?.ai_model;
+
+  const productionCtx = playground.generationResult?.productionContext as Record<string, unknown> | undefined;
+  const wrapperMessage = productionCtx?.wrapperMessage as string | undefined;
+  const cisNamesFromResult = (() => {
+    if (!wrapperMessage) return {};
+    try {
+      const match = wrapperMessage.match(/CIS Data:\s*(\{[\s\S]*\})/);
+      if (!match) return {};
+      const cis = JSON.parse(match[1]);
+      return { giverName: cis?.giver?.name as string | undefined, recipientName: cis?.recipient?.name as string | undefined };
+    } catch {
+      return {};
+    }
+  })();
+  const displayGiverName = cisNamesFromResult.giverName ?? selectedGiver?.full_name ?? selectedGiver?.username;
+  const displayRecipientName = cisNamesFromResult.recipientName ?? selectedRecipient?.name;
 
 
 
@@ -956,14 +972,14 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                       {`${displayProvider} · ${displayModel}`}
                     </Chip>
                   )}
-                  {selectedGiver && (
+                  {displayGiverName && (
                     <Chip compact style={styles.metaChip}>
-                      {selectedGiver.full_name || selectedGiver.username || "Unknown"}
+                      {displayGiverName}
                     </Chip>
                   )}
-                  {selectedRecipient && (
+                  {displayRecipientName && (
                     <Chip compact style={styles.metaChip}>
-                      {selectedRecipient.name}
+                      {displayRecipientName}
                     </Chip>
                   )}
                 </View>
