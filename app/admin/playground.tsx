@@ -130,8 +130,8 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
     (r: Recipient) => r.id === playground.selectedRecipientId
   );
   const activeRun = playground.testRuns.find((r) => r.id === activeRunId);
-  const displayProvider = activeRun?.ai_provider ?? playground.playgroundProvider;
-  const displayModel = activeRun?.ai_model ?? playground.playgroundModel;
+  const displayProvider = activeRun?.ai_provider;
+  const displayModel = activeRun?.ai_model;
 
 
 
@@ -951,9 +951,11 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                   {playground.isGiftGeneration ? "Generation Results" : "Test Results"}
                 </Text>
                 <View style={styles.resultMetaHeader}>
-                  <Chip compact style={styles.metaProviderChip}>
-                    {`${displayProvider} · ${displayModel}`}
-                  </Chip>
+                  {displayProvider && displayModel && (
+                    <Chip compact style={styles.metaProviderChip}>
+                      {`${displayProvider} · ${displayModel}`}
+                    </Chip>
+                  )}
                   {selectedGiver && (
                     <Chip compact style={styles.metaChip}>
                       {selectedGiver.full_name || selectedGiver.username || "Unknown"}
