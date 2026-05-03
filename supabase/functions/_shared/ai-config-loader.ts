@@ -14,7 +14,7 @@ export async function loadAIConfig(
   }
 
   const fallbackProvider = (Deno.env.get("AI_PROVIDER") ?? "openai") as Provider;
-  const fallbackModel = Deno.env.get("AI_MODEL") ?? "gpt-4o-mini";
+  const fallbackModel = Deno.env.get("AI_MODEL") ?? "gpt-5";
 
   try {
     const supabase = createClient(supabaseUrl, serviceRoleKey);

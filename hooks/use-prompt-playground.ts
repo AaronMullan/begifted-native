@@ -82,7 +82,7 @@ export function usePromptPlayground(userId: string) {
 
   // Playground model selection (independent from production)
   const [playgroundProvider, setPlaygroundProvider] = useState<Provider>("openai");
-  const [playgroundModel, setPlaygroundModel] = useState<string>("gpt-4o-mini");
+  const [playgroundModel, setPlaygroundModel] = useState<string>("gpt-5");
   const hasInitializedPlaygroundModel = useRef(false);
 
   useEffect(() => {
