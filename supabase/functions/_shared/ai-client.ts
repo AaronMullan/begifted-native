@@ -234,6 +234,9 @@ async function callAnthropicWithWebSearch(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 120_000);
 
+  const start = Date.now();
+  console.log(`[anthropic] starting web search request model=${model}`);
+
   let res: Response;
   try {
     res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -254,19 +257,27 @@ async function callAnthropicWithWebSearch(
     });
   } catch (err) {
     clearTimeout(timer);
+    const elapsed = Date.now() - start;
+    console.error(`[anthropic] fetch threw after ${elapsed}ms:`, err);
     if (err instanceof Error && err.name === "AbortError") {
-      throw new Error("Anthropic web search timed out after 120s");
+      throw new Error(`Anthropic web search timed out after 120s (${elapsed}ms elapsed)`);
     }
     throw err;
   }
   clearTimeout(timer);
 
+  const elapsed = Date.now() - start;
+  console.log(`[anthropic] response status=${res.status} elapsed=${elapsed}ms`);
+
   if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`${res.status} ${err}`);
+    const body = await res.text();
+    console.error(`[anthropic] error body:`, body);
+    throw new Error(`Anthropic ${res.status} after ${elapsed}ms: ${body}`);
   }
 
   const data = await res.json();
+  console.log(`[anthropic] content block types:`, data.content?.map((c: { type: string }) => c.type));
+
   const textBlock = data.content?.filter((c: { type: string }) => c.type === "text").pop();
   if (!textBlock?.text) throw new Error("No content in Anthropic response");
   return textBlock.text;
