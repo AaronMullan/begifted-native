@@ -315,7 +315,16 @@ export function usePromptPlayground(userId: string) {
       let data: Record<string, unknown>;
 
       if (isGiftGeneration) {
-        if (!selectedRecipientId || !selectedGiverId || !editedCis) return;
+        console.log("[playground] generateWithPrompt: gift generation", {
+          selectedRecipientId,
+          selectedGiverId,
+          hasEditedCis: !!editedCis,
+          playgroundProvider,
+          playgroundModel,
+        });
+
+        if (!selectedRecipientId || !selectedGiverId || !editedCis)
+          throw new Error("CIS not loaded — select a recipient and wait for data to load");
 
         let existingSuggestionsForCron: { title: string | null; price: number | null; link: string | null }[] = [];
         if (simulateCron) {
@@ -330,6 +339,11 @@ export function usePromptPlayground(userId: string) {
           }));
         }
 
+        console.log("[playground] invoking generate-gift-suggestions", {
+          cisGiver: editedCis.giver?.name,
+          cisRecipient: editedCis.recipient?.name,
+        });
+
         const { data: result, error: fnError } = await supabase.functions.invoke(
           "generate-gift-suggestions",
           {
@@ -343,6 +357,8 @@ export function usePromptPlayground(userId: string) {
             },
           }
         );
+
+        console.log("[playground] generate-gift-suggestions response", { result, fnError });
 
         if (fnError) throw new Error(await extractInvokeError(fnError));
         data = result;
@@ -592,7 +608,7 @@ export function usePromptPlayground(userId: string) {
   const canGenerate = (() => {
     if (isGenerating) return false;
     if (isGiftGeneration)
-      return !!selectedRecipientId && !!selectedGiverId;
+      return !!selectedRecipientId && !!selectedGiverId && !!editedCis;
     if (selectedPromptKey === "occasion_recommendations")
       return !!selectedRecipientId && !!selectedGiverId;
     // add_recipient_conversation and user_preferences_extraction always work

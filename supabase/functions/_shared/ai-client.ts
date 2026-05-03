@@ -234,6 +234,7 @@ async function callAnthropicWithWebSearch(
     headers: {
       "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
+      "anthropic-beta": "web-search-2025-03-05",
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
