@@ -234,14 +234,16 @@ async function callAnthropicWithWebSearch(
     headers: {
       "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
-      "anthropic-beta": "web-search-2025-03-05",
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
       model,
       max_tokens: 4096,
       system: `${opts.protocolPrompt}\n\n${opts.wrapperMessage}`,
-      tools: [{ type: "web_search_20250305", name: "web_search" }],
+      tools: [
+        { type: "web_search_20260209", name: "web_search" },
+        { type: "code_execution_20250825", name: "code_execution" },
+      ],
       messages: [{ role: "user", content: opts.userInstruction }],
     }),
   });
