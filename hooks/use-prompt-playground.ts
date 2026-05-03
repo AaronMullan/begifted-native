@@ -341,6 +341,8 @@ export function usePromptPlayground(userId: string) {
               cisOverride: hasCisEdits ? cisEdits : undefined,
               customSystemPrompt: currentPrompt,
               simulateCron,
+              overrideProvider: playgroundProvider,
+              overrideModel: playgroundModel,
             }),
           }
         );
