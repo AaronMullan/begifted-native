@@ -240,10 +240,7 @@ async function callAnthropicWithWebSearch(
       model,
       max_tokens: 4096,
       system: `${opts.protocolPrompt}\n\n${opts.wrapperMessage}`,
-      tools: [
-        { type: "web_search_20260209", name: "web_search" },
-        { type: "code_execution_20250825", name: "code_execution" },
-      ],
+      tools: [{ type: "web_search_20260209", name: "web_search" }],
       messages: [{ role: "user", content: opts.userInstruction }],
     }),
   });
