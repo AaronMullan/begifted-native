@@ -141,7 +141,8 @@ async function callGoogle(model: string, apiKey: string, opts: CallAIOptions): P
   }
 
   const data = await res.json();
-  const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const parts: { text?: string; thought?: boolean }[] = data.candidates?.[0]?.content?.parts ?? [];
+  const content = parts.find((p) => p.text && !p.thought)?.text;
   if (!content) throw new Error("No content in Google AI response");
   return content;
 }
@@ -219,7 +220,8 @@ async function callGoogleWithSearch(
   }
 
   const data = await res.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const parts: { text?: string; thought?: boolean }[] = data.candidates?.[0]?.content?.parts ?? [];
+  const text = parts.find((p) => p.text && !p.thought)?.text;
   if (!text) throw new Error("No content in Google AI response");
   return text;
 }
