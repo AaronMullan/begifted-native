@@ -229,21 +229,35 @@ async function callAnthropicWithWebSearch(
   apiKey: string,
   opts: WebSearchCallOptions,
 ): Promise<string> {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 4096,
-      system: `${opts.protocolPrompt}\n\n${opts.wrapperMessage}`,
-      tools: [{ type: "web_search_20260209", name: "web_search" }],
-      messages: [{ role: "user", content: opts.userInstruction }],
-    }),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 120_000);
+
+  let res: Response;
+  try {
+    res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 4096,
+        system: `${opts.protocolPrompt}\n\n${opts.wrapperMessage}`,
+        tools: [{ type: "web_search_20260209", name: "web_search" }],
+        messages: [{ role: "user", content: opts.userInstruction }],
+      }),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timer);
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error("Anthropic web search timed out after 120s");
+    }
+    throw err;
+  }
+  clearTimeout(timer);
 
   if (!res.ok) {
     const err = await res.text();
