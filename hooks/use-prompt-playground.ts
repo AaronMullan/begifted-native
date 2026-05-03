@@ -323,45 +323,34 @@ export function usePromptPlayground(userId: string) {
           playgroundModel,
         });
 
-        if (!selectedRecipientId || !selectedGiverId || !editedCis)
-          throw new Error("CIS not loaded — select a recipient and wait for data to load");
+        if (!selectedRecipientId || !selectedGiverId)
+          throw new Error("Select a recipient and wait for data to load");
 
-        let existingSuggestionsForCron: { title: string | null; price: number | null; link: string | null }[] = [];
-        if (simulateCron) {
-          const { data: existing } = await supabase
-            .from("gift_suggestions")
-            .select("title, price, link")
-            .eq("recipient_id", selectedRecipientId);
-          existingSuggestionsForCron = (existing || []).map((s) => ({
-            title: s.title,
-            price: s.price,
-            link: s.link,
-          }));
-        }
-
-        console.log("[playground] invoking generate-gift-suggestions", {
-          cisGiver: editedCis.giver?.name,
-          cisRecipient: editedCis.recipient?.name,
+        console.log("[playground] calling Vercel test-generate", {
+          recipientId: selectedRecipientId,
+          hasCisEdits,
         });
 
-        const { data: result, error: fnError } = await supabase.functions.invoke(
-          "generate-gift-suggestions",
+        const response = await fetch(
+          `${VERCEL_BACKEND_URL}/api/admin/test-generate`,
           {
-            body: {
-              cis: editedCis,
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              recipientId: selectedRecipientId,
+              cisOverride: hasCisEdits ? cisEdits : undefined,
               customSystemPrompt: currentPrompt,
-              overrideProvider: playgroundProvider,
-              overrideModel: playgroundModel,
-              existingSuggestions: simulateCron ? existingSuggestionsForCron : [],
-              returnContext: true,
-            },
+              simulateCron,
+            }),
           }
         );
 
-        console.log("[playground] generate-gift-suggestions response", { result, fnError });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Request failed with status ${response.status}`);
+        }
 
-        if (fnError) throw new Error(await extractInvokeError(fnError));
-        data = result;
+        data = await response.json();
       } else if (selectedPromptKey === "add_recipient_conversation") {
         // Test the add-recipient conversation prompt
         const msgs =
