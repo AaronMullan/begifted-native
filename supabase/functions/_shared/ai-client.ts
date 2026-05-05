@@ -1,5 +1,7 @@
 export type Provider = "openai" | "anthropic" | "google";
 
+export const CONVERSATION_MODEL = "gpt-4.1-mini";
+
 export type AIMessage = { role: "system" | "user" | "assistant"; content: string };
 
 type CallAIOptions = {

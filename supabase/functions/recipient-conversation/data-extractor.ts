@@ -1,6 +1,6 @@
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
-import { loadAIConfig, type Provider, type AIOverride } from "../_shared/ai-config-loader.ts";
-import { callAI, getApiKey } from "../_shared/ai-client.ts";
+import { type Provider, type AIOverride } from "../_shared/ai-config-loader.ts";
+import { callAI, getApiKey, CONVERSATION_MODEL } from "../_shared/ai-client.ts";
 import type {
   ContextInfo,
   ConversationResponse,
@@ -19,8 +19,10 @@ const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 type AIConfig = { provider: Provider; model: string; apiKey: string };
 
 async function resolveAIConfig(override?: AIOverride): Promise<AIConfig> {
-  const { provider, model } = await loadAIConfig(supabaseUrl, supabaseServiceKey, override);
-  return { provider, model, apiKey: getApiKey(provider) };
+  if (override?.provider && override?.model) {
+    return { provider: override.provider, model: override.model, apiKey: getApiKey(override.provider) };
+  }
+  return { provider: "openai", model: CONVERSATION_MODEL, apiKey: getApiKey("openai") };
 }
 // Generalized conversation handler - supports different conversation types
 export async function handleConversation(
