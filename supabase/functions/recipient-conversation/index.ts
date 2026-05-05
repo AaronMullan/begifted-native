@@ -9,8 +9,8 @@ import {
 } from "./data-extractor.ts";
 
 import { parseOpenAIJSON } from "./utils.ts";
-import { loadAIConfig, type AIOverride } from "../_shared/ai-config-loader.ts";
-import { callAI, getApiKey } from "../_shared/ai-client.ts";
+import { type AIOverride } from "../_shared/ai-config-loader.ts";
+import { callAI, getApiKey, CONVERSATION_MODEL, type Provider } from "../_shared/ai-client.ts";
 
 // @ts-ignore - Deno environment variables are resolved at runtime
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -41,7 +41,8 @@ Rules:
 - Personal occasion WITHOUT a date → ask ONLY for the date. Example: "When is the anniversary?"
 - Max 1–2 sentences per response. Never mention gifts, relationships, or the person's details.`;
 
-  const { provider, model } = await loadAIConfig(supabaseUrl, supabaseServiceKey, aiOverride);
+  const provider: Provider = (aiOverride?.provider && aiOverride?.model) ? aiOverride.provider : "openai";
+  const model = (aiOverride?.provider && aiOverride?.model) ? aiOverride.model : CONVERSATION_MODEL;
   const apiKey = getApiKey(provider);
   const reply = await callAI(provider, model, apiKey, {
     messages: [
