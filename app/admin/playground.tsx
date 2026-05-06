@@ -319,16 +319,18 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
             }
             contentStyle={styles.menuContent}
           >
-            {playground.profiles.map((profile: Profile) => (
-              <Menu.Item
-                key={profile.id}
-                onPress={() => {
-                  playground.handleGiverChange(profile.id);
-                  setGiverMenuVisible(false);
-                }}
-                title={`${profile.full_name || profile.username || "Unnamed"} (${profile.id.substring(0, 8)})`}
-              />
-            ))}
+            <ScrollView style={styles.menuScroll} nestedScrollEnabled>
+              {playground.profiles.map((profile: Profile) => (
+                <Menu.Item
+                  key={profile.id}
+                  onPress={() => {
+                    playground.handleGiverChange(profile.id);
+                    setGiverMenuVisible(false);
+                  }}
+                  title={`${profile.full_name || profile.username || "Unnamed"} (${profile.id.substring(0, 8)})`}
+                />
+              ))}
+            </ScrollView>
           </Menu>
 
           <Text variant="labelMedium" style={styles.fieldLabel}>
@@ -353,16 +355,18 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
             }
             contentStyle={styles.menuContent}
           >
-            {playground.recipients.map((recipient: Recipient) => (
-              <Menu.Item
-                key={recipient.id}
-                onPress={() => {
-                  playground.setSelectedRecipientId(recipient.id);
-                  setRecipientMenuVisible(false);
-                }}
-                title={`${recipient.name} — ${recipient.relationship_type}`}
-              />
-            ))}
+            <ScrollView style={styles.menuScroll} nestedScrollEnabled>
+              {playground.recipients.map((recipient: Recipient) => (
+                <Menu.Item
+                  key={recipient.id}
+                  onPress={() => {
+                    playground.setSelectedRecipientId(recipient.id);
+                    setRecipientMenuVisible(false);
+                  }}
+                  title={`${recipient.name} — ${recipient.relationship_type}`}
+                />
+              ))}
+            </ScrollView>
           </Menu>
         </Card.Content>
       </Card>
@@ -546,16 +550,18 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
               }
               contentStyle={styles.menuContent}
             >
-              {playground.profiles.map((profile: Profile) => (
-                <Menu.Item
-                  key={profile.id}
-                  onPress={() => {
-                    playground.handleGiverChange(profile.id);
-                    setGiverMenuVisible(false);
-                  }}
-                  title={`${profile.full_name || profile.username || "Unnamed"} (${profile.id.substring(0, 8)})`}
-                />
-              ))}
+              <ScrollView style={styles.menuScroll} nestedScrollEnabled>
+                {playground.profiles.map((profile: Profile) => (
+                  <Menu.Item
+                    key={profile.id}
+                    onPress={() => {
+                      playground.handleGiverChange(profile.id);
+                      setGiverMenuVisible(false);
+                    }}
+                    title={`${profile.full_name || profile.username || "Unnamed"} (${profile.id.substring(0, 8)})`}
+                  />
+                ))}
+              </ScrollView>
             </Menu>
 
             <Text variant="labelMedium" style={styles.fieldLabel}>
@@ -580,16 +586,18 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
               }
               contentStyle={styles.menuContent}
             >
-              {playground.recipients.map((recipient: Recipient) => (
-                <Menu.Item
-                  key={recipient.id}
-                  onPress={() => {
-                    playground.setSelectedRecipientId(recipient.id);
-                    setRecipientMenuVisible(false);
-                  }}
-                  title={`${recipient.name} — ${recipient.relationship_type}`}
-                />
-              ))}
+              <ScrollView style={styles.menuScroll} nestedScrollEnabled>
+                {playground.recipients.map((recipient: Recipient) => (
+                  <Menu.Item
+                    key={recipient.id}
+                    onPress={() => {
+                      playground.setSelectedRecipientId(recipient.id);
+                      setRecipientMenuVisible(false);
+                    }}
+                    title={`${recipient.name} — ${recipient.relationship_type}`}
+                  />
+                ))}
+              </ScrollView>
             </Menu>
           </Card.Content>
         </Card>
@@ -1803,6 +1811,10 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
   },
   menuContent: {
+    maxHeight: 300,
+    overflow: "hidden",
+  },
+  menuScroll: {
     maxHeight: 300,
   },
 
