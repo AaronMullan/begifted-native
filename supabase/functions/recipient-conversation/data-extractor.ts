@@ -245,6 +245,7 @@ Return JSON with what's been established:
 
   // Interpolate all template variables into a prompt string
   function interpolatePrompt(template: string): string {
+    const today = new Date().toISOString().split("T")[0];
     return template
       .replace(/\{\{contextInfo\}\}/g, JSON.stringify(contextInfo, null, 2))
       .replace(/\{\{conversationHistory\}\}/g, conversationHistory)
@@ -252,7 +253,8 @@ Return JSON with what's been established:
       .replace(/\{\{readinessState\}\}/g, readinessState)
       .replace(/\{\{stateGuidance\}\}/g, stateGuidance)
       .replace(/\{\{priorityGuidance\}\}/g, priorityGuidance)
-      .replace(/\{\{recipientName\}\}/g, recipientName);
+      .replace(/\{\{recipientName\}\}/g, recipientName)
+      .replace(/\{\{today\}\}/g, today);
   }
 
   // Build conversation prompt based on conversation type
@@ -385,6 +387,8 @@ function buildPriorityGuidance(contextInfo: ContextInfo, recipientName: string):
 // Default template for add_recipient_conversation — single source of truth.
 // This matches the structure previously hardcoded in buildAddRecipientPrompt().
 const ADD_RECIPIENT_DEFAULT_TEMPLATE = `IMPORTANT: Respond with plain text only. Do NOT return JSON, code blocks, or structured data.
+
+TODAY'S DATE: {{today}}
 
 You are a warm, enthusiastic gift concierge helping someone add a new recipient to their gift list.
 
