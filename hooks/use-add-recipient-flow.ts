@@ -6,7 +6,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, View } from "react-native";
 import { queryKeys } from "../lib/query-keys";
 import { supabase } from "../lib/supabase";
-import { fetchAppConfig } from "../lib/api";
 import {
   ExtractedData,
   Message,
@@ -235,29 +234,19 @@ export function useAddRecipientFlow(
         setSavedRecipientId(recipient.id);
         setSaveSuccess(true);
 
-        // Background: synthesize profile first, then gift generation so the
-        // CIS already contains synthesized_profile when gifts are generated
+        // Fire-and-forget: synthesize-recipient-profile runs on the server,
+        // chains to gift generation itself (which honors the kill switch),
+        // and updates the DB. We dispatch the request and return immediately
+        // so iOS can't kill the JS task before the long server-side chain
+        // (synthesis + gift gen ~60s) finishes.
         if (recipient?.id) {
-          const recipientId = recipient.id;
-          (async () => {
-            try {
-              await supabase.functions.invoke("synthesize-recipient-profile", {
-                body: { recipientId },
-              });
-            } catch (err) {
+          supabase.functions
+            .invoke("synthesize-recipient-profile", {
+              body: { recipientId: recipient.id },
+            })
+            .catch((err) => {
               console.error("Failed to trigger profile synthesis:", err);
-            }
-            const config = await fetchAppConfig().catch(() => null);
-            if (config?.recommendations_enabled !== false) {
-              fetch("https://be-gifted.vercel.app/api/generate-gifts", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ recipientId }),
-              }).catch((err) => {
-                console.error("Failed to trigger gift generation:", err);
-              });
-            }
-          })();
+            });
         }
       } catch (error) {
         console.error("Error saving recipient:", error);

@@ -165,8 +165,30 @@ serve(async (req) => {
       })
       .eq("id", recipientId);
 
+    // Chain to gift generation now that synthesized_profile is in place. We
+    // run this server-side so mobile clients don't have to keep their JS task
+    // alive long enough to trigger gift gen themselves (iOS will kill the app
+    // before the long synthesize+generate sequence completes).
+    // @ts-ignore - Deno environment variables resolved at runtime
+    const giftGenUrl =
+      Deno.env.get("BEGIFTED_API_URL") ?? "https://be-gifted.vercel.app";
+    let giftGenStatus: number | null = null;
+    try {
+      const res = await fetch(`${giftGenUrl}/api/generate-gifts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recipientId }),
+      });
+      giftGenStatus = res.status;
+    } catch (err) {
+      console.error("Failed to trigger gift generation:", err);
+    }
+
     return new Response(
-      JSON.stringify({ synthesized_profile: profile }),
+      JSON.stringify({
+        synthesized_profile: profile,
+        gift_generation_status: giftGenStatus,
+      }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
