@@ -2,8 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // @ts-ignore - Deno/Supabase client types
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { loadAIConfig } from "../_shared/ai-config-loader.ts";
-import { callAI, getApiKey } from "../_shared/ai-client.ts";
+import { callAI, getApiKey, CONVERSATION_MODEL } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -128,7 +127,8 @@ serve(async (req) => {
 
     const recipientContext = parts.join("\n");
 
-    const { provider, model } = await loadAIConfig(supabaseUrl, supabaseServiceKey);
+    const provider = "openai" as const;
+    const model = CONVERSATION_MODEL;
     const apiKey = getApiKey(provider);
     const rawContent = await callAI(provider, model, apiKey, {
       messages: [
