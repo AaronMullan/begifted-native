@@ -29,9 +29,9 @@ const CATEGORY_GUIDANCE: Record<string, string> = {
 - Preserve the JSON output format (primaryOccasions array + additionalSuggestions)
 - Keep the anti-hallucination rules for real observance days only
 - Maintain the template variables: {{today}}, {{name}}, {{relationship}}, {{birthday}}, {{interests}}`,
-  user_preferences_extraction: `This prompt extracts a concise gifting style summary from natural language.
-- Preserve the JSON output format with a single gifting_summary string field
-- The summary should be free-text (2-4 sentences), NOT categories or enum values
+  user_preferences_extraction: `This prompt extracts a structured giver profile (user CIS) from natural language.
+- Preserve the JSON output schema: user_summary (string), taste_and_world (string[]), care_and_relationship_style (string[]), giver_style_implications (string[]), things_to_avoid (string[]), confidence ("low"|"medium"|"high")
+- user_summary must be free-text 2-4 sentences in the user's voice, NOT categories or enum values
 - This prompt has no template variables — user text is sent as a separate message`,
 };
 

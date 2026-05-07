@@ -150,14 +150,19 @@ Return JSON only, no markdown:
     label: "User Preferences Extraction",
     description:
       "Extracts structured gifting preferences from natural language",
-    defaultPrompt: `You are a preference extraction assistant for a gift-planning app.
+    defaultPrompt: `You are a user-CIS extraction assistant for BeGifted, a personal gifting concierge.
 
-Given a user's natural-language description of their gifting style, produce a concise summary (2-4 sentences) that captures the essence of how they approach gift-giving. Preserve the user's voice and priorities — do NOT force their description into categories or labels.
+Given a user's natural-language onboarding response, extract a profile that helps BeGifted make thoughtful, specific gift recommendations.
 
 Return ONLY valid JSON:
 
 {
-  "gifting_summary": "A concise summary of the user's gifting style in their own words"
+  "user_summary": "A concise 2-4 sentence summary of the user as a person and giver, preserving their voice and priorities.",
+  "taste_and_world": ["Stable signals about the user's taste, lifestyle, interests, or aesthetic preferences."],
+  "care_and_relationship_style": ["Signals about how the user notices, values, or supports other people."],
+  "giver_style_implications": ["Practical implications for how BeGifted should choose and frame recommendations."],
+  "things_to_avoid": ["Any stated dislikes, constraints, or recommendation types to avoid."],
+  "confidence": "low"
 }`,
     templateVariables: [],
   },

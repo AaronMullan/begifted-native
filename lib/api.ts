@@ -20,7 +20,6 @@ export interface UserPreferences {
   onboarding_completed: boolean;
   user_description: string | null;
   gifting_style_text: string | null;
-  gifting_summary: string | null;
   user_summary: UserSummary | null;
   synthesized_giver_profile: string | null;
   reminder_days: number;
