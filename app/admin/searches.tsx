@@ -1,16 +1,24 @@
 import { AdminNavbar } from "@/components/admin/AdminNavbar";
 import { useAuth } from "@/hooks/use-auth";
-import { fetchIsAdmin, fetchRecentRuns, type RunSummary } from "@/lib/api";
+import {
+  fetchIsAdmin,
+  fetchRecentRuns,
+  fetchSystemPromptById,
+  fetchWrapperTemplate,
+  type RunSummary,
+} from "@/lib/api";
 import { Colors } from "@/lib/colors";
 import { queryKeys } from "@/lib/query-keys";
 import { useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
-import { Linking, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Button,
   Card,
+  Dialog,
   Divider,
+  Portal,
   Text,
 } from "react-native-paper";
 
@@ -47,8 +55,14 @@ const SearchesScreen: React.FC = () => {
   return <SearchesContent />;
 };
 
+type DetailModal =
+  | { kind: "protocol"; id: string; version: number | null }
+  | { kind: "wrapper"; hash: string }
+  | null;
+
 const SearchesContent: React.FC = () => {
   const [page, setPage] = useState(1);
+  const [modal, setModal] = useState<DetailModal>(null);
   const offset = (page - 1) * PAGE_SIZE;
 
   const runsQuery = useQuery({
@@ -91,12 +105,87 @@ const SearchesContent: React.FC = () => {
 
       <View style={styles.runs}>
         {runs.map((run) => (
-          <RunCard key={run.run_id} run={run} />
+          <RunCard key={run.run_id} run={run} onOpenModal={setModal} />
         ))}
       </View>
 
       <Pagination page={page} totalPages={totalPages} setPage={setPage} />
+
+      <DetailDialog modal={modal} onDismiss={() => setModal(null)} />
     </ScrollView>
+  );
+};
+
+const DetailDialog: React.FC<{
+  modal: DetailModal;
+  onDismiss: () => void;
+}> = ({ modal, onDismiss }) => {
+  const promptQuery = useQuery({
+    queryKey: ["systemPromptById", modal?.kind === "protocol" ? modal.id : null],
+    queryFn: () =>
+      modal?.kind === "protocol"
+        ? fetchSystemPromptById(modal.id)
+        : Promise.resolve(null),
+    enabled: modal?.kind === "protocol",
+  });
+
+  const wrapperQuery = useQuery({
+    queryKey: ["wrapperTemplate", modal?.kind === "wrapper" ? modal.hash : null],
+    queryFn: () =>
+      modal?.kind === "wrapper"
+        ? fetchWrapperTemplate(modal.hash)
+        : Promise.resolve(null),
+    enabled: modal?.kind === "wrapper",
+  });
+
+  const visible = modal !== null;
+  const isLoading =
+    (modal?.kind === "protocol" && promptQuery.isLoading) ||
+    (modal?.kind === "wrapper" && wrapperQuery.isLoading);
+
+  let title = "";
+  let body = "";
+  let meta: string | null = null;
+
+  if (modal?.kind === "protocol") {
+    const v = promptQuery.data;
+    title = v
+      ? `Protocol v${v.version} — ${v.prompt_key}`
+      : `Protocol v${modal.version ?? "?"}`;
+    body = v?.prompt_text ?? "";
+    meta = v ? `Created ${new Date(v.created_at).toLocaleString()}${v.is_active ? " · ACTIVE" : ""}` : null;
+  } else if (modal?.kind === "wrapper") {
+    const w = wrapperQuery.data;
+    title = `Wrapper ${modal.hash.slice(0, 12)}…`;
+    body = w?.template_text ?? "";
+    meta = w ? `First seen ${new Date(w.first_seen_at).toLocaleString()}` : null;
+  }
+
+  return (
+    <Portal>
+      <Dialog visible={visible} onDismiss={onDismiss} style={styles.dialog}>
+        <Dialog.Title>{title}</Dialog.Title>
+        <Dialog.ScrollArea style={styles.dialogScroll}>
+          <ScrollView contentContainerStyle={styles.dialogContent}>
+            {isLoading ? (
+              <ActivityIndicator />
+            ) : (
+              <>
+                {meta && (
+                  <Text variant="bodySmall" style={styles.dialogMeta}>
+                    {meta}
+                  </Text>
+                )}
+                <Text style={styles.dialogBody}>{body || "(empty)"}</Text>
+              </>
+            )}
+          </ScrollView>
+        </Dialog.ScrollArea>
+        <Dialog.Actions>
+          <Button onPress={onDismiss}>Close</Button>
+        </Dialog.Actions>
+      </Dialog>
+    </Portal>
   );
 };
 
@@ -135,7 +224,10 @@ const Pagination: React.FC<{
   );
 };
 
-const RunCard: React.FC<{ run: RunSummary }> = ({ run }) => {
+const RunCard: React.FC<{
+  run: RunSummary;
+  onOpenModal: (m: DetailModal) => void;
+}> = ({ run, onOpenModal }) => {
   const [expandUrls, setExpandUrls] = useState(false);
   const ts = new Date(run.created_at).toISOString().replace("T", " ").slice(0, 16) + " UTC";
   const recipient = run.recipient?.name ?? "(unknown recipient)";
@@ -145,8 +237,8 @@ const RunCard: React.FC<{ run: RunSummary }> = ({ run }) => {
       ? `$${run.budget.min ?? "?"}-$${run.budget.max ?? "?"}`
       : "no budget";
   const providerLine = [run.ai_provider, run.ai_model].filter(Boolean).join("/") || "(provider unknown)";
-  const protocolLine = run.protocol_version != null ? `protocol v${run.protocol_version}` : "(no protocol id)";
-  const wrapperShort = run.wrapper_template_hash ? `${run.wrapper_template_hash.slice(0, 8)}…` : "(no hash)";
+  const protocolLabel = run.protocol_version != null ? `protocol v${run.protocol_version}` : null;
+  const wrapperShort = run.wrapper_template_hash ? `${run.wrapper_template_hash.slice(0, 8)}…` : null;
   const runIdShort = `${run.run_id.slice(0, 8)}…`;
 
   return (
@@ -160,9 +252,50 @@ const RunCard: React.FC<{ run: RunSummary }> = ({ run }) => {
             run_id {runIdShort}
           </Text>
         </View>
-        <Text variant="bodySmall" style={styles.metaLine}>
-          {providerLine} · {protocolLine} · wrapper {wrapperShort}
-        </Text>
+        <View style={styles.metaRow}>
+          <Text variant="bodySmall" style={styles.metaLine}>
+            {providerLine}
+          </Text>
+          <Text variant="bodySmall" style={styles.metaLine}> · </Text>
+          {protocolLabel && run.protocol_prompt_id ? (
+            <Pressable
+              onPress={() =>
+                onOpenModal({
+                  kind: "protocol",
+                  id: run.protocol_prompt_id!,
+                  version: run.protocol_version,
+                })
+              }
+            >
+              <Text variant="bodySmall" style={[styles.metaLine, styles.metaLink]}>
+                {protocolLabel}
+              </Text>
+            </Pressable>
+          ) : (
+            <Text variant="bodySmall" style={styles.metaLine}>
+              (no protocol id)
+            </Text>
+          )}
+          <Text variant="bodySmall" style={styles.metaLine}> · wrapper </Text>
+          {wrapperShort && run.wrapper_template_hash ? (
+            <Pressable
+              onPress={() =>
+                onOpenModal({
+                  kind: "wrapper",
+                  hash: run.wrapper_template_hash!,
+                })
+              }
+            >
+              <Text variant="bodySmall" style={[styles.metaLine, styles.metaLink]}>
+                {wrapperShort}
+              </Text>
+            </Pressable>
+          ) : (
+            <Text variant="bodySmall" style={styles.metaLine}>
+              (no hash)
+            </Text>
+          )}
+        </View>
 
         <Divider style={styles.divider} />
 
@@ -321,10 +454,42 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
     color: "#888",
   },
+  metaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    marginTop: 2,
+  },
   metaLine: {
     fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
     color: "#666",
-    marginTop: 2,
+  },
+  metaLink: {
+    color: "#0a66c2",
+    textDecorationLine: "underline",
+  },
+  dialog: {
+    maxWidth: 800,
+    width: "90%",
+    alignSelf: "center",
+    borderRadius: 8,
+  },
+  dialogScroll: {
+    maxHeight: 480,
+    paddingHorizontal: 0,
+  },
+  dialogContent: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  dialogMeta: {
+    color: "#888",
+    marginBottom: 8,
+  },
+  dialogBody: {
+    fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
+    fontSize: 12,
+    color: Colors.darks.brown,
   },
   divider: {
     marginVertical: 10,

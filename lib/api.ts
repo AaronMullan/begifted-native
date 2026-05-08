@@ -735,6 +735,42 @@ export async function fetchRecentRuns(
 }
 
 /**
+ * Fetch a single prompt version by id (admin viewer modal)
+ */
+export async function fetchSystemPromptById(
+  id: string,
+): Promise<SystemPromptVersion | null> {
+  const { data, error } = await supabase
+    .from("system_prompt_versions")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export interface WrapperTemplate {
+  hash: string;
+  template_text: string;
+  first_seen_at: string;
+}
+
+/**
+ * Fetch a wrapper template by its content hash (admin viewer modal)
+ */
+export async function fetchWrapperTemplate(
+  hash: string,
+): Promise<WrapperTemplate | null> {
+  const { data, error } = await supabase
+    .from("wrapper_templates")
+    .select("*")
+    .eq("hash", hash)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+/**
  * Rollback to a specific prompt version
  */
 export async function rollbackToVersion(
