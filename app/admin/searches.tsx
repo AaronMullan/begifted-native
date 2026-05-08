@@ -1,8 +1,10 @@
 import { AdminNavbar } from "@/components/admin/AdminNavbar";
 import { useAuth } from "@/hooks/use-auth";
 import {
+  fetchGiverSynthesizedProfile,
   fetchIsAdmin,
   fetchRecentRuns,
+  fetchRecipientSynthesizedProfile,
   fetchSystemPromptById,
   fetchWrapperTemplate,
   type RunSummary,
@@ -58,6 +60,8 @@ const SearchesScreen: React.FC = () => {
 type DetailModal =
   | { kind: "protocol"; id: string; version: number | null }
   | { kind: "wrapper"; hash: string }
+  | { kind: "recipient"; id: string; name: string }
+  | { kind: "giver"; id: string; name: string | null }
   | null;
 
 const SearchesContent: React.FC = () => {
@@ -138,10 +142,30 @@ const DetailDialog: React.FC<{
     enabled: modal?.kind === "wrapper",
   });
 
+  const recipientQuery = useQuery({
+    queryKey: ["recipientSynthProfile", modal?.kind === "recipient" ? modal.id : null],
+    queryFn: () =>
+      modal?.kind === "recipient"
+        ? fetchRecipientSynthesizedProfile(modal.id)
+        : Promise.resolve(null),
+    enabled: modal?.kind === "recipient",
+  });
+
+  const giverQuery = useQuery({
+    queryKey: ["giverSynthProfile", modal?.kind === "giver" ? modal.id : null],
+    queryFn: () =>
+      modal?.kind === "giver"
+        ? fetchGiverSynthesizedProfile(modal.id)
+        : Promise.resolve(null),
+    enabled: modal?.kind === "giver",
+  });
+
   const visible = modal !== null;
   const isLoading =
     (modal?.kind === "protocol" && promptQuery.isLoading) ||
-    (modal?.kind === "wrapper" && wrapperQuery.isLoading);
+    (modal?.kind === "wrapper" && wrapperQuery.isLoading) ||
+    (modal?.kind === "recipient" && recipientQuery.isLoading) ||
+    (modal?.kind === "giver" && giverQuery.isLoading);
 
   let title = "";
   let body = "";
@@ -159,6 +183,16 @@ const DetailDialog: React.FC<{
     title = `Wrapper ${modal.hash.slice(0, 12)}…`;
     body = w?.template_text ?? "";
     meta = w ? `First seen ${new Date(w.first_seen_at).toLocaleString()}` : null;
+  } else if (modal?.kind === "recipient") {
+    const r = recipientQuery.data;
+    title = `Recipient: ${r?.name ?? modal.name}`;
+    body = r?.synthesized_profile ?? "(no synthesized profile)";
+    meta = null;
+  } else if (modal?.kind === "giver") {
+    const g = giverQuery.data;
+    title = `Giver: ${g?.full_name ?? modal.name ?? "(unnamed)"}`;
+    body = g?.synthesized_giver_profile ?? "(no synthesized profile)";
+    meta = null;
   }
 
   return (
@@ -228,9 +262,9 @@ const RunCard: React.FC<{
   run: RunSummary;
   onOpenModal: (m: DetailModal) => void;
 }> = ({ run, onOpenModal }) => {
-  const [expandUrls, setExpandUrls] = useState(false);
   const ts = new Date(run.created_at).toISOString().replace("T", " ").slice(0, 16) + " UTC";
-  const recipient = run.recipient?.name ?? "(unknown recipient)";
+  const recipientName = run.recipient?.name ?? "(unknown recipient)";
+  const giverName = run.giver?.name ?? "(unknown giver)";
   const occasionType = run.occasion?.occasion_type ?? "—";
   const budget =
     run.budget && (run.budget.min != null || run.budget.max != null)
@@ -246,7 +280,41 @@ const RunCard: React.FC<{
       <Card.Content>
         <View style={styles.runHeader}>
           <Text variant="titleSmall" style={styles.runTitle}>
-            {ts} · {recipient} ({occasionType}, {budget})
+            {ts} ·{" "}
+            {run.giver ? (
+              <Text
+                style={styles.headlineLink}
+                onPress={() =>
+                  onOpenModal({
+                    kind: "giver",
+                    id: run.giver!.id,
+                    name: run.giver!.name,
+                  })
+                }
+              >
+                {giverName}
+              </Text>
+            ) : (
+              giverName
+            )}
+            {" → "}
+            {run.recipient ? (
+              <Text
+                style={styles.headlineLink}
+                onPress={() =>
+                  onOpenModal({
+                    kind: "recipient",
+                    id: run.recipient!.id,
+                    name: run.recipient!.name,
+                  })
+                }
+              >
+                {recipientName}
+              </Text>
+            ) : (
+              recipientName
+            )}
+            {` (${occasionType}, ${budget})`}
           </Text>
           <Text variant="bodySmall" style={styles.runIdMono}>
             run_id {runIdShort}
@@ -310,42 +378,6 @@ const RunCard: React.FC<{
               • &quot;{q}&quot;
             </Text>
           ))
-        )}
-
-        <Text variant="labelSmall" style={styles.sectionLabel}>
-          CITATIONS ({run.cited_urls.length})
-          {run.cited_domains.length > 0 ? (
-            <Text variant="labelSmall" style={styles.domainSuffix}>
-              {" "}— domains: {run.cited_domains.slice(0, 6).join(", ")}
-              {run.cited_domains.length > 6
-                ? `, +${run.cited_domains.length - 6} more`
-                : ""}
-            </Text>
-          ) : null}
-        </Text>
-        {run.cited_urls.length === 0 ? (
-          <Text variant="bodySmall" style={styles.empty}>(no citations captured)</Text>
-        ) : (
-          <>
-            <Button
-              mode="text"
-              compact
-              onPress={() => setExpandUrls((v) => !v)}
-            >
-              {expandUrls ? "Hide URLs" : "Show all URLs"}
-            </Button>
-            {expandUrls &&
-              run.cited_urls.map((u, i) => (
-                <Text
-                  key={`${run.run_id}-u-${i}`}
-                  variant="bodySmall"
-                  style={styles.urlLine}
-                  onPress={() => Linking.openURL(u)}
-                >
-                  • {u}
-                </Text>
-              ))}
-          </>
         )}
 
         <Text variant="labelSmall" style={styles.sectionLabel}>
@@ -450,6 +482,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     flexShrink: 1,
   },
+  headlineLink: {
+    color: "#0a66c2",
+    textDecorationLine: "underline",
+    fontWeight: "600",
+  },
   runIdMono: {
     fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
     color: "#888",
@@ -499,18 +536,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.darks.brown,
   },
-  domainSuffix: {
-    fontWeight: "400",
-    color: "#888",
-  },
   queryLine: {
     fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
     color: "#444",
-  },
-  urlLine: {
-    fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
-    color: "#0a66c2",
-    marginVertical: 1,
   },
   empty: {
     fontStyle: "italic",
