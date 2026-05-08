@@ -228,7 +228,6 @@ const RunCard: React.FC<{
   run: RunSummary;
   onOpenModal: (m: DetailModal) => void;
 }> = ({ run, onOpenModal }) => {
-  const [expandUrls, setExpandUrls] = useState(false);
   const ts = new Date(run.created_at).toISOString().replace("T", " ").slice(0, 16) + " UTC";
   const recipient = run.recipient?.name ?? "(unknown recipient)";
   const occasionType = run.occasion?.occasion_type ?? "—";
@@ -310,42 +309,6 @@ const RunCard: React.FC<{
               • &quot;{q}&quot;
             </Text>
           ))
-        )}
-
-        <Text variant="labelSmall" style={styles.sectionLabel}>
-          CITATIONS ({run.cited_urls.length})
-          {run.cited_domains.length > 0 ? (
-            <Text variant="labelSmall" style={styles.domainSuffix}>
-              {" "}— domains: {run.cited_domains.slice(0, 6).join(", ")}
-              {run.cited_domains.length > 6
-                ? `, +${run.cited_domains.length - 6} more`
-                : ""}
-            </Text>
-          ) : null}
-        </Text>
-        {run.cited_urls.length === 0 ? (
-          <Text variant="bodySmall" style={styles.empty}>(no citations captured)</Text>
-        ) : (
-          <>
-            <Button
-              mode="text"
-              compact
-              onPress={() => setExpandUrls((v) => !v)}
-            >
-              {expandUrls ? "Hide URLs" : "Show all URLs"}
-            </Button>
-            {expandUrls &&
-              run.cited_urls.map((u, i) => (
-                <Text
-                  key={`${run.run_id}-u-${i}`}
-                  variant="bodySmall"
-                  style={styles.urlLine}
-                  onPress={() => Linking.openURL(u)}
-                >
-                  • {u}
-                </Text>
-              ))}
-          </>
         )}
 
         <Text variant="labelSmall" style={styles.sectionLabel}>
@@ -499,18 +462,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.darks.brown,
   },
-  domainSuffix: {
-    fontWeight: "400",
-    color: "#888",
-  },
   queryLine: {
     fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
     color: "#444",
-  },
-  urlLine: {
-    fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
-    color: "#0a66c2",
-    marginVertical: 1,
   },
   empty: {
     fontStyle: "italic",
