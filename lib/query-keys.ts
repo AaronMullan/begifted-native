@@ -48,4 +48,7 @@ export const queryKeys = {
 
   // App Config (Kill Switch)
   appConfig: ["appConfig"] as const,
+
+  // Admin — Searches viewer
+  recentRuns: (page: number) => ["recentRuns", page] as const,
 };
