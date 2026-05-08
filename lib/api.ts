@@ -604,6 +604,7 @@ export interface RunSummary {
   cited_urls: string[];
   cited_domains: string[];
   recipient: { id: string; name: string } | null;
+  giver: { id: string; name: string | null } | null;
   occasion: { id: string; occasion_type: string | null; date: string | null } | null;
   budget: { min: number | null; max: number | null } | null;
   picks: RunPick[];
@@ -651,7 +652,7 @@ export async function fetchRecentRuns(
        ai_provider, ai_model, protocol_prompt_id, wrapper_template_hash,
        search_queries, cited_urls, cited_domains,
        recipient_id, occasion_id,
-       recipients ( id, name, gift_budget_min, gift_budget_max ),
+       recipients ( id, name, user_id, gift_budget_min, gift_budget_max ),
        occasions ( id, occasion_type, date )`,
     )
     .in("run_id", pageRunIds)
@@ -678,19 +679,52 @@ export async function fetchRecentRuns(
     }
   }
 
+  // Batch-fetch giver profiles for the page
+  type RecipientEmbed = {
+    id: string;
+    name: string;
+    user_id: string | null;
+    gift_budget_min: number | null;
+    gift_budget_max: number | null;
+  };
+  type OccasionEmbed = { id: string; occasion_type: string | null; date: string | null };
+
+  const giverIds = Array.from(
+    new Set(
+      (rows ?? [])
+        .map((r) => {
+          const raw = (r.recipients ?? null) as unknown;
+          const rec: RecipientEmbed | null = Array.isArray(raw)
+            ? ((raw[0] as RecipientEmbed | undefined) ?? null)
+            : (raw as RecipientEmbed | null);
+          return rec?.user_id ?? null;
+        })
+        .filter((id): id is string => Boolean(id)),
+    ),
+  );
+
+  const giverNameById = new Map<string, string | null>();
+  if (giverIds.length > 0) {
+    const { data: profileRows } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", giverIds);
+    for (const p of profileRows ?? []) {
+      giverNameById.set(p.id as string, (p.full_name as string | null) ?? null);
+    }
+  }
+
   const runMap = new Map<string, RunSummary>();
   for (const r of rows ?? []) {
     if (!r.run_id) continue;
     const rawRecipients = (r.recipients ?? null) as unknown;
     const rawOccasions = (r.occasions ?? null) as unknown;
-    type R = { id: string; name: string; gift_budget_min: number | null; gift_budget_max: number | null };
-    type O = { id: string; occasion_type: string | null; date: string | null };
-    const recipient: R | null = Array.isArray(rawRecipients)
-      ? ((rawRecipients[0] as R | undefined) ?? null)
-      : (rawRecipients as R | null);
-    const occasion: O | null = Array.isArray(rawOccasions)
-      ? ((rawOccasions[0] as O | undefined) ?? null)
-      : (rawOccasions as O | null);
+    const recipient: RecipientEmbed | null = Array.isArray(rawRecipients)
+      ? ((rawRecipients[0] as RecipientEmbed | undefined) ?? null)
+      : (rawRecipients as RecipientEmbed | null);
+    const occasion: OccasionEmbed | null = Array.isArray(rawOccasions)
+      ? ((rawOccasions[0] as OccasionEmbed | undefined) ?? null)
+      : (rawOccasions as OccasionEmbed | null);
 
     let summary = runMap.get(r.run_id);
     if (!summary) {
@@ -709,6 +743,10 @@ export async function fetchRecentRuns(
         cited_urls: (r.cited_urls ?? []) as string[],
         cited_domains: (r.cited_domains ?? []) as string[],
         recipient: recipient ? { id: recipient.id, name: recipient.name } : null,
+        giver:
+          recipient?.user_id
+            ? { id: recipient.user_id, name: giverNameById.get(recipient.user_id) ?? null }
+            : null,
         occasion: occasion
           ? { id: occasion.id, occasion_type: occasion.occasion_type, date: occasion.date }
           : null,
@@ -768,6 +806,58 @@ export async function fetchWrapperTemplate(
     .maybeSingle();
   if (error) throw error;
   return data;
+}
+
+export interface RecipientProfileSnapshot {
+  id: string;
+  name: string;
+  synthesized_profile: string | null;
+}
+
+/**
+ * Fetch a recipient's synthesized profile (admin viewer modal)
+ */
+export async function fetchRecipientSynthesizedProfile(
+  id: string,
+): Promise<RecipientProfileSnapshot | null> {
+  const { data, error } = await supabase
+    .from("recipients")
+    .select("id, name, synthesized_profile")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data as RecipientProfileSnapshot | null;
+}
+
+export interface GiverProfileSnapshot {
+  user_id: string;
+  full_name: string | null;
+  synthesized_giver_profile: string | null;
+}
+
+/**
+ * Fetch a giver's synthesized profile (admin viewer modal)
+ */
+export async function fetchGiverSynthesizedProfile(
+  userId: string,
+): Promise<GiverProfileSnapshot | null> {
+  const [{ data: profile, error: profileErr }, { data: prefs, error: prefsErr }] =
+    await Promise.all([
+      supabase.from("profiles").select("id, full_name").eq("id", userId).maybeSingle(),
+      supabase
+        .from("user_preferences")
+        .select("synthesized_giver_profile")
+        .eq("user_id", userId)
+        .maybeSingle(),
+    ]);
+  if (profileErr) throw profileErr;
+  if (prefsErr) throw prefsErr;
+  return {
+    user_id: userId,
+    full_name: (profile?.full_name as string | null) ?? null,
+    synthesized_giver_profile:
+      (prefs?.synthesized_giver_profile as string | null) ?? null,
+  };
 }
 
 /**
