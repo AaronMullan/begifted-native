@@ -12,7 +12,6 @@ type RecipientDetailsFormProps = {
   relationshipType: string;
   interests: string;
   birthday: string;
-  emotionalTone: string;
   budgetMin: string;
   budgetMax: string;
   address: string;
@@ -25,7 +24,6 @@ type RecipientDetailsFormProps = {
   onChangeRelationshipType: (value: string) => void;
   onChangeInterests: (value: string) => void;
   onChangeBirthday: (value: string) => void;
-  onChangeEmotionalTone: (value: string) => void;
   onChangeBudgetMin: (value: string) => void;
   onChangeBudgetMax: (value: string) => void;
   onChangeAddress: (value: string) => void;
@@ -44,7 +42,6 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
   relationshipType,
   interests,
   birthday,
-  emotionalTone,
   budgetMin,
   budgetMax,
   address,
@@ -57,7 +54,6 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
   onChangeRelationshipType,
   onChangeInterests,
   onChangeBirthday,
-  onChangeEmotionalTone,
   onChangeBudgetMin,
   onChangeBudgetMax,
   onChangeAddress,
@@ -157,7 +153,6 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
               relationshipType={relationshipType}
               interests={interests}
               birthday={birthday}
-              emotionalTone={emotionalTone}
               budgetMin={budgetMin}
               budgetMax={budgetMax}
               address={address}
@@ -170,7 +165,6 @@ export const RecipientDetailsForm: React.FC<RecipientDetailsFormProps> = ({
               onChangeRelationshipType={onChangeRelationshipType}
               onChangeInterests={onChangeInterests}
               onChangeBirthday={onChangeBirthday}
-              onChangeEmotionalTone={onChangeEmotionalTone}
               onChangeBudgetMin={onChangeBudgetMin}
               onChangeBudgetMax={onChangeBudgetMax}
               onChangeAddress={onChangeAddress}

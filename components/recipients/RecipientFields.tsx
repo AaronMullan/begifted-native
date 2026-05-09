@@ -7,7 +7,6 @@ type RecipientFieldsProps = {
   relationshipType: string;
   interests: string;
   birthday: string;
-  emotionalTone: string;
   budgetMin: string;
   budgetMax: string;
   address: string;
@@ -20,7 +19,6 @@ type RecipientFieldsProps = {
   onChangeRelationshipType: (value: string) => void;
   onChangeInterests: (value: string) => void;
   onChangeBirthday: (value: string) => void;
-  onChangeEmotionalTone: (value: string) => void;
   onChangeBudgetMin: (value: string) => void;
   onChangeBudgetMax: (value: string) => void;
   onChangeAddress: (value: string) => void;
@@ -36,7 +34,6 @@ export const RecipientFields: React.FC<RecipientFieldsProps> = ({
   relationshipType,
   interests,
   birthday,
-  emotionalTone,
   budgetMin,
   budgetMax,
   address,
@@ -49,7 +46,6 @@ export const RecipientFields: React.FC<RecipientFieldsProps> = ({
   onChangeRelationshipType,
   onChangeInterests,
   onChangeBirthday,
-  onChangeEmotionalTone,
   onChangeBudgetMin,
   onChangeBudgetMax,
   onChangeAddress,
@@ -105,15 +101,6 @@ export const RecipientFields: React.FC<RecipientFieldsProps> = ({
     <Text variant="titleMedium" style={styles.sectionTitle}>
       Gift Preferences
     </Text>
-
-    <TextInput
-      mode="outlined"
-      label="Emotional Tone (optional)"
-      value={emotionalTone}
-      onChangeText={onChangeEmotionalTone}
-      placeholder="e.g., heartfelt, playful, elegant"
-      style={styles.input}
-    />
 
     <Text variant="bodyMedium" style={styles.label}>
       Budget Range (optional)

@@ -39,7 +39,6 @@ export default function Contacts() {
   const [relationshipType, setRelationshipType] = useState("");
   const [interests, setInterests] = useState("");
   const [birthday, setBirthday] = useState("");
-  const [emotionalTone, setEmotionalTone] = useState("");
   const [budgetMin, setBudgetMin] = useState("");
   const [budgetMax, setBudgetMax] = useState("");
   const [address, setAddress] = useState("");
@@ -68,7 +67,6 @@ export default function Contacts() {
     setRelationshipType("");
     setInterests("");
     setBirthday("");
-    setEmotionalTone("");
     setBudgetMin("");
     setBudgetMax("");
     setAddress("");
@@ -111,7 +109,6 @@ export default function Contacts() {
             relationship_type: relationshipType.trim(),
             interests: interestsArray.length > 0 ? interestsArray : null,
             birthday: birthday.trim() || null,
-            emotional_tone_preference: emotionalTone.trim() || null,
             gift_budget_min: budgetMin ? parseInt(budgetMin) : null,
             gift_budget_max: budgetMax ? parseInt(budgetMax) : null,
             address: address.trim() || null,
@@ -142,7 +139,6 @@ export default function Contacts() {
             relationship_type: relationshipType.trim(),
             interests: interestsArray.length > 0 ? interestsArray : null,
             birthday: birthday.trim() || null,
-            emotional_tone_preference: emotionalTone.trim() || null,
             gift_budget_min: budgetMin ? parseInt(budgetMin) : null,
             gift_budget_max: budgetMax ? parseInt(budgetMax) : null,
             address: address.trim() || null,
@@ -313,7 +309,6 @@ export default function Contacts() {
               relationshipType={relationshipType}
               interests={interests}
               birthday={birthday}
-              emotionalTone={emotionalTone}
               budgetMin={budgetMin}
               budgetMax={budgetMax}
               address={address}
@@ -327,7 +322,6 @@ export default function Contacts() {
               onChangeRelationshipType={setRelationshipType}
               onChangeInterests={setInterests}
               onChangeBirthday={setBirthday}
-              onChangeEmotionalTone={setEmotionalTone}
               onChangeBudgetMin={setBudgetMin}
               onChangeBudgetMax={setBudgetMax}
               onChangeAddress={setAddress}
