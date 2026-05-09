@@ -1,11 +1,4 @@
-import {
-  View,
-  StyleSheet,
-  Text,
-  Pressable,
-  Animated,
-  Image,
-} from "react-native";
+import { View, StyleSheet, Text, Pressable, Animated } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -14,6 +7,7 @@ import { useAuth } from "../hooks/use-auth";
 import { useUnreadCount } from "../hooks/use-notifications";
 import { useHeaderVisibility } from "../hooks/use-header-visibility";
 import { Colors } from "../lib/colors";
+import BrandMark from "./BrandMark";
 
 type HeaderProps = {
   colorful?: boolean;
@@ -58,13 +52,7 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
             accessibilityLabel="Go to Begifted home"
             style={styles.brandRow}
           >
-            <View style={styles.brandMark}>
-              <Image
-                source={require("../assets/images/Artboard 8.png")}
-                style={styles.brandMarkGlyph}
-                resizeMode="contain"
-              />
-            </View>
+            <BrandMark size={BRAND_MARK_SIZE} />
             <Text style={styles.logoText}>BEGIFTED</Text>
           </Pressable>
         </Link>
@@ -132,19 +120,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-  },
-  brandMark: {
-    width: BRAND_MARK_SIZE * 0.78,
-    height: BRAND_MARK_SIZE,
-    borderRadius: BRAND_MARK_SIZE / 2,
-    backgroundColor: Colors.pinks.medium,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  brandMarkGlyph: {
-    width: BRAND_MARK_SIZE * 0.55,
-    height: BRAND_MARK_SIZE * 0.55,
-    tintColor: Colors.white,
   },
   rightSection: {
     flexDirection: "row",
