@@ -83,30 +83,35 @@ export default function GiftingPreferences() {
     }
   }
 
+  async function extractUserSummary(text: string): Promise<string | undefined> {
+    try {
+      const { data: fnData, error: fnError } = await supabase.functions.invoke(
+        "extract-user-preferences",
+        { body: { text } }
+      );
+      if (fnError) {
+        console.error("Error extracting preferences:", fnError);
+        return undefined;
+      }
+      return fnData?.user_summary;
+    } catch (extractError) {
+      console.error("Error calling extract function:", extractError);
+      return undefined;
+    }
+  }
+
   async function handleSave() {
     if (!user) return;
 
     try {
       setSaving(true);
 
-      let userSummary = undefined;
-
-      if (giftingStyleText.trim() && giftingStyleText !== originalGiftingStyleText) {
-        try {
-          const { data: fnData, error: fnError } = await supabase.functions.invoke(
-            "extract-user-preferences",
-            { body: { text: giftingStyleText.trim() } }
-          );
-
-          if (fnError) {
-            console.error("Error extracting preferences:", fnError);
-          } else if (fnData?.user_summary) {
-            userSummary = fnData.user_summary;
-          }
-        } catch (extractError) {
-          console.error("Error calling extract function:", extractError);
-        }
-      }
+      const giftingTextChanged =
+        giftingStyleText.trim() !== "" &&
+        giftingStyleText !== originalGiftingStyleText;
+      const userSummary = giftingTextChanged
+        ? await extractUserSummary(giftingStyleText.trim())
+        : undefined;
 
       const updates: Record<string, unknown> = {
         user_id: user.id,
