@@ -19,9 +19,6 @@ import { MaterialIcons } from "@expo/vector-icons";
 interface NotificationPreferences {
   push_notifications_enabled: boolean;
   email_notifications_enabled: boolean;
-  reminder_2_weeks_before: boolean;
-  reminder_1_week_before: boolean;
-  reminder_day_of_event: boolean;
   feedback_requests_enabled: boolean;
   system_updates_enabled: boolean;
   promotional_emails_enabled: boolean;
@@ -48,9 +45,6 @@ export default function Notifications() {
   const [preferences, setPreferences] = useState<NotificationPreferences>({
     push_notifications_enabled: true,
     email_notifications_enabled: true,
-    reminder_2_weeks_before: true,
-    reminder_1_week_before: true,
-    reminder_day_of_event: true,
     feedback_requests_enabled: true,
     system_updates_enabled: true,
     promotional_emails_enabled: false,
@@ -104,9 +98,6 @@ export default function Notifications() {
         const prefs: NotificationPreferences = {
           push_notifications_enabled: data.push_notifications_enabled ?? true,
           email_notifications_enabled: data.email_notifications_enabled ?? true,
-          reminder_2_weeks_before: data.reminder_2_weeks_before ?? true,
-          reminder_1_week_before: data.reminder_1_week_before ?? true,
-          reminder_day_of_event: data.reminder_day_of_event ?? true,
           feedback_requests_enabled: data.feedback_requests_enabled ?? true,
           system_updates_enabled: data.system_updates_enabled ?? true,
           promotional_emails_enabled: data.promotional_emails_enabled ?? false,
@@ -134,9 +125,6 @@ export default function Notifications() {
         user_id: session.user.id,
         push_notifications_enabled: preferences.push_notifications_enabled,
         email_notifications_enabled: preferences.email_notifications_enabled,
-        reminder_2_weeks_before: preferences.reminder_2_weeks_before,
-        reminder_1_week_before: preferences.reminder_1_week_before,
-        reminder_day_of_event: preferences.reminder_day_of_event,
         feedback_requests_enabled: preferences.feedback_requests_enabled,
         system_updates_enabled: preferences.system_updates_enabled,
         promotional_emails_enabled: preferences.promotional_emails_enabled,
@@ -273,66 +261,6 @@ export default function Notifications() {
                   value={preferences.email_notifications_enabled}
                   onValueChange={() =>
                     togglePreference("email_notifications_enabled")
-                  }
-                  trackColor={{ false: "#E0E0E0", true: "#333333" }}
-                  thumbColor="#fff"
-                />
-              </View>
-            </View>
-
-            {/* Reminder Preferences Section */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Reminder Preferences</Text>
-              <Text style={styles.sectionSubtitle}>
-                Configure when you&apos;d like to be reminded about upcoming
-                occasions.
-              </Text>
-
-              <View style={styles.settingRow}>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingLabel}>2 Weeks Before</Text>
-                  <Text style={styles.settingDescription}>
-                    Get reminded 2 weeks before an occasion.
-                  </Text>
-                </View>
-                <Switch
-                  value={preferences.reminder_2_weeks_before}
-                  onValueChange={() =>
-                    togglePreference("reminder_2_weeks_before")
-                  }
-                  trackColor={{ false: "#E0E0E0", true: "#333333" }}
-                  thumbColor="#fff"
-                />
-              </View>
-
-              <View style={styles.settingRow}>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingLabel}>1 Week Before</Text>
-                  <Text style={styles.settingDescription}>
-                    Get reminded 1 week before an occasion.
-                  </Text>
-                </View>
-                <Switch
-                  value={preferences.reminder_1_week_before}
-                  onValueChange={() =>
-                    togglePreference("reminder_1_week_before")
-                  }
-                  trackColor={{ false: "#E0E0E0", true: "#333333" }}
-                  thumbColor="#fff"
-                />
-              </View>
-
-              <View style={styles.settingRow}>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingLabel}>Day of Event</Text>
-                  <Text style={styles.settingDescription}>
-                    Get reminded on the day of the occasion.
-                  </Text>
-                </View>
-                <Switch
-                  value={preferences.reminder_day_of_event}
-                  onValueChange={() =>
-                    togglePreference("reminder_day_of_event")
                   }
                   trackColor={{ false: "#E0E0E0", true: "#333333" }}
                   thumbColor="#fff"
