@@ -26,9 +26,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "READ_CONTACTS"
-      ]
+      "permissions": ["READ_CONTACTS"]
     },
     "web": {
       "output": "static",
@@ -43,7 +41,15 @@
         }
       ],
       "expo-font",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "react-native",
+          "organization": "begifted"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

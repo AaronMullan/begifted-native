@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import * as Sentry from "@sentry/react-native";
 import { supabase } from "../lib/supabase";
 import type { ExtractedData } from "./use-conversation-flow";
 import { lookupOccasionDate } from "../utils/occasion-dates";
@@ -63,6 +64,12 @@ export function useOccasionRecommendations(
         );
 
         if (error) {
+          Sentry.captureException(error, {
+            tags: {
+              edge_function: "recipient-conversation",
+              action: "recommend_occasions",
+            },
+          });
           const httpError = error as { context?: Response };
           if (httpError.context?.json) {
             try {
@@ -105,6 +112,12 @@ export function useOccasionRecommendations(
           "Error fetching occasion recommendations (using fallback):",
           err
         );
+        Sentry.captureException(err, {
+          tags: {
+            edge_function: "recipient-conversation",
+            action: "recommend_occasions",
+          },
+        });
         setRecommendations(
           getFallbackRecommendations(extractedData.birthday ?? null)
         );
