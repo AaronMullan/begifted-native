@@ -25,6 +25,8 @@ module.exports = defineConfig([
           caughtErrors: "all",
         },
       ],
+      "max-depth": ["error", 3],
+      complexity: ["warn", 10],
     },
   },
   {
