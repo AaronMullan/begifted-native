@@ -14,7 +14,7 @@ export function useToast(): UseToastReturn {
   const [visible, setVisible] = useState(false);
   const messageRef = useRef("");
   const opacity = useRef(new Animated.Value(0)).current;
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     if (visible) {

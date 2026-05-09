@@ -205,7 +205,6 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
               setPromptMenuVisible(false);
             }}
             title={def.label}
-            description={def.description}
             leadingIcon={
               def.key === playground.selectedPromptKey ? "check" : undefined
             }
@@ -1282,7 +1281,21 @@ const ConversationResultView: React.FC<{ result: Record<string, unknown> }> = ({
 }) => {
   const [showContext, setShowContext] = useState(true);
   const [showResolvedPrompt, setShowResolvedPrompt] = useState(false);
-  const ctx = result.conversationContext as Record<string, unknown> | undefined;
+  const ctx = result.conversationContext as
+    | {
+        readiness?: {
+          state?: string;
+          has_recipient_anchor?: boolean;
+          has_occasion_anchor?: boolean;
+          has_specificity_anchor?: boolean;
+          reason?: string;
+        };
+        user_skipped_specificity?: boolean;
+        needs_occasion_date?: boolean;
+        occasion_needing_date?: string;
+        [key: string]: unknown;
+      }
+    | undefined;
 
   if ("error" in result) {
     return (
@@ -2105,6 +2118,9 @@ const styles = StyleSheet.create({
   historyModelText: {
     color: Colors.darks.brown,
     marginTop: 2,
+  },
+  historyModelChip: {
+    height: 24,
   },
   historyDate: {
     color: Colors.darks.brown,
