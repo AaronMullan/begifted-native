@@ -56,6 +56,7 @@ export default function BottomNav() {
         <View style={styles.navContent}>
           {NAV_ITEMS.map((item) => {
             const isActive = isRouteActive(item, pathname);
+            const tint = isActive ? Colors.darks.black : Colors.neutrals.light;
             return (
               <Link key={item.key} href={item.href} asChild>
                 <TouchableOpacity
@@ -63,21 +64,10 @@ export default function BottomNav() {
                   accessibilityState={{ selected: isActive }}
                   style={styles.navItem}
                 >
-                  <MaterialIcons
-                    name={item.icon}
-                    size={24}
-                    color={isActive ? Colors.white : "rgba(255,255,255,0.7)"}
-                  />
+                  <MaterialIcons name={item.icon} size={24} color={tint} />
                   <Text
                     variant="labelSmall"
-                    style={[
-                      styles.label,
-                      {
-                        color: isActive
-                          ? Colors.white
-                          : "rgba(255,255,255,0.7)",
-                      },
-                    ]}
+                    style={[styles.label, { color: tint }]}
                   >
                     {item.label}
                   </Text>

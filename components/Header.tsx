@@ -8,6 +8,7 @@ import { useUnreadCount } from "../hooks/use-notifications";
 import { useHeaderVisibility } from "../hooks/use-header-visibility";
 import { Colors } from "../lib/colors";
 import BrandMark from "./BrandMark";
+import BrandWordmark from "./BrandWordmark";
 
 type HeaderProps = {
   colorful?: boolean;
@@ -53,7 +54,7 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
             style={styles.brandRow}
           >
             <BrandMark size={BRAND_MARK_SIZE} />
-            <Text style={styles.logoText}>BEGIFTED</Text>
+            <BrandWordmark height={16} />
           </Pressable>
         </Link>
         <View style={styles.rightSection}>
@@ -149,13 +150,6 @@ const styles = StyleSheet.create({
   },
   avatarButton: {
     marginLeft: 12,
-  },
-  logoText: {
-    fontFamily: "AzeretMono_400Regular",
-    fontSize: 18,
-    fontWeight: "400",
-    color: Colors.darks.black,
-    letterSpacing: 0.5,
   },
   avatar: {
     backgroundColor: Colors.white,
