@@ -1,4 +1,11 @@
-import { View, StyleSheet, Text, Pressable, Animated } from "react-native";
+import {
+  View,
+  StyleSheet,
+  Text,
+  Pressable,
+  Animated,
+  Image,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -6,6 +13,7 @@ import { Link, usePathname } from "expo-router";
 import { useAuth } from "../hooks/use-auth";
 import { useUnreadCount } from "../hooks/use-notifications";
 import { useHeaderVisibility } from "../hooks/use-header-visibility";
+import { Colors } from "../lib/colors";
 
 type HeaderProps = {
   colorful?: boolean;
@@ -16,10 +24,9 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
   const pathname = usePathname();
   const { user } = useAuth();
   const { data: unreadCount = 0 } = useUnreadCount();
-  const headerHeight = insets.top + 4 + 32 + 8; // paddingTop + content + paddingBottom
+  const headerHeight = insets.top + 4 + 40 + 8;
   const { animatedStyle } = useHeaderVisibility(headerHeight);
 
-  // Hide on onboarding routes
   if (pathname.startsWith("/onboarding")) {
     return null;
   }
@@ -44,13 +51,20 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
         animatedStyle,
       ]}
     >
-      {/* Contained content at max 800px to match dashboard */}
       <View style={styles.headerContent}>
         <Link href="/dashboard" asChild>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Go to Begifted home"
+            style={styles.brandRow}
           >
+            <View style={styles.brandMark}>
+              <Image
+                source={require("../assets/images/Artboard 8.png")}
+                style={styles.brandMarkGlyph}
+                resizeMode="contain"
+              />
+            </View>
             <Text style={styles.logoText}>BEGIFTED</Text>
           </Pressable>
         </Link>
@@ -58,10 +72,16 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
           <Link href="/notifications" asChild>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
+              accessibilityLabel={`Notifications${
+                unreadCount > 0 ? `, ${unreadCount} unread` : ""
+              }`}
               style={styles.bellButton}
             >
-              <MaterialIcons name="notifications" size={24} color="#000000" />
+              <MaterialIcons
+                name="notifications"
+                size={24}
+                color={Colors.darks.black}
+              />
               {unreadCount > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
@@ -78,10 +98,11 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
               style={styles.avatarButton}
             >
               <Avatar.Text
-                size={32}
+                size={36}
                 label={initials}
                 style={styles.avatar}
-                color="#FFFFFF"
+                color={Colors.darks.black}
+                labelStyle={styles.avatarLabel}
               />
             </Pressable>
           </Link>
@@ -90,6 +111,8 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
     </Animated.View>
   );
 }
+
+const BRAND_MARK_SIZE = 36;
 
 const styles = StyleSheet.create({
   headerBackground: {
@@ -105,6 +128,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
   },
+  brandRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  brandMark: {
+    width: BRAND_MARK_SIZE * 0.78,
+    height: BRAND_MARK_SIZE,
+    borderRadius: BRAND_MARK_SIZE / 2,
+    backgroundColor: Colors.pinks.medium,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  brandMarkGlyph: {
+    width: BRAND_MARK_SIZE * 0.55,
+    height: BRAND_MARK_SIZE * 0.55,
+    tintColor: Colors.white,
+  },
   rightSection: {
     flexDirection: "row",
     alignItems: "center",
@@ -117,7 +158,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     right: 0,
-    backgroundColor: "#c53064",
+    backgroundColor: Colors.pinks.dark,
     borderRadius: 8,
     minWidth: 16,
     height: 16,
@@ -126,7 +167,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
   },
   badgeText: {
-    color: "#FFFFFF",
+    color: Colors.white,
     fontSize: 10,
     fontWeight: "700",
     lineHeight: 14,
@@ -138,10 +179,16 @@ const styles = StyleSheet.create({
     fontFamily: "AzeretMono_400Regular",
     fontSize: 18,
     fontWeight: "400",
-    color: "#000000",
+    color: Colors.darks.black,
     letterSpacing: 0.5,
   },
   avatar: {
-    backgroundColor: "#000000",
+    backgroundColor: Colors.white,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(0,0,0,0.12)",
+  },
+  avatarLabel: {
+    fontWeight: "600",
+    fontSize: 13,
   },
 });

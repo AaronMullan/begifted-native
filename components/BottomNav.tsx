@@ -7,10 +7,10 @@ import { Colors } from "../lib/colors";
 import { useBottomNavVisibility } from "../hooks/use-bottom-nav-visibility";
 
 type NavItem = {
-  key: "dashboard" | "contacts" | "calendar" | "settings";
+  key: "dashboard" | "people" | "moments";
   label: string;
   icon: keyof typeof MaterialIcons.glyphMap;
-  href: "/dashboard" | "/contacts" | "/calendar" | "/settings";
+  href: "/dashboard" | "/contacts" | "/calendar";
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -21,22 +21,16 @@ const NAV_ITEMS: NavItem[] = [
     href: "/dashboard",
   },
   {
-    key: "contacts",
-    label: "Contacts",
+    key: "people",
+    label: "People",
     icon: "people-outline",
     href: "/contacts",
   },
   {
-    key: "calendar",
-    label: "Calendar",
-    icon: "calendar-today",
+    key: "moments",
+    label: "Moments",
+    icon: "event-note",
     href: "/calendar",
-  },
-  {
-    key: "settings",
-    label: "Settings",
-    icon: "settings",
-    href: "/settings",
   },
 ];
 
@@ -103,16 +97,12 @@ function isRouteActive(item: NavItem, pathname: string) {
     return pathname === "/" || pathname.startsWith("/dashboard");
   }
 
-  if (item.key === "contacts") {
+  if (item.key === "people") {
     return pathname.startsWith("/contacts");
   }
 
-  if (item.key === "calendar") {
+  if (item.key === "moments") {
     return pathname.startsWith("/calendar");
-  }
-
-  if (item.key === "settings") {
-    return pathname.startsWith("/settings");
   }
 
   return false;
