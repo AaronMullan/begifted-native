@@ -28,6 +28,11 @@ EAS uses **Secrets** for env vars during `eas build`. They are not stored in you
 
 Add names like `EXPO_PUBLIC_FAQ_SHEET_ID` and their values. They are exposed as environment variables during the build.
 
+Required for error monitoring:
+
+- `EXPO_PUBLIC_SENTRY_DSN` — Sentry project DSN (from Sentry → Settings → Projects → react-native → Client Keys (DSN))
+- `SENTRY_AUTH_TOKEN` — Sentry CLI auth token for source map upload during EAS builds (scope: `project:releases`). Stored in `.env.local` for local builds; add as an EAS secret for cloud builds.
+
 **Or via CLI** (from the project root, with EAS logged in):
 
 ```bash

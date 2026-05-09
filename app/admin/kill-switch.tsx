@@ -9,6 +9,7 @@ import {
   Switch,
   Divider,
 } from "react-native-paper";
+import * as Sentry from "@sentry/react-native";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { fetchIsAdmin } from "@/lib/api";
@@ -121,6 +122,25 @@ const KillSwitchContent: React.FC = () => {
           Last updated: {new Date(config.updated_at).toLocaleString()}
         </Text>
       )}
+
+      <View style={styles.promptSection}>
+        <Text variant="titleMedium" style={styles.promptTitle}>
+          Sentry Test
+        </Text>
+        <Text variant="bodyMedium" style={styles.subtitle}>
+          Send a test exception to verify Sentry capture is wired correctly.
+        </Text>
+        <Button
+          mode="outlined"
+          icon="bug"
+          style={styles.promptButton}
+          onPress={() =>
+            Sentry.captureException(new Error("sentry-test from kill-switch"))
+          }
+        >
+          Send Test Event
+        </Button>
+      </View>
 
       <View style={styles.promptSection}>
         <Text variant="titleMedium" style={styles.promptTitle}>

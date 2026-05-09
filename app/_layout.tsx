@@ -1,9 +1,13 @@
 import React, { useState } from "react";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { QueryClient } from "@tanstack/react-query";
+import { QueryCache, MutationCache, QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import { Provider as PaperProvider, MD3LightTheme, Text } from "react-native-paper";
+import {
+  Provider as PaperProvider,
+  MD3LightTheme,
+  Text,
+} from "react-native-paper";
 import { View, StyleSheet } from "react-native";
 import Header from "../components/Header";
 import GradientBackground from "../components/GradientBackground";
@@ -13,6 +17,21 @@ import { useFontsLoader } from "../hooks/use-fonts-loader";
 import { usePushNotifications } from "../hooks/use-push-notifications";
 import { defaultQueryOptions } from "../lib/query-defaults";
 import { persistOptions } from "../lib/query-persister";
+import * as Sentry from "@sentry/react-native";
+
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  enabled: !!process.env.EXPO_PUBLIC_SENTRY_DSN,
+  environment: __DEV__ ? "development" : "production",
+  sendDefaultPii: true,
+  enableLogs: true,
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1,
+  integrations: [
+    Sentry.mobileReplayIntegration(),
+    Sentry.feedbackIntegration(),
+  ],
+});
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -22,8 +41,11 @@ class ErrorBoundary extends React.Component<
   static getDerivedStateFromError() {
     return { hasError: true };
   }
-  componentDidCatch(error: Error) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("Uncaught render error:", error);
+    Sentry.captureException(error, {
+      contexts: { react: { componentStack: errorInfo.componentStack } },
+    });
   }
   render() {
     if (this.state.hasError) {
@@ -44,6 +66,28 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: defaultQueryOptions,
   },
+  queryCache: new QueryCache({
+    onError: (error, query) => {
+      Sentry.captureException(error, {
+        tags: { source: "react_query", kind: "query" },
+        contexts: { query: { queryKey: JSON.stringify(query.queryKey) } },
+      });
+    },
+  }),
+  mutationCache: new MutationCache({
+    onError: (error, _vars, _ctx, mutation) => {
+      Sentry.captureException(error, {
+        tags: { source: "react_query", kind: "mutation" },
+        contexts: {
+          mutation: {
+            mutationKey: mutation.options.mutationKey
+              ? JSON.stringify(mutation.options.mutationKey)
+              : "unknown",
+          },
+        },
+      });
+    },
+  }),
 });
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -98,7 +142,7 @@ function AppShell() {
   );
 }
 
-export default function RootLayout() {
+export default Sentry.wrap(function RootLayout() {
   const fontsLoaded = useFontsLoader();
   const [splashReady, setSplashReady] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
@@ -130,7 +174,7 @@ export default function RootLayout() {
       </PaperProvider>
     </PersistQueryClientProvider>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

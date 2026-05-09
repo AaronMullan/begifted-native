@@ -1,4 +1,5 @@
 import * as Haptics from "expo-haptics";
+import * as Sentry from "@sentry/react-native";
 import * as FileSystem from "expo-file-system/legacy";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -163,9 +164,15 @@ export function useAddRecipientFlow(
               console.log("[photo] upload success:", photoUrl);
             } else if (uploadError) {
               console.error("[photo] upload error:", uploadError);
+              Sentry.captureException(uploadError, {
+                tags: { flow: "add_recipient", step: "photo_upload" },
+              });
             }
           } catch (err) {
             console.error("[photo] upload failed:", err);
+            Sentry.captureException(err, {
+              tags: { flow: "add_recipient", step: "photo_upload" },
+            });
           }
         }
 
@@ -246,10 +253,20 @@ export function useAddRecipientFlow(
             })
             .catch((err) => {
               console.error("Failed to trigger profile synthesis:", err);
+              Sentry.captureException(err, {
+                tags: {
+                  flow: "add_recipient",
+                  step: "synthesize_profile",
+                  edge_function: "synthesize-recipient-profile",
+                },
+              });
             });
         }
       } catch (error) {
         console.error("Error saving recipient:", error);
+        Sentry.captureException(error, {
+          tags: { flow: "add_recipient", step: "save" },
+        });
         Alert.alert(
           "Error",
           error instanceof Error

@@ -46,3 +46,5 @@ app-example
 .supabase
 .claude/
 supabase/.temp/
+
+.env.local

@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import * as Sentry from "@sentry/react-native";
 import { supabase } from "../lib/supabase";
 import { Alert, View } from "react-native";
 
@@ -224,6 +225,13 @@ export function useConversationFlow(
       } catch (error) {
         console.error("Error sending message:", error);
         console.error("Error details:", JSON.stringify(error, null, 2));
+        Sentry.captureException(error, {
+          tags: {
+            edge_function: "recipient-conversation",
+            action: "conversation",
+            conversationType,
+          },
+        });
 
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
@@ -328,6 +336,13 @@ export function useConversationFlow(
       } catch (error) {
         console.error("Error finishing conversation:", error);
         console.error("Error details:", JSON.stringify(error, null, 2));
+        Sentry.captureException(error, {
+          tags: {
+            edge_function: "recipient-conversation",
+            action: "extract",
+            conversationType,
+          },
+        });
 
         const errorMsg =
           error instanceof Error
