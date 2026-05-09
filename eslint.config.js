@@ -26,6 +26,7 @@ module.exports = defineConfig([
         },
       ],
       "max-depth": ["error", 3],
+      complexity: ["warn", 10],
     },
   },
   {
