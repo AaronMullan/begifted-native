@@ -223,6 +223,5 @@ export interface UserSummary {
 
 export interface UserData {
   user_summary?: UserSummary;
-  reminder_days?: number;
   auto_fallback_enabled?: boolean;
 }

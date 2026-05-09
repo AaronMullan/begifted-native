@@ -1,4 +1,3 @@
-import { MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -9,14 +8,6 @@ import { Colors } from "../../../lib/colors";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { supabase } from "../../../lib/supabase";
 
-const REMINDER_OPTIONS = [
-  { value: "14", label: "2 weeks before" },
-  { value: "7", label: "1 week before" },
-  { value: "3", label: "3 days before" },
-  { value: "1", label: "1 day before" },
-  { value: "0", label: "Day of event" },
-];
-
 export default function GiftingPreferences() {
   const { user, loading: authLoading } = useAuth();
   const [preferencesLoading, setPreferencesLoading] = useState(true);
@@ -25,9 +16,6 @@ export default function GiftingPreferences() {
 
   const [giftingStyleText, setGiftingStyleText] = useState("");
   const [originalGiftingStyleText, setOriginalGiftingStyleText] = useState("");
-  const [reminderDays, setReminderDays] = useState("7");
-  const [originalReminderDays, setOriginalReminderDays] = useState("7");
-  const [showReminderPicker, setShowReminderPicker] = useState(false);
 
   const [errorDialogVisible, setErrorDialogVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -70,11 +58,8 @@ export default function GiftingPreferences() {
       if (data) {
         // Fall back to user_description from onboarding if no gifting style text yet
         const text = data.gifting_style_text || data.user_description || "";
-        const reminder = (data.reminder_days || 7).toString();
         setGiftingStyleText(text);
         setOriginalGiftingStyleText(text);
-        setReminderDays(reminder);
-        setOriginalReminderDays(reminder);
       }
     } catch (error) {
       console.error("Error fetching preferences:", error);
@@ -116,7 +101,6 @@ export default function GiftingPreferences() {
       const updates: Record<string, unknown> = {
         user_id: user.id,
         gifting_style_text: giftingStyleText.trim(),
-        reminder_days: parseInt(reminderDays),
         updated_at: new Date().toISOString(),
       };
 
@@ -133,7 +117,6 @@ export default function GiftingPreferences() {
       if (error) throw error;
 
       setOriginalGiftingStyleText(giftingStyleText);
-      setOriginalReminderDays(reminderDays);
 
       // Re-synthesize giver profile in the background when gifting text changed
       if (giftingStyleText.trim() && giftingStyleText !== originalGiftingStyleText) {
@@ -165,13 +148,7 @@ export default function GiftingPreferences() {
     }
   }
 
-  const hasChanges =
-    giftingStyleText !== originalGiftingStyleText ||
-    reminderDays !== originalReminderDays;
-
-  const currentReminderLabel =
-    REMINDER_OPTIONS.find((opt) => opt.value === reminderDays)?.label ||
-    "1 week before";
+  const hasChanges = giftingStyleText !== originalGiftingStyleText;
 
   const loading = authLoading || preferencesLoading;
   if (loading) {
@@ -260,64 +237,6 @@ export default function GiftingPreferences() {
                 />
               </View>
 
-              {/* Default Reminder Time */}
-              <View style={styles.section}>
-                <Text variant="titleMedium" style={styles.sectionTitle}>
-                  Default Reminder Time
-                </Text>
-                <Button
-                  mode="outlined"
-                  onPress={() => setShowReminderPicker(!showReminderPicker)}
-                  contentStyle={styles.reminderButtonContent}
-                  labelStyle={styles.reminderButtonLabel}
-                  icon={({ size }) => (
-                    <MaterialIcons
-                      name={showReminderPicker ? "expand-less" : "expand-more"}
-                      size={size}
-                      color={Colors.darks.black}
-                    />
-                  )}
-                >
-                  {currentReminderLabel}
-                </Button>
-
-                {showReminderPicker && (
-                  <View style={styles.reminderPicker}>
-                    {REMINDER_OPTIONS.map((option) => (
-                      <Pressable
-                        key={option.value}
-                        style={[
-                          styles.reminderOption,
-                          reminderDays === option.value &&
-                            styles.reminderOptionSelected,
-                        ]}
-                        onPress={() => {
-                          setReminderDays(option.value);
-                          setShowReminderPicker(false);
-                        }}
-                      >
-                        <Text
-                          variant="bodyLarge"
-                          style={[
-                            styles.reminderOptionText,
-                            reminderDays === option.value &&
-                              styles.reminderOptionTextSelected,
-                          ]}
-                        >
-                          {option.label}
-                        </Text>
-                        {reminderDays === option.value && (
-                          <MaterialIcons
-                            name="check"
-                            size={20}
-                            color={Colors.darks.black}
-                          />
-                        )}
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
-              </View>
             </View>
           </Pressable>
         </View>
@@ -439,42 +358,6 @@ const styles = StyleSheet.create({
   },
   textInputContent: {
     paddingTop: 16,
-  },
-  reminderButtonContent: {
-    justifyContent: "space-between",
-    flexDirection: "row-reverse",
-    paddingVertical: 8,
-  },
-  reminderButtonLabel: {
-    color: Colors.darks.black,
-    fontSize: 16,
-  },
-  reminderPicker: {
-    marginTop: 8,
-    backgroundColor: Colors.neutrals.light + "30",
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: Colors.white,
-    overflow: "hidden",
-  },
-  reminderOption: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.white,
-  },
-  reminderOptionSelected: {
-    backgroundColor: Colors.neutrals.light + "50",
-  },
-  reminderOptionText: {
-    color: Colors.darks.black,
-  },
-  reminderOptionTextSelected: {
-    fontWeight: "600",
-    color: Colors.darks.black,
   },
   floatingSaveContainer: {
     position: "absolute",
