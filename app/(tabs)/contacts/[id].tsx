@@ -73,7 +73,6 @@ export default function RecipientEditPage() {
     relationshipType,
     interests,
     birthday,
-    emotionalTone,
     budgetMin,
     budgetMax,
     address,
@@ -86,7 +85,6 @@ export default function RecipientEditPage() {
     setRelationshipType,
     setInterests,
     setBirthday,
-    setEmotionalTone,
     setBudgetMin,
     setBudgetMax,
     setAddress,
@@ -425,7 +423,6 @@ export default function RecipientEditPage() {
             relationshipType={relationshipType}
             interests={interests}
             birthday={birthday}
-            emotionalTone={emotionalTone}
             budgetMin={budgetMin}
             budgetMax={budgetMax}
             address={address}
@@ -438,7 +435,6 @@ export default function RecipientEditPage() {
             onChangeRelationshipType={createChangeHandler(setRelationshipType)}
             onChangeInterests={createChangeHandler(setInterests)}
             onChangeBirthday={createChangeHandler(setBirthday)}
-            onChangeEmotionalTone={createChangeHandler(setEmotionalTone)}
             onChangeBudgetMin={createChangeHandler(setBudgetMin)}
             onChangeBudgetMax={createChangeHandler(setBudgetMax)}
             onChangeAddress={createChangeHandler(setAddress)}

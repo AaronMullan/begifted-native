@@ -6,7 +6,6 @@ type OriginalValues = {
   birthday: string;
   relationship_type: string;
   interests: string;
-  emotional_tone_preference: string;
   gift_budget_min?: number;
   gift_budget_max?: number;
   address: string;
@@ -23,7 +22,6 @@ export function useRecipientForm(recipient: Recipient | null) {
   const [relationshipType, setRelationshipType] = useState("");
   const [interests, setInterests] = useState("");
   const [birthday, setBirthday] = useState("");
-  const [emotionalTone, setEmotionalTone] = useState("");
   const [budgetMin, setBudgetMin] = useState("");
   const [budgetMax, setBudgetMax] = useState("");
   const [address, setAddress] = useState("");
@@ -44,7 +42,6 @@ export function useRecipientForm(recipient: Recipient | null) {
       setRelationshipType(recipient.relationship_type);
       setInterests(recipient.interests ? recipient.interests.join(", ") : "");
       setBirthday(recipient.birthday || "");
-      setEmotionalTone(recipient.emotional_tone_preference || "");
       setBudgetMin(recipient.gift_budget_min?.toString() || "");
       setBudgetMax(recipient.gift_budget_max?.toString() || "");
       setAddress(recipient.address || "");
@@ -64,7 +61,6 @@ export function useRecipientForm(recipient: Recipient | null) {
         birthday: recipient.birthday || "",
         relationship_type: recipient.relationship_type,
         interests: recipient.interests?.join(", ") || "",
-        emotional_tone_preference: recipient.emotional_tone_preference || "",
         gift_budget_min: recipient.gift_budget_min,
         gift_budget_max: recipient.gift_budget_max,
         address: recipient.address || "",
@@ -101,7 +97,6 @@ export function useRecipientForm(recipient: Recipient | null) {
       relationship_type: relationshipType.trim(),
       interests: interestsArray.length > 0 ? interestsArray : undefined,
       birthday: birthday.trim() || undefined,
-      emotional_tone_preference: emotionalTone.trim() || undefined,
       gift_budget_min: budgetMin ? parseInt(budgetMin) : undefined,
       gift_budget_max: budgetMax ? parseInt(budgetMax) : undefined,
       address: address.trim() || undefined,
@@ -131,7 +126,6 @@ export function useRecipientForm(recipient: Recipient | null) {
       newBirthday !== originalValues.birthday ||
       relationshipType.trim() !== originalValues.relationship_type ||
       newInterests !== originalValues.interests ||
-      emotionalTone.trim() !== originalValues.emotional_tone_preference ||
       newBudgetMin !== originalValues.gift_budget_min ||
       newBudgetMax !== originalValues.gift_budget_max
     );
@@ -143,7 +137,6 @@ export function useRecipientForm(recipient: Recipient | null) {
     relationshipType,
     interests,
     birthday,
-    emotionalTone,
     budgetMin,
     budgetMax,
     address,
@@ -157,7 +150,6 @@ export function useRecipientForm(recipient: Recipient | null) {
     setRelationshipType,
     setInterests,
     setBirthday,
-    setEmotionalTone,
     setBudgetMin,
     setBudgetMax,
     setAddress,

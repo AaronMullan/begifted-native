@@ -146,19 +146,6 @@ export function DataReviewView({
             Gift Preferences
           </Text>
 
-          <View style={styles.fieldContainer}>
-            <TextInput
-              mode="outlined"
-              label="Emotional Tone"
-              value={extractedData.emotional_tone_preference || ""}
-              onChangeText={(value) =>
-                updateField("emotional_tone_preference", value)
-              }
-              placeholder="e.g., warm, professional, playful"
-              style={styles.input}
-            />
-          </View>
-
           <View style={styles.row}>
             <View style={[styles.fieldContainer, styles.halfWidth]}>
               <TextInput

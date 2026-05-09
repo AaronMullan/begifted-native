@@ -20,7 +20,6 @@ export function ManualDataEntry({
   const [relationshipType, setRelationshipType] = useState("");
   const [interests, setInterests] = useState("");
   const [birthday, setBirthday] = useState("");
-  const [emotionalTone, setEmotionalTone] = useState("");
   const [budgetMin, setBudgetMin] = useState("");
   const [budgetMax, setBudgetMax] = useState("");
   const [address, setAddress] = useState("");
@@ -39,7 +38,6 @@ export function ManualDataEntry({
         partialData.interests ? partialData.interests.join(", ") : ""
       );
       setBirthday(partialData.birthday || "");
-      setEmotionalTone(partialData.emotional_tone_preference || "");
       setBudgetMin(partialData.gift_budget_min?.toString() || "");
       setBudgetMax(partialData.gift_budget_max?.toString() || "");
       setAddress(partialData.address || "");
@@ -69,7 +67,6 @@ export function ManualDataEntry({
       relationship_type: relationshipType.trim(),
       interests: interestsArray.length > 0 ? interestsArray : undefined,
       birthday: birthday.trim() || undefined,
-      emotional_tone_preference: emotionalTone.trim() || undefined,
       gift_budget_min: budgetMin ? parseInt(budgetMin) : undefined,
       gift_budget_max: budgetMax ? parseInt(budgetMax) : undefined,
       address: address.trim() || undefined,
@@ -163,17 +160,6 @@ export function ManualDataEntry({
           <Text variant="titleLarge" style={styles.sectionTitle}>
             Gift Preferences
           </Text>
-
-          <View style={styles.fieldContainer}>
-            <TextInput
-              mode="outlined"
-              label="Emotional Tone"
-              value={emotionalTone}
-              onChangeText={setEmotionalTone}
-              placeholder="e.g., warm, professional, playful"
-              style={styles.input}
-            />
-          </View>
 
           <View style={styles.row}>
             <View style={[styles.fieldContainer, styles.halfWidth]}>

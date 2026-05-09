@@ -9,7 +9,6 @@ type RecipientFormProps = {
   relationshipType: string;
   interests: string;
   birthday: string;
-  emotionalTone: string;
   budgetMin: string;
   budgetMax: string;
   address: string;
@@ -23,7 +22,6 @@ type RecipientFormProps = {
   onChangeRelationshipType: (value: string) => void;
   onChangeInterests: (value: string) => void;
   onChangeBirthday: (value: string) => void;
-  onChangeEmotionalTone: (value: string) => void;
   onChangeBudgetMin: (value: string) => void;
   onChangeBudgetMax: (value: string) => void;
   onChangeAddress: (value: string) => void;
@@ -42,7 +40,6 @@ export default function RecipientForm({
   relationshipType,
   interests,
   birthday,
-  emotionalTone,
   budgetMin,
   budgetMax,
   address,
@@ -56,7 +53,6 @@ export default function RecipientForm({
   onChangeRelationshipType,
   onChangeInterests,
   onChangeBirthday,
-  onChangeEmotionalTone,
   onChangeBudgetMin,
   onChangeBudgetMax,
   onChangeAddress,
@@ -89,7 +85,6 @@ export default function RecipientForm({
               relationshipType={relationshipType}
               interests={interests}
               birthday={birthday}
-              emotionalTone={emotionalTone}
               budgetMin={budgetMin}
               budgetMax={budgetMax}
               address={address}
@@ -102,7 +97,6 @@ export default function RecipientForm({
               onChangeRelationshipType={onChangeRelationshipType}
               onChangeInterests={onChangeInterests}
               onChangeBirthday={onChangeBirthday}
-              onChangeEmotionalTone={onChangeEmotionalTone}
               onChangeBudgetMin={onChangeBudgetMin}
               onChangeBudgetMax={onChangeBudgetMax}
               onChangeAddress={onChangeAddress}
