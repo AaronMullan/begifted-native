@@ -19,7 +19,7 @@ const VERCEL_BACKEND_URL = "https://be-gifted.vercel.app";
 
 async function extractInvokeError(error: unknown): Promise<string> {
   if (!(error instanceof Error)) return String(error);
-  const ctx = (error as Record<string, unknown>).context;
+  const ctx = (error as unknown as Record<string, unknown>).context;
   if (ctx && typeof (ctx as Response).json === "function") {
     try {
       const body = await (ctx as Response).json();
@@ -224,7 +224,7 @@ export function usePromptPlayground(userId: string) {
 
   // Compute edited CIS by merging DB values with user edits
   const editedCis: CISPreview | null = cisPreviewQuery.data
-    ? {
+    ? ({
         giver: { ...cisPreviewQuery.data.giver, ...cisEdits.giver },
         recipient: {
           ...cisPreviewQuery.data.recipient,
@@ -232,7 +232,7 @@ export function usePromptPlayground(userId: string) {
         },
         occasion: { ...cisPreviewQuery.data.occasion, ...cisEdits.occasion },
         history: { ...cisPreviewQuery.data.history, ...cisEdits.history },
-      }
+      } as CISPreview)
     : null;
 
   const hasCisEdits = Object.keys(cisEdits).length > 0;
