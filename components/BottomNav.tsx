@@ -56,7 +56,7 @@ export default function BottomNav() {
         <View style={styles.navContent}>
           {NAV_ITEMS.map((item) => {
             const isActive = isRouteActive(item, pathname);
-            const tint = isActive ? Colors.darks.black : Colors.neutrals.light;
+            const tint = isActive ? Colors.blues.dark : Colors.neutrals.dark;
             return (
               <Link key={item.key} href={item.href} asChild>
                 <TouchableOpacity
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: "rgba(255,255,255,0.15)",
-    backgroundColor: Colors.blues.dark,
+    backgroundColor: Colors.blues.medium,
   },
   navContent: {
     maxWidth: 800,
