@@ -10,6 +10,7 @@ import { groupHomeOccasions } from "../../utils/home-occasions";
 import HomeHeroCard from "../../components/home/HomeHeroCard";
 import NextUpCarousel from "../../components/home/NextUpCarousel";
 import OnTheHorizonGrid from "../../components/home/OnTheHorizonGrid";
+import GradientBackground from "../../components/GradientBackground";
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -24,6 +25,7 @@ export default function Dashboard() {
   if (authLoading) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.darks.black} />
           <Text variant="bodyMedium" style={styles.loadingText}>
@@ -37,6 +39,7 @@ export default function Dashboard() {
   if (!user) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={styles.content}>
           <Text variant="headlineMedium" style={styles.signInTitle}>
             Dashboard
@@ -52,6 +55,7 @@ export default function Dashboard() {
   if (isLoading && recipients.length === 0 && occasions.length === 0) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.darks.black} />
           <Text variant="bodyMedium" style={styles.loadingText}>
@@ -64,6 +68,7 @@ export default function Dashboard() {
 
   return (
     <View style={styles.container}>
+      <GradientBackground />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}

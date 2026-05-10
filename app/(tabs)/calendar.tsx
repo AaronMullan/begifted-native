@@ -10,6 +10,7 @@ import { useDeleteOccasion } from "../../hooks/use-occasion-mutations";
 import { useToast } from "../../hooks/use-toast";
 import { useBottomNavScrollVisibility } from "../../hooks/use-bottom-nav-scroll-visibility";
 import MenuCard from "../../components/MenuCard";
+import GradientBackground from "../../components/GradientBackground";
 import { formatShortName } from "../../lib/format-name";
 
 interface Occasion {
@@ -35,7 +36,9 @@ export default function Calendar() {
   const deleteOccasion = useDeleteOccasion();
   const { toast, showToast } = useToast();
   const { handleScroll } = useBottomNavScrollVisibility();
-  const [occasionToDelete, setOccasionToDelete] = useState<Occasion | null>(null);
+  const [occasionToDelete, setOccasionToDelete] = useState<Occasion | null>(
+    null
+  );
   const [showRecipientPicker, setShowRecipientPicker] = useState(false);
 
   useEffect(() => {
@@ -112,7 +115,10 @@ export default function Calendar() {
   function handleConfirmDelete() {
     if (!occasionToDelete || !user) return;
     deleteOccasion.mutate(
-      { occasionId: occasionToDelete.id, recipientId: occasionToDelete.recipient_id },
+      {
+        occasionId: occasionToDelete.id,
+        recipientId: occasionToDelete.recipient_id,
+      },
       {
         onSuccess: () => {
           showToast("Occasion deleted");
@@ -137,9 +143,12 @@ export default function Calendar() {
   if (authLoading) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={styles.headerSpacer} />
         <View style={styles.content}>
-          <Text variant="bodyMedium" style={styles.loadingText}>Loading...</Text>
+          <Text variant="bodyMedium" style={styles.loadingText}>
+            Loading...
+          </Text>
         </View>
       </View>
     );
@@ -148,9 +157,12 @@ export default function Calendar() {
   if (!user) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={styles.headerSpacer} />
         <View style={styles.content}>
-          <Text variant="headlineMedium" style={styles.title}>Occasions Calendar</Text>
+          <Text variant="headlineMedium" style={styles.title}>
+            Occasions Calendar
+          </Text>
           <Text variant="bodyLarge" style={styles.subtitle}>
             Please sign in to view your occasions.
           </Text>
@@ -161,6 +173,7 @@ export default function Calendar() {
 
   return (
     <View style={styles.container}>
+      <GradientBackground />
       <View style={styles.headerSpacer} />
       <ScrollView
         style={styles.scrollView}
@@ -197,10 +210,14 @@ export default function Calendar() {
 
           {/* Occasions list */}
           {loading ? (
-            <Text variant="bodyMedium" style={styles.loadingText}>Loading...</Text>
+            <Text variant="bodyMedium" style={styles.loadingText}>
+              Loading...
+            </Text>
           ) : occasions.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text variant="titleMedium" style={styles.emptyText}>No upcoming occasions</Text>
+              <Text variant="titleMedium" style={styles.emptyText}>
+                No upcoming occasions
+              </Text>
               <Text variant="bodyMedium" style={styles.emptySubtext}>
                 Add recipients with birthdays to see occasions here
               </Text>
@@ -209,12 +226,17 @@ export default function Calendar() {
             <View style={styles.occasionsList}>
               {sortedMonths.map((monthKey) => (
                 <View key={monthKey} style={styles.monthSection}>
-                  <Text variant="titleMedium" style={styles.monthHeader}>{monthKey}</Text>
+                  <Text variant="titleMedium" style={styles.monthHeader}>
+                    {monthKey}
+                  </Text>
                   {groupedOccasions[monthKey].map((occasion) => {
                     const daysUntil = calculateDaysUntil(occasion.date);
 
                     return (
-                      <View key={occasion.id} style={styles.occasionCardWrapper}>
+                      <View
+                        key={occasion.id}
+                        style={styles.occasionCardWrapper}
+                      >
                         <MenuCard
                           icon="card-giftcard"
                           title={formatOccasionTitle(occasion)}
@@ -254,15 +276,24 @@ export default function Calendar() {
           style={styles.dialog}
         >
           <Dialog.Title>
-            <Text variant="bodySmall" style={styles.dialogLabel}>Delete Occasion</Text>
+            <Text variant="bodySmall" style={styles.dialogLabel}>
+              Delete Occasion
+            </Text>
           </Dialog.Title>
           <Dialog.Content>
             <Text variant="headlineSmall">
-              Delete {occasionToDelete ? formatOccasionTitle(occasionToDelete) : ""}?
+              Delete{" "}
+              {occasionToDelete ? formatOccasionTitle(occasionToDelete) : ""}?
             </Text>
           </Dialog.Content>
           <View style={styles.dialogActions}>
-            <Button mode="outlined" onPress={() => setOccasionToDelete(null)} style={styles.dialogButton}>Cancel</Button>
+            <Button
+              mode="outlined"
+              onPress={() => setOccasionToDelete(null)}
+              style={styles.dialogButton}
+            >
+              Cancel
+            </Button>
             <Button
               mode="contained"
               buttonColor="#cc0000"
@@ -281,7 +312,9 @@ export default function Calendar() {
           style={styles.dialog}
         >
           <Dialog.Title>
-            <Text variant="bodySmall" style={styles.dialogLabel}>Add Occasion</Text>
+            <Text variant="bodySmall" style={styles.dialogLabel}>
+              Add Occasion
+            </Text>
           </Dialog.Title>
           <Dialog.Content>
             <Text variant="headlineSmall" style={styles.pickerHeadline}>
@@ -310,7 +343,11 @@ export default function Calendar() {
             )}
           </Dialog.Content>
           <View style={styles.dialogActions}>
-            <Button mode="outlined" onPress={() => setShowRecipientPicker(false)} style={styles.dialogButton}>
+            <Button
+              mode="outlined"
+              onPress={() => setShowRecipientPicker(false)}
+              style={styles.dialogButton}
+            >
               Cancel
             </Button>
           </View>
