@@ -7,10 +7,10 @@ import { Colors } from "../lib/colors";
 import { useBottomNavVisibility } from "../hooks/use-bottom-nav-visibility";
 
 type NavItem = {
-  key: "dashboard" | "contacts" | "calendar" | "settings";
+  key: "dashboard" | "people" | "moments";
   label: string;
   icon: keyof typeof MaterialIcons.glyphMap;
-  href: "/dashboard" | "/contacts" | "/calendar" | "/settings";
+  href: "/dashboard" | "/contacts" | "/calendar";
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -21,22 +21,16 @@ const NAV_ITEMS: NavItem[] = [
     href: "/dashboard",
   },
   {
-    key: "contacts",
-    label: "Contacts",
+    key: "people",
+    label: "People",
     icon: "people-outline",
     href: "/contacts",
   },
   {
-    key: "calendar",
-    label: "Calendar",
-    icon: "calendar-today",
+    key: "moments",
+    label: "Moments",
+    icon: "event-note",
     href: "/calendar",
-  },
-  {
-    key: "settings",
-    label: "Settings",
-    icon: "settings",
-    href: "/settings",
   },
 ];
 
@@ -62,6 +56,7 @@ export default function BottomNav() {
         <View style={styles.navContent}>
           {NAV_ITEMS.map((item) => {
             const isActive = isRouteActive(item, pathname);
+            const tint = isActive ? Colors.blues.dark : Colors.neutrals.dark;
             return (
               <Link key={item.key} href={item.href} asChild>
                 <TouchableOpacity
@@ -69,21 +64,10 @@ export default function BottomNav() {
                   accessibilityState={{ selected: isActive }}
                   style={styles.navItem}
                 >
-                  <MaterialIcons
-                    name={item.icon}
-                    size={24}
-                    color={isActive ? Colors.white : "rgba(255,255,255,0.7)"}
-                  />
+                  <MaterialIcons name={item.icon} size={24} color={tint} />
                   <Text
                     variant="labelSmall"
-                    style={[
-                      styles.label,
-                      {
-                        color: isActive
-                          ? Colors.white
-                          : "rgba(255,255,255,0.7)",
-                      },
-                    ]}
+                    style={[styles.label, { color: tint }]}
                   >
                     {item.label}
                   </Text>
@@ -103,16 +87,12 @@ function isRouteActive(item: NavItem, pathname: string) {
     return pathname === "/" || pathname.startsWith("/dashboard");
   }
 
-  if (item.key === "contacts") {
+  if (item.key === "people") {
     return pathname.startsWith("/contacts");
   }
 
-  if (item.key === "calendar") {
+  if (item.key === "moments") {
     return pathname.startsWith("/calendar");
-  }
-
-  if (item.key === "settings") {
-    return pathname.startsWith("/settings");
   }
 
   return false;
@@ -129,7 +109,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: "rgba(255,255,255,0.15)",
-    backgroundColor: Colors.blues.dark,
+    backgroundColor: Colors.blues.medium,
   },
   navContent: {
     maxWidth: 800,
