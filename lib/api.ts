@@ -288,6 +288,71 @@ export async function fetchGiftSuggestions(
   return data || [];
 }
 
+export const GIFT_FEEDBACK_ACTIONS = [
+  "keep_in_mix",
+  "chose",
+  "already_have",
+  "not_for_them",
+  "price_off",
+  "product_problem",
+  "remove",
+] as const;
+
+export type GiftFeedbackAction = (typeof GIFT_FEEDBACK_ACTIONS)[number];
+
+export interface GiftFeedback {
+  id: string;
+  user_id: string;
+  recipient_id: string;
+  gift_suggestion_id: string;
+  occasion_id: string | null;
+  action: GiftFeedbackAction;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface InsertGiftFeedbackInput {
+  user_id: string;
+  recipient_id: string;
+  gift_suggestion_id: string;
+  occasion_id?: string | null;
+  action: GiftFeedbackAction;
+  notes?: string | null;
+}
+
+/**
+ * Insert a gift feedback row (DEV-48). Append-only — multiple rows per gift
+ * are allowed; downstream consumers should read the latest by created_at.
+ */
+export async function insertGiftFeedback(
+  input: InsertGiftFeedbackInput
+): Promise<GiftFeedback> {
+  const { data, error } = await supabase
+    .from("gift_feedback")
+    .insert(input)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Fetch all gift feedback rows for a recipient, newest first.
+ */
+export async function fetchGiftFeedbackForRecipient(
+  recipientId: string
+): Promise<GiftFeedback[]> {
+  const { data, error } = await supabase
+    .from("gift_feedback")
+    .select("*")
+    .eq("recipient_id", recipientId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
 /**
  * Fetch notifications for a user (most recent 50)
  */
