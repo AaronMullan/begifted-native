@@ -43,8 +43,7 @@ function NextUpCard({ occasion }: { occasion: Occasion }) {
     days === 0 ? "Today" : days === 1 ? "Tomorrow" : `In ${days} days`;
 
   const handlePress = () => {
-    // TODO(DEV-69): navigate to gift recommendation page for this occasion
-    router.push(`/contacts/${occasion.recipient_id}`);
+    router.push(`/gifts/${occasion.recipient_id}`);
   };
 
   return (
