@@ -62,6 +62,8 @@ All interactive UI must use React Native Paper components. This is strictly enfo
 
 Core RN components (`View`, `ScrollView`, `FlatList`, `Image`) are allowed for layout only.
 
+**Icon-button exception:** small icon-only press targets (overflow `...`, bell, avatar) may use `Pressable` + `MaterialIcons`. Existing patterns: `components/Header.tsx`, `components/home/OccasionOverflowButton.tsx`. The Paper rule above is for actual buttons.
+
 ### TypeScript
 
 - Use `type` for props, `interface` only when extension is needed
@@ -81,8 +83,40 @@ Core RN components (`View`, `ScrollView`, `FlatList`, `Image`) are allowed for l
 
 - Custom color palette in `lib/colors.ts`
 - Custom MD3 theme: 18px border radius, black primary, gray secondary
-- `GradientBackground` component for app background
 - Prefer Paper component props over custom StyleSheet where possible
+
+### GradientBackground — render per-screen, not at root
+
+`<GradientBackground />` must be rendered inside the outermost `View` of every top-level screen and folder layout that wants the page gradient. **Do not** render it in `app/_layout.tsx`. Rendering it at the root re-introduces a tab bleed-through bug where inactive tab scenes visually stack behind the active one (`sceneStyle.backgroundColor` is transparent, so root gradients don't occlude). The root container has a `Colors.neutrals.dark` solid fill to cover the Header area instead.
+
+Pattern:
+
+```tsx
+<View style={{ flex: 1 }}>
+  <GradientBackground />
+  {/* screen content */}
+</View>
+```
+
+Existing references: tab scenes (`dashboard.tsx`, `calendar.tsx`, `notifications.tsx`), folder layouts (`contacts/_layout.tsx`, `settings/_layout.tsx`, `onboarding/_layout.tsx`, `admin/_layout.tsx`), standalone routes (`index.tsx`, `faq.tsx`).
+
+### Fonts
+
+Three faces are loaded in `hooks/use-fonts-loader.ts`:
+- **Fraunces** (serif): use `Fraunces_600SemiBold` for prominent display titles (hero headlines, card titles).
+- **RobotoFlex** (sans): body text, section labels.
+- **AzeretMono** (monospace): code-style accents only — not the brand wordmark.
+
+### Brand assets
+
+- `components/BrandMark.tsx` — red oval BeGifted mark.
+- `components/BrandWordmark.tsx` — typeset BEGIFTED wordmark.
+
+Both inline their SVG paths via `react-native-svg`. The project does not have `react-native-svg-transformer` configured, so do not import SVGs directly as components. Source assets: `assets/images/BeGifted Logo Red.svg`, `assets/images/BeGifted wordmark.svg`.
+
+### Design source
+
+`BeGifted_mobile design refinements_050126.pdf` (repo root) is the source of truth for the home redesign and ongoing design refinements. When a palette match in `lib/colors.ts` isn't obvious, pixel-sample directly from the PDF using `pdftoppm` (poppler) + `magick` (ImageMagick); both are installed locally.
 
 ### Path Aliases
 
