@@ -10,6 +10,8 @@ import { groupHomeOccasions } from "../../utils/home-occasions";
 import HomeHeroCard from "../../components/home/HomeHeroCard";
 import NextUpCarousel from "../../components/home/NextUpCarousel";
 import OnTheHorizonGrid from "../../components/home/OnTheHorizonGrid";
+import AddPeopleTile from "../../components/home/AddPeopleTile";
+import RecentMomentsLink from "../../components/home/RecentMomentsLink";
 import GradientBackground from "../../components/GradientBackground";
 
 export default function Dashboard() {
@@ -87,6 +89,10 @@ export default function Dashboard() {
               No upcoming occasions yet.
             </Text>
           )}
+          <View style={styles.bottomRow}>
+            <AddPeopleTile />
+            <RecentMomentsLink />
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -137,5 +143,12 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     textAlign: "center",
     paddingVertical: 40,
+  },
+  bottomRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    gap: 16,
+    paddingHorizontal: 4,
   },
 });
