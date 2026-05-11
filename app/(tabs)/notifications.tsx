@@ -13,6 +13,7 @@ import {
   useNotificationMutations,
 } from "../../hooks/use-notifications";
 import type { AppNotification } from "../../lib/api";
+import GradientBackground from "../../components/GradientBackground";
 
 function formatRelativeTime(dateString: string): string {
   const now = new Date();
@@ -29,7 +30,9 @@ function formatRelativeTime(dateString: string): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function getNotificationIcon(type: string): keyof typeof MaterialIcons.glyphMap {
+function getNotificationIcon(
+  type: string
+): keyof typeof MaterialIcons.glyphMap {
   switch (type) {
     case "gift_generated":
       return "card-giftcard";
@@ -110,6 +113,7 @@ export default function NotificationsScreen() {
   if (authLoading) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={styles.content}>
           <Text variant="bodyLarge" style={styles.loadingText}>
             Loading...
@@ -121,6 +125,7 @@ export default function NotificationsScreen() {
 
   return (
     <View style={styles.container}>
+      <GradientBackground />
       <View style={styles.content}>
         <Pressable style={styles.mainCard}>
           <BlurView intensity={20} style={styles.blurBackground} />

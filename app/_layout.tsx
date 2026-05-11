@@ -10,9 +10,9 @@ import {
 } from "react-native-paper";
 import { View, StyleSheet } from "react-native";
 import Header from "../components/Header";
-import GradientBackground from "../components/GradientBackground";
 import AnimatedSplash from "../components/AnimatedSplash";
 import BottomNav from "../components/BottomNav";
+import { Colors } from "../lib/colors";
 import { useFontsLoader } from "../hooks/use-fonts-loader";
 import { usePushNotifications } from "../hooks/use-push-notifications";
 import { defaultQueryOptions } from "../lib/query-defaults";
@@ -120,7 +120,6 @@ function AppShell() {
 
   return (
     <View style={styles.container}>
-      <GradientBackground />
       <Header colorful={false} />
       <Stack
         screenOptions={{
@@ -183,6 +182,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     width: "100%",
+    backgroundColor: Colors.neutrals.dark,
   },
   errorContainer: {
     flex: 1,

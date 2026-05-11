@@ -12,6 +12,7 @@ import { BlurView } from "expo-blur";
 import { Colors } from "../lib/colors";
 import { BOTTOM_NAV_HEIGHT } from "../lib/constants";
 import { useFaqs } from "../hooks/use-faqs";
+import GradientBackground from "../components/GradientBackground";
 
 export default function FAQ() {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
@@ -24,6 +25,7 @@ export default function FAQ() {
 
   return (
     <View style={styles.container}>
+      <GradientBackground />
       <View style={styles.headerSpacer} />
       <ScrollView
         style={styles.scrollView}

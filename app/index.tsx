@@ -11,6 +11,7 @@ import type { Href } from "expo-router";
 import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import Auth from "../components/Auth";
+import GradientBackground from "../components/GradientBackground";
 
 export default function Index() {
   const [session, setSession] = useState<Session | null>(null);
@@ -77,6 +78,7 @@ export default function Index() {
     if (Platform.OS === "web") {
       return (
         <View style={styles.loadingContainer}>
+          <GradientBackground />
           <ActivityIndicator size="large" color="#000000" />
         </View>
       );
@@ -87,12 +89,15 @@ export default function Index() {
   // Show auth component if not logged in
   if (!session || !session.user) {
     return (
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.contentContainer}
-      >
-        <Auth />
-      </ScrollView>
+      <View style={styles.container}>
+        <GradientBackground />
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={styles.contentContainer}
+        >
+          <Auth />
+        </ScrollView>
+      </View>
     );
   }
 

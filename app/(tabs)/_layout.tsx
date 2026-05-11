@@ -9,11 +9,13 @@ export default function TabLayout() {
   return (
     <Tabs
       initialRouteName="dashboard"
+      detachInactiveScreens
       screenOptions={{
         headerShown: false,
         tabBarStyle: { display: "none" },
         sceneStyle: { backgroundColor: "transparent" },
         lazy: true,
+        freezeOnBlur: true,
       }}
     >
       <Tabs.Screen name="dashboard" options={{ title: "Home" }} />

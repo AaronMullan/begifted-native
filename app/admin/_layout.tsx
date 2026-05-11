@@ -1,8 +1,8 @@
 import { Stack } from "expo-router";
 import { StyleSheet, View } from "react-native";
-import GradientBackground from "../../../components/GradientBackground";
+import GradientBackground from "../../components/GradientBackground";
 
-export default function SettingsLayout() {
+export default function AdminLayout() {
   return (
     <View style={styles.root}>
       <GradientBackground />

@@ -1,39 +1,36 @@
 import { View, StyleSheet, ScrollView } from "react-native";
 import { Text, ActivityIndicator } from "react-native-paper";
-import { useRouter } from "expo-router";
 import { Colors } from "../../lib/colors";
-import MenuCard from "../../components/MenuCard";
 import { BOTTOM_NAV_HEIGHT } from "../../lib/constants";
 import { useBottomNavScrollVisibility } from "../../hooks/use-bottom-nav-scroll-visibility";
 import { useAuth } from "../../hooks/use-auth";
 import { useRecipients } from "../../hooks/use-recipients";
 import { useOccasions } from "../../hooks/use-occasions";
-import { useProfile } from "../../hooks/use-profile";
+import { groupHomeOccasions } from "../../utils/home-occasions";
+import HomeHeroCard from "../../components/home/HomeHeroCard";
+import NextUpCarousel from "../../components/home/NextUpCarousel";
+import OnTheHorizonGrid from "../../components/home/OnTheHorizonGrid";
+import GradientBackground from "../../components/GradientBackground";
 
 export default function Dashboard() {
-  const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { data: recipients = [], isLoading: loadingRecipients } =
     useRecipients();
   const { data: occasions = [], isLoading: loadingOccasions } = useOccasions();
-  const { data: profile } = useProfile();
   const { handleScroll } = useBottomNavScrollVisibility();
 
-  const displayName =
-    profile?.full_name || user?.email?.split("@")[0] || "User";
   const isLoading = loadingRecipients || loadingOccasions;
+  const groups = groupHomeOccasions(occasions);
 
-  // Show loading while auth is being checked
   if (authLoading) {
     return (
       <View style={styles.container}>
-        <View style={styles.content}>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#000000" />
-            <Text variant="bodyMedium" style={styles.loadingText}>
-              Loading...
-            </Text>
-          </View>
+        <GradientBackground />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.darks.black} />
+          <Text variant="bodyMedium" style={styles.loadingText}>
+            Loading...
+          </Text>
         </View>
       </View>
     );
@@ -42,11 +39,12 @@ export default function Dashboard() {
   if (!user) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={styles.content}>
-          <Text variant="headlineMedium" style={styles.title}>
+          <Text variant="headlineMedium" style={styles.signInTitle}>
             Dashboard
           </Text>
-          <Text variant="bodyLarge" style={styles.subtitle}>
+          <Text variant="bodyLarge">
             Please sign in to view your dashboard.
           </Text>
         </View>
@@ -54,25 +52,15 @@ export default function Dashboard() {
     );
   }
 
-  // Show loading only when we have no data yet (avoids spinner when we have cached data from Contacts/Calendar)
   if (isLoading && recipients.length === 0 && occasions.length === 0) {
     return (
       <View style={styles.container}>
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <Text variant="headlineMedium" style={styles.greeting}>
-              Hello, {displayName}!
-            </Text>
-            <Text variant="titleLarge" style={styles.tagline}>
-              Let&apos;s make someone&apos;s day special
-            </Text>
-          </View>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#000000" />
-            <Text variant="bodyMedium" style={styles.loadingText}>
-              Loading dashboard...
-            </Text>
-          </View>
+        <GradientBackground />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.darks.black} />
+          <Text variant="bodyMedium" style={styles.loadingText}>
+            Loading dashboard...
+          </Text>
         </View>
       </View>
     );
@@ -80,48 +68,25 @@ export default function Dashboard() {
 
   return (
     <View style={styles.container}>
+      <GradientBackground />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        showsHorizontalScrollIndicator={false}
         contentInsetAdjustmentBehavior="never"
         bounces={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
         <View style={styles.content}>
-          {/* Header section */}
-          <View style={styles.header}>
-            <Text variant="headlineMedium" style={styles.greeting}>
-              Hello, {displayName}!
+          {groups.hero && <HomeHeroCard occasion={groups.hero} />}
+          <NextUpCarousel occasions={groups.nextUp} />
+          <OnTheHorizonGrid occasions={groups.horizon} />
+          {!groups.hero && (
+            <Text variant="bodyLarge" style={styles.emptyText}>
+              No upcoming occasions yet.
             </Text>
-            <Text variant="titleLarge" style={styles.tagline}>
-              Let&apos;s make someone&apos;s day special
-            </Text>
-          </View>
-
-          {/* Three cards */}
-          <View style={styles.cardsContainer}>
-            <MenuCard
-              icon="people-outline"
-              title="Recipients"
-              description="View, edit, or add the people you gift"
-              onPress={() => router.push("/contacts")}
-            />
-            <MenuCard
-              icon="event"
-              title="Upcoming"
-              description="See your upcoming occasions and reminders"
-              onPress={() => router.push("/calendar")}
-            />
-            <MenuCard
-              icon="settings"
-              title="Settings"
-              description="Manage your account and preferences"
-              onPress={() => router.push("/settings" as any)}
-            />
-          </View>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -146,31 +111,12 @@ const styles = StyleSheet.create({
   content: {
     maxWidth: 800,
     width: "100%",
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 32,
     backgroundColor: "transparent",
     alignSelf: "stretch",
-  },
-  header: {
-    marginBottom: 48,
-  },
-  greeting: {
-    marginBottom: 8,
-    color: Colors.darks.black,
-  },
-  tagline: {
-    color: Colors.darks.black,
-    fontWeight: "600",
-  },
-  cardsContainer: {
-    gap: 24,
-  },
-  title: {
-    marginBottom: 8,
-    color: Colors.darks.black,
-  },
-  subtitle: {
-    color: Colors.darks.black,
-    opacity: 0.9,
+    gap: 32,
   },
   loadingContainer: {
     flex: 1,
@@ -181,5 +127,15 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     color: "#666",
+  },
+  signInTitle: {
+    marginBottom: 8,
+    color: Colors.darks.black,
+  },
+  emptyText: {
+    color: Colors.darks.black,
+    opacity: 0.7,
+    textAlign: "center",
+    paddingVertical: 40,
   },
 });
