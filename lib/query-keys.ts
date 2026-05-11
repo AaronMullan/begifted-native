@@ -24,6 +24,10 @@ export const queryKeys = {
   giftSuggestions: (recipientId: string) =>
     ["giftSuggestions", recipientId] as const,
 
+  // Gift Feedback (DEV-48)
+  giftFeedback: (recipientId: string) =>
+    ["giftFeedback", recipientId] as const,
+
   // Notifications
   notifications: (userId: string) => ["notifications", userId] as const,
   unreadNotificationCount: (userId: string) =>
