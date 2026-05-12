@@ -7,11 +7,13 @@ import GiftCardActionButton from "./GiftCardActionButton";
 type CollapsedGiftCardProps = {
   suggestion: GiftSuggestion;
   onPress: () => void;
+  occasionId?: string | null;
 };
 
 export default function CollapsedGiftCard({
   suggestion,
   onPress,
+  occasionId,
 }: CollapsedGiftCardProps) {
   return (
     <Pressable
@@ -24,7 +26,11 @@ export default function CollapsedGiftCard({
         {suggestion.title}
       </Text>
       <View style={styles.actionWrap}>
-        <GiftCardActionButton suggestion={suggestion} variant="collapsed" />
+        <GiftCardActionButton
+          suggestion={suggestion}
+          variant="collapsed"
+          occasionId={occasionId}
+        />
       </View>
     </Pressable>
   );

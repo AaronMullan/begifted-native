@@ -7,6 +7,7 @@ import GiftCardActionButton from "./GiftCardActionButton";
 
 type PrimaryGiftCardProps = {
   suggestion: GiftSuggestion;
+  occasionId?: string | null;
 };
 
 const MIN_IMAGE_SIZE = 200;
@@ -20,7 +21,10 @@ const formatPrice = (price?: number) => {
   }).format(price);
 };
 
-export default function PrimaryGiftCard({ suggestion }: PrimaryGiftCardProps) {
+export default function PrimaryGiftCard({
+  suggestion,
+  occasionId,
+}: PrimaryGiftCardProps) {
   const [showImage, setShowImage] = useState(false);
 
   useEffect(() => {
@@ -39,7 +43,11 @@ export default function PrimaryGiftCard({ suggestion }: PrimaryGiftCardProps) {
   return (
     <View style={styles.card}>
       <View style={styles.actionRow}>
-        <GiftCardActionButton suggestion={suggestion} variant="expanded" />
+        <GiftCardActionButton
+          suggestion={suggestion}
+          variant="expanded"
+          occasionId={occasionId}
+        />
       </View>
 
       {showImage && suggestion.image_url && (

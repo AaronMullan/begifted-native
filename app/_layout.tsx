@@ -9,9 +9,11 @@ import {
   Text,
 } from "react-native-paper";
 import { View, StyleSheet } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Header from "../components/Header";
 import AnimatedSplash from "../components/AnimatedSplash";
 import BottomNav from "../components/BottomNav";
+import GiftActionDrawerProvider from "../components/gifts/GiftActionDrawerProvider";
 import { Colors } from "../lib/colors";
 import { useFontsLoader } from "../hooks/use-fonts-loader";
 import { usePushNotifications } from "../hooks/use-push-notifications";
@@ -156,26 +158,33 @@ export default Sentry.wrap(function RootLayout() {
   }
 
   return (
-    <PersistQueryClientProvider
-      client={queryClient}
-      persistOptions={persistOptions}
-    >
-      <PaperProvider theme={customTheme}>
-        <ErrorBoundary>
-          <AppShell />
-        </ErrorBoundary>
-        {!splashDone && (
-          <AnimatedSplash
-            ready={splashReady}
-            onFinish={() => setSplashDone(true)}
-          />
-        )}
-      </PaperProvider>
-    </PersistQueryClientProvider>
+    <GestureHandlerRootView style={styles.root}>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={persistOptions}
+      >
+        <PaperProvider theme={customTheme}>
+          <ErrorBoundary>
+            <GiftActionDrawerProvider>
+              <AppShell />
+            </GiftActionDrawerProvider>
+          </ErrorBoundary>
+          {!splashDone && (
+            <AnimatedSplash
+              ready={splashReady}
+              onFinish={() => setSplashDone(true)}
+            />
+          )}
+        </PaperProvider>
+      </PersistQueryClientProvider>
+    </GestureHandlerRootView>
   );
 });
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     overflow: "hidden",
