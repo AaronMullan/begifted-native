@@ -61,10 +61,9 @@ export default function PrimaryGiftCard({
       )}
 
       <Text style={styles.title}>{suggestion.title}</Text>
-      <Text style={styles.price}>{formatPrice(suggestion.price)}</Text>
-
-      {suggestion.link && (
-        <View style={styles.ctaRow}>
+      <View style={styles.priceRow}>
+        <Text style={styles.price}>{formatPrice(suggestion.price)}</Text>
+        {suggestion.link && (
           <Button
             mode="text"
             compact
@@ -74,8 +73,8 @@ export default function PrimaryGiftCard({
           >
             View Product ›
           </Button>
-        </View>
-      )}
+        )}
+      </View>
 
       {suggestion.description && (
         <View style={styles.whySection}>
@@ -118,14 +117,14 @@ const styles = StyleSheet.create({
   },
   price: {
     fontFamily: "RobotoFlex_400Regular",
-    color: Colors.blues.dark,
+    color: Colors.yellows.gold,
     fontSize: 16,
     fontWeight: "500",
   },
-  ctaRow: {
+  priceRow: {
     flexDirection: "row",
-    justifyContent: "flex-end",
-    marginTop: -8,
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   ctaLabel: {
     fontFamily: "RobotoFlex_400Regular",
