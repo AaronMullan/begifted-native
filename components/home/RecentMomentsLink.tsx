@@ -3,27 +3,25 @@ import { Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
 
-// TODO(DEV-48): wire visibility + tap handler to gift-feedback mechanism.
-const VISIBLE = false;
+type RecentMomentsLinkProps = {
+  onPress?: () => void;
+};
 
-export default function RecentMomentsLink() {
-  if (!VISIBLE) return null;
-
+const RecentMomentsLink: React.FC<RecentMomentsLinkProps> = ({ onPress }) => {
   return (
     <Pressable
+      onPress={onPress}
       accessibilityRole="link"
       accessibilityLabel="Tell us how your recent moments went"
-      style={styles.link}
+      style={({ pressed }) => [styles.link, pressed && styles.linkPressed]}
     >
       <Text style={styles.text}>Tell us how your recent moments went</Text>
-      <MaterialIcons
-        name="chevron-right"
-        size={16}
-        color={Colors.yellows.gold}
-      />
+      <MaterialIcons name="chevron-right" size={16} color={Colors.blues.dark} />
     </Pressable>
   );
-}
+};
+
+export default RecentMomentsLink;
 
 const styles = StyleSheet.create({
   link: {
@@ -32,10 +30,13 @@ const styles = StyleSheet.create({
     gap: 2,
     flexShrink: 1,
   },
+  linkPressed: {
+    opacity: 0.6,
+  },
   text: {
     fontFamily: "RobotoFlex_400Regular",
-    color: Colors.yellows.gold,
+    color: Colors.blues.dark,
     fontSize: 13,
-    fontWeight: "500",
+    fontWeight: "700",
   },
 });
