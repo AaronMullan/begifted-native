@@ -3,20 +3,24 @@ import type { GestureResponderEvent } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
 import type { GiftSuggestion } from "../../types/recipient";
+import { useGiftActionDrawer } from "./GiftActionDrawerProvider";
 
 type GiftCardActionButtonProps = {
   suggestion: GiftSuggestion;
   variant?: "expanded" | "collapsed";
+  occasionId?: string | null;
 };
 
 export default function GiftCardActionButton({
   suggestion,
   variant = "expanded",
+  occasionId,
 }: GiftCardActionButtonProps) {
+  const { openDrawer } = useGiftActionDrawer();
+
   const handlePress = (e: GestureResponderEvent) => {
     e.stopPropagation();
-    // TODO(DEV-70): open bottom-up drawer for this gift card
-    console.log("[GiftCardAction] open drawer for gift", suggestion.id);
+    openDrawer(suggestion, occasionId);
   };
 
   const iconName = variant === "expanded" ? "expand-more" : "chevron-right";
