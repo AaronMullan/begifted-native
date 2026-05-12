@@ -1,15 +1,15 @@
 import * as FileSystem from "expo-file-system/legacy";
-import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, Platform, ScrollView, StyleSheet, View } from "react-native";
-import { Text, Button, TextInput } from "react-native-paper";
+import { Platform, ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "react-native-paper";
 import { Colors } from "../../../lib/colors";
 import ContactFileImport from "../../../components/ContactFileImport";
 import ContactPicker from "../../../components/ContactPicker";
 import ContactsAccessIntro from "../../../components/ContactsAccessIntro";
-import RecipientCard from "../../../components/RecipientCard";
-import RecipientForm from "../../../components/RecipientForm";
+import PeopleCtaTiles from "../../../components/contacts/PeopleCtaTiles";
+import PeopleRecipientCard from "../../../components/contacts/PeopleRecipientCard";
+import RecentMomentsLink from "../../../components/home/RecentMomentsLink";
 import {
   DeviceContact,
   useDeviceContacts,
@@ -17,37 +17,13 @@ import {
 import { useToast } from "../../../hooks/use-toast";
 import { useAuth } from "../../../hooks/use-auth";
 import { useRecipients } from "../../../hooks/use-recipients";
-import { queryKeys } from "../../../lib/query-keys";
-import { supabase } from "../../../lib/supabase";
-import { Recipient } from "../../../types/recipient";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { useBottomNavScrollVisibility } from "../../../hooks/use-bottom-nav-scroll-visibility";
 
 export default function Contacts() {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const { user } = useAuth();
   const { data: recipients = [], isLoading: loading } = useRecipients();
-  const [formVisible, setFormVisible] = useState(false);
-  const [editingRecipient, setEditingRecipient] = useState<Recipient | null>(
-    null
-  );
-  const [saving, setSaving] = useState(false);
-
-  // Form state
-  const [name, setName] = useState("");
-  const [relationshipType, setRelationshipType] = useState("");
-  const [interests, setInterests] = useState("");
-  const [birthday, setBirthday] = useState("");
-  const [budgetMin, setBudgetMin] = useState("");
-  const [budgetMax, setBudgetMax] = useState("");
-  const [address, setAddress] = useState("");
-  const [addressLine2, setAddressLine2] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
-  const [zipCode, setZipCode] = useState("");
-  const [country, setCountry] = useState("US");
-  const [searchQuery, setSearchQuery] = useState("");
   const [pickerVisible, setPickerVisible] = useState(false);
   const [contactsAccessIntroVisible, setContactsAccessIntroVisible] =
     useState(false);
@@ -56,147 +32,30 @@ export default function Contacts() {
   const { toast } = useToast();
   const { handleScroll } = useBottomNavScrollVisibility();
 
-  function openEditForm(recipient: Recipient) {
-    router.push(`/contacts/${recipient.id}?tab=gifts`);
-  }
+  const openContactsAccessIntro = () => setContactsAccessIntroVisible(true);
 
-  function closeForm() {
-    setFormVisible(false);
-    setEditingRecipient(null);
-    setName("");
-    setRelationshipType("");
-    setInterests("");
-    setBirthday("");
-    setBudgetMin("");
-    setBudgetMax("");
-    setAddress("");
-    setAddressLine2("");
-    setCity("");
-    setState("");
-    setZipCode("");
-    setCountry("US");
-  }
-
-  async function saveRecipient() {
-    if (!user) {
-      Alert.alert("Error", "You must be logged in to manage recipients");
-      return;
-    }
-
-    if (!name.trim()) {
-      Alert.alert("Error", "Name is required");
-      return;
-    }
-
-    if (!relationshipType.trim()) {
-      Alert.alert("Error", "Relationship is required");
-      return;
-    }
-
-    try {
-      setSaving(true);
-
-      const interestsArray = interests
-        .split(",")
-        .map((i) => i.trim())
-        .filter((i) => i.length > 0);
-
-      if (editingRecipient) {
-        const { error } = await supabase
-          .from("recipients")
-          .update({
-            name: name.trim(),
-            relationship_type: relationshipType.trim(),
-            interests: interestsArray.length > 0 ? interestsArray : null,
-            birthday: birthday.trim() || null,
-            gift_budget_min: budgetMin ? parseInt(budgetMin) : null,
-            gift_budget_max: budgetMax ? parseInt(budgetMax) : null,
-            address: address.trim() || null,
-            address_line_2: addressLine2.trim() || null,
-            city: city.trim() || null,
-            state: state.trim() || null,
-            zip_code: zipCode.trim() || null,
-            country: country.trim() || null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", editingRecipient.id)
-          .eq("user_id", user.id);
-
-        if (error) throw error;
-
-        await queryClient.invalidateQueries({
-          queryKey: queryKeys.recipients(user.id),
-        });
-        await queryClient.invalidateQueries({
-          queryKey: queryKeys.occasions(user.id),
-        });
-        Alert.alert("Success", "Recipient updated successfully!");
-      } else {
-        const { error } = await supabase.from("recipients").insert([
-          {
-            user_id: user.id,
-            name: name.trim(),
-            relationship_type: relationshipType.trim(),
-            interests: interestsArray.length > 0 ? interestsArray : null,
-            birthday: birthday.trim() || null,
-            gift_budget_min: budgetMin ? parseInt(budgetMin) : null,
-            gift_budget_max: budgetMax ? parseInt(budgetMax) : null,
-            address: address.trim() || null,
-            address_line_2: addressLine2.trim() || null,
-            city: city.trim() || null,
-            state: state.trim() || null,
-            zip_code: zipCode.trim() || null,
-            country: country.trim() || null,
-          },
-        ]);
-
-        if (error) throw error;
-
-        await queryClient.invalidateQueries({
-          queryKey: queryKeys.recipients(user.id),
-        });
-        await queryClient.invalidateQueries({
-          queryKey: queryKeys.occasions(user.id),
-        });
-        Alert.alert("Success", "Recipient added successfully!");
-      }
-
-      closeForm();
-    } catch (error) {
-      console.error("Error saving recipient:", error);
-      if (error instanceof Error) {
-        Alert.alert("Error saving recipient", error.message);
-      }
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function openContactsAccessIntro() {
-    setContactsAccessIntroVisible(true);
-  }
-
-  async function handleContinueContactsAccess() {
+  const handleContinueContactsAccess = async () => {
     setContactsAccessIntroVisible(false);
     const contacts = await getDeviceContacts();
     setDeviceContacts(contacts);
     if (contacts.length > 0) {
       setPickerVisible(true);
     }
-  }
+  };
 
-  function handleImportFromFile(contacts: DeviceContact[]) {
+  const handleImportFromFile = (contacts: DeviceContact[]) => {
     setDeviceContacts(contacts);
     if (contacts.length > 0) {
       setPickerVisible(true);
     }
-  }
+  };
 
-  async function handleSelectContact(contact: DeviceContact) {
+  const handleAddManually = () => router.push("/contacts/add");
+
+  const handleSelectContact = async (contact: DeviceContact) => {
     setPickerVisible(false);
     const addr = contact.addresses?.[0];
 
-    // Format birthday as YYYY-MM-DD if available
     let birthdayStr: string | undefined;
     if (contact.birthday) {
       const { year, month, day } = contact.birthday;
@@ -206,22 +65,18 @@ export default function Contacts() {
       birthdayStr = `${y}-${m}-${d}`;
     }
 
-    // Copy contact photo to app cache now — the temp URI from expo-contacts
-    // is cleaned up by iOS before the add screen mounts.
     let stablePhotoUri: string | undefined;
     if (contact.imageUri) {
-      console.log("[photo] source URI:", contact.imageUri);
       try {
-        const dest = `${FileSystem.cacheDirectory}contact-photo-${Date.now()}.jpg`;
+        const dest = `${
+          FileSystem.cacheDirectory
+        }contact-photo-${Date.now()}.jpg`;
         await FileSystem.copyAsync({ from: contact.imageUri, to: dest });
         stablePhotoUri = dest;
-        console.log("[photo] copied to cache:", dest);
       } catch (err) {
         console.error("[photo] copy failed, using original:", err);
         stablePhotoUri = contact.imageUri;
       }
-    } else {
-      console.log("[photo] no imageUri on contact");
     }
 
     router.push({
@@ -237,16 +92,14 @@ export default function Contacts() {
         ...(stablePhotoUri && { photo_url: stablePhotoUri }),
       },
     });
-  }
+  };
 
   if (!user) {
     return (
       <View style={styles.container}>
         <View style={styles.content}>
-          <Text variant="headlineMedium" style={styles.title}>
-            Contacts
-          </Text>
-          <Text variant="bodyLarge" style={styles.subtitle}>
+          <Text style={styles.title}>These are your people.</Text>
+          <Text style={styles.subtitle}>
             Please sign in to manage your gift recipients.
           </Text>
         </View>
@@ -256,7 +109,6 @@ export default function Contacts() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerSpacer} />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -264,137 +116,46 @@ export default function Contacts() {
         scrollEventThrottle={16}
       >
         <View style={styles.content}>
-          {/* Header section */}
           <View style={styles.header}>
-            <Text variant="headlineMedium" style={styles.title}>
-              My Contacts
-            </Text>
-            <Text variant="bodyLarge" style={styles.subtitle}>
-              Manage the people you want to send gifts to.
+            <Text style={styles.title}>These are your people.</Text>
+            <Text style={styles.subtitle}>
+              Add the people who matter.{"\n"}We&apos;ll keep track of the
+              moments that matter.
             </Text>
           </View>
 
-          {!formVisible && (
-            <>
-              <Button
-                mode="contained"
-                onPress={() => router.push("/contacts/add")}
-                style={styles.addButton}
-                icon="plus"
-              >
-                Add Recipient
-              </Button>
+          <PeopleCtaTiles
+            onImportPress={openContactsAccessIntro}
+            onAddManuallyPress={handleAddManually}
+            importDisabled={contactsLoading}
+          />
 
-              {Platform.OS === "web" ? (
-                <ContactFileImport onImport={handleImportFromFile} />
-              ) : (
-                <Button
-                  mode="outlined"
-                  onPress={openContactsAccessIntro}
-                  disabled={contactsLoading}
-                  loading={contactsLoading}
-                  style={styles.importButton}
-                  icon="phone"
-                >
-                  Import from Device Contacts
-                </Button>
-              )}
-            </>
-          )}
-
-          {formVisible && (
-            <RecipientForm
-              editingRecipient={editingRecipient}
-              name={name}
-              relationshipType={relationshipType}
-              interests={interests}
-              birthday={birthday}
-              budgetMin={budgetMin}
-              budgetMax={budgetMax}
-              address={address}
-              addressLine2={addressLine2}
-              city={city}
-              state={state}
-              zipCode={zipCode}
-              country={country}
-              loading={loading || saving}
-              onChangeName={setName}
-              onChangeRelationshipType={setRelationshipType}
-              onChangeInterests={setInterests}
-              onChangeBirthday={setBirthday}
-              onChangeBudgetMin={setBudgetMin}
-              onChangeBudgetMax={setBudgetMax}
-              onChangeAddress={setAddress}
-              onChangeAddressLine2={setAddressLine2}
-              onChangeCity={setCity}
-              onChangeState={setState}
-              onChangeZipCode={setZipCode}
-              onChangeCountry={setCountry}
-              onSave={saveRecipient}
-              onCancel={closeForm}
-            />
-          )}
-
-          {!formVisible && recipients.length > 0 && (
-            <TextInput
-              mode="outlined"
-              placeholder="Search recipients..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              left={<TextInput.Icon icon="magnify" />}
-              right={
-                searchQuery.length > 0 ? (
-                  <TextInput.Icon icon="close" onPress={() => setSearchQuery("")} />
-                ) : undefined
-              }
-              style={styles.searchInput}
-            />
+          {Platform.OS === "web" && (
+            <ContactFileImport onImport={handleImportFromFile} />
           )}
 
           {loading && recipients.length === 0 ? (
-            <Text variant="bodyLarge" style={styles.loadingText}>
-              Loading...
-            </Text>
+            <Text style={styles.loadingText}>Loading…</Text>
           ) : recipients.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text variant="titleLarge" style={styles.emptyText}>
-                No recipients yet.
-              </Text>
-              <Text variant="bodyMedium" style={styles.emptySubtext}>
-                Add your first recipient to get started!
+              <Text style={styles.emptyText}>No people yet.</Text>
+              <Text style={styles.emptySubtext}>
+                Add the first one to get started.
               </Text>
             </View>
-          ) : (() => {
-            const q = searchQuery.trim().toLowerCase();
-            const filtered = q
-              ? recipients.filter(
-                  (r) =>
-                    r.name.toLowerCase().includes(q) ||
-                    r.relationship_type.toLowerCase().includes(q)
-                )
-              : recipients;
-            return filtered.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Text variant="titleLarge" style={styles.emptyText}>
-                  No results.
-                </Text>
-                <Text variant="bodyMedium" style={styles.emptySubtext}>
-                  {`No recipients match "${searchQuery}".`}
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.list}>
-                {filtered.map((recipient) => (
-                  <RecipientCard
-                    key={recipient.id}
-                    recipient={recipient}
-                    onPress={openEditForm}
-                  />
-                ))}
-              </View>
-            );
-          })()}
+          ) : (
+            <View style={styles.list}>
+              {recipients.map((recipient) => (
+                <PeopleRecipientCard key={recipient.id} recipient={recipient} />
+              ))}
+            </View>
+          )}
+
+          <View style={styles.footer}>
+            <RecentMomentsLink />
+          </View>
         </View>
+
         <ContactsAccessIntro
           visible={contactsAccessIntroVisible}
           onContinue={handleContinueContactsAccess}
@@ -418,9 +179,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "transparent",
   },
-  headerSpacer: {
-    height: 0,
-  },
   scrollView: {
     flex: 1,
     backgroundColor: "transparent",
@@ -430,46 +188,53 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: "100%",
     padding: 20,
+    gap: 20,
   },
   scrollContent: {
-    paddingBottom: BOTTOM_NAV_HEIGHT,
+    paddingBottom: BOTTOM_NAV_HEIGHT + 24,
   },
   header: {
-    marginBottom: 48,
+    gap: 8,
   },
   title: {
-    marginBottom: 8,
-    color: Colors.darks.black,
+    fontFamily: "Fraunces_600SemiBold",
+    fontSize: 32,
+    lineHeight: 38,
+    color: Colors.blues.dark,
   },
   subtitle: {
-    color: Colors.darks.black,
-    opacity: 0.9,
-  },
-  addButton: {
-    marginBottom: 20,
-  },
-  loadingText: {
-    textAlign: "center",
-  },
-  emptyState: {
-    padding: 40,
-    alignItems: "center",
-  },
-  list: {
-    gap: 24,
-  },
-  emptyText: {
-    marginBottom: 8,
-    color: Colors.darks.black,
-  },
-  emptySubtext: {
+    fontFamily: "RobotoFlex_400Regular",
+    fontSize: 15,
+    lineHeight: 21,
     color: Colors.darks.black,
     opacity: 0.8,
   },
-  importButton: {
-    marginBottom: 20,
+  loadingText: {
+    fontFamily: "RobotoFlex_400Regular",
+    textAlign: "center",
+    color: Colors.darks.black,
+    opacity: 0.7,
   },
-  searchInput: {
-    marginBottom: 20,
+  emptyState: {
+    padding: 24,
+    alignItems: "center",
+    gap: 4,
+  },
+  emptyText: {
+    fontFamily: "Fraunces_600SemiBold",
+    fontSize: 18,
+    color: Colors.blues.dark,
+  },
+  emptySubtext: {
+    fontFamily: "RobotoFlex_400Regular",
+    fontSize: 14,
+    color: Colors.darks.black,
+    opacity: 0.7,
+  },
+  list: {
+    gap: 12,
+  },
+  footer: {
+    paddingTop: 16,
   },
 });

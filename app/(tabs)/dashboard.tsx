@@ -91,7 +91,8 @@ export default function Dashboard() {
           )}
           <View style={styles.bottomRow}>
             <AddPeopleTile />
-            <RecentMomentsLink />
+            {/* TODO(DEV-48): show once the gift-feedback CTA is live */}
+            {false && <RecentMomentsLink />}
           </View>
         </View>
       </ScrollView>
