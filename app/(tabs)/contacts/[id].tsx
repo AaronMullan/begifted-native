@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
-import { Alert, ScrollView, StyleSheet, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, Button, IconButton } from "react-native-paper";
+import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { supabase } from "../../../lib/supabase";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
+import { Colors } from "../../../lib/colors";
 import type { GiftSuggestion, Recipient } from "../../../types/recipient";
 import { useRecipientForm } from "../../../hooks/use-recipient-form";
 import { RecipientDetailsForm } from "../../../components/recipients/RecipientDetailsForm";
@@ -17,7 +19,12 @@ import { useToast } from "../../../hooks/use-toast";
 export default function RecipientEditPage() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const params = useLocalSearchParams<{ id: string; tab?: string; addOccasion?: string; generating?: string }>();
+  const params = useLocalSearchParams<{
+    id: string;
+    tab?: string;
+    addOccasion?: string;
+    generating?: string;
+  }>();
   const recipientId = params.id;
   const initialTab = (params.tab as "details" | "gifts") || "gifts";
   const shouldAddOccasion = params.addOccasion === "true";
@@ -319,7 +326,6 @@ export default function RecipientEditPage() {
   if (loading) {
     return (
       <View style={styles.container}>
-  
         <View style={styles.loadingPlaceholder}>
           <Text>Loading...</Text>
         </View>
@@ -330,7 +336,6 @@ export default function RecipientEditPage() {
   if (!recipient) {
     return (
       <View style={styles.container}>
-  
         <View style={styles.loadingPlaceholder}>
           <Text>Recipient not found</Text>
         </View>
@@ -357,21 +362,49 @@ export default function RecipientEditPage() {
     );
   }
 
+  const shortName = formatShortName(recipient.name);
+  const upperShortName = shortName.toUpperCase();
+
   return (
     <View style={styles.container}>
-
-      {/* Header */}
-      <View style={styles.header}>
-        <IconButton
-          icon="arrow-left"
-          size={24}
-          onPress={() => router.back()}
-          iconColor="#000000"
-        />
-        <Text variant="titleLarge" style={styles.headerTitle}>
-          {formatShortName(recipient.name)}
-        </Text>
-        {activeTab !== "gifts" && (
+      {activeTab === "gifts" ? (
+        <View style={styles.hero}>
+          <Pressable
+            onPress={() => router.back()}
+            style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            hitSlop={8}
+          >
+            <MaterialIcons
+              name="chevron-left"
+              size={28}
+              color={Colors.blues.dark}
+            />
+          </Pressable>
+          <Text style={styles.heroTitle}>{shortName}&apos;s Gift Ideas</Text>
+          <Pressable
+            onPress={() => setActiveTab("details")}
+            style={styles.aboutLink}
+            accessibilityRole="link"
+            accessibilityLabel={`About ${shortName}`}
+            hitSlop={6}
+          >
+            <Text style={styles.aboutLinkText}>ABOUT {upperShortName} ›</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <View style={styles.detailsHeader}>
+          <IconButton
+            icon="chevron-left"
+            size={28}
+            onPress={() => setActiveTab("gifts")}
+            iconColor={Colors.blues.dark}
+            accessibilityLabel="Back to Gift Ideas"
+          />
+          <Text variant="titleLarge" style={styles.detailsHeaderTitle}>
+            About {shortName}
+          </Text>
           <Button
             mode="contained"
             onPress={handleSave}
@@ -384,31 +417,8 @@ export default function RecipientEditPage() {
           >
             Save
           </Button>
-        )}
-      </View>
-
-      {/* Tabs */}
-      <View style={styles.tabs}>
-        <Button
-          mode={activeTab === "gifts" ? "contained" : "text"}
-          onPress={() => setActiveTab("gifts")}
-          icon="gift-outline"
-          style={styles.tab}
-          compact
-        >
-          Gift Ideas
-          {suggestions.length > 0 && ` (${suggestions.length})`}
-        </Button>
-        <Button
-          mode={activeTab === "details" ? "contained" : "text"}
-          onPress={() => setActiveTab("details")}
-          icon="account-outline"
-          style={styles.tab}
-          compact
-        >
-          Details
-        </Button>
-      </View>
+        </View>
+      )}
 
       <ScrollView
         style={styles.content}
@@ -474,27 +484,48 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  header: {
+  hero: {
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 12,
+  },
+  backButton: {
+    alignSelf: "flex-start",
+    padding: 4,
+    marginLeft: -4,
+    marginBottom: 4,
+  },
+  heroTitle: {
+    fontFamily: "Fraunces_600SemiBold",
+    fontSize: 36,
+    lineHeight: 42,
+    color: Colors.blues.dark,
+    marginBottom: 6,
+  },
+  aboutLink: {
+    alignSelf: "flex-start",
+  },
+  aboutLinkText: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    color: Colors.blues.dark,
+  },
+  detailsHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 4,
   },
-  headerTitle: {
+  detailsHeaderTitle: {
     flex: 1,
+    fontFamily: "Fraunces_600SemiBold",
+    color: Colors.blues.dark,
     textAlign: "center",
   },
   saveButton: {
     marginLeft: 8,
-  },
-  tabs: {
-    flexDirection: "row",
-    paddingHorizontal: 8,
-    paddingBottom: 8,
-  },
-  tab: {
-    flex: 1,
   },
   content: {
     flex: 1,
