@@ -1,18 +1,18 @@
 import { useEffect, useState, useCallback } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Text, Button, IconButton } from "react-native-paper";
+import { Text, IconButton } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { supabase } from "../../../lib/supabase";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { Colors } from "../../../lib/colors";
 import type { GiftSuggestion, Recipient } from "../../../types/recipient";
-import { useRecipientForm } from "../../../hooks/use-recipient-form";
-import { RecipientDetailsForm } from "../../../components/recipients/RecipientDetailsForm";
+import { AboutRecipientView } from "../../../components/recipients/AboutRecipientView";
 import { GiftSuggestionsView } from "../../../components/recipients/GiftSuggestionsView";
 import { ConversationView } from "../../../components/recipients/conversation/ConversationView";
 import { useAddOccasionFlow } from "../../../hooks/use-add-occasion-flow";
+import { useConversationFlow } from "../../../hooks/use-conversation-flow";
 import { formatShortName } from "../../../lib/format-name";
 import { useToast } from "../../../hooks/use-toast";
 
@@ -31,12 +31,12 @@ export default function RecipientEditPage() {
 
   const [recipient, setRecipient] = useState<Recipient | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [suggestions, setSuggestions] = useState<GiftSuggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "gifts">(initialTab);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showAddOccasionChat, setShowAddOccasionChat] = useState(false);
+  const [showUpdateChat, setShowUpdateChat] = useState(false);
   const { showToast, toast } = useToast();
 
   // Fetch recipient data
@@ -74,39 +74,6 @@ export default function RecipientEditPage() {
     fetchRecipient();
   }, [recipientId, router]);
 
-  // Form state management
-  const {
-    name,
-    relationshipType,
-    interests,
-    birthday,
-    budgetMin,
-    budgetMax,
-    address,
-    addressLine2,
-    city,
-    state,
-    zipCode,
-    country,
-    setName,
-    setRelationshipType,
-    setInterests,
-    setBirthday,
-    setBudgetMin,
-    setBudgetMax,
-    setAddress,
-    setAddressLine2,
-    setCity,
-    setState,
-    setZipCode,
-    setCountry,
-    hasChanges,
-    createChangeHandler,
-    resetChanges,
-    getFormData,
-    hasGiftRelevantChanges,
-  } = useRecipientForm(recipient);
-
   // Add-occasion chat flow
   const addOccasionFlow = useAddOccasionFlow({
     recipientId: recipientId || "",
@@ -116,6 +83,98 @@ export default function RecipientEditPage() {
       showToast("Occasion added!");
     },
   });
+
+  // Update-what-we-know chat flow
+  const updateFlow = useConversationFlow({
+    conversationType: "update_field",
+    existingData: recipient
+      ? {
+          id: recipient.id,
+          name: recipient.name,
+          relationship_type: recipient.relationship_type,
+          interests: recipient.interests,
+          birthday: recipient.birthday,
+          emotional_tone_preference: recipient.emotional_tone_preference,
+          gift_budget_min: recipient.gift_budget_min,
+          gift_budget_max: recipient.gift_budget_max,
+          address: recipient.address,
+          address_line_2: recipient.address_line_2,
+          city: recipient.city,
+          state: recipient.state,
+          zip_code: recipient.zip_code,
+          country: recipient.country,
+        }
+      : undefined,
+    initialMessage: recipient
+      ? `Let's update what we know about ${recipient.name}. What's new?`
+      : undefined,
+  });
+
+  const handleFinishUpdateChat = async () => {
+    if (!recipient) return;
+    const extracted = await updateFlow.handleFinishConversation();
+    if (!extracted) {
+      setShowUpdateChat(false);
+      return;
+    }
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.user) {
+      setShowUpdateChat(false);
+      return;
+    }
+
+    const allowedKeys: (keyof Recipient)[] = [
+      "name",
+      "relationship_type",
+      "interests",
+      "birthday",
+      "emotional_tone_preference",
+      "gift_budget_min",
+      "gift_budget_max",
+      "address",
+      "address_line_2",
+      "city",
+      "state",
+      "zip_code",
+      "country",
+    ];
+    const updates: Partial<Recipient> = {};
+    for (const key of allowedKeys) {
+      const value = (extracted as Record<string, unknown>)[key];
+      if (value !== undefined && value !== null && value !== "") {
+        (updates as Record<string, unknown>)[key] = value;
+      }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      const { error } = await supabase
+        .from("recipients")
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("id", recipient.id)
+        .eq("user_id", session.user.id);
+      if (error) {
+        console.error("Failed to apply update from chat:", error);
+      } else {
+        setRecipient((prev) => (prev ? { ...prev, ...updates } : null));
+      }
+    }
+
+    setIsGenerating(true);
+    supabase.functions
+      .invoke("synthesize-recipient-profile", {
+        body: { recipientId: recipient.id },
+      })
+      .catch((err) => {
+        console.error("synthesize-recipient-profile failed:", err);
+        setIsGenerating(false);
+      });
+
+    showToast(`Updated ${recipient.name}'s profile.`);
+    setShowUpdateChat(false);
+  };
 
   // Auto-open add-occasion flow when navigated with addOccasion param
   useEffect(() => {
@@ -219,73 +278,6 @@ export default function RecipientEditPage() {
     };
   }, [isGenerating, recipient, fetchSuggestions]);
 
-  const handleSave = async () => {
-    if (!recipient || !name.trim() || !relationshipType.trim()) {
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session?.user) {
-        router.replace("/");
-        return;
-      }
-
-      const formData = getFormData();
-      const giftRelevantChanged = hasGiftRelevantChanges();
-
-      const { error } = await supabase
-        .from("recipients")
-        .update({
-          ...formData,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", recipient.id)
-        .eq("user_id", session.user.id);
-
-      if (error) throw error;
-
-      // Update local recipient state
-      setRecipient((prev) => (prev ? { ...prev, ...formData } : null));
-
-      // If gift-relevant fields changed, trigger new gift generation
-      if (giftRelevantChanged) {
-        console.log("Triggering gift generation for:", recipient.id);
-
-        // Start generation tracking
-        setIsGenerating(true);
-
-        fetch("https://be-gifted.vercel.app/api/generate-gifts", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ recipientId: recipient.id }),
-        }).catch((err) => {
-          console.error("Failed to trigger gift generation:", err);
-          setIsGenerating(false); // Stop tracking on error
-        });
-
-        // Show toast notification
-        const message = `${name}'s profile has been updated. New gift suggestions are being generated and will appear shortly.`;
-        showToast(message);
-      } else {
-        console.log("No gift-relevant changes detected");
-        // Show toast for any save, even without gift-relevant changes
-        showToast(`${name}'s profile has been updated.`);
-      }
-      resetChanges(); // Reset after successful save
-    } catch (error) {
-      console.error("Error saving recipient:", error);
-      Alert.alert("Error", "Failed to save changes. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleDelete = async () => {
     if (!recipient) return;
 
@@ -362,6 +354,25 @@ export default function RecipientEditPage() {
     );
   }
 
+  if (showUpdateChat) {
+    return (
+      <View style={styles.container}>
+        <ConversationView
+          messages={updateFlow.messages}
+          isLoading={updateFlow.isLoading}
+          messagesEndRef={updateFlow.messagesEndRef}
+          onNavigateBack={() => setShowUpdateChat(false)}
+          onSendMessage={updateFlow.sendMessage}
+          onFinishConversation={handleFinishUpdateChat}
+          shouldShowNextStepButton={updateFlow.shouldShowNextStepButton}
+          conversationContext={updateFlow.conversationContext ?? ""}
+          title={`Update ${formatShortName(recipient.name)}`}
+          finishButtonLabel="Save Updates"
+        />
+      </View>
+    );
+  }
+
   const shortName = formatShortName(recipient.name);
   const upperShortName = shortName.toUpperCase();
 
@@ -402,21 +413,6 @@ export default function RecipientEditPage() {
             iconColor={Colors.blues.dark}
             accessibilityLabel="Back to Gift Ideas"
           />
-          <Text variant="titleLarge" style={styles.detailsHeaderTitle}>
-            About {shortName}
-          </Text>
-          <Button
-            mode="contained"
-            onPress={handleSave}
-            disabled={
-              saving || !name.trim() || !relationshipType.trim() || !hasChanges
-            }
-            loading={saving}
-            style={styles.saveButton}
-            compact
-          >
-            Save
-          </Button>
         </View>
       )}
 
@@ -428,37 +424,14 @@ export default function RecipientEditPage() {
         keyboardShouldPersistTaps="handled"
       >
         {activeTab === "details" ? (
-          <RecipientDetailsForm
-            name={name}
-            relationshipType={relationshipType}
-            interests={interests}
-            birthday={birthday}
-            budgetMin={budgetMin}
-            budgetMax={budgetMax}
-            address={address}
-            addressLine2={addressLine2}
-            city={city}
-            state={state}
-            zipCode={zipCode}
-            country={country}
-            onChangeName={createChangeHandler(setName)}
-            onChangeRelationshipType={createChangeHandler(setRelationshipType)}
-            onChangeInterests={createChangeHandler(setInterests)}
-            onChangeBirthday={createChangeHandler(setBirthday)}
-            onChangeBudgetMin={createChangeHandler(setBudgetMin)}
-            onChangeBudgetMax={createChangeHandler(setBudgetMax)}
-            onChangeAddress={createChangeHandler(setAddress)}
-            onChangeAddressLine2={createChangeHandler(setAddressLine2)}
-            onChangeCity={createChangeHandler(setCity)}
-            onChangeState={createChangeHandler(setState)}
-            onChangeZipCode={createChangeHandler(setZipCode)}
-            onChangeCountry={createChangeHandler(setCountry)}
-            recipientId={recipient.id}
-            onDelete={handleDelete}
-            onAddOccasion={() => {
-              addOccasionFlow.resetConversation();
-              setShowAddOccasionChat(true);
+          <AboutRecipientView
+            recipient={recipient}
+            onRecipientUpdated={(updated) => setRecipient(updated)}
+            onOpenUpdateChat={() => {
+              updateFlow.resetConversation();
+              setShowUpdateChat(true);
             }}
+            onDelete={handleDelete}
           />
         ) : (
           <GiftSuggestionsView
@@ -514,18 +487,8 @@ const styles = StyleSheet.create({
   detailsHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
+    paddingHorizontal: 4,
     paddingBottom: 4,
-  },
-  detailsHeaderTitle: {
-    flex: 1,
-    fontFamily: "Fraunces_600SemiBold",
-    color: Colors.blues.dark,
-    textAlign: "center",
-  },
-  saveButton: {
-    marginLeft: 8,
   },
   content: {
     flex: 1,
