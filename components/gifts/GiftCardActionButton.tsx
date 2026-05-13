@@ -23,7 +23,9 @@ export default function GiftCardActionButton({
     openDrawer(suggestion, occasionId);
   };
 
-  const iconName = variant === "expanded" ? "expand-more" : "chevron-right";
+  const iconName = variant === "expanded" ? "expand-less" : "expand-more";
+  const color =
+    variant === "expanded" ? Colors.blues.medium : Colors.yellows.gold;
 
   return (
     <Pressable
@@ -31,9 +33,9 @@ export default function GiftCardActionButton({
       hitSlop={8}
       accessibilityRole="button"
       accessibilityLabel="Gift options"
-      style={styles.button}
+      style={[styles.button, { borderColor: color }]}
     >
-      <MaterialIcons name={iconName} size={20} color={Colors.blues.dark} />
+      <MaterialIcons name={iconName} size={20} color={color} />
     </Pressable>
   );
 }
@@ -44,7 +46,6 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.blues.dark,
     alignItems: "center",
     justifyContent: "center",
   },
