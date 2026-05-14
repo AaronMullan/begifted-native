@@ -19,6 +19,10 @@ import { useFontsLoader } from "../hooks/use-fonts-loader";
 import { usePushNotifications } from "../hooks/use-push-notifications";
 import { defaultQueryOptions } from "../lib/query-defaults";
 import { persistOptions } from "../lib/query-persister";
+import {
+  captureMutationError,
+  captureQueryError,
+} from "../lib/sentry-helpers";
 import * as Sentry from "@sentry/react-native";
 
 Sentry.init({
@@ -70,24 +74,12 @@ const queryClient = new QueryClient({
   },
   queryCache: new QueryCache({
     onError: (error, query) => {
-      Sentry.captureException(error, {
-        tags: { source: "react_query", kind: "query" },
-        contexts: { query: { queryKey: JSON.stringify(query.queryKey) } },
-      });
+      captureQueryError(error, query.queryKey);
     },
   }),
   mutationCache: new MutationCache({
     onError: (error, _vars, _ctx, mutation) => {
-      Sentry.captureException(error, {
-        tags: { source: "react_query", kind: "mutation" },
-        contexts: {
-          mutation: {
-            mutationKey: mutation.options.mutationKey
-              ? JSON.stringify(mutation.options.mutationKey)
-              : "unknown",
-          },
-        },
-      });
+      captureMutationError(error, mutation.options.mutationKey);
     },
   }),
 });
