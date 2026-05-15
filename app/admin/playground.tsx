@@ -146,8 +146,18 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
       return {};
     }
   })();
-  const displayGiverName = cisNamesFromResult.giverName ?? selectedGiver?.full_name ?? selectedGiver?.username;
-  const displayRecipientName = cisNamesFromResult.recipientName ?? selectedRecipient?.name;
+  // Only show the giver/recipient chip for prompt keys that actually consume
+  // that context — otherwise the prior selection (e.g. from gift generation)
+  // bleeds into prompts like user_preferences_extraction.
+  const promptUsesRecipient =
+    playground.isGiftGeneration ||
+    playground.selectedPromptKey === "occasion_recommendations";
+  const displayGiverName = promptUsesRecipient
+    ? (cisNamesFromResult.giverName ?? selectedGiver?.full_name ?? selectedGiver?.username)
+    : undefined;
+  const displayRecipientName = promptUsesRecipient
+    ? (cisNamesFromResult.recipientName ?? selectedRecipient?.name)
+    : undefined;
 
 
 

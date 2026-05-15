@@ -43,13 +43,26 @@ export async function callAI(
   }
 }
 
+// Reasoning-class OpenAI models (gpt-5*, o-series) use the Chat Completions
+// API but require `max_completion_tokens` instead of `max_tokens` and only
+// accept the default temperature (1). Sending `max_tokens` returns a 400
+// `unsupported_parameter` error. gpt-4.x and earlier keep the legacy params.
+function isReasoningOpenAIModel(model: string): boolean {
+  return /^(gpt-5|o\d)/i.test(model);
+}
+
 async function callOpenAI(model: string, apiKey: string, opts: CallAIOptions): Promise<string> {
+  const reasoning = isReasoningOpenAIModel(model);
   const body: Record<string, unknown> = {
     model,
-    temperature: opts.temperature,
-    max_tokens: opts.maxTokens,
     messages: opts.messages,
   };
+  if (reasoning) {
+    body.max_completion_tokens = opts.maxTokens;
+  } else {
+    body.max_tokens = opts.maxTokens;
+    body.temperature = opts.temperature;
+  }
   if (opts.jsonMode) {
     body.response_format = { type: "json_object" };
   }
