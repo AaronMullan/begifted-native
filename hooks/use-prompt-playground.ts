@@ -12,25 +12,35 @@ import {
   fetchActiveSystemPrompt,
   deployNewPromptVersion,
 } from "@/lib/api";
-import type { PromptTestRun } from "@/lib/api";
-import { PROMPT_REGISTRY, getPromptByKey } from "@/lib/prompt-registry";
+import type { PromptTestRun , AppConfig } from "@/lib/api";
+import {
+  PROMPT_REGISTRY,
+  getPromptByKey,
+  type PromptDefinition,
+} from "@/lib/prompt-registry";
 
 const VERCEL_BACKEND_URL = "https://be-gifted.vercel.app";
 
 async function extractInvokeError(error: unknown): Promise<string> {
   if (!(error instanceof Error)) return String(error);
   const ctx = (error as unknown as Record<string, unknown>).context;
-  if (ctx && typeof (ctx as Response).json === "function") {
-    try {
-      const body = await (ctx as Response).json();
-      if (body?.error) return String(body.error);
-      if (body?.message) return String(body.message);
-    } catch {
-      try {
-        const text = await (ctx as Response).text();
-        if (text) return text;
-      } catch {}
-    }
+  if (!ctx || typeof (ctx as Response).json !== "function") {
+    return error.message;
+  }
+  const response = ctx as Response;
+  try {
+    const body = await response.json();
+    if (body?.error) return String(body.error);
+    if (body?.message) return String(body.message);
+    return error.message;
+  } catch {
+    // JSON parse failed; fall through to plain text body
+  }
+  try {
+    const text = await response.text();
+    if (text) return text;
+  } catch {
+    // Text read failed; fall through to default
   }
   return error.message;
 }
@@ -76,30 +86,61 @@ interface ChatMessage {
   content: string;
 }
 
+/**
+ * Resolve a prompt's task-model config into a concrete provider/model. The
+ * "app_config" sentinel pulls from the live admin AI model row; if it hasn't
+ * loaded yet, returns null so the caller can wait instead of seeding a stale
+ * default.
+ */
+function resolveTaskModel(
+  def: PromptDefinition,
+  appConfig: AppConfig | undefined
+): { provider: Provider; model: string } | null {
+  if (def.taskModel.provider === "app_config") {
+    if (!appConfig) return null;
+    return { provider: appConfig.ai_provider, model: appConfig.ai_model };
+  }
+  return { provider: def.taskModel.provider, model: def.taskModel.model };
+}
+
 export function usePromptPlayground(userId: string) {
   const queryClient = useQueryClient();
   const configQuery = useAppConfig();
 
-  // Playground model selection (independent from production)
-  const [playgroundProvider, setPlaygroundProvider] = useState<Provider>("openai");
-  const [playgroundModel, setPlaygroundModel] = useState<string>("gpt-5");
-  const hasInitializedPlaygroundModel = useRef(false);
-
-  useEffect(() => {
-    if (configQuery.data && !hasInitializedPlaygroundModel.current) {
-      hasInitializedPlaygroundModel.current = true;
-      setPlaygroundProvider(configQuery.data.ai_provider);
-      setPlaygroundModel(configQuery.data.ai_model);
-    }
-  }, [configQuery.data]);
-
-  // Prompt key selection
+  // Prompt key selection (must come before the model state so it can drive
+  // the initial model defaults below).
   const [selectedPromptKey, setSelectedPromptKeyRaw] = useState(
     "gift_generation_system"
   );
   const selectedPromptDef = getPromptByKey(selectedPromptKey);
   const defaultPrompt = selectedPromptDef?.defaultPrompt ?? "";
   const isGiftGeneration = selectedPromptKey === "gift_generation_system";
+
+  // Playground model — defaults to the model the selected prompt actually uses
+  // in production, so Playground tests reflect real behavior. User can still
+  // override via the dropdown, in which case `userTouchedModelRef` blocks the
+  // per-task auto-sync until they switch prompts again.
+  const [playgroundProvider, setPlaygroundProviderRaw] = useState<Provider>("openai");
+  const [playgroundModel, setPlaygroundModelRaw] = useState<string>("gpt-4.1-mini");
+  const userTouchedModelRef = useRef(false);
+
+  useEffect(() => {
+    if (userTouchedModelRef.current) return;
+    if (!selectedPromptDef) return;
+    const resolved = resolveTaskModel(selectedPromptDef, configQuery.data);
+    if (!resolved) return;
+    setPlaygroundProviderRaw(resolved.provider);
+    setPlaygroundModelRaw(resolved.model);
+  }, [selectedPromptDef, configQuery.data]);
+
+  function setPlaygroundProvider(p: Provider) {
+    userTouchedModelRef.current = true;
+    setPlaygroundProviderRaw(p);
+  }
+  function setPlaygroundModel(m: string) {
+    userTouchedModelRef.current = true;
+    setPlaygroundModelRaw(m);
+  }
 
   // CIS edit state
   const [cisEdits, setCisEdits] = useState<DeepPartial<CISPreview>>({});
@@ -156,6 +197,8 @@ export function usePromptPlayground(userId: string) {
     setTestInput("");
     setTestMessages([]);
     setPendingRefinement(null);
+    // Allow the per-task model defaults to take over for the new prompt.
+    userTouchedModelRef.current = false;
     // Prompt will be reset via the effect below when activePromptQuery loads
     // For now, set to the registry default
     setCurrentPrompt(def.defaultPrompt);
