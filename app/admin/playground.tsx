@@ -282,16 +282,30 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
             />
           ))}
         </Menu>
-        <Text variant="bodySmall" style={styles.testModelHint}>
-          {"To update the production model, go to "}
-          <Text
-            variant="bodySmall"
-            style={styles.testModelHintLink}
-            onPress={() => router.push("/admin/ai-model")}
-          >
-            Admin → AI Model
+        {playground.productionProvider && playground.productionModel && (
+          <Text variant="bodySmall" style={styles.testModelHint}>
+            {"Production: "}
+            <Text variant="bodySmall" style={styles.testModelProd}>
+              {`${playground.productionProvider}/${playground.productionModel}`}
+            </Text>
           </Text>
-          .
+        )}
+        <Text variant="bodySmall" style={styles.testModelHint}>
+          {playground.productionModelSource === "app_config" ? (
+            <>
+              {"To update the production model, go to "}
+              <Text
+                variant="bodySmall"
+                style={styles.testModelHintLink}
+                onPress={() => router.push("/admin/ai-model")}
+              >
+                Admin → AI Model
+              </Text>
+              .
+            </>
+          ) : (
+            "This prompt uses a hardcoded model — change taskModel in lib/prompt-registry.ts."
+          )}
         </Text>
       </Card.Content>
     </Card>
@@ -1812,6 +1826,10 @@ const styles = StyleSheet.create({
   testModelHintLink: {
     color: Colors.blues.dark,
     textDecorationLine: "underline",
+  },
+  testModelProd: {
+    color: "#222",
+    fontWeight: "600",
   },
   segmentedButtons: {
     marginVertical: 8,

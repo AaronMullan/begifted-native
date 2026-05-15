@@ -655,8 +655,19 @@ export function usePromptPlayground(userId: string) {
     playgroundModel,
     setPlaygroundProvider,
     setPlaygroundModel,
-    productionProvider: configQuery.data?.ai_provider,
-    productionModel: configQuery.data?.ai_model,
+    // Production model — derived from the selected prompt's taskModel, so
+    // each prompt reports the model it actually runs against in prod (not the
+    // global app_config row, which only drives the two heavy-model tasks).
+    productionProvider: selectedPromptDef
+      ? resolveTaskModel(selectedPromptDef, configQuery.data)?.provider
+      : undefined,
+    productionModel: selectedPromptDef
+      ? resolveTaskModel(selectedPromptDef, configQuery.data)?.model
+      : undefined,
+    productionModelSource:
+      selectedPromptDef?.taskModel.provider === "app_config"
+        ? ("app_config" as const)
+        : ("hardcoded" as const),
 
     // Prompt key
     selectedPromptKey,
