@@ -3,12 +3,35 @@
  * Each entry stores the canonical default text and metadata for display/editing.
  */
 
+import type { Provider } from "@/lib/ai-models";
+
+/**
+ * Per-task model defaults. Use the `"app_config"` sentinel for tasks whose
+ * model is configured at runtime via the AI Model admin page (i.e. read from
+ * the `app_config` table) — the Playground resolves the sentinel against the
+ * live config when picking its default.
+ */
+export type TaskModel =
+  | { provider: Provider; model: string }
+  | { provider: "app_config"; model: "app_config" };
+
 export type PromptDefinition = {
   key: string;
   label: string;
   description: string;
   defaultPrompt: string;
   templateVariables: string[];
+  /**
+   * The model this prompt actually runs against in production. The Playground
+   * defaults to this on prompt-key selection so tests reflect real behavior.
+   * Users can still override via the model dropdown.
+   */
+  taskModel: TaskModel;
+};
+
+export const APP_CONFIG_MODEL: TaskModel = {
+  provider: "app_config",
+  model: "app_config",
 };
 
 export const PROMPT_REGISTRY: PromptDefinition[] = [
@@ -40,6 +63,7 @@ Rules Summary:
 - Return JSON only. No commentary, no Markdown.
 - CRITICAL: All URLs in the response MUST be from actual search results. Do not create or make up any URLs.`,
     templateVariables: [],
+    taskModel: APP_CONFIG_MODEL,
   },
   {
     key: "add_recipient_conversation",
@@ -94,12 +118,13 @@ RESPONSE REQUIREMENTS:
       "priorityGuidance",
       "recipientName",
     ],
+    taskModel: { provider: "openai", model: "gpt-4.1-mini" },
   },
   {
     key: "occasion_recommendations",
     label: "Occasion Recommendations",
     description:
-      "Suggests real, verifiable occasions based on recipient interests and birthday",
+      "Suggests real, verifiable, relationship-appropriate gifting occasions worth tracking for a specific recipient",
     defaultPrompt: `You are a gift-planning assistant. Suggest ONLY real, verifiable occasions—no invented or creative-but-fake ones.
 
 NO HALLUCINATION: Every primaryOccasion MUST be a real observance day, official holiday, or the recipient's birthday. Do NOT invent occasions (e.g. no "Skateboarding video release day", "Hair dye experimentation day", or similar). If you are not certain an occasion exists on an official or widely recognized calendar (national/international observance, public holiday), do not include it. Prefer fewer, real occasions over more, made-up ones.
@@ -144,6 +169,7 @@ Return JSON only, no markdown:
       "birthday",
       "interests",
     ],
+    taskModel: { provider: "openai", model: "gpt-4.1-mini" },
   },
   {
     key: "user_preferences_extraction",
@@ -165,6 +191,7 @@ Return ONLY valid JSON:
   "confidence": "low"
 }`,
     templateVariables: [],
+    taskModel: APP_CONFIG_MODEL,
   },
 ];
 

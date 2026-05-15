@@ -51,6 +51,14 @@ function isReasoningOpenAIModel(model: string): boolean {
   return /^(gpt-5|o\d)/i.test(model);
 }
 
+// max_completion_tokens on reasoning models is the TOTAL budget including
+// hidden reasoning tokens. Callers pass tight budgets tuned for the visible
+// output only (e.g. 300–900), which reasoning models consume entirely while
+// thinking, returning empty content. Apply a floor so visible output always
+// has room. `reasoning_effort: "low"` further caps the thinking budget and
+// is accepted by both gpt-5 and o-series.
+const REASONING_TOKEN_FLOOR = 4000;
+
 async function callOpenAI(model: string, apiKey: string, opts: CallAIOptions): Promise<string> {
   const reasoning = isReasoningOpenAIModel(model);
   const body: Record<string, unknown> = {
@@ -58,7 +66,8 @@ async function callOpenAI(model: string, apiKey: string, opts: CallAIOptions): P
     messages: opts.messages,
   };
   if (reasoning) {
-    body.max_completion_tokens = opts.maxTokens;
+    body.max_completion_tokens = Math.max(opts.maxTokens, REASONING_TOKEN_FLOOR);
+    body.reasoning_effort = "low";
   } else {
     body.max_tokens = opts.maxTokens;
     body.temperature = opts.temperature;
