@@ -27,7 +27,7 @@ export default function OccasionOverflowButton({
       accessibilityLabel="Occasion options"
       style={styles.button}
     >
-      <MaterialIcons name="more-horiz" size={22} color={tint} />
+      <MaterialIcons name="more-horiz" size={18} color={tint} />
     </Pressable>
   );
 }

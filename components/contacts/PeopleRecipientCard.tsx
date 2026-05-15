@@ -5,6 +5,7 @@ import { Image } from "expo-image";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Colors } from "../../lib/colors";
+import { Typography, Radii } from "../../lib/typography";
 import { useAuth } from "../../hooks/use-auth";
 import { useDeleteRecipient } from "../../hooks/use-recipient-mutations";
 import type { Recipient } from "../../types/recipient";
@@ -75,8 +76,8 @@ const PeopleRecipientCard: React.FC<PeopleRecipientCardProps> = ({
               </Text>
               <MaterialIcons
                 name="chevron-right"
-                size={14}
-                color={Colors.blues.medium}
+                size={10}
+                color={Colors.brand.gold}
               />
             </View>
           )}
@@ -98,8 +99,8 @@ const PeopleRecipientCard: React.FC<PeopleRecipientCardProps> = ({
           >
             <MaterialIcons
               name="more-horiz"
-              size={22}
-              color={Colors.blues.medium}
+              size={18}
+              color={Colors.brand.lightTeal}
             />
           </Pressable>
         }
@@ -183,50 +184,50 @@ function formatBirthday(birthday: string): string {
   return date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
 }
 
+// Spec: Figma "People module" (359x45, radius 12, white bg).
+// 28px avatar at left, name + "Birthday: ... >" stacked, overflow dot at right.
 const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Colors.white,
-    borderRadius: 18,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
+    borderRadius: Radii.md,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    minHeight: 45,
   },
   body: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 7,
   },
   bodyPressed: {
     opacity: 0.7,
   },
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.blues.medium,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#D9D9D9",
   },
   avatarFallback: {
     alignItems: "center",
     justifyContent: "center",
   },
   avatarInitials: {
-    fontFamily: "RobotoFlex_400Regular",
-    color: Colors.white,
-    fontSize: 16,
-    fontWeight: "600",
+    fontFamily: "DMSans_600SemiBold",
+    color: Colors.brand.darkTeal,
+    fontSize: 11,
   },
   textColumn: {
     flex: 1,
     justifyContent: "center",
-    gap: 2,
+    gap: 4,
   },
   name: {
-    fontFamily: "RobotoFlex_400Regular",
-    fontSize: 16,
-    fontWeight: "700",
-    color: Colors.blues.dark,
+    ...Typography.h3,
+    color: Colors.brand.darkTeal,
   },
   birthdayRow: {
     flexDirection: "row",
@@ -234,9 +235,8 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   birthday: {
-    fontFamily: "RobotoFlex_400Regular",
-    fontSize: 13,
-    color: Colors.blues.medium,
+    ...Typography.smallCta,
+    color: Colors.brand.gold,
   },
   overflow: {
     paddingHorizontal: 6,

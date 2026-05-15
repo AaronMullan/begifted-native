@@ -1,9 +1,31 @@
 /**
- * Color palette constants for the BeGifted app
- * Organized by category for consistent use across the application
+ * Color palette for the BeGifted app.
+ *
+ * The `brand` group is the canonical Figma palette (source: BeGifted pages_2
+ * design file, node 28:47). Use brand tokens for new code. Legacy category
+ * groups (neutrals/blues/etc.) remain for backward compatibility and resolve
+ * to the same hex values where they overlap.
  */
 
 export const Colors = {
+  // Canonical Figma brand palette
+  brand: {
+    darkTeal: "#1A4453",
+    mediumTeal: "#5E8896",
+    lightTeal: "#94B4B0",
+    buttonTeal: "#04697E",
+    beige: "#DBD1C0",
+    beigeMid: "#E7E1D6",
+    gold: "#AB8A3E",
+    rose: "#AD4B5F",
+    cream: "#F4E6DD",
+  },
+
+  // Linear gradient stops used by the "BeGifted light gradient" frame
+  gradients: {
+    light: ["#DBD1C0", "#E7E1D6", "#FFFFFF"] as const,
+  },
+
   // Neutrals - Card backgrounds, subtle elements
   neutrals: {
     light: "#f4e6dd",
@@ -13,9 +35,9 @@ export const Colors = {
 
   // Blues - Primary actions, accents
   blues: {
-    dark: "#1b4453",
-    medium: "#5d8997",
-    teal: "#07697e",
+    dark: "#1A4453",
+    medium: "#5E8896",
+    teal: "#04697E",
     light: "#8deee2",
   },
 
@@ -29,13 +51,13 @@ export const Colors = {
   // Pinks - Icon fills, accents
   pinks: {
     dark: "#c53064",
-    medium: "#ae4b5f",
+    medium: "#AD4B5F",
     light: "#e1a18b",
   },
 
   // Yellows - Gradient accents, highlights
   yellows: {
-    gold: "#ac8b3f",
+    gold: "#AB8A3E",
     amber: "#dea300",
     orange: "#faa750",
   },
