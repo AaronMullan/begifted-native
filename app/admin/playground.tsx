@@ -165,6 +165,14 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
   const header = (
     <AdminNavbar
       title="Prompt Playground"
+      productionOverride={
+        playground.productionProvider && playground.productionModel
+          ? {
+              provider: playground.productionProvider,
+              model: playground.productionModel,
+            }
+          : undefined
+      }
       actions={
         <>
           <Button

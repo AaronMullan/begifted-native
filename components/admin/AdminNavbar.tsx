@@ -9,6 +9,12 @@ type AdminNavbarProps = {
   title: string;
   actions?: React.ReactNode;
   children?: React.ReactNode;
+  /**
+   * Override the "Production: …" chip in the upper right. Set this on pages
+   * (e.g. the Playground) where the global app_config row isn't the right
+   * answer because the current view uses a different per-task model.
+   */
+  productionOverride?: { provider: string; model: string };
 };
 
 const NAV_LINKS = [
@@ -23,10 +29,14 @@ export const AdminNavbar: React.FC<AdminNavbarProps> = ({
   title,
   actions,
   children,
+  productionOverride,
 }) => {
   const router = useRouter();
   const pathname = usePathname();
   const { data: config } = useAppConfig();
+
+  const chipProvider = productionOverride?.provider ?? config?.ai_provider;
+  const chipModel = productionOverride?.model ?? config?.ai_model;
 
   return (
     <View style={styles.wrapper}>
@@ -49,14 +59,14 @@ export const AdminNavbar: React.FC<AdminNavbarProps> = ({
             );
           })}
         </View>
-        {config && (
+        {chipProvider && chipModel && (
           <Chip
             compact
             style={styles.aiChip}
             onPress={() => router.push("/admin/ai-model")}
             icon="robot"
           >
-            {`Production: ${config.ai_provider} · ${config.ai_model}`}
+            {`Production: ${chipProvider} · ${chipModel}`}
           </Chip>
         )}
       </View>
