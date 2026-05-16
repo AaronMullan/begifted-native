@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/react-native";
+import { AppState } from "react-native";
 
 export function toError(value: unknown): Error {
   if (value instanceof Error) return value;
@@ -16,6 +17,13 @@ export function toError(value: unknown): Error {
 
 export function isOfflineError(err: Error): boolean {
   return err.message === "Network request failed";
+}
+
+// iOS cancels in-flight fetches when the app loses foreground, surfacing as
+// FunctionsFetchError from supabase-js. Treat this as expected noise, not a bug.
+export function isBackgroundCancelledFetch(err: unknown): boolean {
+  if (AppState.currentState === "active") return false;
+  return err instanceof Error && err.name === "FunctionsFetchError";
 }
 
 export function captureQueryError(
