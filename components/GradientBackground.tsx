@@ -1,12 +1,14 @@
 import { useWindowDimensions } from "react-native";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
+import { Colors } from "../lib/colors";
 
 /**
- * Global page background — soft vertical cream gradient (top → bottom).
- * Sampled from the design's page background.
+ * Global page background — vertical cream gradient (top → bottom).
+ * Stops mirror Figma "BeGifted light gradient": beige → beigeMid → white.
  */
 export default function GradientBackground() {
   const { width, height } = useWindowDimensions();
+  const [top, mid, bottom] = Colors.gradients.light;
 
   return (
     <Svg
@@ -24,8 +26,9 @@ export default function GradientBackground() {
           y2="100%"
           gradientUnits="objectBoundingBox"
         >
-          <Stop offset="0" stopColor="#dbd1c0" />
-          <Stop offset="1" stopColor="#f8f6f3" />
+          <Stop offset="0" stopColor={top} />
+          <Stop offset="0.75" stopColor={mid} />
+          <Stop offset="1" stopColor={bottom} />
         </LinearGradient>
       </Defs>
       <Rect

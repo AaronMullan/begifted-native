@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import * as Sentry from "@sentry/react-native";
 import { supabase } from "../lib/supabase";
 import { Alert, View } from "react-native";
+import { isBackgroundCancelledFetch } from "../lib/sentry-helpers";
 
 export interface Message {
   id: string;
@@ -225,13 +226,15 @@ export function useConversationFlow(
       } catch (error) {
         console.error("Error sending message:", error);
         console.error("Error details:", JSON.stringify(error, null, 2));
-        Sentry.captureException(error, {
-          tags: {
-            edge_function: "recipient-conversation",
-            action: "conversation",
-            conversationType,
-          },
-        });
+        if (!isBackgroundCancelledFetch(error)) {
+          Sentry.captureException(error, {
+            tags: {
+              edge_function: "recipient-conversation",
+              action: "conversation",
+              conversationType,
+            },
+          });
+        }
 
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
@@ -336,13 +339,15 @@ export function useConversationFlow(
       } catch (error) {
         console.error("Error finishing conversation:", error);
         console.error("Error details:", JSON.stringify(error, null, 2));
-        Sentry.captureException(error, {
-          tags: {
-            edge_function: "recipient-conversation",
-            action: "extract",
-            conversationType,
-          },
-        });
+        if (!isBackgroundCancelledFetch(error)) {
+          Sentry.captureException(error, {
+            tags: {
+              edge_function: "recipient-conversation",
+              action: "extract",
+              conversationType,
+            },
+          });
+        }
 
         const errorMsg =
           error instanceof Error

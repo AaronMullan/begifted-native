@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { View, Modal, StyleSheet, KeyboardAvoidingView, Keyboard, Platform, Pressable } from "react-native";
 import { Text, TextInput, IconButton, Button, Dialog, Portal } from "react-native-paper";
+import { Colors } from "../../../lib/colors";
 
 interface OccasionEditorProps {
   occasion: {
@@ -165,7 +166,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   modalContent: {
-    backgroundColor: "#f4e6dd",
+    backgroundColor: Colors.brand.cream,
     borderRadius: 16,
     width: "100%",
     maxWidth: 400,

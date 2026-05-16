@@ -3,6 +3,7 @@ import { Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Colors } from "../../lib/colors";
+import { Typography, Radii } from "../../lib/typography";
 import type { Occasion } from "../../lib/api";
 import {
   formatOccasionTypeLower,
@@ -41,28 +42,29 @@ export default function HomeHeroCard({ occasion }: HomeHeroCardProps) {
           <Text style={styles.ctaText}>
             View {possessive(recipientName)} gift ideas
           </Text>
-          <MaterialIcons name="chevron-right" size={20} color={Colors.white} />
+          <MaterialIcons name="chevron-right" size={14} color={Colors.white} />
         </View>
-        <OccasionOverflowButton occasion={occasion} tint={Colors.white} />
+        <OccasionOverflowButton occasion={occasion} tint={Colors.brand.lightTeal} />
       </View>
     </Pressable>
   );
 }
 
+// Spec: Figma "module: primary" (360x170, radius ~8). We use Radii.sm and tweak
+// padding/fontSize to reach the Figma proportions while staying touch-friendly.
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.blues.medium,
-    borderRadius: 24,
-    padding: 28,
-    minHeight: 240,
+    backgroundColor: Colors.brand.mediumTeal,
+    borderRadius: Radii.sm,
+    paddingHorizontal: 19,
+    paddingVertical: 20,
+    minHeight: 170,
     justifyContent: "space-between",
-    gap: 24,
+    gap: 16,
   },
   headline: {
-    fontFamily: "Fraunces_600SemiBold",
+    ...Typography.h1,
     color: Colors.white,
-    fontSize: 34,
-    lineHeight: 40,
   },
   footer: {
     flexDirection: "row",
@@ -72,11 +74,10 @@ const styles = StyleSheet.create({
   cta: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 2,
   },
   ctaText: {
+    ...Typography.largeCta,
     color: Colors.white,
-    fontSize: 15,
-    fontWeight: "600",
   },
 });

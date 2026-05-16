@@ -87,24 +87,26 @@ const queryClient = new QueryClient({
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-// Custom theme with 18px border radius for buttons and color scheme
+// MD3 theme wired to the Figma brand palette (see lib/colors.ts → Colors.brand).
+// Components that need a non-brand primary (e.g. legacy "#000000" CTAs) still
+// pass buttonColor explicitly and continue to override this default.
 const customTheme = {
   ...MD3LightTheme,
-  roundness: 18, // 18px rounded corners for buttons and other components
+  roundness: 18,
   colors: {
     ...MD3LightTheme.colors,
-    primary: "#000000", // Black for primary actions
-    secondary: "#666666", // Gray for secondary elements
-    background: "#FFFFFF", // White background
-    surface: "#FFFFFF", // White surface
-    surfaceVariant: "#F5F5F5", // Light gray for surface variants
-    error: MD3LightTheme.colors.error, // Keep red for errors
-    onPrimary: "#FFFFFF", // White text on primary (black)
-    onSecondary: "#FFFFFF", // White text on secondary
-    onBackground: "#000000", // Black text on background
-    onSurface: "#000000", // Black text on surface
-    onError: "#FFFFFF", // White text on error
-    outline: "#000000", // Black border for outlined buttons
+    primary: Colors.brand.buttonTeal,
+    secondary: Colors.brand.mediumTeal,
+    background: Colors.white,
+    surface: Colors.white,
+    surfaceVariant: "#F5F5F5",
+    error: MD3LightTheme.colors.error,
+    onPrimary: Colors.white,
+    onSecondary: Colors.white,
+    onBackground: Colors.brand.darkTeal,
+    onSurface: Colors.brand.darkTeal,
+    onError: Colors.white,
+    outline: Colors.brand.darkTeal,
   },
 };
 

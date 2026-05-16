@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 import { Colors } from "../../../lib/colors";
+import { Typography } from "../../../lib/typography";
+import GradientBackground from "../../../components/GradientBackground";
 import ContactFileImport from "../../../components/ContactFileImport";
 import ContactPicker from "../../../components/ContactPicker";
 import ContactsAccessIntro from "../../../components/ContactsAccessIntro";
@@ -97,6 +99,7 @@ export default function Contacts() {
   if (!user) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={styles.content}>
           <Text style={styles.title}>These are your people.</Text>
           <Text style={styles.subtitle}>
@@ -109,6 +112,7 @@ export default function Contacts() {
 
   return (
     <View style={styles.container}>
+      <GradientBackground />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -197,17 +201,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   title: {
-    fontFamily: "Fraunces_600SemiBold",
-    fontSize: 32,
-    lineHeight: 38,
-    color: Colors.blues.dark,
+    ...Typography.h1,
+    color: Colors.brand.darkTeal,
   },
   subtitle: {
-    fontFamily: "RobotoFlex_400Regular",
-    fontSize: 15,
-    lineHeight: 21,
-    color: Colors.darks.black,
-    opacity: 0.8,
+    ...Typography.subhead,
+    color: Colors.brand.darkTeal,
   },
   loadingText: {
     fontFamily: "RobotoFlex_400Regular",
@@ -232,7 +231,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   list: {
-    gap: 12,
+    gap: 15,
   },
   footer: {
     paddingTop: 16,

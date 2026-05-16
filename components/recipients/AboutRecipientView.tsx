@@ -740,7 +740,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   modalContent: {
-    backgroundColor: "#f4e6dd",
+    backgroundColor: Colors.brand.cream,
     borderRadius: 18,
     width: "100%",
     maxWidth: 480,
@@ -778,7 +778,7 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 12,
-    backgroundColor: "#f4e6dd",
+    backgroundColor: Colors.brand.cream,
   },
   budgetInput: {
     flex: 1,

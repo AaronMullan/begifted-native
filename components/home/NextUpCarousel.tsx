@@ -3,6 +3,7 @@ import { Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Colors } from "../../lib/colors";
+import { Typography, Radii } from "../../lib/typography";
 import type { Occasion } from "../../lib/api";
 import {
   daysUntil,
@@ -64,52 +65,51 @@ function NextUpCard({ occasion }: { occasion: Occasion }) {
           <Text style={styles.ctaText}>View {possessive(name)} gift ideas</Text>
           <MaterialIcons
             name="chevron-right"
-            size={16}
-            color={Colors.yellows.gold}
+            size={12}
+            color={Colors.brand.gold}
           />
         </View>
-        <OccasionOverflowButton occasion={occasion} tint={Colors.darks.black} />
+        <OccasionOverflowButton occasion={occasion} tint={Colors.brand.mediumTeal} />
       </View>
     </Pressable>
   );
 }
 
-const CARD_WIDTH = 280;
+// Spec: Figma "module: secondary" (170x110, radius ~8.8). Carousel keeps
+// horizontal scrolling but card width matches the Figma 2-up grid so the first
+// two tiles visually line up like the static design.
+const CARD_WIDTH = 170;
 
 const styles = StyleSheet.create({
   section: {
-    gap: 12,
+    gap: 8,
   },
   sectionLabel: {
-    fontFamily: "RobotoFlex_400Regular",
-    color: Colors.blues.dark,
-    fontSize: 13,
-    letterSpacing: 1.4,
+    ...Typography.sectionHeadAc,
+    color: Colors.brand.mediumTeal,
     paddingHorizontal: 4,
   },
   scrollContent: {
-    gap: 12,
+    gap: 20,
     paddingRight: 20,
   },
   card: {
     width: CARD_WIDTH,
     backgroundColor: Colors.white,
-    borderRadius: 16,
-    padding: 20,
-    minHeight: 160,
+    borderRadius: Radii.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    minHeight: 110,
     justifyContent: "space-between",
-    gap: 16,
+    gap: 8,
   },
   countdown: {
-    color: Colors.yellows.gold,
-    fontSize: 13,
-    fontWeight: "600",
+    ...Typography.eyebrow,
+    color: Colors.brand.gold,
   },
   title: {
-    fontFamily: "Fraunces_600SemiBold",
-    color: Colors.blues.dark,
-    fontSize: 24,
-    lineHeight: 28,
+    ...Typography.h2,
+    color: Colors.brand.mediumTeal,
   },
   footer: {
     flexDirection: "row",
@@ -122,8 +122,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   ctaText: {
-    color: Colors.yellows.gold,
-    fontSize: 13,
-    fontWeight: "500",
+    ...Typography.smallCta,
+    color: Colors.brand.gold,
   },
 });
