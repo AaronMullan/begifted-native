@@ -1,12 +1,14 @@
+import { useState } from "react";
 import { View, StyleSheet, Text, Pressable, Animated } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Avatar } from "react-native-paper";
+import { Avatar, Portal } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
-import { Link, usePathname } from "expo-router";
+import { Link, useRouter, usePathname } from "expo-router";
 import { useAuth } from "../hooks/use-auth";
 import { useUnreadCount } from "../hooks/use-notifications";
 import { useHeaderVisibility } from "../hooks/use-header-visibility";
 import { Colors } from "../lib/colors";
+import { supabase } from "../lib/supabase";
 import BrandMark from "./BrandMark";
 import BrandWordmark from "./BrandWordmark";
 
@@ -17,13 +19,25 @@ type HeaderProps = {
 export default function Header({ colorful: _colorful = false }: HeaderProps) {
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
+  const router = useRouter();
   const { user } = useAuth();
   const { data: unreadCount = 0 } = useUnreadCount();
   const headerHeight = insets.top + 4 + 40 + 8;
   const { animatedStyle } = useHeaderVisibility(headerHeight);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
 
-  if (pathname.startsWith("/onboarding")) {
+  if (pathname.startsWith("/onboarding") || pathname.startsWith("/intro")) {
     return null;
+  }
+
+  async function handleSignOut() {
+    setAccountMenuOpen(false);
+    await supabase.auth.signOut();
+  }
+
+  function handleOpenSettings() {
+    setAccountMenuOpen(false);
+    router.push("/settings");
   }
 
   const email = user?.email ?? "";
@@ -80,23 +94,63 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
               )}
             </Pressable>
           </Link>
-          <Link href="/settings" asChild>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Open settings"
-              style={styles.avatarButton}
-            >
-              <Avatar.Text
-                size={36}
-                label={initials}
-                style={styles.avatar}
-                color={Colors.darks.black}
-                labelStyle={styles.avatarLabel}
-              />
-            </Pressable>
-          </Link>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open account menu"
+            style={styles.avatarButton}
+            onPress={() => setAccountMenuOpen(true)}
+          >
+            <Avatar.Text
+              size={36}
+              label={initials}
+              style={styles.avatar}
+              color={Colors.darks.black}
+              labelStyle={styles.avatarLabel}
+            />
+          </Pressable>
         </View>
       </View>
+
+      {accountMenuOpen ? (
+        <Portal>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setAccountMenuOpen(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Close account menu"
+          />
+          <View
+            style={[styles.dropdown, { top: insets.top + 56, right: 20 }]}
+            pointerEvents="box-none"
+          >
+            <Pressable
+              style={styles.dropdownItem}
+              onPress={handleOpenSettings}
+              accessibilityRole="button"
+            >
+              <MaterialIcons
+                name="settings"
+                size={18}
+                color={Colors.darks.black}
+              />
+              <Text style={styles.dropdownItemText}>Settings</Text>
+            </Pressable>
+            <View style={styles.dropdownDivider} />
+            <Pressable
+              style={styles.dropdownItem}
+              onPress={handleSignOut}
+              accessibilityRole="button"
+            >
+              <MaterialIcons
+                name="logout"
+                size={18}
+                color={Colors.darks.black}
+              />
+              <Text style={styles.dropdownItemText}>Sign out</Text>
+            </Pressable>
+          </View>
+        </Portal>
+      ) : null}
     </Animated.View>
   );
 }
@@ -159,5 +213,33 @@ const styles = StyleSheet.create({
   avatarLabel: {
     fontWeight: "600",
     fontSize: 13,
+  },
+  dropdown: {
+    position: "absolute",
+    minWidth: 180,
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    paddingVertical: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  dropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  dropdownItemText: {
+    color: Colors.darks.black,
+    fontSize: 15,
+  },
+  dropdownDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: "rgba(0,0,0,0.08)",
+    marginHorizontal: 8,
   },
 });

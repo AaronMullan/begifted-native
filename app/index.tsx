@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import Auth from "../components/Auth";
 import GradientBackground from "../components/GradientBackground";
+import { hasSeenIntro } from "../lib/intro-storage";
 
 export default function Index() {
   const [session, setSession] = useState<Session | null>(null);
@@ -48,6 +49,14 @@ export default function Index() {
           router.replace("/onboarding/welcome" as Href);
         }
       } else {
+        const introSeen = await hasSeenIntro();
+        if (!isMounted || hasNavigated.current) return;
+
+        if (!introSeen) {
+          hasNavigated.current = true;
+          router.replace("/intro" as Href);
+          return;
+        }
         setLoading(false);
       }
     }
