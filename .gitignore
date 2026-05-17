@@ -48,3 +48,6 @@ app-example
 supabase/.temp/
 
 .env.local
+
+# Claude Code MCP server config — contains personal access tokens
+.mcp.json
