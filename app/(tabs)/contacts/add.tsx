@@ -8,10 +8,18 @@ import { DataReviewView } from "../../../components/recipients/conversation/Data
 import { OccasionsSelectionView } from "../../../components/recipients/conversation/OccasionsSelectionView";
 import { ManualDataEntry } from "../../../components/recipients/conversation/ManualDataEntry";
 import { SuccessView } from "../../../components/recipients/conversation/SuccessView";
+import type { ExtractedData } from "../../../hooks/use-conversation-flow";
+
+type InitialContactSeed = {
+  name?: string;
+  birthday?: string;
+  photoUri?: string;
+  address: Partial<
+    Pick<ExtractedData, "address" | "city" | "state" | "zip_code" | "country">
+  >;
+};
 
 const AddRecipient = () => {
-  const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
   const params = useLocalSearchParams<{
     name?: string;
     birthday?: string;
@@ -22,23 +30,57 @@ const AddRecipient = () => {
     country?: string;
     photo_url?: string;
   }>();
-  const initialContactName =
-    typeof params.name === "string" ? params.name : undefined;
-  const initialBirthday =
-    typeof params.birthday === "string" ? params.birthday : undefined;
-  const initialPhotoUri =
-    typeof params.photo_url === "string" ? params.photo_url : undefined;
-  const initialAddress = {
-    ...(typeof params.address === "string" && { address: params.address }),
-    ...(typeof params.city === "string" && { city: params.city }),
-    ...(typeof params.state === "string" && { state: params.state }),
-    ...(typeof params.zip_code === "string" && { zip_code: params.zip_code }),
-    ...(typeof params.country === "string" && { country: params.country }),
+
+  // Capture device-contact prefill once at mount. On "Add another person",
+  // we reset to an empty seed so the second add doesn't reuse the first
+  // person's contact context.
+  const [seed, setSeed] = useState<InitialContactSeed>(() => ({
+    name: typeof params.name === "string" ? params.name : undefined,
+    birthday: typeof params.birthday === "string" ? params.birthday : undefined,
+    photoUri:
+      typeof params.photo_url === "string" ? params.photo_url : undefined,
+    address: {
+      ...(typeof params.address === "string" && { address: params.address }),
+      ...(typeof params.city === "string" && { city: params.city }),
+      ...(typeof params.state === "string" && { state: params.state }),
+      ...(typeof params.zip_code === "string" && { zip_code: params.zip_code }),
+      ...(typeof params.country === "string" && { country: params.country }),
+    },
+  }));
+
+  // Bumping this key remounts AddRecipientFlow, fully resetting its hook state.
+  const [resetKey, setResetKey] = useState(0);
+
+  const handleAddAnother = () => {
+    setSeed({
+      name: undefined,
+      birthday: undefined,
+      photoUri: undefined,
+      address: {},
+    });
+    setResetKey((k) => k + 1);
   };
+
+  return (
+    <AddRecipientFlow
+      key={resetKey}
+      seed={seed}
+      onAddAnother={handleAddAnother}
+    />
+  );
+};
+
+type AddRecipientFlowProps = {
+  seed: InitialContactSeed;
+  onAddAnother: () => void;
+};
+
+const AddRecipientFlow = ({ seed, onAddAnother }: AddRecipientFlowProps) => {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [partialData, setPartialData] = useState<any>(null);
 
-  // Always call hooks first - use a fallback ID when user is not available
   const {
     messages,
     isLoading,
@@ -63,10 +105,10 @@ const AddRecipient = () => {
     setExtractedData,
   } = useAddRecipientFlow(
     user?.id || "",
-    initialContactName,
-    Object.keys(initialAddress).length > 0 ? initialAddress : undefined,
-    initialBirthday,
-    initialPhotoUri
+    seed.name,
+    Object.keys(seed.address).length > 0 ? seed.address : undefined,
+    seed.birthday,
+    seed.photoUri
   );
 
   // Enhanced finish conversation handler with proper error handling
@@ -129,6 +171,7 @@ const AddRecipient = () => {
       <SuccessView
         recipientName={savedRecipientName || "Recipient"}
         onViewRecipients={handleViewRecipients}
+        onAddAnother={onAddAnother}
       />
     );
   }

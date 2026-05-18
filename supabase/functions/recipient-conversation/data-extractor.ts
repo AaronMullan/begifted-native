@@ -169,72 +169,81 @@ Return JSON with what's been established:
     }
   }
 
-  // Derive anchors deterministically from the extracted data fields,
-  // rather than trusting the LLM's self-assessment which is often too conservative.
-  if (!contextInfo.readiness) {
-    contextInfo.readiness = {
-      state: "not_captured",
-      gift_ready: false,
-      has_recipient_anchor: false,
-      has_occasion_anchor: false,
-      has_timing_anchor: false,
-      has_price_anchor: false,
-      has_age_anchor: false,
-      has_specificity_anchor: false,
-      missing_requirements: [],
-      reason: "",
-    };
-  }
+  // Anchor logic and the deterministic wrap-up are specific to the add_recipient
+  // flow. Update flows don't have required anchors — the recipient already
+  // exists, so the user decides when to save and the button is always visible.
+  if (conversationType === "add_recipient") {
+    if (!contextInfo.readiness) {
+      contextInfo.readiness = {
+        state: "not_captured",
+        gift_ready: false,
+        has_recipient_anchor: false,
+        has_occasion_anchor: false,
+        has_timing_anchor: false,
+        has_price_anchor: false,
+        has_age_anchor: false,
+        has_specificity_anchor: false,
+        missing_requirements: [],
+        reason: "",
+      };
+    }
 
-  const hasName = !!(contextInfo.name || contextInfo.existing_name);
-  const hasRelationship = !!(contextInfo.relationship || contextInfo.existing_relationship);
-  contextInfo.readiness.has_recipient_anchor = hasName && hasRelationship;
+    const hasName = !!(contextInfo.name || contextInfo.existing_name);
+    const hasRelationship = !!(contextInfo.relationship || contextInfo.existing_relationship);
+    contextInfo.readiness.has_recipient_anchor = hasName && hasRelationship;
 
-  const hasOccasion =
-    !!(contextInfo.birthday || contextInfo.existing_birthday) ||
-    (Array.isArray(contextInfo.occasions_mentioned) && contextInfo.occasions_mentioned.length > 0);
-  contextInfo.readiness.has_occasion_anchor = hasOccasion;
+    const hasOccasion =
+      !!(contextInfo.birthday || contextInfo.existing_birthday) ||
+      (Array.isArray(contextInfo.occasions_mentioned) && contextInfo.occasions_mentioned.length > 0);
+    contextInfo.readiness.has_occasion_anchor = hasOccasion;
 
-  // Timing: no pending occasion dates required from user
-  const pendingDates = contextInfo.occasions_needing_dates ?? [];
-  const hasTiming = !contextInfo.needs_occasion_date && pendingDates.length === 0;
-  contextInfo.readiness.has_timing_anchor = hasTiming;
+    const pendingDates = contextInfo.occasions_needing_dates ?? [];
+    const hasTiming = !contextInfo.needs_occasion_date && pendingDates.length === 0;
+    contextInfo.readiness.has_timing_anchor = hasTiming;
 
-  const hasPrice = !!contextInfo.has_price_guidance;
-  contextInfo.readiness.has_price_anchor = hasPrice;
+    const hasPrice = !!contextInfo.has_price_guidance;
+    contextInfo.readiness.has_price_anchor = hasPrice;
 
-  const hasAge = !!contextInfo.has_age_context;
-  contextInfo.readiness.has_age_anchor = hasAge;
+    const hasAge = !!contextInfo.has_age_context;
+    contextInfo.readiness.has_age_anchor = hasAge;
 
-  const interestCount = (contextInfo.interests || contextInfo.existing_interests || []).length;
-  const hasSpecificity = interestCount >= 1 || !!contextInfo.user_skipped_specificity;
-  contextInfo.readiness.has_specificity_anchor = hasSpecificity;
+    const interestCount = (contextInfo.interests || contextInfo.existing_interests || []).length;
+    const hasSpecificity = interestCount >= 1 || !!contextInfo.user_skipped_specificity;
+    contextInfo.readiness.has_specificity_anchor = hasSpecificity;
 
-  if (!contextInfo.readiness.has_recipient_anchor) {
-    contextInfo.readiness.state = "not_captured";
-  } else if (!hasOccasion) {
-    contextInfo.readiness.state = hasSpecificity ? "captured_needs_occasion" : "captured_needs_both";
-  } else if (!hasTiming) {
-    contextInfo.readiness.state = "captured_needs_timing";
-  } else if (!hasPrice) {
-    contextInfo.readiness.state = "captured_needs_price";
-  } else if (!hasAge) {
-    contextInfo.readiness.state = "captured_needs_age";
-  } else if (!hasSpecificity) {
-    contextInfo.readiness.state = "captured_needs_specificity";
-  } else {
-    contextInfo.readiness.state = "ready";
-  }
+    if (!contextInfo.readiness.has_recipient_anchor) {
+      contextInfo.readiness.state = "not_captured";
+    } else if (!hasOccasion) {
+      contextInfo.readiness.state = hasSpecificity ? "captured_needs_occasion" : "captured_needs_both";
+    } else if (!hasTiming) {
+      contextInfo.readiness.state = "captured_needs_timing";
+    } else if (!hasPrice) {
+      contextInfo.readiness.state = "captured_needs_price";
+    } else if (!hasAge) {
+      contextInfo.readiness.state = "captured_needs_age";
+    } else if (!hasSpecificity) {
+      contextInfo.readiness.state = "captured_needs_specificity";
+    } else {
+      contextInfo.readiness.state = "ready";
+    }
 
-  // If all anchors are satisfied, skip the reply LLM entirely — return a
-  // deterministic wrap-up so the message and button are always in sync.
-  if (contextInfo.readiness.state === "ready") {
-    return {
-      reply: `Got it. I have what I need. I'll take it from here.”`,
-      shouldShowNextStepButton: true,
-      conversationContext: contextInfo,
-      resolvedSystemPrompt: null, // Deterministic wrap-up — LLM prompt was not used
-    };
+    // If all anchors are satisfied, skip the reply LLM entirely — return a
+    // deterministic wrap-up so the message and button are always in sync.
+    if (contextInfo.readiness.state === "ready") {
+      const wrapUpName = contextInfo.name || contextInfo.existing_name || "this person";
+      const wrapUpTemplate = await loadActivePrompt(
+        supabaseUrl,
+        supabaseServiceKey,
+        "add_recipient_wrap_up",
+        ADD_RECIPIENT_WRAP_UP_DEFAULT
+      );
+      return {
+        reply: wrapUpTemplate.replace(/\{\{recipientName\}\}/g, wrapUpName),
+        shouldShowNextStepButton: true,
+        conversationContext: contextInfo,
+        resolvedSystemPrompt: null,
+      };
+    }
   }
 
   // Pre-compute dynamic template content
@@ -335,10 +344,13 @@ Return JSON with what's been established:
     }
   }
 
-  // If we reach here, anchors were not all satisfied — button stays hidden.
+  // For add_recipient, anchors weren't all satisfied yet — button stays hidden
+  // until the wrap-up branch above fires. For every other conversation type
+  // (update_field, extract_*) the recipient already exists, so the user can
+  // save at any point.
   return {
     reply,
-    shouldShowNextStepButton: false,
+    shouldShowNextStepButton: conversationType !== "add_recipient",
     conversationContext: contextInfo,
     resolvedSystemPrompt: systemPrompt,
   };
@@ -383,6 +395,11 @@ function buildPriorityGuidance(contextInfo: ContextInfo, recipientName: string):
 6. RECIPIENT TEXTURE — ask the user to describe ${recipientName} naturally ("Tell me a little about ${recipientName} — what's [he/she/they] like?").
 7. WRAP-UP — all required information captured. Use the exact ready response.`;
 }
+
+// Default wrap-up message shown when the conversation reaches the "ready" state.
+// Editable via the admin playground under prompt_key "add_recipient_wrap_up".
+// Supports {{recipientName}} interpolation.
+const ADD_RECIPIENT_WRAP_UP_DEFAULT = `Got it — I have what I need. I'll take it from here and start pulling together a few gift ideas for {{recipientName}}.`;
 
 // Default template for add_recipient_conversation — single source of truth.
 // This matches the structure previously hardcoded in buildAddRecipientPrompt().
@@ -466,8 +483,43 @@ Be conversational and helpful. Ask follow-up questions if needed, or confirm the
 
 Current exchange #${messageCount}:`;
 }
+async function addBirthdayAsOccasion(extractedData: ExtractedData): Promise<void> {
+  const raw = extractedData.birthday;
+  if (!raw) return;
+
+  const parts = raw.split("-");
+  if (parts.length < 2) return;
+
+  const month = parseInt(parts[parts.length === 3 ? 1 : 0], 10);
+  const day = parseInt(parts[parts.length === 3 ? 2 : 1], 10);
+  const validMonthDay =
+    !isNaN(month) &&
+    !isNaN(day) &&
+    month >= 1 &&
+    month <= 12 &&
+    day >= 1 &&
+    day <= 31;
+  if (!validMonthDay) return;
+
+  const { getNextOccurrenceDate } = await import("./utils.ts");
+  const nextBirthdayDate = getNextOccurrenceDate(month, day);
+
+  const birthdayExists = extractedData.occasions?.some(
+    (occ: { date: string; occasion_type: string }) =>
+      occ.occasion_type === "birthday" && occ.date === nextBirthdayDate
+  );
+  if (birthdayExists) return;
+
+  if (!extractedData.occasions) {
+    extractedData.occasions = [];
+  }
+  extractedData.occasions.push({
+    date: nextBirthdayDate,
+    occasion_type: "birthday",
+  });
+}
+
 // Full recipient extraction (for adding new recipients)
-// Line 277: extractFullRecipient
 export async function extractFullRecipient(
   messages: Message[],
   aiOverride?: AIOverride
@@ -606,77 +658,35 @@ IMPORTANT:
   if (extractedData.occasions && Array.isArray(extractedData.occasions)) {
     const { convertHolidaysToOccasions } = await import("./utils.ts");
 
-    // Process each occasion
     for (const occasion of extractedData.occasions) {
-      // If date is missing, try to look it up
-      if (
+      const dateMissing =
         !occasion.date ||
         occasion.date === "null" ||
-        occasion.date === null
-      ) {
-        const holidayOccasions = convertHolidaysToOccasions([
-          occasion.occasion_type,
-        ]);
+        occasion.date === null;
+      if (!dateMissing) continue;
 
-        if (holidayOccasions.length > 0 && holidayOccasions[0].date) {
-          // Found in lookup, use that date
-          occasion.date = holidayOccasions[0].date;
-        } else {
-          // Unknown occasion - use placeholder date (Jan 1 of next year)
-          // User can edit this later in the UI
-          const nextYear = new Date().getFullYear() + 1;
-          occasion.date = `${nextYear}-01-01`;
-          console.warn(
-            `Unknown occasion "${occasion.occasion_type}" - using placeholder date ${occasion.date}`
-          );
-        }
+      const holidayOccasions = convertHolidaysToOccasions([
+        occasion.occasion_type,
+      ]);
+
+      if (holidayOccasions.length > 0 && holidayOccasions[0].date) {
+        occasion.date = holidayOccasions[0].date;
+        continue;
       }
+
+      // Unknown occasion — placeholder Jan 1 of next year; user can edit in UI.
+      const nextYear = new Date().getFullYear() + 1;
+      occasion.date = `${nextYear}-01-01`;
+      console.warn(
+        `Unknown occasion "${occasion.occasion_type}" - using placeholder date ${occasion.date}`
+      );
     }
   } else if (!extractedData.occasions) {
     extractedData.occasions = [];
   }
 
-  // Add birthday as an occasion if it exists (only if not already in occasions)
   if (extractedData.birthday) {
-    // Parse birthday and add as occasion
-    const birthdayParts = extractedData.birthday.split("-");
-    if (birthdayParts.length >= 2) {
-      const month = parseInt(
-        birthdayParts[birthdayParts.length === 3 ? 1 : 0],
-        10
-      );
-      const day = parseInt(
-        birthdayParts[birthdayParts.length === 3 ? 2 : 1],
-        10
-      );
-
-      if (
-        !isNaN(month) &&
-        !isNaN(day) &&
-        month >= 1 &&
-        month <= 12 &&
-        day >= 1 &&
-        day <= 31
-      ) {
-        const { getNextOccurrenceDate } = await import("./utils.ts");
-        const nextBirthdayDate = getNextOccurrenceDate(month, day);
-
-        const birthdayExists = extractedData.occasions?.some(
-          (occ: { date: string; occasion_type: string }) =>
-            occ.occasion_type === "birthday" && occ.date === nextBirthdayDate
-        );
-
-        if (!birthdayExists) {
-          if (!extractedData.occasions) {
-            extractedData.occasions = [];
-          }
-          extractedData.occasions.push({
-            date: nextBirthdayDate,
-            occasion_type: "birthday",
-          });
-        }
-      }
-    }
+    await addBirthdayAsOccasion(extractedData);
   }
   console.log("🎯 FINAL EXTRACTION RESULTS:", {
     name: extractedData.name ? "✅ FOUND" : "❌ MISSING",

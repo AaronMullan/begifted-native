@@ -121,6 +121,15 @@ RESPONSE REQUIREMENTS:
     taskModel: { provider: "openai", model: "gpt-4.1-mini" },
   },
   {
+    key: "add_recipient_wrap_up",
+    label: "Add Recipient Wrap-up",
+    description:
+      "Deterministic reply shown the moment the Add Recipient chat is ready (all anchors satisfied). Bypasses the LLM so the message and the Next Step button stay in sync.",
+    defaultPrompt: `Got it — I have what I need. I'll take it from here and start pulling together a few gift ideas for {{recipientName}}.`,
+    templateVariables: ["recipientName"],
+    taskModel: { provider: "openai", model: "gpt-4.1-mini" },
+  },
+  {
     key: "occasion_recommendations",
     label: "Occasion Recommendations",
     description:
