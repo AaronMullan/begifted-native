@@ -61,10 +61,12 @@ export default function Contacts() {
     let birthdayStr: string | undefined;
     if (contact.birthday) {
       const { year, month, day } = contact.birthday;
-      const y = year ?? new Date().getFullYear();
       const m = String(month).padStart(2, "0");
       const d = String(day).padStart(2, "0");
-      birthdayStr = `${y}-${m}-${d}`;
+      // iOS contacts can omit the year. Emit the vCard partial form
+      // (--MM-DD) so we don't fudge a current-year birthday and so
+      // normalizeBirthday at the save boundary keeps it intact.
+      birthdayStr = year ? `${year}-${m}-${d}` : `--${m}-${d}`;
     }
 
     let stablePhotoUri: string | undefined;

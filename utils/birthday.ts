@@ -59,6 +59,14 @@ export function parseBirthdayParts(
     const year = Number(full[1]);
     const month = Number(full[2]);
     const day = Number(full[3]);
+    // Year 0000 is the LLM's tell for "I know the month/day but not the
+    // year." Repair to the canonical year-unknown form rather than
+    // rejecting — the user shouldn't have to re-enter a known date just
+    // because the model couldn't represent a missing field.
+    if (year === 0) {
+      if (!isRealMonthDay(month, day)) return null;
+      return { year: null, month, day };
+    }
     if (year < MIN_YEAR) return null;
     if (year > new Date().getFullYear()) return null;
     if (!isRealFullDate(year, month, day)) return null;
