@@ -817,6 +817,30 @@ export interface OccasionRecommendations {
 }
 
 /**
+ * Best-effort inference of life roles from a free-form relationship_type
+ * string. Only covers the unambiguous parent/grandparent vocabulary so the
+ * occasion prompt can unlock Mother's/Father's Day for the obvious cases
+ * without waiting on richer profile capture. Spouse/sibling/etc. are
+ * intentionally not inferred — they don't change the marquee occasions and
+ * the LLM already handles them from `relationship` alone.
+ */
+function inferRolesFromRelationship(relationship: string): string[] {
+  const r = relationship.toLowerCase();
+  const roles = new Set<string>();
+  if (/\b(mom|mother|mama|mommy|mum)\b/.test(r)) roles.add("mother");
+  if (/\b(grandmother|grandma|grammy|granny|nana)\b/.test(r)) {
+    roles.add("mother");
+    roles.add("grandmother");
+  }
+  if (/\b(dad|father|papa|daddy)\b/.test(r)) roles.add("father");
+  if (/\b(grandfather|grandpa|grampy)\b/.test(r)) {
+    roles.add("father");
+    roles.add("grandfather");
+  }
+  return [...roles];
+}
+
+/**
  * Recommend occasions based on the recipient's interests, relationship, and birthday.
  * Leans into hobbies and interests (e.g. running → race day, music → Record Store Day).
  */
@@ -833,10 +857,14 @@ export async function recommendOccasions(
     (extractedData as ExtractedData).interests ||
     (extractedData as RecipientData).interests ||
     [];
-  const knownRoles =
+  const explicitKnownRoles =
     (extractedData as ExtractedData).knownRoles ||
     (extractedData as RecipientData).knownRoles ||
     [];
+  const knownRoles =
+    explicitKnownRoles.length > 0
+      ? explicitKnownRoles
+      : inferRolesFromRelationship(relationship);
   const householdContext =
     (extractedData as ExtractedData).householdContext ||
     (extractedData as RecipientData).householdContext ||
