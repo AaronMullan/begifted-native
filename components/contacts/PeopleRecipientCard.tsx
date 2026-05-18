@@ -9,6 +9,7 @@ import { Typography, Radii } from "../../lib/typography";
 import { useAuth } from "../../hooks/use-auth";
 import { useDeleteRecipient } from "../../hooks/use-recipient-mutations";
 import type { Recipient } from "../../types/recipient";
+import { parseBirthdayParts } from "../../utils/birthday";
 
 type PeopleRecipientCardProps = {
   recipient: Recipient;
@@ -179,8 +180,9 @@ function getInitials(name: string): string {
 }
 
 function formatBirthday(birthday: string): string {
-  const [year, month, day] = birthday.split("-").map(Number);
-  const date = new Date(year, month - 1, day);
+  const parts = parseBirthdayParts(birthday);
+  if (!parts) return "";
+  const date = new Date(parts.year ?? 2000, parts.month - 1, parts.day);
   return date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
 }
 

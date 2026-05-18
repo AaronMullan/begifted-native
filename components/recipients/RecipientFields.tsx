@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { Text, TextInput } from "react-native-paper";
+import { HelperText, Text, TextInput } from "react-native-paper";
+import { isInvalidBirthdayInput } from "@/utils/birthday";
 
 type RecipientFieldsProps = {
   name: string;
@@ -83,9 +84,16 @@ export const RecipientFields: React.FC<RecipientFieldsProps> = ({
       label="Birthday (optional)"
       value={birthday}
       onChangeText={onChangeBirthday}
-      placeholder="YYYY-MM-DD"
+      placeholder="YYYY-MM-DD or MM-DD"
+      error={isInvalidBirthdayInput(birthday)}
       style={styles.input}
     />
+    {isInvalidBirthdayInput(birthday) && (
+      <HelperText type="error" visible style={styles.birthdayError}>
+        Use YYYY-MM-DD (e.g. 1990-12-07) or MM-DD (e.g. 12-07) if the year is
+        unknown.
+      </HelperText>
+    )}
 
     <TextInput
       mode="outlined"
@@ -215,6 +223,10 @@ const styles = StyleSheet.create({
   },
   multilineInput: {
     minHeight: 80,
+  },
+  birthdayError: {
+    marginTop: -12,
+    marginBottom: 8,
   },
   budgetRow: {
     flexDirection: "row",

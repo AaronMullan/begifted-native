@@ -1,5 +1,6 @@
 import type { Recipient } from "../types/recipient";
 import { formatShortName } from "../lib/format-name";
+import { parseBirthdayParts } from "../utils/birthday";
 import MenuCard from "./MenuCard";
 
 type RecipientCardProps = {
@@ -13,14 +14,18 @@ export default function RecipientCard({ recipient, onPress }: RecipientCardProps
       ? recipient.relationship_type
       : "";
 
+  const birthdayParts = parseBirthdayParts(recipient.birthday);
   let birthday = "";
-  if (recipient.birthday) {
-    const [year, month, day] = recipient.birthday.split("-").map(Number);
-    const date = new Date(year, month - 1, day);
+  if (birthdayParts) {
+    const date = new Date(
+      birthdayParts.year ?? 2000,
+      birthdayParts.month - 1,
+      birthdayParts.day
+    );
     birthday = `Birthday: ${date.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
-      year: "numeric",
+      ...(birthdayParts.year !== null ? { year: "numeric" } : {}),
     })}`;
   }
 

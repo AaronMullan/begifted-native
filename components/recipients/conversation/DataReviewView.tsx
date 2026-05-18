@@ -2,8 +2,9 @@ import { ExtractedData } from "@/hooks/use-add-recipient-flow";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View, KeyboardAvoidingView, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Button, IconButton, Text, TextInput } from "react-native-paper";
+import { Button, HelperText, IconButton, Text, TextInput } from "react-native-paper";
 import { BOTTOM_NAV_HEIGHT } from "@/lib/constants";
+import { isInvalidBirthdayInput } from "@/utils/birthday";
 
 interface DataReviewViewProps {
   extractedData: ExtractedData;
@@ -120,8 +121,15 @@ export function DataReviewView({
               value={extractedData.birthday || ""}
               onChangeText={(value) => updateField("birthday", value)}
               placeholder="YYYY-MM-DD or MM-DD"
+              error={isInvalidBirthdayInput(extractedData.birthday)}
               style={styles.input}
             />
+            {isInvalidBirthdayInput(extractedData.birthday) && (
+              <HelperText type="error" visible>
+                Use YYYY-MM-DD (e.g. 1990-12-07) or MM-DD (e.g. 12-07) if the
+                year is unknown.
+              </HelperText>
+            )}
           </View>
 
           <View style={styles.fieldContainer}>

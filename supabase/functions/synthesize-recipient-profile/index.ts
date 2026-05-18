@@ -97,10 +97,14 @@ serve(async (req) => {
     parts.push(relationshipPart);
 
     if (recipient.birthday) {
-      const today = new Date();
-      const bday = new Date(recipient.birthday);
-      const age = today.getFullYear() - bday.getFullYear();
-      parts.push(`Age: approximately ${age}`);
+      // Recipient.birthday is text — either "YYYY-MM-DD" or "--MM-DD" when
+      // the year is unknown. Only compute age when a year is present.
+      const fullDate = /^(\d{4})-(\d{2})-(\d{2})$/.exec(recipient.birthday);
+      if (fullDate) {
+        const today = new Date();
+        const age = today.getFullYear() - Number(fullDate[1]);
+        parts.push(`Age: approximately ${age}`);
+      }
     }
 
     const location = [recipient.city, recipient.state, recipient.country]

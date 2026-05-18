@@ -3,6 +3,22 @@ import * as Sentry from "@sentry/react-native";
 import { supabase } from "../lib/supabase";
 import { Alert, View } from "react-native";
 import { isBackgroundCancelledFetch } from "../lib/sentry-helpers";
+import { normalizeBirthday } from "../utils/birthday";
+
+/**
+ * Repair the birthday on a freshly-extracted payload into our canonical
+ * storage form (YYYY-MM-DD or --MM-DD) so form state never carries the
+ * LLM's "0000-MM-DD" placeholder year. Leaves the field absent when the
+ * model didn't extract one; leaves a truly unparseable value in place so
+ * the review form can surface its inline error.
+ */
+function sanitizeExtractedBirthday(extracted: ExtractedData): ExtractedData {
+  if (!("birthday" in extracted) || extracted.birthday == null) return extracted;
+  const canonical = normalizeBirthday(extracted.birthday);
+  if (canonical === null) return extracted;
+  if (canonical === extracted.birthday) return extracted;
+  return { ...extracted, birthday: canonical };
+}
 
 export interface Message {
   id: string;
@@ -322,9 +338,10 @@ export function useConversationFlow(
         }
 
         // The Edge Function returns { extractedData }
-        const extracted = data.extractedData || data;
+        const rawExtracted = data.extractedData || data;
 
-        if (extracted) {
+        if (rawExtracted) {
+          const extracted = sanitizeExtractedBirthday(rawExtracted);
           setExtractedData(extracted);
 
           // Call success callback if provided

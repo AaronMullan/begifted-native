@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/react-native";
 import { supabase } from "../lib/supabase";
 import type { ExtractedData } from "./use-conversation-flow";
 import { lookupOccasionDate } from "../utils/occasion-dates";
+import { parseBirthdayParts } from "../utils/birthday";
 
 export interface OccasionRecommendation {
   type: string;
@@ -164,10 +165,9 @@ function getFallbackRecommendations(
 }
 
 function checkIfMilestoneBirthday(birthday: string | null): boolean {
-  if (!birthday) return false;
-  const birthDate = new Date(birthday);
-  const currentYear = new Date().getFullYear();
-  const age = currentYear - birthDate.getFullYear();
+  const parts = parseBirthdayParts(birthday);
+  if (!parts || parts.year === null) return false;
+  const age = new Date().getFullYear() - parts.year;
   return age > 0 && age % 10 === 0 && age >= 30;
 }
 

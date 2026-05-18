@@ -7,11 +7,57 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, View } from "react-native";
 import { queryKeys } from "../lib/query-keys";
 import { supabase } from "../lib/supabase";
+import { normalizeBirthday } from "../utils/birthday";
 import {
   ExtractedData,
   Message,
   useConversationFlow,
 } from "./use-conversation-flow";
+
+async function uploadRecipientPhoto(
+  userId: string,
+  photoUri: string
+): Promise<string | null> {
+  try {
+    console.log("[photo] reading file as base64...");
+    const base64 = await FileSystem.readAsStringAsync(photoUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    console.log("[photo] base64 length:", base64.length);
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    console.log("[photo] uploading", bytes.length, "bytes to Supabase...");
+    const filePath = `${userId}/${Date.now()}.jpg`;
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("recipient-photos")
+      .upload(filePath, bytes, {
+        contentType: "image/jpeg",
+        upsert: true,
+      });
+    if (uploadError) {
+      console.error("[photo] upload error:", uploadError);
+      Sentry.captureException(uploadError, {
+        tags: { flow: "add_recipient", step: "photo_upload" },
+      });
+      return null;
+    }
+    if (!uploadData) return null;
+    const { data: urlData } = supabase.storage
+      .from("recipient-photos")
+      .getPublicUrl(uploadData.path);
+    console.log("[photo] upload success:", urlData.publicUrl);
+    return urlData.publicUrl;
+  } catch (err) {
+    console.error("[photo] upload failed:", err);
+    Sentry.captureException(err, {
+      tags: { flow: "add_recipient", step: "photo_upload" },
+    });
+    return null;
+  }
+}
 
 interface UseAddRecipientFlowReturn {
   messages: Message[];
@@ -131,50 +177,11 @@ export function useAddRecipientFlow(
       setIsSaving(true);
 
       try {
-        // Upload contact photo if one was provided
-        let photoUrl: string | null = null;
         const photoUri = cachedPhotoUri.current;
         console.log("[photo] saveRecipient, cachedPhotoUri:", photoUri);
-        if (photoUri) {
-          try {
-            console.log("[photo] reading file as base64...");
-            const base64 = await FileSystem.readAsStringAsync(photoUri, {
-              encoding: FileSystem.EncodingType.Base64,
-            });
-            console.log("[photo] base64 length:", base64.length);
-            const binary = atob(base64);
-            const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) {
-              bytes[i] = binary.charCodeAt(i);
-            }
-            console.log("[photo] uploading", bytes.length, "bytes to Supabase...");
-            const filePath = `${userId}/${Date.now()}.jpg`;
-            const { data: uploadData, error: uploadError } =
-              await supabase.storage
-                .from("recipient-photos")
-                .upload(filePath, bytes, {
-                  contentType: "image/jpeg",
-                  upsert: true,
-                });
-            if (!uploadError && uploadData) {
-              const { data: urlData } = supabase.storage
-                .from("recipient-photos")
-                .getPublicUrl(uploadData.path);
-              photoUrl = urlData.publicUrl;
-              console.log("[photo] upload success:", photoUrl);
-            } else if (uploadError) {
-              console.error("[photo] upload error:", uploadError);
-              Sentry.captureException(uploadError, {
-                tags: { flow: "add_recipient", step: "photo_upload" },
-              });
-            }
-          } catch (err) {
-            console.error("[photo] upload failed:", err);
-            Sentry.captureException(err, {
-              tags: { flow: "add_recipient", step: "photo_upload" },
-            });
-          }
-        }
+        const photoUrl = photoUri
+          ? await uploadRecipientPhoto(userId, photoUri)
+          : null;
 
         // Prepare recipient data
         const recipientData = {
@@ -183,7 +190,7 @@ export function useAddRecipientFlow(
           relationship_type: data.relationship_type!.trim(),
           interests:
             data.interests && data.interests.length > 0 ? data.interests : null,
-          birthday: data.birthday?.trim() || null,
+          birthday: normalizeBirthday(data.birthday),
           emotional_tone_preference:
             data.emotional_tone_preference?.trim() || null,
           gift_budget_min: data.gift_budget_min || null,

@@ -94,7 +94,7 @@ Return JSON with what's been established:
   "name": "person's name if clearly mentioned, null otherwise",
   "relationship": "relationship if established, null otherwise",
   "interests": ["any interests mentioned"],
-  "birthday": "birthday if mentioned (YYYY-MM-DD, MM-DD, or descriptive like 'October 31, 2002'), null otherwise",
+  "birthday": "birthday if mentioned. Use YYYY-MM-DD only when the year is explicitly stated. If only month and day are known, use MM-DD (e.g. '12-07'). Never substitute placeholder years like 0000 — when in doubt, omit the year. Return null if no birthday is mentioned.",
   "occasions_mentioned": ["array of holidays/occasions mentioned (e.g., 'christmas', 'anniversary', 'kwanzaa')"],
   "needs_occasion_date": false,
   "occasion_needing_date": null,
@@ -487,7 +487,12 @@ async function addBirthdayAsOccasion(extractedData: ExtractedData): Promise<void
   const raw = extractedData.birthday;
   if (!raw) return;
 
-  const parts = raw.split("-");
+  // Accept three forms: "YYYY-MM-DD", "MM-DD", or "--MM-DD" (vCard partial
+  // date when birth year is unknown). All collapse to a month/day pair here.
+  const noYear = /^--(\d{2})-(\d{2})$/.exec(raw);
+  const parts = noYear
+    ? [noYear[1], noYear[2]]
+    : raw.split("-").filter((p) => p.length > 0);
   if (parts.length < 2) return;
 
   const month = parseInt(parts[parts.length === 3 ? 1 : 0], 10);
@@ -591,7 +596,7 @@ Extract and return valid JSON (no markdown formatting) with this exact structure
 {
   "name": "${criticalFields.name || "null"}",
   "relationship_type": "${criticalFields.relationship_type || "null"}",
-  "birthday": "YYYY-MM-DD format or null (look for birthday mentions)",
+  "birthday": "Birthday or null. Use YYYY-MM-DD only when the year is explicit; use MM-DD when only month and day are known. Never use placeholder years like 0000.",
   "interests": ["array of interests mentioned"],
   "gift_budget_min": "number or null",
   "gift_budget_max": "number or null", 
@@ -732,7 +737,7 @@ export async function extractFields(
         case "gift_budget_max":
           return `"${field}": "number or null"`;
         case "birthday":
-          return `"birthday": "YYYY-MM-DD or MM-DD format or null"`;
+          return `"birthday": "YYYY-MM-DD when year is explicit, MM-DD when only month and day are known, or null. Never use placeholder years like 0000."`;
         case "emotional_tone_preference":
           return `"emotional_tone_preference": "string or null"`;
         case "address":
