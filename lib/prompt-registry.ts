@@ -182,7 +182,7 @@ Return JSON only, no markdown:
       "householdContext",
       "interests",
     ],
-    taskModel: { provider: "openai", model: "gpt-4.1-mini" },
+    taskModel: { provider: "openai", model: "gpt-5.4-mini" },
   },
   {
     key: "user_preferences_extraction",
