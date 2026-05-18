@@ -487,7 +487,12 @@ async function addBirthdayAsOccasion(extractedData: ExtractedData): Promise<void
   const raw = extractedData.birthday;
   if (!raw) return;
 
-  const parts = raw.split("-");
+  // Accept three forms: "YYYY-MM-DD", "MM-DD", or "--MM-DD" (vCard partial
+  // date when birth year is unknown). All collapse to a month/day pair here.
+  const noYear = /^--(\d{2})-(\d{2})$/.exec(raw);
+  const parts = noYear
+    ? [noYear[1], noYear[2]]
+    : raw.split("-").filter((p) => p.length > 0);
   if (parts.length < 2) return;
 
   const month = parseInt(parts[parts.length === 3 ? 1 : 0], 10);

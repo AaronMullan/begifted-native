@@ -1,6 +1,9 @@
 /** Match YYYY-MM-DD so we only treat explicit ISO dates as valid. */
 const ISO_DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
+/** Match --MM-DD (vCard partial date used when birth year is unknown). */
+const MONTH_DAY_NO_YEAR = /^--(\d{2})-(\d{2})$/;
+
 /** True if `date` is before today (comparing calendar dates only, not times). */
 function hasPassed(date: Date): boolean {
   const today = new Date();
@@ -16,11 +19,16 @@ function toISO(date: Date): string {
 }
 
 /**
- * Return the next occurrence of a calendar date (month/day). If the given
- * date is today or in the future, return it; otherwise return the same
- * month/day in the next year. Input must be YYYY-MM-DD.
+ * Return the next occurrence of a calendar date (month/day). If the input
+ * carries a year and falls today or in the future, return it unchanged;
+ * otherwise (or when the year is unknown) return the next future YYYY-MM-DD
+ * with the same month/day. Accepts YYYY-MM-DD or the vCard --MM-DD form.
  */
 export function getNextOccurrence(isoDateStr: string): string {
+  const noYear = MONTH_DAY_NO_YEAR.exec(isoDateStr);
+  if (noYear) {
+    return nextOccurrenceOfMonthDay(Number(noYear[1]), Number(noYear[2]));
+  }
   if (!ISO_DATE_ONLY.test(isoDateStr)) {
     return isoDateStr;
   }
@@ -32,9 +40,15 @@ export function getNextOccurrence(isoDateStr: string): string {
   if (!hasPassed(date)) {
     return isoDateStr;
   }
+  return nextOccurrenceOfMonthDay(m, d);
+}
+
+function nextOccurrenceOfMonthDay(month: number, day: number): string {
   const today = new Date();
-  const next = new Date(today.getFullYear() + 1, m - 1, d);
-  return toISO(next);
+  const thisYear = new Date(today.getFullYear(), month - 1, day);
+  return hasPassed(thisYear)
+    ? toISO(new Date(today.getFullYear() + 1, month - 1, day))
+    : toISO(thisYear);
 }
 
 /**

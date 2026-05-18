@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Keyboard, Platform, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Text, TextInput, Button } from "react-native-paper";
+import { Text, TextInput, Button, HelperText } from "react-native-paper";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
 import { BOTTOM_NAV_HEIGHT } from "@/lib/constants";
+import { isInvalidBirthdayInput } from "@/utils/birthday";
 
 interface ManualDataEntryProps {
   partialData: ExtractedData | null;
@@ -137,8 +138,15 @@ export function ManualDataEntry({
               value={birthday}
               onChangeText={setBirthday}
               placeholder="YYYY-MM-DD or MM-DD"
+              error={isInvalidBirthdayInput(birthday)}
               style={styles.input}
             />
+            {isInvalidBirthdayInput(birthday) && (
+              <HelperText type="error" visible>
+                Use YYYY-MM-DD (e.g. 1990-12-07) or MM-DD (e.g. 12-07) if the
+                year is unknown.
+              </HelperText>
+            )}
           </View>
 
           <View style={styles.fieldContainer}>

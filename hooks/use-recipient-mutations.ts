@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 import { queryKeys } from "../lib/query-keys";
 import type { Recipient } from "../types/recipient";
+import { normalizeBirthday } from "../utils/birthday";
 
 interface CreateRecipientData {
   user_id: string;
@@ -58,9 +59,13 @@ export function useCreateRecipient() {
 
   return useMutation({
     mutationFn: async (data: CreateRecipientData): Promise<Recipient> => {
+      const safeData =
+        "birthday" in data
+          ? { ...data, birthday: normalizeBirthday(data.birthday) }
+          : data;
       const { data: recipient, error } = await supabase
         .from("recipients")
-        .insert([data])
+        .insert([safeData])
         .select()
         .single();
 
@@ -96,10 +101,14 @@ export function useUpdateRecipient() {
       recipientId: string;
       data: UpdateRecipientData;
     }): Promise<Recipient> => {
+      const safeData =
+        "birthday" in data
+          ? { ...data, birthday: normalizeBirthday(data.birthday) }
+          : data;
       const { data: recipient, error } = await supabase
         .from("recipients")
         .update({
-          ...data,
+          ...safeData,
           updated_at: new Date().toISOString(),
         })
         .eq("id", recipientId)
