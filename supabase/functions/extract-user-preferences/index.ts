@@ -19,7 +19,9 @@ const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 function parseOpenAIJSON(content: string): any {
   let cleanContent = content.trim();
   if (cleanContent.startsWith("```json")) {
-    cleanContent = cleanContent.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+    cleanContent = cleanContent
+      .replace(/^```json\s*/, "")
+      .replace(/\s*```$/, "");
   } else if (cleanContent.startsWith("```")) {
     cleanContent = cleanContent.replace(/^```\s*/, "").replace(/\s*```$/, "");
   }
@@ -32,7 +34,8 @@ serve(async (req) => {
   }
 
   try {
-    const { text, customSystemPrompt, overrideProvider, overrideModel } = await req.json();
+    const { text, customSystemPrompt, overrideProvider, overrideModel } =
+      await req.json();
 
     if (!text || typeof text !== "string") {
       return new Response(
@@ -69,10 +72,14 @@ Return ONLY valid JSON:
           HARDCODED_FALLBACK
         );
 
-    const { provider, model } = await loadAIConfig(supabaseUrl, supabaseServiceKey, {
-      provider: overrideProvider,
-      model: overrideModel,
-    });
+    const { provider, model } = await loadAIConfig(
+      supabaseUrl,
+      supabaseServiceKey,
+      {
+        provider: overrideProvider,
+        model: overrideModel,
+      }
+    );
     const apiKey = getApiKey(provider);
     const rawContent = await callAI(provider, model, apiKey, {
       messages: [
@@ -89,16 +96,35 @@ Return ONLY valid JSON:
     const toStringArray = (v: any): string[] =>
       Array.isArray(v) ? v.filter((s: any) => typeof s === "string") : [];
 
-    const result = {
+    const result: Record<string, unknown> = {
       user_summary: {
-        user_summary: typeof extracted.user_summary === "string" ? extracted.user_summary : "",
+        user_summary:
+          typeof extracted.user_summary === "string"
+            ? extracted.user_summary
+            : "",
         taste_and_world: toStringArray(extracted.taste_and_world),
-        care_and_relationship_style: toStringArray(extracted.care_and_relationship_style),
-        giver_style_implications: toStringArray(extracted.giver_style_implications),
+        care_and_relationship_style: toStringArray(
+          extracted.care_and_relationship_style
+        ),
+        giver_style_implications: toStringArray(
+          extracted.giver_style_implications
+        ),
         things_to_avoid: toStringArray(extracted.things_to_avoid),
-        confidence: typeof extracted.confidence === "string" ? extracted.confidence : "low",
+        confidence:
+          typeof extracted.confidence === "string"
+            ? extracted.confidence
+            : "low",
       },
     };
+
+    // Playground requests pass `customSystemPrompt`. Surface the full pipeline
+    // so admins can see exactly what was sent and what the model returned.
+    if (customSystemPrompt) {
+      result.resolvedSystemPrompt = systemPrompt;
+      result.userInput = text;
+      result.rawResponse = rawContent;
+      result.modelUsed = { provider, model };
+    }
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

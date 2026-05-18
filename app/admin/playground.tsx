@@ -638,16 +638,16 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
         <Card style={styles.card}>
           <Card.Content>
             <Text variant="titleSmall" style={styles.cardTitle}>
-              Test Input
+              Your Gifting Style
             </Text>
             <Text variant="bodySmall" style={styles.cisSecondary}>
-              Paste or type a sample user description of their gifting style.
+              {"In the app, users type this in Settings → Gifting Preferences. It’s a single text box (no chat). On Save, we send this text + the system prompt to the LLM and parse JSON back."}
             </Text>
             <TextInput
               mode="outlined"
               multiline
               numberOfLines={6}
-              placeholder="e.g., I like to give thoughtful, personalized gifts. I plan ahead and prefer mid-range budgets..."
+              placeholder="e.g. I like to give thoughtful, handmade gifts. I prefer spending moderately and planning ahead. I tend to be warm and personal with my gift choices..."
               value={playground.testInput}
               onChangeText={playground.setTestInput}
               style={styles.testTextInput}
@@ -1541,6 +1541,10 @@ const OccasionResultView: React.FC<{ result: Record<string, unknown> }> = ({
 const PreferencesResultView: React.FC<{ result: Record<string, unknown> }> = ({
   result,
 }) => {
+  const [showUserInput, setShowUserInput] = useState(false);
+  const [showSystemPrompt, setShowSystemPrompt] = useState(false);
+  const [showRawResponse, setShowRawResponse] = useState(false);
+
   if ("error" in result) {
     return (
       <View style={styles.resultError}>
@@ -1552,14 +1556,11 @@ const PreferencesResultView: React.FC<{ result: Record<string, unknown> }> = ({
   }
 
   const us = result.user_summary as Record<string, unknown> | undefined;
-
-  if (!us) {
-    return (
-      <Text variant="bodyMedium" style={{ color: Colors.darks.brown }}>
-        No summary extracted.
-      </Text>
-    );
-  }
+  const userInput = typeof result.userInput === "string" ? result.userInput : null;
+  const resolvedPrompt =
+    typeof result.resolvedSystemPrompt === "string" ? result.resolvedSystemPrompt : null;
+  const rawResponse = typeof result.rawResponse === "string" ? result.rawResponse : null;
+  const modelUsed = result.modelUsed as { provider?: string; model?: string } | undefined;
 
   const arrayFields: { label: string; key: string }[] = [
     { label: "Taste & World", key: "taste_and_world" },
@@ -1569,42 +1570,138 @@ const PreferencesResultView: React.FC<{ result: Record<string, unknown> }> = ({
   ];
 
   return (
-    <View style={resultStyles.summaryBox}>
-      {typeof us.user_summary === "string" && us.user_summary ? (
-        <View style={{ marginBottom: 10 }}>
-          <Text
-            variant="labelSmall"
-            style={{ color: Colors.darks.brown, fontWeight: "700", marginBottom: 2 }}
-          >
-            Summary
-          </Text>
-          <Text variant="bodyMedium" style={{ color: Colors.darks.brown }}>
-            {us.user_summary}
-          </Text>
+    <View>
+      <Text variant="bodySmall" style={resultStyles.processIntro}>
+        {"Single-shot extraction (no chat). Steps 1–3 show exactly what was sent to and returned by the model. Step 4 is the parsed result the app stores."}
+      </Text>
+
+      {modelUsed?.provider && modelUsed?.model && (
+        <View style={resultStyles.statusRow}>
+          <Chip compact style={resultStyles.contextChip}>
+            {`Model: ${modelUsed.provider} · ${modelUsed.model}`}
+          </Chip>
         </View>
-      ) : null}
-      {arrayFields.map(({ label, key }) => {
-        const items = Array.isArray(us[key]) ? (us[key] as string[]) : [];
-        return items.length > 0 ? (
-          <View key={key} style={{ marginBottom: 10 }}>
-            <Text
-              variant="labelSmall"
-              style={{ color: Colors.darks.brown, fontWeight: "700", marginBottom: 2 }}
-            >
-              {label}
-            </Text>
-            {items.map((item, i) => (
-              <Text key={i} variant="bodyMedium" style={{ color: Colors.darks.brown }}>
-                • {item}
-              </Text>
-            ))}
-          </View>
-        ) : null;
-      })}
-      {typeof us.confidence === "string" && (
-        <Text variant="labelSmall" style={{ color: Colors.darks.brown, marginTop: 4 }}>
-          Confidence: {us.confidence}
+      )}
+
+      {/* Step 1 — User input */}
+      {userInput !== null && (
+        <>
+          <Button
+            mode="text"
+            onPress={() => setShowUserInput(!showUserInput)}
+            icon={showUserInput ? "chevron-up" : "chevron-down"}
+            compact
+            style={resultStyles.collapseBtn}
+          >
+            {"Step 1 — User Input"}
+          </Button>
+          {showUserInput && (
+            <View style={resultStyles.contextBox}>
+              <ScrollView style={resultStyles.resolvedPromptScroll}>
+                <Text variant="bodySmall" style={resultStyles.resolvedPromptText}>
+                  {userInput}
+                </Text>
+              </ScrollView>
+            </View>
+          )}
+        </>
+      )}
+
+      {/* Step 2 — System prompt as sent */}
+      {resolvedPrompt !== null && (
+        <>
+          <Button
+            mode="text"
+            onPress={() => setShowSystemPrompt(!showSystemPrompt)}
+            icon={showSystemPrompt ? "chevron-up" : "chevron-down"}
+            compact
+            style={resultStyles.collapseBtn}
+          >
+            {"Step 2 — System Prompt Sent"}
+          </Button>
+          {showSystemPrompt && (
+            <View style={resultStyles.contextBox}>
+              <ScrollView style={resultStyles.resolvedPromptScroll}>
+                <Text variant="bodySmall" style={resultStyles.resolvedPromptText}>
+                  {resolvedPrompt}
+                </Text>
+              </ScrollView>
+            </View>
+          )}
+        </>
+      )}
+
+      {/* Step 3 — Raw model response (pre-parse) */}
+      {rawResponse !== null && (
+        <>
+          <Button
+            mode="text"
+            onPress={() => setShowRawResponse(!showRawResponse)}
+            icon={showRawResponse ? "chevron-up" : "chevron-down"}
+            compact
+            style={resultStyles.collapseBtn}
+          >
+            {"Step 3 — Raw Model Response"}
+          </Button>
+          {showRawResponse && (
+            <View style={resultStyles.contextBox}>
+              <ScrollView style={resultStyles.resolvedPromptScroll}>
+                <Text variant="bodySmall" style={resultStyles.resolvedPromptText}>
+                  {rawResponse}
+                </Text>
+              </ScrollView>
+            </View>
+          )}
+        </>
+      )}
+
+      {/* Step 4 — Parsed user_summary */}
+      <Text variant="labelSmall" style={resultStyles.stepHeader}>
+        {"Step 4 — Extracted user_summary (what the app stores)"}
+      </Text>
+      {!us ? (
+        <Text variant="bodyMedium" style={{ color: Colors.darks.brown }}>
+          No summary extracted.
         </Text>
+      ) : (
+        <View style={resultStyles.summaryBox}>
+          {typeof us.user_summary === "string" && us.user_summary ? (
+            <View style={{ marginBottom: 10 }}>
+              <Text
+                variant="labelSmall"
+                style={{ color: Colors.darks.brown, fontWeight: "700", marginBottom: 2 }}
+              >
+                Summary
+              </Text>
+              <Text variant="bodyMedium" style={{ color: Colors.darks.brown }}>
+                {us.user_summary}
+              </Text>
+            </View>
+          ) : null}
+          {arrayFields.map(({ label, key }) => {
+            const items = Array.isArray(us[key]) ? (us[key] as string[]) : [];
+            return items.length > 0 ? (
+              <View key={key} style={{ marginBottom: 10 }}>
+                <Text
+                  variant="labelSmall"
+                  style={{ color: Colors.darks.brown, fontWeight: "700", marginBottom: 2 }}
+                >
+                  {label}
+                </Text>
+                {items.map((item, i) => (
+                  <Text key={i} variant="bodyMedium" style={{ color: Colors.darks.brown }}>
+                    • {item}
+                  </Text>
+                ))}
+              </View>
+            ) : null;
+          })}
+          {typeof us.confidence === "string" && (
+            <Text variant="labelSmall" style={{ color: Colors.darks.brown, marginTop: 4 }}>
+              Confidence: {us.confidence}
+            </Text>
+          )}
+        </View>
       )}
     </View>
   );
@@ -1687,6 +1784,16 @@ const resultStyles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 16,
     color: Colors.darks.brown,
+  },
+  processIntro: {
+    color: Colors.darks.brown,
+    marginBottom: 8,
+  },
+  stepHeader: {
+    color: Colors.darks.brown,
+    fontWeight: "700",
+    marginTop: 12,
+    marginBottom: 4,
   },
 });
 
