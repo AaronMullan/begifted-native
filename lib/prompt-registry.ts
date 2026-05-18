@@ -144,6 +144,8 @@ RECIPIENT:
 - Name: {{name}}
 - Relationship: {{relationship}}
 {{birthday}}
+{{knownRoles}}
+{{householdContext}}
 {{interests}}
 
 ALLOWED SOURCES (only these):
@@ -176,6 +178,8 @@ Return JSON only, no markdown:
       "name",
       "relationship",
       "birthday",
+      "knownRoles",
+      "householdContext",
       "interests",
     ],
     taskModel: { provider: "openai", model: "gpt-4.1-mini" },

@@ -833,6 +833,14 @@ export async function recommendOccasions(
     (extractedData as ExtractedData).interests ||
     (extractedData as RecipientData).interests ||
     [];
+  const knownRoles =
+    (extractedData as ExtractedData).knownRoles ||
+    (extractedData as RecipientData).knownRoles ||
+    [];
+  const householdContext =
+    (extractedData as ExtractedData).householdContext ||
+    (extractedData as RecipientData).householdContext ||
+    "";
 
   const today = new Date().toISOString().split("T")[0];
   const birthdayStr = birthday ? `- Birthday: ${birthday}` : "";
@@ -840,6 +848,11 @@ export async function recommendOccasions(
     interests.length > 0
       ? `- Interests: ${interests.join(", ")}`
       : "- Interests: (none specified)";
+  const knownRolesStr =
+    knownRoles.length > 0 ? `- Known roles: ${knownRoles.join(", ")}` : "";
+  const householdContextStr = householdContext
+    ? `- Household context: ${householdContext}`
+    : "";
 
   // Build the prompt — custom > DB > hardcoded fallback
   const hardcodedFallback = `You are a gift-planning assistant. Suggest ONLY real, verifiable occasions—no invented or creative-but-fake ones.
@@ -852,6 +865,8 @@ RECIPIENT:
 - Name: {{name}}
 - Relationship: {{relationship}}
 {{birthday}}
+{{knownRoles}}
+{{householdContext}}
 {{interests}}
 
 ALLOWED SOURCES (only these):
@@ -897,6 +912,8 @@ Return JSON only, no markdown:
     .replace("{{name}}", name)
     .replace("{{relationship}}", relationship)
     .replace("{{birthday}}", birthdayStr)
+    .replace("{{knownRoles}}", knownRolesStr)
+    .replace("{{householdContext}}", householdContextStr)
     .replace("{{interests}}", interestsStr);
 
   let occasionsRaw: string;

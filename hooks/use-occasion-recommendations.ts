@@ -22,7 +22,10 @@ export type OccasionRecommendationsInput = Pick<
   ExtractedData,
   "name" | "relationship_type" | "birthday" | "interests"
 > &
-  Partial<ExtractedData>;
+  Partial<ExtractedData> & {
+    knownRoles?: string[];
+    householdContext?: string;
+  };
 
 /**
  * Fetch AI-driven occasion recommendations that lean into the recipient's
@@ -58,6 +61,8 @@ export function useOccasionRecommendations(
                 relationship_type: extractedData.relationship_type,
                 birthday: extractedData.birthday ?? null,
                 interests: extractedData.interests ?? [],
+                knownRoles: extractedData.knownRoles ?? [],
+                householdContext: extractedData.householdContext ?? "",
               },
             },
           }
@@ -70,27 +75,7 @@ export function useOccasionRecommendations(
               action: "recommend_occasions",
             },
           });
-          const httpError = error as { context?: Response };
-          if (httpError.context?.json) {
-            try {
-              const body = await httpError.context.json();
-              console.warn(
-                "[occasion-recommendations] Edge Function non-2xx:",
-                httpError.context.status,
-                body
-              );
-            } catch {
-              console.warn(
-                "[occasion-recommendations] Edge Function error:",
-                error
-              );
-            }
-          } else {
-            console.warn(
-              "[occasion-recommendations] Edge Function error:",
-              error
-            );
-          }
+          await logEdgeFunctionError(error);
           setRecommendations(
             getFallbackRecommendations(extractedData.birthday ?? null)
           );
@@ -133,9 +118,30 @@ export function useOccasionRecommendations(
     extractedData?.birthday ?? null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     (extractedData?.interests ?? []).join(","),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    (extractedData?.knownRoles ?? []).join(","),
+    extractedData?.householdContext ?? "",
   ]);
 
   return { recommendations, isLoading };
+}
+
+async function logEdgeFunctionError(error: unknown): Promise<void> {
+  const httpError = error as { context?: Response };
+  if (!httpError.context?.json) {
+    console.warn("[occasion-recommendations] Edge Function error:", error);
+    return;
+  }
+  try {
+    const body = await httpError.context.json();
+    console.warn(
+      "[occasion-recommendations] Edge Function non-2xx:",
+      httpError.context.status,
+      body
+    );
+  } catch {
+    console.warn("[occasion-recommendations] Edge Function error:", error);
+  }
 }
 
 function getFallbackRecommendations(

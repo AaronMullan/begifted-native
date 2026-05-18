@@ -33,6 +33,8 @@ export interface ExtractedData {
   relationship_type?: string;
   interests?: string[];
   birthday?: string;
+  knownRoles?: string[];
+  householdContext?: string;
   emotional_tone_preference?: string;
   gift_budget_min?: number;
   gift_budget_max?: number;
@@ -56,6 +58,8 @@ export interface RecipientData {
   relationship_type?: string;
   interests?: string[];
   birthday?: string;
+  knownRoles?: string[];
+  householdContext?: string;
   emotional_tone_preference?: string;
   gift_budget_min?: number;
   gift_budget_max?: number;

@@ -436,6 +436,8 @@ export function usePromptPlayground(userId: string) {
                 relationship_type: recipient.relationship_type,
                 birthday: recipient.birthday,
                 interests: recipient.interests,
+                knownRoles: [],
+                householdContext: "",
               },
               customSystemPrompt: currentPrompt,
               overrideProvider: playgroundProvider,
