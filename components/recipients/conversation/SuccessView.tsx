@@ -15,11 +15,17 @@ import { MaterialIcons } from "@expo/vector-icons";
 type SuccessViewProps = {
   recipientName: string;
   onViewRecipients: () => void;
+  /**
+   * When provided, renders a secondary "Add another person" action and
+   * suppresses the auto-redirect so the user has time to choose.
+   */
+  onAddAnother?: () => void;
 };
 
 export const SuccessView: React.FC<SuccessViewProps> = ({
   recipientName,
   onViewRecipients,
+  onAddAnother,
 }) => {
   const checkmarkScale = useSharedValue(0);
   const checkmarkOpacity = useSharedValue(0);
@@ -56,14 +62,16 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- animation values are stable refs, run once on mount
   }, []);
 
-  // Auto-redirect after 3 seconds
+  // Auto-redirect after 3 seconds — skipped when "Add another" is offered
+  // so the user has time to choose between the two actions.
   useEffect(() => {
+    if (onAddAnother) return;
     const timer = setTimeout(() => {
       onViewRecipients();
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [onViewRecipients]);
+  }, [onViewRecipients, onAddAnother]);
 
   const ringAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: ringScale.value }],
@@ -110,7 +118,7 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
           </Text>
         </Animated.View>
 
-        {/* View recipients button */}
+        {/* Action buttons */}
         <Animated.View style={buttonAnimatedStyle}>
           <Button
             mode="contained"
@@ -121,9 +129,20 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
           >
             View Recipients
           </Button>
-          <Text variant="bodySmall" style={styles.hint}>
-            Redirecting automatically...
-          </Text>
+          {onAddAnother ? (
+            <Button
+              mode="outlined"
+              onPress={onAddAnother}
+              style={styles.secondaryButton}
+              icon="account-plus"
+            >
+              Add another person
+            </Button>
+          ) : (
+            <Text variant="bodySmall" style={styles.hint}>
+              Redirecting automatically...
+            </Text>
+          )}
         </Animated.View>
       </View>
     </View>
@@ -184,6 +203,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
+  },
+  secondaryButton: {
+    marginTop: 12,
   },
   hint: {
     marginTop: 16,

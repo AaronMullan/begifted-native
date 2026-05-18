@@ -445,6 +445,15 @@ export function usePromptPlayground(userId: string) {
         );
         if (error) throw new Error(await extractInvokeError(error));
         data = result;
+      } else if (selectedPromptKey === "add_recipient_wrap_up") {
+        // Deterministic template — no LLM call. Render the prompt with a
+        // sample recipient name so the PM can preview the resolved string.
+        const recipient = recipientsQuery.data?.find(
+          (r) => r.id === selectedRecipientId
+        );
+        const recipientName = recipient?.name || testInput.trim() || "Mary";
+        const preview = currentPrompt.replace(/\{\{recipientName\}\}/g, recipientName);
+        data = { preview, recipientName };
       } else if (selectedPromptKey === "user_preferences_extraction") {
         // Test user preferences extraction
         const sampleText =
