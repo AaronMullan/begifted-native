@@ -31,9 +31,16 @@ Draw from ALL available signals:
 
 Write in third person (e.g. "Sarah is..."). Be specific and concrete. Surface personality, lifestyle, and values — not gift ideas. If occasions are present, note what's coming up.
 
+Also extract two structured fields that downstream occasion suggestions consume:
+
+- knownRoles: an array of life roles this recipient plays that could unlock role-specific gifting occasions (Mother's Day, Father's Day, Teacher Appreciation, etc.). Use lowercase strings. Examples: "mother", "father", "grandmother", "grandfather", "teacher", "nurse", "caregiver", "veteran". Only include a role if the signal is explicit or strongly implied by the input. The relationship_type may itself imply a role (e.g. "mom" → ["mother"], "mother-in-law" → ["mother"]). Do not invent roles.
+- householdContext: a short free-form sentence describing the recipient's household when known — partner/spouse, children and approximate ages, pets, cohabitants. Empty string if no signal.
+
 Return ONLY valid JSON:
 {
-  "synthesized_profile": "3-5 sentence profile here"
+  "synthesized_profile": "3-5 sentence profile here",
+  "knownRoles": ["lowercase_role", ...],
+  "householdContext": "short sentence or empty string"
 }`;
 
 serve(async (req) => {
@@ -156,11 +163,23 @@ serve(async (req) => {
       typeof parsed.synthesized_profile === "string"
         ? parsed.synthesized_profile
         : "";
+    const knownRoles = Array.isArray(parsed.knownRoles)
+      ? parsed.knownRoles
+          .filter((r: unknown): r is string => typeof r === "string")
+          .map((r: string) => r.trim().toLowerCase())
+          .filter((r: string) => r.length > 0)
+      : [];
+    const householdContext =
+      typeof parsed.householdContext === "string"
+        ? parsed.householdContext.trim()
+        : "";
 
     await supabase
       .from("recipients")
       .update({
         synthesized_profile: profile,
+        known_roles: knownRoles,
+        household_context: householdContext,
         updated_at: new Date().toISOString(),
       })
       .eq("id", recipientId);
@@ -187,6 +206,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         synthesized_profile: profile,
+        known_roles: knownRoles,
+        household_context: householdContext,
         gift_generation_status: giftGenStatus,
       }),
       {
