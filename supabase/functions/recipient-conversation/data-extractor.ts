@@ -18,11 +18,14 @@ const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 type AIConfig = { provider: Provider; model: string; apiKey: string };
 
-async function resolveAIConfig(override?: AIOverride): Promise<AIConfig> {
+async function resolveAIConfig(
+  override?: AIOverride,
+  defaultModel: string = CONVERSATION_MODEL
+): Promise<AIConfig> {
   if (override?.provider && override?.model) {
     return { provider: override.provider, model: override.model, apiKey: getApiKey(override.provider) };
   }
-  return { provider: "openai", model: CONVERSATION_MODEL, apiKey: getApiKey("openai") };
+  return { provider: "openai", model: defaultModel, apiKey: getApiKey("openai") };
 }
 // Generalized conversation handler - supports different conversation types
 export async function handleConversation(
@@ -854,7 +857,7 @@ export async function recommendOccasions(
   customSystemPrompt?: string,
   aiOverride?: AIOverride
 ): Promise<OccasionRecommendations> {
-  const aiConfig = await resolveAIConfig(aiOverride);
+  const aiConfig = await resolveAIConfig(aiOverride, "gpt-5.4-mini");
   const name = extractedData.name || "this person";
   const relationship = extractedData.relationship_type || "";
   const birthday = extractedData.birthday || null;
