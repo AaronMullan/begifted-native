@@ -251,24 +251,20 @@ serve(async (req) => {
           if (targetFields && targetFields.length > 0) {
             // Extract specific fields
             result = await extractFields(messages, targetFields, existingData, aiOverride);
+          } else if (conversationType === "update_field") {
+            // Free-form "Update what we know" flow: user can mention any field.
+            // Run full extraction so whatever they said gets picked up.
+            result = await extractFullRecipient(messages, aiOverride);
           } else {
             // Extract based on conversation type
             const fieldMap = {
-              add_recipient: "",
-              update_field: "",
               extract_interests: "interests",
               extract_preferences: "emotional_tone_preference",
               extract_birthday: "birthday",
               extract_address: "address",
-            };
+            } as const;
             const targetField = fieldMap[conversationType];
-            if (targetField) {
-              result = await extractField(messages, targetField, existingData, aiOverride);
-            } else {
-              throw new Error(
-                `No target field specified for conversation type: ${conversationType}`
-              );
-            }
+            result = await extractField(messages, targetField, existingData, aiOverride);
           }
           break;
         default:
