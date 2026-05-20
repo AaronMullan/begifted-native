@@ -1,6 +1,7 @@
 import * as Haptics from "expo-haptics";
 import * as Sentry from "@sentry/react-native";
 import * as FileSystem from "expo-file-system/legacy";
+import { decode as decodeBase64 } from "base64-arraybuffer";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -14,19 +15,22 @@ import {
   useConversationFlow,
 } from "./use-conversation-flow";
 
-// Upload uses fetch(uri).blob() — Uint8Array from a base64 string is not
-// reliably handled by React Native's fetch in Supabase storage uploads.
+// Read as base64 → ArrayBuffer. RN+Hermes (Expo SDK 54) does not implement
+// Response.blob() and mishandles Uint8Array as a fetch body; supabase-js
+// accepts ArrayBuffer cleanly. This is the pattern from Supabase's RN docs.
 async function uploadRecipientPhoto(
   userId: string,
   photoUri: string
 ): Promise<string | null> {
   try {
-    const response = await fetch(photoUri);
-    const blob = await response.blob();
+    const base64 = await FileSystem.readAsStringAsync(photoUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    const arrayBuffer = decodeBase64(base64);
     const filePath = `${userId}/${Date.now()}.jpg`;
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("recipient-photos")
-      .upload(filePath, blob, {
+      .upload(filePath, arrayBuffer, {
         contentType: "image/jpeg",
         upsert: true,
       });
