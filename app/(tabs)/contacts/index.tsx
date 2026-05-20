@@ -1,4 +1,5 @@
 import * as FileSystem from "expo-file-system/legacy";
+import * as Sentry from "@sentry/react-native";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Platform, ScrollView, StyleSheet, View } from "react-native";
@@ -70,6 +71,7 @@ export default function Contacts() {
     }
 
     let stablePhotoUri: string | undefined;
+    let copyOutcome: "copied" | "fallback_original" | "no_image" = "no_image";
     if (contact.imageUri) {
       try {
         const dest = `${
@@ -77,11 +79,24 @@ export default function Contacts() {
         }contact-photo-${Date.now()}.jpg`;
         await FileSystem.copyAsync({ from: contact.imageUri, to: dest });
         stablePhotoUri = dest;
+        copyOutcome = "copied";
       } catch (err) {
         console.error("[photo] copy failed, using original:", err);
         stablePhotoUri = contact.imageUri;
+        copyOutcome = "fallback_original";
       }
     }
+
+    Sentry.captureMessage("contact_picker_select", {
+      level: "info",
+      tags: {
+        flow: "add_recipient",
+        step: "picker_select",
+        has_picker_image: contact.imageUri ? "yes" : "no",
+        copy_outcome: copyOutcome,
+        will_pass_photo_url: stablePhotoUri ? "yes" : "no",
+      },
+    });
 
     router.push({
       pathname: "/contacts/add",
