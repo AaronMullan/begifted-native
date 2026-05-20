@@ -14,26 +14,19 @@ import {
   useConversationFlow,
 } from "./use-conversation-flow";
 
+// Upload uses fetch(uri).blob() — Uint8Array from a base64 string is not
+// reliably handled by React Native's fetch in Supabase storage uploads.
 async function uploadRecipientPhoto(
   userId: string,
   photoUri: string
 ): Promise<string | null> {
   try {
-    console.log("[photo] reading file as base64...");
-    const base64 = await FileSystem.readAsStringAsync(photoUri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-    console.log("[photo] base64 length:", base64.length);
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    console.log("[photo] uploading", bytes.length, "bytes to Supabase...");
+    const response = await fetch(photoUri);
+    const blob = await response.blob();
     const filePath = `${userId}/${Date.now()}.jpg`;
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("recipient-photos")
-      .upload(filePath, bytes, {
+      .upload(filePath, blob, {
         contentType: "image/jpeg",
         upsert: true,
       });
@@ -48,7 +41,6 @@ async function uploadRecipientPhoto(
     const { data: urlData } = supabase.storage
       .from("recipient-photos")
       .getPublicUrl(uploadData.path);
-    console.log("[photo] upload success:", urlData.publicUrl);
     return urlData.publicUrl;
   } catch (err) {
     console.error("[photo] upload failed:", err);
