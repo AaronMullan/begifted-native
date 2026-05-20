@@ -102,16 +102,28 @@ export function useAddRecipientFlow(
   const [savedRecipientId, setSavedRecipientId] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log("[photo] hook init, initialPhotoUri:", initialPhotoUri);
+    Sentry.captureMessage("add_recipient_flow_hook_init", {
+      level: "info",
+      tags: {
+        flow: "add_recipient",
+        step: "hook_init",
+        has_initial_photo_uri: initialPhotoUri ? "yes" : "no",
+      },
+    });
     if (!initialPhotoUri) return;
     const dest = `${FileSystem.cacheDirectory}contact-photo-${Date.now()}.jpg`;
     FileSystem.copyAsync({ from: initialPhotoUri, to: dest })
       .then(() => {
         cachedPhotoUri.current = dest;
-        console.log("[photo] hook re-cached to:", dest);
       })
       .catch((err) => {
         console.error("[photo] hook cache copy failed:", err);
+        Sentry.captureException(err, {
+          tags: {
+            flow: "add_recipient",
+            step: "hook_recache",
+          },
+        });
       });
   }, []);
 
@@ -174,7 +186,15 @@ export function useAddRecipientFlow(
 
       try {
         const photoUri = cachedPhotoUri.current;
-        console.log("[photo] saveRecipient, cachedPhotoUri:", photoUri);
+        if (!photoUri) {
+          Sentry.captureMessage("photo_skipped_at_save", {
+            level: "info",
+            tags: {
+              flow: "add_recipient",
+              step: "photo_skip",
+            },
+          });
+        }
         const photoUrl = photoUri
           ? await uploadRecipientPhoto(userId, photoUri)
           : null;

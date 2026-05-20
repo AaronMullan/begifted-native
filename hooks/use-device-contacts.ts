@@ -59,8 +59,17 @@ export function useDeviceContacts() {
           Contacts.Fields.Birthday,
           Contacts.Fields.Addresses,
           Contacts.Fields.Image,
+          Contacts.Fields.RawImage,
         ],
       });
+
+      // iOS sometimes omits the thumbnail (`image.uri`) for iCloud-synced or
+      // large-photo contacts even when the picture exists. Fall back to the
+      // full-resolution `rawImage.uri` so those contacts still get a URI.
+      const normalizeContactImageUri = (uri?: string) => {
+        if (!uri) return undefined;
+        return uri.startsWith("/") ? `file://${uri}` : uri;
+      };
 
       const filteredContacts = data
         .filter((contact) => contact.name)
@@ -87,12 +96,10 @@ export function useDeviceContacts() {
             postalCode: addr.postalCode,
             country: addr.country,
           })),
-          imageUri:
-            contact.imageAvailable && contact.image?.uri
-              ? contact.image.uri.startsWith("/")
-                ? `file://${contact.image.uri}`
-                : contact.image.uri
-              : undefined,
+          imageUri: contact.imageAvailable
+            ? normalizeContactImageUri(contact.image?.uri) ??
+              normalizeContactImageUri(contact.rawImage?.uri)
+            : undefined,
         }));
       return filteredContacts;
     } catch (error) {
