@@ -1,7 +1,6 @@
 import * as Haptics from "expo-haptics";
 import * as Sentry from "@sentry/react-native";
 import * as FileSystem from "expo-file-system/legacy";
-import { decode as decodeBase64 } from "base64-arraybuffer";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -15,37 +14,33 @@ import {
   useConversationFlow,
 } from "./use-conversation-flow";
 
-// Read as base64 → ArrayBuffer. RN+Hermes (Expo SDK 54) does not implement
-// Response.blob() and mishandles Uint8Array as a fetch body; supabase-js
-// accepts ArrayBuffer cleanly. This is the pattern from Supabase's RN docs.
+// Direct supabase.storage.upload calls to `recipient-photos` get RLS-rejected
+// on this project even with permissive policies — likely a storage-api/plpgsql
+// plan cache issue we cannot fix from the client. Route through an edge
+// function (`upload-recipient-photo`) that uses service_role to do the upload,
+// while enforcing path scoping to the authenticated caller's user_id.
 async function uploadRecipientPhoto(
-  userId: string,
   photoUri: string
 ): Promise<string | null> {
   try {
     const base64 = await FileSystem.readAsStringAsync(photoUri, {
       encoding: FileSystem.EncodingType.Base64,
     });
-    const arrayBuffer = decodeBase64(base64);
-    const filePath = `${userId}/${Date.now()}.jpg`;
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("recipient-photos")
-      .upload(filePath, arrayBuffer, {
-        contentType: "image/jpeg",
-        upsert: true,
-      });
-    if (uploadError) {
-      console.error("[photo] upload error:", uploadError);
-      Sentry.captureException(uploadError, {
+    const { data, error } = await supabase.functions.invoke<{
+      publicUrl?: string;
+      error?: string;
+    }>("upload-recipient-photo", {
+      body: { base64, contentType: "image/jpeg" },
+    });
+    if (error || !data?.publicUrl) {
+      const message = error?.message ?? data?.error ?? "Upload failed";
+      console.error("[photo] upload error:", message);
+      Sentry.captureException(new Error(message), {
         tags: { flow: "add_recipient", step: "photo_upload" },
       });
       return null;
     }
-    if (!uploadData) return null;
-    const { data: urlData } = supabase.storage
-      .from("recipient-photos")
-      .getPublicUrl(uploadData.path);
-    return urlData.publicUrl;
+    return data.publicUrl;
   } catch (err) {
     console.error("[photo] upload failed:", err);
     Sentry.captureException(err, {
@@ -196,7 +191,7 @@ export function useAddRecipientFlow(
           });
         }
         const photoUrl = photoUri
-          ? await uploadRecipientPhoto(userId, photoUri)
+          ? await uploadRecipientPhoto(photoUri)
           : null;
 
         // Prepare recipient data
