@@ -199,8 +199,6 @@ export function ConversationView({
             multiline
             editable={!isLoading && !isSending}
             autoComplete="off"
-            autoCorrect={false}
-            spellCheck={false}
             textContentType="none"
             importantForAutofill="no"
             placeholderTextColor="#999"
