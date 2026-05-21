@@ -2,8 +2,25 @@ import { useState, useEffect } from "react";
 import * as Sentry from "@sentry/react-native";
 import { supabase } from "../lib/supabase";
 import type { ExtractedData } from "./use-conversation-flow";
-import { lookupOccasionDate } from "../utils/occasion-dates";
+import { getNextOccurrence, lookupOccasionDate } from "../utils/occasion-dates";
 import { parseBirthdayParts } from "../utils/birthday";
+
+const ISO_DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+const CATEGORY_TYPES = new Set([
+  "major_gifting_holiday",
+  "relationship_based_occasion",
+  "interest_based_observance",
+]);
+
+function slugifyOccasionName(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/['’]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
 
 export interface OccasionRecommendation {
   type: string;
@@ -174,8 +191,11 @@ function checkIfMilestoneBirthday(birthday: string | null): boolean {
 /**
  * Map AI occasion recommendations into the shape used by OccasionsSelectionView:
  * { date: string, occasion_type: string, enabled: boolean }.
- * Uses suggestedDate only when it's YYYY-MM-DD; otherwise lookupOccasionDate(type).
- * Past dates are shifted to the next occurrence (same month/day, future year).
+ *
+ * The active prompt uses category-level `type` values (e.g. "interest_based_observance")
+ * and puts the specific holiday in `name`. So we derive occasion_type from a slugified
+ * name (with fallback to the raw type), and prefer the AI's suggestedDate, falling back
+ * to lookupOccasionDate keyed by the slugified name.
  */
 export function mapRecommendationsToOccasions(
   recs: OccasionRecommendations | null
@@ -184,19 +204,28 @@ export function mapRecommendationsToOccasions(
 
   return recs.primaryOccasions
     .map((o) => {
-      const type = o.type || "custom";
-      const knownDate = lookupOccasionDate(type);
+      // Birthday is added from extractedData.birthday in OccasionsSelectionView.
+      if (o.type === "birthday") return null;
 
-      // Birthday is added from extractedData.birthday in OccasionsSelectionView,
-      // so drop any AI-hallucinated birthday here.
-      if (type === "birthday") return null;
+      const nameSlug = o.name ? slugifyOccasionName(o.name) : "";
+      const typeSlug = (o.type || "").toLowerCase();
+      const occasionType =
+        nameSlug ||
+        (CATEGORY_TYPES.has(typeSlug) ? "custom" : typeSlug || "custom");
 
-      if (knownDate) {
-        return { date: knownDate, occasion_type: type, enabled: true };
+      const suggested = o.suggestedDate?.trim() ?? "";
+      let date: string | null = null;
+      if (ISO_DATE_ONLY.test(suggested)) {
+        date = getNextOccurrence(suggested);
+      } else if (nameSlug) {
+        date = lookupOccasionDate(nameSlug);
+      }
+      if (!date && !CATEGORY_TYPES.has(typeSlug)) {
+        date = lookupOccasionDate(typeSlug);
       }
 
-      // Drop occasions the AI hallucinated that we can't verify
-      return null;
+      if (!date) return null;
+      return { date, occasion_type: occasionType, enabled: true };
     })
     .filter((o): o is NonNullable<typeof o> => o !== null);
 }
