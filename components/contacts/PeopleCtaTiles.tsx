@@ -7,12 +7,14 @@ type PeopleCtaTilesProps = {
   onImportPress: () => void;
   onAddManuallyPress: () => void;
   importDisabled?: boolean;
+  borderColor?: string;
 };
 
 const PeopleCtaTiles: React.FC<PeopleCtaTilesProps> = ({
   onImportPress,
   onAddManuallyPress,
   importDisabled = false,
+  borderColor = Colors.white,
 }) => {
   return (
     <View style={styles.row}>
@@ -23,6 +25,7 @@ const PeopleCtaTiles: React.FC<PeopleCtaTilesProps> = ({
         accessibilityLabel="Import from contacts"
         style={({ pressed }) => [
           styles.tile,
+          { borderColor },
           pressed && styles.tilePressed,
           importDisabled && styles.tileDisabled,
         ]}
@@ -34,7 +37,11 @@ const PeopleCtaTiles: React.FC<PeopleCtaTilesProps> = ({
         onPress={onAddManuallyPress}
         accessibilityRole="button"
         accessibilityLabel="Add people manually"
-        style={({ pressed }) => [styles.tile, pressed && styles.tilePressed]}
+        style={({ pressed }) => [
+          styles.tile,
+          { borderColor },
+          pressed && styles.tilePressed,
+        ]}
       >
         <MaterialIcons name="add" size={24} color={Colors.blues.dark} />
         <Text style={styles.label}>Add People Manually</Text>
@@ -55,7 +62,6 @@ const styles = StyleSheet.create({
     height: 78,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: Colors.white,
     backgroundColor: "transparent",
     alignItems: "center",
     justifyContent: "center",

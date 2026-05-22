@@ -1,7 +1,4 @@
-import * as FileSystem from "expo-file-system/legacy";
-import * as Sentry from "@sentry/react-native";
 import { useRouter } from "expo-router";
-import { useState } from "react";
 import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 import { Colors } from "../../../lib/colors";
@@ -13,10 +10,7 @@ import ContactsAccessIntro from "../../../components/ContactsAccessIntro";
 import PeopleCtaTiles from "../../../components/contacts/PeopleCtaTiles";
 import PeopleRecipientCard from "../../../components/contacts/PeopleRecipientCard";
 import RecentMomentsLink from "../../../components/home/RecentMomentsLink";
-import {
-  DeviceContact,
-  useDeviceContacts,
-} from "../../../hooks/use-device-contacts";
+import { useContactImportFlow } from "../../../hooks/use-contact-import-flow";
 import { useToast } from "../../../hooks/use-toast";
 import { useAuth } from "../../../hooks/use-auth";
 import { useRecipients } from "../../../hooks/use-recipients";
@@ -27,91 +21,22 @@ export default function Contacts() {
   const router = useRouter();
   const { user } = useAuth();
   const { data: recipients = [], isLoading: loading } = useRecipients();
-  const [pickerVisible, setPickerVisible] = useState(false);
-  const [contactsAccessIntroVisible, setContactsAccessIntroVisible] =
-    useState(false);
-  const [deviceContacts, setDeviceContacts] = useState<DeviceContact[]>([]);
-  const { loading: contactsLoading, getDeviceContacts } = useDeviceContacts();
+  const {
+    contactsLoading,
+    pickerVisible,
+    accessIntroVisible,
+    deviceContacts,
+    openAccessIntro,
+    closeAccessIntro,
+    closePicker,
+    continueWithAccess,
+    importFromFile,
+    selectContact,
+  } = useContactImportFlow();
   const { toast } = useToast();
   const { handleScroll } = useBottomNavScrollVisibility();
 
-  const openContactsAccessIntro = () => setContactsAccessIntroVisible(true);
-
-  const handleContinueContactsAccess = async () => {
-    setContactsAccessIntroVisible(false);
-    const contacts = await getDeviceContacts();
-    setDeviceContacts(contacts);
-    if (contacts.length > 0) {
-      setPickerVisible(true);
-    }
-  };
-
-  const handleImportFromFile = (contacts: DeviceContact[]) => {
-    setDeviceContacts(contacts);
-    if (contacts.length > 0) {
-      setPickerVisible(true);
-    }
-  };
-
   const handleAddManually = () => router.push("/contacts/add");
-
-  const handleSelectContact = async (contact: DeviceContact) => {
-    setPickerVisible(false);
-    const addr = contact.addresses?.[0];
-
-    let birthdayStr: string | undefined;
-    if (contact.birthday) {
-      const { year, month, day } = contact.birthday;
-      const m = String(month).padStart(2, "0");
-      const d = String(day).padStart(2, "0");
-      // iOS contacts can omit the year. Emit the vCard partial form
-      // (--MM-DD) so we don't fudge a current-year birthday and so
-      // normalizeBirthday at the save boundary keeps it intact.
-      birthdayStr = year ? `${year}-${m}-${d}` : `--${m}-${d}`;
-    }
-
-    let stablePhotoUri: string | undefined;
-    let copyOutcome: "copied" | "fallback_original" | "no_image" = "no_image";
-    if (contact.imageUri) {
-      try {
-        const dest = `${
-          FileSystem.cacheDirectory
-        }contact-photo-${Date.now()}.jpg`;
-        await FileSystem.copyAsync({ from: contact.imageUri, to: dest });
-        stablePhotoUri = dest;
-        copyOutcome = "copied";
-      } catch (err) {
-        console.error("[photo] copy failed, using original:", err);
-        stablePhotoUri = contact.imageUri;
-        copyOutcome = "fallback_original";
-      }
-    }
-
-    Sentry.captureMessage("contact_picker_select", {
-      level: "info",
-      tags: {
-        flow: "add_recipient",
-        step: "picker_select",
-        has_picker_image: contact.imageUri ? "yes" : "no",
-        copy_outcome: copyOutcome,
-        will_pass_photo_url: stablePhotoUri ? "yes" : "no",
-      },
-    });
-
-    router.push({
-      pathname: "/contacts/add",
-      params: {
-        name: contact.name,
-        ...(birthdayStr && { birthday: birthdayStr }),
-        ...(addr?.street && { address: addr.street }),
-        ...(addr?.city && { city: addr.city }),
-        ...(addr?.region && { state: addr.region }),
-        ...(addr?.postalCode && { zip_code: addr.postalCode }),
-        ...(addr?.country && { country: addr.country }),
-        ...(stablePhotoUri && { photo_url: stablePhotoUri }),
-      },
-    });
-  };
 
   if (!user) {
     return (
@@ -146,13 +71,13 @@ export default function Contacts() {
           </View>
 
           <PeopleCtaTiles
-            onImportPress={openContactsAccessIntro}
+            onImportPress={openAccessIntro}
             onAddManuallyPress={handleAddManually}
             importDisabled={contactsLoading}
           />
 
           {Platform.OS === "web" && (
-            <ContactFileImport onImport={handleImportFromFile} />
+            <ContactFileImport onImport={importFromFile} />
           )}
 
           {loading && recipients.length === 0 ? (
@@ -178,16 +103,16 @@ export default function Contacts() {
         </View>
 
         <ContactsAccessIntro
-          visible={contactsAccessIntroVisible}
-          onContinue={handleContinueContactsAccess}
-          onClose={() => setContactsAccessIntroVisible(false)}
+          visible={accessIntroVisible}
+          onContinue={continueWithAccess}
+          onClose={closeAccessIntro}
           isLoading={contactsLoading}
         />
         <ContactPicker
           visible={pickerVisible}
           contacts={deviceContacts}
-          onSelect={handleSelectContact}
-          onClose={() => setPickerVisible(false)}
+          onSelect={selectContact}
+          onClose={closePicker}
         />
       </ScrollView>
       {toast}
