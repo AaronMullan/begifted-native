@@ -22,6 +22,23 @@ export default function OnboardingIdentity() {
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
 
+  async function extractUserSummary(text: string) {
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "extract-user-preferences",
+        { body: { text } }
+      );
+      if (error) {
+        console.error("Error extracting onboarding preferences:", error);
+        return undefined;
+      }
+      return data?.user_summary;
+    } catch (extractError) {
+      console.error("Error calling extract function:", extractError);
+      return undefined;
+    }
+  }
+
   async function handleContinue() {
     if (!user || !description.trim()) {
       router.push("/onboarding/confirmation");
@@ -30,18 +47,22 @@ export default function OnboardingIdentity() {
 
     try {
       setSaving(true);
+      const trimmed = description.trim();
+      const userSummary = await extractUserSummary(trimmed);
+
+      const updates: Record<string, unknown> = {
+        user_id: user.id,
+        user_description: trimmed,
+        updated_at: new Date().toISOString(),
+      };
+      if (userSummary) {
+        updates.user_summary = userSummary;
+      }
+
       await supabase
         .from("user_preferences")
-        .upsert(
-          {
-            user_id: user.id,
-            user_description: description.trim(),
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "user_id" }
-        );
+        .upsert(updates, { onConflict: "user_id" });
 
-      // Generate initial giver profile in the background (partial — no gifting style yet)
       supabase.functions
         .invoke("synthesize-giver-profile", { body: { userId: user.id } })
         .catch(() => {});
@@ -75,9 +96,9 @@ export default function OnboardingIdentity() {
               Tell us about yourself
             </Text>
             <Text variant="bodyLarge" style={styles.body}>
-              Tell me a little about yourself — it helps BeGifted get a feel
-              for your taste, your world, and the people you care about. A lot
-              or a little is fine. What are you like?
+              Tell me a little about yourself — it helps BeGifted get a feel for
+              your taste, your world, and the people you care about. A lot or a
+              little is fine. What are you like?
             </Text>
 
             <TextInput
