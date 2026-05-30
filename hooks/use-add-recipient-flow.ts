@@ -7,12 +7,60 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, View } from "react-native";
 import { queryKeys } from "../lib/query-keys";
 import { supabase } from "../lib/supabase";
-import { normalizeBirthday } from "../utils/birthday";
+import { formatBirthdayDisplay, normalizeBirthday } from "../utils/birthday";
 import {
   ExtractedData,
   Message,
   useConversationFlow,
 } from "./use-conversation-flow";
+
+type InitialAddress = Partial<
+  Pick<ExtractedData, "address" | "city" | "state" | "zip_code" | "country">
+>;
+
+function joinWithAnd(items: string[]): string {
+  if (items.length <= 1) return items[0] ?? "";
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+}
+
+/**
+ * Compose the auto-sent opening message for the AI conversation. This message
+ * is shown in the chat as the user's own first turn, so it reads in plain
+ * first person. When a device contact is imported, its birthday/address arrive
+ * prefilled — stating them here (with the birthday value) lets the
+ * recipient-conversation prompt's "never re-ask already-known info" rule skip
+ * those questions (DEV-98). The post-extraction merge still backfills these
+ * fields, so this only changes what the AI *asks*, never what we ultimately
+ * save.
+ */
+function buildInitialUserMessage(
+  name?: string,
+  birthday?: string,
+  address?: InitialAddress
+): string | undefined {
+  const trimmedName = name?.trim();
+  if (!trimmedName) return undefined;
+
+  const known: string[] = [];
+  const readableBirthday = formatBirthdayDisplay(birthday);
+  if (readableBirthday) {
+    known.push(`their birthday (${readableBirthday})`);
+  }
+  const hasAddress = !!(
+    address &&
+    (address.address || address.city || address.state || address.zip_code)
+  );
+  if (hasAddress) {
+    known.push("their mailing address");
+  }
+
+  let message = `I'd like to add ${trimmedName}.`;
+  if (known.length > 0) {
+    message += ` I already have ${joinWithAnd(known)} from my contacts.`;
+  }
+  return message;
+}
 
 // Direct supabase.storage.upload calls to `recipient-photos` get RLS-rejected
 // on this project even with permissive policies — likely a storage-api/plpgsql
@@ -122,9 +170,11 @@ export function useAddRecipientFlow(
       });
   }, []);
 
-  const initialUserMessage = initialContactName?.trim()
-    ? `I'd like to add ${initialContactName.trim()}`
-    : undefined;
+  const initialUserMessage = buildInitialUserMessage(
+    initialContactName,
+    initialBirthday,
+    initialAddress
+  );
 
   // Use the generic conversation flow hook
   const {
