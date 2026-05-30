@@ -26,6 +26,6 @@ The edge function no longer forces LLM output into enums. Instead it asks the LL
 
 ## Notes
 
-- Existing users won't have a `gifting_summary` until they re-save preferences. Their raw `gifting_style_text` (or `user_description` from onboarding) is still intact.
+- Existing users won't have a `gifting_summary` until they re-save preferences. Their raw `user_description` (the single self-description column after DEV-97 consolidated `gifting_style_text` into it) is still intact.
 - No backfill script — `gifting_summary` has no active consumer yet, so null values are fine.
-- Onboarding (`app/onboarding/identity.tsx`) unchanged — it only writes `user_description`.
+- Onboarding (`app/onboarding/identity.tsx`) writes `user_description`; Settings (`app/(tabs)/settings/gifting.tsx`) now writes the same column on edit.

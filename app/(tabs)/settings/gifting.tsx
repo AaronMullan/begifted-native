@@ -71,8 +71,7 @@ export default function GiftingPreferences() {
       }
 
       if (data) {
-        // Fall back to user_description from onboarding if no gifting style text yet
-        const text = data.gifting_style_text || data.user_description || "";
+        const text = data.user_description || "";
         setGiftingStyleText(text);
         setOriginalGiftingStyleText(text);
       }
@@ -115,7 +114,7 @@ export default function GiftingPreferences() {
 
       const updates: Record<string, unknown> = {
         user_id: user.id,
-        gifting_style_text: giftingStyleText.trim(),
+        user_description: giftingStyleText.trim(),
         updated_at: new Date().toISOString(),
       };
 

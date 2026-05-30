@@ -19,7 +19,6 @@ export interface UserPreferences {
   user_id: string;
   onboarding_completed: boolean;
   user_description: string | null;
-  gifting_style_text: string | null;
   user_summary: UserSummary | null;
   synthesized_giver_profile: string | null;
   auto_fallback_enabled: boolean;
