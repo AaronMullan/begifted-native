@@ -1,8 +1,20 @@
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, View, KeyboardAvoidingView, Platform } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  View,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Button, HelperText, IconButton, Text, TextInput } from "react-native-paper";
+import {
+  Button,
+  HelperText,
+  IconButton,
+  Text,
+  TextInput,
+} from "react-native-paper";
 import { BOTTOM_NAV_HEIGHT } from "@/lib/constants";
 import { isInvalidBirthdayInput } from "@/utils/birthday";
 
@@ -75,12 +87,12 @@ export function DataReviewView({
         <View style={styles.headerSpacer} />
       </View>
 
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-        >
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
         <Text variant="bodyMedium" style={styles.description}>
           Please review and edit the information we extracted. Make any
           necessary changes before continuing.
@@ -271,32 +283,32 @@ export function DataReviewView({
             </View>
           </View>
         </View>
-        </ScrollView>
+      </ScrollView>
 
-        {/* Footer Actions */}
-        <View style={[styles.footer, { paddingBottom: footerBottomPadding }]}>
-          <Button
-            mode="outlined"
-            onPress={onBack}
-            disabled={isSaving}
-            style={styles.backButtonFooter}
-          >
-            Back
-          </Button>
+      {/* Footer Actions */}
+      <View style={[styles.footer, { paddingBottom: footerBottomPadding }]}>
+        <Button
+          mode="outlined"
+          onPress={onBack}
+          disabled={isSaving}
+          style={styles.backButtonFooter}
+        >
+          Back
+        </Button>
 
-          <Button
-            mode="contained"
-            buttonColor="#000000"
-            onPress={onSave}
-            disabled={
-              !extractedData.name || !extractedData.relationship_type || isSaving
-            }
-            loading={isSaving}
-            style={styles.saveButton}
-          >
-            Continue
-          </Button>
-        </View>
+        <Button
+          mode="contained"
+          buttonColor="#000000"
+          onPress={onSave}
+          disabled={
+            !extractedData.name || !extractedData.relationship_type || isSaving
+          }
+          loading={isSaving}
+          style={styles.saveButton}
+        >
+          Continue
+        </Button>
+      </View>
     </KeyboardAvoidingView>
   );
 }

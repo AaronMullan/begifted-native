@@ -58,8 +58,14 @@ serve(async (req) => {
   }
 
   try {
-    const { currentPrompt, userInstruction, chatHistory, promptCategory, overrideProvider, overrideModel } =
-      await req.json();
+    const {
+      currentPrompt,
+      userInstruction,
+      chatHistory,
+      promptCategory,
+      overrideProvider,
+      overrideModel,
+    } = await req.json();
 
     if (!currentPrompt || !userInstruction) {
       return new Response(
@@ -79,8 +85,8 @@ serve(async (req) => {
       promptCategory && CATEGORY_GUIDANCE[promptCategory]
         ? `\n\nCATEGORY-SPECIFIC GUIDANCE:\n${CATEGORY_GUIDANCE[promptCategory]}`
         : CATEGORY_GUIDANCE.gift_generation_system
-          ? `\n\nCATEGORY-SPECIFIC GUIDANCE:\n${CATEGORY_GUIDANCE.gift_generation_system}`
-          : "";
+        ? `\n\nCATEGORY-SPECIFIC GUIDANCE:\n${CATEGORY_GUIDANCE.gift_generation_system}`
+        : "";
 
     // Build messages for the LLM
     const messages: { role: string; content: string }[] = [
@@ -100,10 +106,14 @@ serve(async (req) => {
       content: `Here is the current system prompt:\n\n---\n${currentPrompt}\n---\n\nPlease make the following change: ${userInstruction}`,
     });
 
-    const { provider, model } = await loadAIConfig(supabaseUrl, supabaseServiceKey, {
-      provider: overrideProvider,
-      model: overrideModel,
-    });
+    const { provider, model } = await loadAIConfig(
+      supabaseUrl,
+      supabaseServiceKey,
+      {
+        provider: overrideProvider,
+        model: overrideModel,
+      }
+    );
     const apiKey = getApiKey(provider);
     const rawContent = await callAI(provider, model, apiKey, {
       messages: messages as AIMessage[],

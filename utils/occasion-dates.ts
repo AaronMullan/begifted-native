@@ -166,7 +166,11 @@ function calculateEasterDate(year: number): string {
   const m = Math.floor((a + 11 * h + 22 * l) / 451);
   const month = Math.floor((h + l - 7 * m + 114) / 31);
   const day = ((h + l - 7 * m + 114) % 31) + 1;
-  return nextOrRecurse(new Date(year, month - 1, day), calculateEasterDate, year);
+  return nextOrRecurse(
+    new Date(year, month - 1, day),
+    calculateEasterDate,
+    year
+  );
 }
 
 // Thanksgiving (4th Thursday of November)
@@ -221,25 +225,45 @@ function meeusDate(jde: number): Date {
 
 function calculateSpringEquinox(year: number): string {
   const y = (year - 2000) / 1000;
-  const jde = 2451623.80984 + 365242.37404 * y + 0.05169 * y * y - 0.00411 * y ** 3 - 0.00057 * y ** 4;
+  const jde =
+    2451623.80984 +
+    365242.37404 * y +
+    0.05169 * y * y -
+    0.00411 * y ** 3 -
+    0.00057 * y ** 4;
   return nextOrRecurse(meeusDate(jde), calculateSpringEquinox, year);
 }
 
 function calculateAutumnEquinox(year: number): string {
   const y = (year - 2000) / 1000;
-  const jde = 2451810.21715 + 365242.01767 * y - 0.11575 * y * y + 0.00337 * y ** 3 + 0.00078 * y ** 4;
+  const jde =
+    2451810.21715 +
+    365242.01767 * y -
+    0.11575 * y * y +
+    0.00337 * y ** 3 +
+    0.00078 * y ** 4;
   return nextOrRecurse(meeusDate(jde), calculateAutumnEquinox, year);
 }
 
 function calculateSummerSolstice(year: number): string {
   const y = (year - 2000) / 1000;
-  const jde = 2451716.56767 + 365241.62603 * y + 0.00325 * y * y + 0.00888 * y ** 3 - 0.0003 * y ** 4;
+  const jde =
+    2451716.56767 +
+    365241.62603 * y +
+    0.00325 * y * y +
+    0.00888 * y ** 3 -
+    0.0003 * y ** 4;
   return nextOrRecurse(meeusDate(jde), calculateSummerSolstice, year);
 }
 
 function calculateWinterSolstice(year: number): string {
   const y = (year - 2000) / 1000;
-  const jde = 2451900.05952 + 365242.74049 * y - 0.06223 * y * y - 0.00823 * y ** 3 + 0.00032 * y ** 4;
+  const jde =
+    2451900.05952 +
+    365242.74049 * y -
+    0.06223 * y * y -
+    0.00823 * y ** 3 +
+    0.00032 * y ** 4;
   return nextOrRecurse(meeusDate(jde), calculateWinterSolstice, year);
 }
 
@@ -264,22 +288,55 @@ function lookupOrApproximate(
 }
 
 function calculateDiwaliDate(year: number): string {
-  return lookupOrApproximate(year, {
-    2024: "2024-11-01", 2025: "2025-10-20", 2026: "2026-11-08",
-    2027: "2027-10-28", 2028: "2028-10-17", 2029: "2029-11-05", 2030: "2030-10-26",
-  }, 9, 15, calculateDiwaliDate);
+  return lookupOrApproximate(
+    year,
+    {
+      2024: "2024-11-01",
+      2025: "2025-10-20",
+      2026: "2026-11-08",
+      2027: "2027-10-28",
+      2028: "2028-10-17",
+      2029: "2029-11-05",
+      2030: "2030-10-26",
+    },
+    9,
+    15,
+    calculateDiwaliDate
+  );
 }
 
 function calculateHoliDate(year: number): string {
-  return lookupOrApproximate(year, {
-    2024: "2024-03-25", 2025: "2025-03-14", 2026: "2026-03-03",
-    2027: "2027-03-22", 2028: "2028-03-11", 2029: "2029-03-01", 2030: "2030-03-20",
-  }, 2, 15, calculateHoliDate);
+  return lookupOrApproximate(
+    year,
+    {
+      2024: "2024-03-25",
+      2025: "2025-03-14",
+      2026: "2026-03-03",
+      2027: "2027-03-22",
+      2028: "2028-03-11",
+      2029: "2029-03-01",
+      2030: "2030-03-20",
+    },
+    2,
+    15,
+    calculateHoliDate
+  );
 }
 
 function calculateHanukkahDate(year: number): string {
-  return lookupOrApproximate(year, {
-    2024: "2024-12-25", 2025: "2025-12-14", 2026: "2026-12-04",
-    2027: "2027-12-24", 2028: "2028-12-12", 2029: "2029-12-01", 2030: "2030-12-20",
-  }, 11, 10, calculateHanukkahDate);
+  return lookupOrApproximate(
+    year,
+    {
+      2024: "2024-12-25",
+      2025: "2025-12-14",
+      2026: "2026-12-04",
+      2027: "2027-12-24",
+      2028: "2028-12-12",
+      2029: "2029-12-01",
+      2030: "2030-12-20",
+    },
+    11,
+    10,
+    calculateHanukkahDate
+  );
 }

@@ -9,15 +9,14 @@ import { supabase } from "./supabase";
  * No-ops on simulators. Logs errors but never throws.
  */
 export async function registerForPushNotifications(
-  userId: string,
+  userId: string
 ): Promise<void> {
   if (!Device.isDevice) {
     console.log("[push] Skipping push registration on simulator");
     return;
   }
 
-  const { status: existingStatus } =
-    await Notifications.getPermissionsAsync();
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
 
   if (existingStatus !== "granted") {
@@ -49,7 +48,7 @@ export async function registerForPushNotifications(
       platform,
       updated_at: new Date().toISOString(),
     },
-    { onConflict: "token" },
+    { onConflict: "token" }
   );
 
   if (error) {

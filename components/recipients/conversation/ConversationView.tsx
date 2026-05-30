@@ -107,7 +107,9 @@ export function ConversationView({
   };
 
   return (
-    <Animated.View style={[styles.container, { paddingBottom: keyboardOffset }]}>
+    <Animated.View
+      style={[styles.container, { paddingBottom: keyboardOffset }]}
+    >
       {/* Header */}
       <View style={styles.header}>
         <IconButton
@@ -175,7 +177,9 @@ export function ConversationView({
       </ScrollView>
 
       {/* Input Area */}
-      <View style={[styles.inputContainer, { paddingBottom: inputBottomPadding }]}>
+      <View
+        style={[styles.inputContainer, { paddingBottom: inputBottomPadding }]}
+      >
         {shouldShowNextStepButton && (
           <Button
             mode="contained"

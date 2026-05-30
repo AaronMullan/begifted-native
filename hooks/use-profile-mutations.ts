@@ -31,8 +31,10 @@ export function useUpdateProfile() {
         updated_at: new Date().toISOString(),
       };
 
-      if ("billing_address_city" in data) payload.billing_address_city = data.billing_address_city ?? null;
-      if ("billing_address_state" in data) payload.billing_address_state = data.billing_address_state ?? null;
+      if ("billing_address_city" in data)
+        payload.billing_address_city = data.billing_address_city ?? null;
+      if ("billing_address_state" in data)
+        payload.billing_address_state = data.billing_address_state ?? null;
 
       const { data: profile, error } = await supabase
         .from("profiles")
@@ -55,8 +57,12 @@ export function useUpdateProfile() {
         "billing_address_state" in variables.data;
       if (locationChanged) {
         supabase.functions
-          .invoke("synthesize-giver-profile", { body: { userId: variables.userId } })
-          .catch((err) => console.error("Failed to trigger giver profile synthesis:", err));
+          .invoke("synthesize-giver-profile", {
+            body: { userId: variables.userId },
+          })
+          .catch((err) =>
+            console.error("Failed to trigger giver profile synthesis:", err)
+          );
       }
     },
     onError: (error) => console.error("useUpdateProfile failed:", error),

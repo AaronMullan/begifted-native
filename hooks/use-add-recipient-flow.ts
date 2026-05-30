@@ -19,9 +19,7 @@ import {
 // plan cache issue we cannot fix from the client. Route through an edge
 // function (`upload-recipient-photo`) that uses service_role to do the upload,
 // while enforcing path scoping to the authenticated caller's user_id.
-async function uploadRecipientPhoto(
-  photoUri: string
-): Promise<string | null> {
+async function uploadRecipientPhoto(photoUri: string): Promise<string | null> {
   try {
     const base64 = await FileSystem.readAsStringAsync(photoUri, {
       encoding: FileSystem.EncodingType.Base64,
@@ -68,7 +66,9 @@ interface UseAddRecipientFlowReturn {
   handleFinishConversation: () => Promise<boolean>;
   handleDataReviewContinue: () => Promise<void>;
   handleOccasionsBack: () => void;
-  handleOccasionsContinue: (occasions: NonNullable<ExtractedData["occasions"]>) => Promise<void>;
+  handleOccasionsContinue: (
+    occasions: NonNullable<ExtractedData["occasions"]>
+  ) => Promise<void>;
   handleOccasionsSkip: () => Promise<void>;
   handleViewRecipients: () => void;
   setShowDataReview: (show: boolean) => void;
@@ -93,7 +93,9 @@ export function useAddRecipientFlow(
   const [showOccasionsSelection, setShowOccasionsSelection] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [savedRecipientName, setSavedRecipientName] = useState<string | null>(null);
+  const [savedRecipientName, setSavedRecipientName] = useState<string | null>(
+    null
+  );
   const [savedRecipientId, setSavedRecipientId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -190,9 +192,7 @@ export function useAddRecipientFlow(
             },
           });
         }
-        const photoUrl = photoUri
-          ? await uploadRecipientPhoto(photoUri)
-          : null;
+        const photoUrl = photoUri ? await uploadRecipientPhoto(photoUri) : null;
 
         // Prepare recipient data
         const recipientData = {

@@ -57,7 +57,10 @@ const KillSwitchContent: React.FC = () => {
   const isPending = updateConfig.isPending;
 
   function toggle(
-    flag: "recommendations_enabled" | "notifications_enabled" | "signups_enabled"
+    flag:
+      | "recommendations_enabled"
+      | "notifications_enabled"
+      | "signups_enabled"
   ) {
     if (!config) return;
     updateConfig.mutate({ [flag]: !config[flag] });

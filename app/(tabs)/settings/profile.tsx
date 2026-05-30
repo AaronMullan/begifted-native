@@ -1,4 +1,13 @@
-import { View, ScrollView, StyleSheet, Alert, KeyboardAvoidingView, Keyboard, Platform, TouchableWithoutFeedback } from "react-native";
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  Keyboard,
+  Platform,
+  TouchableWithoutFeedback,
+} from "react-native";
 import { Text, TextInput, IconButton, Button } from "react-native-paper";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
@@ -153,100 +162,100 @@ export default function ProfileSettings() {
           <View style={styles.content}>
             {/* Main white card container */}
             <View style={styles.mainCard}>
-          {/* Header section */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text variant="headlineMedium" style={styles.title}>
-                Profile Settings
-              </Text>
-              <Text variant="bodyLarge" style={styles.subtitle}>
-                Manage your personal information
-              </Text>
-            </View>
-            <IconButton
-              icon="arrow-left"
-              size={20}
-              iconColor="#000000"
-              onPress={() => router.back()}
-              style={styles.backButton}
-            />
-          </View>
-
-          {/* Personal Information Section */}
-          <View style={styles.section}>
-            <Text variant="titleLarge" style={styles.sectionTitle}>
-              Personal Information
-            </Text>
-            <Text variant="bodyMedium" style={styles.sectionSubtitle}>
-              Update your personal details.
-            </Text>
-
-            {/* Full Name */}
-            <View style={styles.fieldContainer}>
-              <TextInput
-                mode="outlined"
-                label="Full Name"
-                value={fullName}
-                onChangeText={setFullName}
-                placeholder="Enter your full name"
-                right={<TextInput.Icon icon="ellipsis-horizontal" />}
-                style={styles.input}
-              />
-            </View>
-
-            {/* Location */}
-            <View style={styles.locationRow}>
-              <View style={styles.cityField}>
-                <TextInput
-                  mode="outlined"
-                  label="City"
-                  value={city}
-                  onChangeText={setCity}
-                  placeholder="City"
-                  style={styles.input}
+              {/* Header section */}
+              <View style={styles.header}>
+                <View style={styles.headerLeft}>
+                  <Text variant="headlineMedium" style={styles.title}>
+                    Profile Settings
+                  </Text>
+                  <Text variant="bodyLarge" style={styles.subtitle}>
+                    Manage your personal information
+                  </Text>
+                </View>
+                <IconButton
+                  icon="arrow-left"
+                  size={20}
+                  iconColor="#000000"
+                  onPress={() => router.back()}
+                  style={styles.backButton}
                 />
               </View>
-              <View style={styles.stateField}>
-                <TextInput
-                  mode="outlined"
-                  label="State"
-                  value={state}
-                  onChangeText={setState}
-                  placeholder="State"
-                  autoCapitalize="characters"
-                  style={styles.input}
-                />
+
+              {/* Personal Information Section */}
+              <View style={styles.section}>
+                <Text variant="titleLarge" style={styles.sectionTitle}>
+                  Personal Information
+                </Text>
+                <Text variant="bodyMedium" style={styles.sectionSubtitle}>
+                  Update your personal details.
+                </Text>
+
+                {/* Full Name */}
+                <View style={styles.fieldContainer}>
+                  <TextInput
+                    mode="outlined"
+                    label="Full Name"
+                    value={fullName}
+                    onChangeText={setFullName}
+                    placeholder="Enter your full name"
+                    right={<TextInput.Icon icon="ellipsis-horizontal" />}
+                    style={styles.input}
+                  />
+                </View>
+
+                {/* Location */}
+                <View style={styles.locationRow}>
+                  <View style={styles.cityField}>
+                    <TextInput
+                      mode="outlined"
+                      label="City"
+                      value={city}
+                      onChangeText={setCity}
+                      placeholder="City"
+                      style={styles.input}
+                    />
+                  </View>
+                  <View style={styles.stateField}>
+                    <TextInput
+                      mode="outlined"
+                      label="State"
+                      value={state}
+                      onChangeText={setState}
+                      placeholder="State"
+                      autoCapitalize="characters"
+                      style={styles.input}
+                    />
+                  </View>
+                </View>
+
+                {/* Email */}
+                <View style={styles.fieldContainer}>
+                  <TextInput
+                    mode="outlined"
+                    label="Email"
+                    value={user?.email || ""}
+                    editable={false}
+                    style={styles.input}
+                  />
+                  <Text variant="bodySmall" style={styles.emailNote}>
+                    Email cannot be changed. Contact support if you need to
+                    update it.
+                  </Text>
+                </View>
               </View>
-            </View>
 
-            {/* Email */}
-            <View style={styles.fieldContainer}>
-              <TextInput
-                mode="outlined"
-                label="Email"
-                value={user?.email || ""}
-                editable={false}
-                style={styles.input}
-              />
-              <Text variant="bodySmall" style={styles.emailNote}>
-                Email cannot be changed. Contact support if you need to update
-                it.
-              </Text>
+              {/* Save Button */}
+              <Button
+                mode="contained"
+                buttonColor="#000000"
+                onPress={handleSave}
+                disabled={updateProfile.isPending || !hasChanges}
+                loading={updateProfile.isPending}
+                style={styles.saveButton}
+              >
+                {hasChanges ? "Save Changes" : "No Changes"}
+              </Button>
             </View>
-          </View>
-
-          {/* Save Button */}
-          <Button
-            mode="contained"
-            buttonColor="#000000"
-            onPress={handleSave}
-            disabled={updateProfile.isPending || !hasChanges}
-            loading={updateProfile.isPending}
-            style={styles.saveButton}
-          >
-            {hasChanges ? "Save Changes" : "No Changes"}
-          </Button>
-        </View>
           </View>
         </ScrollView>
       </TouchableWithoutFeedback>

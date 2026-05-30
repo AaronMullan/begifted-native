@@ -23,9 +23,7 @@ export async function loadActivePrompt(
       .single();
 
     if (error || !data?.prompt_text) {
-      console.log(
-        `No active prompt found for "${promptKey}", using fallback.`
-      );
+      console.log(`No active prompt found for "${promptKey}", using fallback.`);
       return fallback;
     }
 

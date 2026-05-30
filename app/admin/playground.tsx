@@ -133,7 +133,9 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
   const displayProvider = activeRun?.ai_provider;
   const displayModel = activeRun?.ai_model;
 
-  const productionCtx = playground.generationResult?.productionContext as Record<string, unknown> | undefined;
+  const productionCtx = playground.generationResult?.productionContext as
+    | Record<string, unknown>
+    | undefined;
   const wrapperMessage = productionCtx?.wrapperMessage as string | undefined;
   const cisNamesFromResult = (() => {
     if (!wrapperMessage) return {};
@@ -141,7 +143,10 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
       const match = wrapperMessage.match(/CIS Data:\s*(\{[\s\S]*\})/);
       if (!match) return {};
       const cis = JSON.parse(match[1]);
-      return { giverName: cis?.giver?.name as string | undefined, recipientName: cis?.recipient?.name as string | undefined };
+      return {
+        giverName: cis?.giver?.name as string | undefined,
+        recipientName: cis?.recipient?.name as string | undefined,
+      };
     } catch {
       return {};
     }
@@ -153,13 +158,13 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
     playground.isGiftGeneration ||
     playground.selectedPromptKey === "occasion_recommendations";
   const displayGiverName = promptUsesRecipient
-    ? (cisNamesFromResult.giverName ?? selectedGiver?.full_name ?? selectedGiver?.username)
+    ? cisNamesFromResult.giverName ??
+      selectedGiver?.full_name ??
+      selectedGiver?.username
     : undefined;
   const displayRecipientName = promptUsesRecipient
-    ? (cisNamesFromResult.recipientName ?? selectedRecipient?.name)
+    ? cisNamesFromResult.recipientName ?? selectedRecipient?.name
     : undefined;
-
-
 
   // --- Header with title + prompt selector + actions ---
   const header = (
@@ -344,7 +349,9 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                 icon="account"
               >
                 {selectedGiver
-                  ? selectedGiver.full_name || selectedGiver.username || "Unnamed"
+                  ? selectedGiver.full_name ||
+                    selectedGiver.username ||
+                    "Unnamed"
                   : "Select a giver..."}
               </Button>
             }
@@ -358,7 +365,9 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                     playground.handleGiverChange(profile.id);
                     setGiverMenuVisible(false);
                   }}
-                  title={`${profile.full_name || profile.username || "Unnamed"} (${profile.id.substring(0, 8)})`}
+                  title={`${
+                    profile.full_name || profile.username || "Unnamed"
+                  } (${profile.id.substring(0, 8)})`}
                 />
               ))}
             </ScrollView>
@@ -446,7 +455,8 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
           </Text>
 
           {/* Template variables */}
-          {(playground.selectedPromptDef?.templateVariables.length ?? 0) > 0 && (
+          {(playground.selectedPromptDef?.templateVariables.length ?? 0) >
+            0 && (
             <View style={styles.templateVarsSection}>
               <Text variant="labelSmall" style={styles.cisFieldLabel}>
                 Variables available at runtime
@@ -575,7 +585,9 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                   icon="account"
                 >
                   {selectedGiver
-                    ? selectedGiver.full_name || selectedGiver.username || "Unnamed"
+                    ? selectedGiver.full_name ||
+                      selectedGiver.username ||
+                      "Unnamed"
                     : "Select a giver..."}
                 </Button>
               }
@@ -589,7 +601,9 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                       playground.handleGiverChange(profile.id);
                       setGiverMenuVisible(false);
                     }}
-                    title={`${profile.full_name || profile.username || "Unnamed"} (${profile.id.substring(0, 8)})`}
+                    title={`${
+                      profile.full_name || profile.username || "Unnamed"
+                    } (${profile.id.substring(0, 8)})`}
                   />
                 ))}
               </ScrollView>
@@ -641,7 +655,9 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
               Your Gifting Style
             </Text>
             <Text variant="bodySmall" style={styles.cisSecondary}>
-              {"In the app, users type this in Settings → Gifting Preferences. It’s a single text box (no chat). On Save, we send this text + the system prompt to the LLM and parse JSON back."}
+              {
+                "In the app, users type this in Settings → Gifting Preferences. It’s a single text box (no chat). On Save, we send this text + the system prompt to the LLM and parse JSON back."
+              }
             </Text>
             <TextInput
               mode="outlined"
@@ -719,7 +735,10 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
       {/* Refinement chat */}
       <Card style={styles.card}>
         <Card.Content style={styles.chatCardContent}>
-          <Text variant="titleSmall" style={[styles.cardTitle, styles.chatCardTitle]}>
+          <Text
+            variant="titleSmall"
+            style={[styles.cardTitle, styles.chatCardTitle]}
+          >
             Refinement Chat
           </Text>
           <ScrollView
@@ -732,7 +751,9 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
             {playground.chatMessages.length === 0 && (
               <View style={styles.welcomeMessage}>
                 <Text variant="bodySmall" style={styles.welcomeText}>
-                  {"Describe how you'd like to change the prompt. AI will rewrite it for you."}
+                  {
+                    "Describe how you'd like to change the prompt. AI will rewrite it for you."
+                  }
                 </Text>
               </View>
             )}
@@ -741,12 +762,16 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                 key={i}
                 style={[
                   styles.messageBubble,
-                  msg.role === "user" ? styles.userBubble : styles.assistantBubble,
+                  msg.role === "user"
+                    ? styles.userBubble
+                    : styles.assistantBubble,
                 ]}
               >
                 <Text
                   variant="bodySmall"
-                  style={msg.role === "user" ? styles.userText : styles.assistantText}
+                  style={
+                    msg.role === "user" ? styles.userText : styles.assistantText
+                  }
                 >
                   {msg.content}
                 </Text>
@@ -809,15 +834,19 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
         <Card style={styles.card}>
           <Card.Content>
             <Text variant="titleSmall" style={styles.cardTitle}>
-              {playground.isGiftGeneration ? "Generation Results" : "Test Results"}
+              {playground.isGiftGeneration
+                ? "Generation Results"
+                : "Test Results"}
             </Text>
             {playground.isGiftGeneration ? (
               <GenerationResultView result={playground.generationResult} />
-            ) : playground.selectedPromptKey === "add_recipient_conversation" ? (
+            ) : playground.selectedPromptKey ===
+              "add_recipient_conversation" ? (
               <ConversationResultView result={playground.generationResult} />
             ) : playground.selectedPromptKey === "occasion_recommendations" ? (
               <OccasionResultView result={playground.generationResult} />
-            ) : playground.selectedPromptKey === "user_preferences_extraction" ? (
+            ) : playground.selectedPromptKey ===
+              "user_preferences_extraction" ? (
               <PreferencesResultView result={playground.generationResult} />
             ) : (
               <JsonResultView result={playground.generationResult} />
@@ -830,77 +859,108 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
             <Text variant="bodyMedium" style={styles.emptyResultsText}>
               {playground.isGiftGeneration
                 ? "Select a giver and recipient, then click Generate to see results here."
-                : `Click Test to run the ${playground.selectedPromptDef?.label ?? "prompt"} and see results here.`}
+                : `Click Test to run the ${
+                    playground.selectedPromptDef?.label ?? "prompt"
+                  } and see results here.`}
             </Text>
           </Card.Content>
         </Card>
       )}
 
       {/* Production Context (gift generation only) */}
-      {playground.isGiftGeneration && !!playground.generationResult?.productionContext && (
-        <Card style={styles.card}>
-          <Card.Content>
-            <Button
-              mode="text"
-              onPress={() => setShowProductionContext(!showProductionContext)}
-              icon={showProductionContext ? "chevron-up" : "chevron-down"}
-              compact
-              style={styles.productionContextToggle}
-            >
-              Production Context
-            </Button>
-            {showProductionContext && (
-              <View style={styles.productionContextBox}>
-                <Text variant="labelSmall" style={styles.productionContextLabel}>
-                  Wrapper System Message
-                </Text>
-                <ScrollView style={styles.productionContextScroll} nestedScrollEnabled>
-                  <Text variant="bodySmall" style={styles.monoText}>
-                    {String(
-                      (playground.generationResult.productionContext as Record<string, unknown>)
-                        ?.wrapperMessage ?? ""
-                    )}
+      {playground.isGiftGeneration &&
+        !!playground.generationResult?.productionContext && (
+          <Card style={styles.card}>
+            <Card.Content>
+              <Button
+                mode="text"
+                onPress={() => setShowProductionContext(!showProductionContext)}
+                icon={showProductionContext ? "chevron-up" : "chevron-down"}
+                compact
+                style={styles.productionContextToggle}
+              >
+                Production Context
+              </Button>
+              {showProductionContext && (
+                <View style={styles.productionContextBox}>
+                  <Text
+                    variant="labelSmall"
+                    style={styles.productionContextLabel}
+                  >
+                    Wrapper System Message
                   </Text>
-                </ScrollView>
-                <Text variant="labelSmall" style={[styles.productionContextLabel, { marginTop: 12 }]}>
-                  Full Input Array
-                </Text>
-                <ScrollView style={styles.productionContextScroll} nestedScrollEnabled>
-                  <Text variant="bodySmall" style={styles.monoText}>
-                    {JSON.stringify(
-                      (playground.generationResult.productionContext as Record<string, unknown>)
-                        ?.fullInput,
-                      null,
-                      2
-                    )}
+                  <ScrollView
+                    style={styles.productionContextScroll}
+                    nestedScrollEnabled
+                  >
+                    <Text variant="bodySmall" style={styles.monoText}>
+                      {String(
+                        (
+                          playground.generationResult
+                            .productionContext as Record<string, unknown>
+                        )?.wrapperMessage ?? ""
+                      )}
+                    </Text>
+                  </ScrollView>
+                  <Text
+                    variant="labelSmall"
+                    style={[styles.productionContextLabel, { marginTop: 12 }]}
+                  >
+                    Full Input Array
                   </Text>
-                </ScrollView>
-              </View>
-            )}
-          </Card.Content>
-        </Card>
-      )}
+                  <ScrollView
+                    style={styles.productionContextScroll}
+                    nestedScrollEnabled
+                  >
+                    <Text variant="bodySmall" style={styles.monoText}>
+                      {JSON.stringify(
+                        (
+                          playground.generationResult
+                            .productionContext as Record<string, unknown>
+                        )?.fullInput,
+                        null,
+                        2
+                      )}
+                    </Text>
+                  </ScrollView>
+                </View>
+              )}
+            </Card.Content>
+          </Card>
+        )}
 
       {/* Cron Context (when simulateCron was used) */}
-      {playground.isGiftGeneration && !!playground.generationResult?.cronContext && (
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text variant="titleSmall" style={styles.cardTitle}>
-              Cron Context
-            </Text>
-            <View style={resultStyles.statusRow}>
-              <Chip compact style={resultStyles.contextChip}>
-                {String(
-                  (playground.generationResult.cronContext as Record<string, unknown>)
-                    ?.existingSuggestionCount ?? 0
-                )}{" "}
-                existing suggestions
-              </Chip>
-            </View>
-            <CronAvoidListView cronContext={playground.generationResult.cronContext as Record<string, unknown>} />
-          </Card.Content>
-        </Card>
-      )}
+      {playground.isGiftGeneration &&
+        !!playground.generationResult?.cronContext && (
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="titleSmall" style={styles.cardTitle}>
+                Cron Context
+              </Text>
+              <View style={resultStyles.statusRow}>
+                <Chip compact style={resultStyles.contextChip}>
+                  {String(
+                    (
+                      playground.generationResult.cronContext as Record<
+                        string,
+                        unknown
+                      >
+                    )?.existingSuggestionCount ?? 0
+                  )}{" "}
+                  existing suggestions
+                </Chip>
+              </View>
+              <CronAvoidListView
+                cronContext={
+                  playground.generationResult.cronContext as Record<
+                    string,
+                    unknown
+                  >
+                }
+              />
+            </Card.Content>
+          </Card>
+        )}
 
       {/* Test run history */}
       <Card style={styles.card}>
@@ -935,7 +995,11 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                         </Chip>
                       )}
                     </View>
-                    <Text variant="bodySmall" numberOfLines={2} style={styles.historyPreview}>
+                    <Text
+                      variant="bodySmall"
+                      numberOfLines={2}
+                      style={styles.historyPreview}
+                    >
                       {run.custom_system_prompt.substring(0, 100)}...
                     </Text>
                   </Card.Content>
@@ -972,7 +1036,10 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                 return (
                   <Card
                     key={run.id}
-                    style={[styles.historyItem, isActive && styles.historyItemActive]}
+                    style={[
+                      styles.historyItem,
+                      isActive && styles.historyItemActive,
+                    ]}
                     onPress={() => {
                       playground.loadTestRun(run);
                       setActiveRunId(run.id);
@@ -983,7 +1050,10 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                         {new Date(run.created_at).toLocaleString()}
                       </Text>
                       {run.ai_provider && run.ai_model && (
-                        <Text variant="bodySmall" style={styles.historyModelText}>
+                        <Text
+                          variant="bodySmall"
+                          style={styles.historyModelText}
+                        >
                           {`${run.ai_provider} · ${run.ai_model}`}
                         </Text>
                       )}
@@ -1002,8 +1072,13 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
           <Card style={styles.card}>
             <Card.Content>
               <View style={styles.resultTitleRow}>
-                <Text variant="titleSmall" style={[styles.cardTitle, { marginBottom: 0 }]}>
-                  {playground.isGiftGeneration ? "Generation Results" : "Test Results"}
+                <Text
+                  variant="titleSmall"
+                  style={[styles.cardTitle, { marginBottom: 0 }]}
+                >
+                  {playground.isGiftGeneration
+                    ? "Generation Results"
+                    : "Test Results"}
                 </Text>
                 <View style={styles.resultMetaHeader}>
                   {displayProvider && displayModel && (
@@ -1013,18 +1088,26 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                   )}
                   {(displayGiverName || displayRecipientName) && (
                     <Chip compact style={styles.metaChip}>
-                      {`${displayGiverName ?? "?"} → ${displayRecipientName ?? "?"}`}
+                      {`${displayGiverName ?? "?"} → ${
+                        displayRecipientName ?? "?"
+                      }`}
                     </Chip>
                   )}
                 </View>
               </View>
               {playground.isGiftGeneration ? (
-                <GenerationResultView result={playground.generationResult} horizontal />
-              ) : playground.selectedPromptKey === "add_recipient_conversation" ? (
+                <GenerationResultView
+                  result={playground.generationResult}
+                  horizontal
+                />
+              ) : playground.selectedPromptKey ===
+                "add_recipient_conversation" ? (
                 <ConversationResultView result={playground.generationResult} />
-              ) : playground.selectedPromptKey === "occasion_recommendations" ? (
+              ) : playground.selectedPromptKey ===
+                "occasion_recommendations" ? (
                 <OccasionResultView result={playground.generationResult} />
-              ) : playground.selectedPromptKey === "user_preferences_extraction" ? (
+              ) : playground.selectedPromptKey ===
+                "user_preferences_extraction" ? (
                 <PreferencesResultView result={playground.generationResult} />
               ) : (
                 <JsonResultView result={playground.generationResult} />
@@ -1037,80 +1120,108 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
               <Text variant="bodyMedium" style={styles.emptyResultsText}>
                 {playground.isGiftGeneration
                   ? "Select a giver and recipient, then click Generate to see results here."
-                  : `Click Test to run the ${playground.selectedPromptDef?.label ?? "prompt"} and see results here.`}
+                  : `Click Test to run the ${
+                      playground.selectedPromptDef?.label ?? "prompt"
+                    } and see results here.`}
               </Text>
             </Card.Content>
           </Card>
         )}
 
-        {playground.isGiftGeneration && !!playground.generationResult?.productionContext && (
-          <Card style={styles.card}>
-            <Card.Content>
-              <Button
-                mode="text"
-                onPress={() => setShowProductionContext(!showProductionContext)}
-                icon={showProductionContext ? "chevron-up" : "chevron-down"}
-                compact
-                style={styles.productionContextToggle}
-              >
-                Production Context
-              </Button>
-              {showProductionContext && (
-                <View style={styles.productionContextBox}>
-                  <Text variant="labelSmall" style={styles.productionContextLabel}>
-                    Wrapper System Message
-                  </Text>
-                  <ScrollView style={styles.productionContextScroll} nestedScrollEnabled>
-                    <Text variant="bodySmall" style={styles.monoText}>
-                      {String(
-                        (playground.generationResult.productionContext as Record<string, unknown>)
-                          ?.wrapperMessage ?? ""
-                      )}
+        {playground.isGiftGeneration &&
+          !!playground.generationResult?.productionContext && (
+            <Card style={styles.card}>
+              <Card.Content>
+                <Button
+                  mode="text"
+                  onPress={() =>
+                    setShowProductionContext(!showProductionContext)
+                  }
+                  icon={showProductionContext ? "chevron-up" : "chevron-down"}
+                  compact
+                  style={styles.productionContextToggle}
+                >
+                  Production Context
+                </Button>
+                {showProductionContext && (
+                  <View style={styles.productionContextBox}>
+                    <Text
+                      variant="labelSmall"
+                      style={styles.productionContextLabel}
+                    >
+                      Wrapper System Message
                     </Text>
-                  </ScrollView>
-                  <Text
-                    variant="labelSmall"
-                    style={[styles.productionContextLabel, { marginTop: 12 }]}
-                  >
-                    Full Input Array
-                  </Text>
-                  <ScrollView style={styles.productionContextScroll} nestedScrollEnabled>
-                    <Text variant="bodySmall" style={styles.monoText}>
-                      {JSON.stringify(
-                        (playground.generationResult.productionContext as Record<string, unknown>)
-                          ?.fullInput,
-                        null,
-                        2
-                      )}
+                    <ScrollView
+                      style={styles.productionContextScroll}
+                      nestedScrollEnabled
+                    >
+                      <Text variant="bodySmall" style={styles.monoText}>
+                        {String(
+                          (
+                            playground.generationResult
+                              .productionContext as Record<string, unknown>
+                          )?.wrapperMessage ?? ""
+                        )}
+                      </Text>
+                    </ScrollView>
+                    <Text
+                      variant="labelSmall"
+                      style={[styles.productionContextLabel, { marginTop: 12 }]}
+                    >
+                      Full Input Array
                     </Text>
-                  </ScrollView>
+                    <ScrollView
+                      style={styles.productionContextScroll}
+                      nestedScrollEnabled
+                    >
+                      <Text variant="bodySmall" style={styles.monoText}>
+                        {JSON.stringify(
+                          (
+                            playground.generationResult
+                              .productionContext as Record<string, unknown>
+                          )?.fullInput,
+                          null,
+                          2
+                        )}
+                      </Text>
+                    </ScrollView>
+                  </View>
+                )}
+              </Card.Content>
+            </Card>
+          )}
+
+        {playground.isGiftGeneration &&
+          !!playground.generationResult?.cronContext && (
+            <Card style={styles.card}>
+              <Card.Content>
+                <Text variant="titleSmall" style={styles.cardTitle}>
+                  Cron Context
+                </Text>
+                <View style={resultStyles.statusRow}>
+                  <Chip compact style={resultStyles.contextChip}>
+                    {String(
+                      (
+                        playground.generationResult.cronContext as Record<
+                          string,
+                          unknown
+                        >
+                      )?.existingSuggestionCount ?? 0
+                    )}{" "}
+                    existing suggestions
+                  </Chip>
                 </View>
-              )}
-            </Card.Content>
-          </Card>
-        )}
-
-        {playground.isGiftGeneration && !!playground.generationResult?.cronContext && (
-          <Card style={styles.card}>
-            <Card.Content>
-              <Text variant="titleSmall" style={styles.cardTitle}>
-                Cron Context
-              </Text>
-              <View style={resultStyles.statusRow}>
-                <Chip compact style={resultStyles.contextChip}>
-                  {String(
-                    (playground.generationResult.cronContext as Record<string, unknown>)
-                      ?.existingSuggestionCount ?? 0
-                  )}{" "}
-                  existing suggestions
-                </Chip>
-              </View>
-              <CronAvoidListView
-                cronContext={playground.generationResult.cronContext as Record<string, unknown>}
-              />
-            </Card.Content>
-          </Card>
-        )}
+                <CronAvoidListView
+                  cronContext={
+                    playground.generationResult.cronContext as Record<
+                      string,
+                      unknown
+                    >
+                  }
+                />
+              </Card.Content>
+            </Card>
+          )}
       </View>
     </View>
   );
@@ -1150,7 +1261,8 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
           <Dialog.Title>Deploy to Production</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={styles.dialogBody}>
-              This will update the live {playground.selectedPromptDef?.label ?? "prompt"}. Are you sure?
+              This will update the live{" "}
+              {playground.selectedPromptDef?.label ?? "prompt"}. Are you sure?
             </Text>
             <TextInput
               mode="outlined"
@@ -1238,7 +1350,10 @@ const GenerationResultView: React.FC<GenerationResultViewProps> = ({
   return (
     <View style={horizontal ? styles.suggestionsRow : styles.suggestionsList}>
       {suggestions.map((suggestion, i) => (
-        <View key={i} style={horizontal ? styles.suggestionCard : styles.suggestionItem}>
+        <View
+          key={i}
+          style={horizontal ? styles.suggestionCard : styles.suggestionItem}
+        >
           <View style={styles.suggestionHeader}>
             <Chip compact style={i === 0 ? styles.primaryChip : styles.altChip}>
               {i === 0 ? "Top Pick" : `#${i + 1}`}
@@ -1345,8 +1460,17 @@ const ConversationResultView: React.FC<{ result: Record<string, unknown> }> = ({
         Latest Turn Metadata
       </Text>
       <View style={resultStyles.statusRow}>
-        <Chip compact style={result.shouldShowNextStepButton ? resultStyles.activeChip : resultStyles.inactiveChip}>
-          {result.shouldShowNextStepButton ? "Next-step button: visible" : "Next-step button: hidden"}
+        <Chip
+          compact
+          style={
+            result.shouldShowNextStepButton
+              ? resultStyles.activeChip
+              : resultStyles.inactiveChip
+          }
+        >
+          {result.shouldShowNextStepButton
+            ? "Next-step button: visible"
+            : "Next-step button: hidden"}
         </Chip>
       </View>
       {ctx?.readiness && (
@@ -1358,14 +1482,38 @@ const ConversationResultView: React.FC<{ result: Record<string, unknown> }> = ({
       )}
       {ctx?.readiness && (
         <View style={resultStyles.chipRow}>
-          <Chip compact style={ctx.readiness.has_recipient_anchor ? resultStyles.anchorActive : resultStyles.anchorMissing}>
+          <Chip
+            compact
+            style={
+              ctx.readiness.has_recipient_anchor
+                ? resultStyles.anchorActive
+                : resultStyles.anchorMissing
+            }
+          >
             {"Recipient"}
           </Chip>
-          <Chip compact style={ctx.readiness.has_occasion_anchor ? resultStyles.anchorActive : resultStyles.anchorMissing}>
+          <Chip
+            compact
+            style={
+              ctx.readiness.has_occasion_anchor
+                ? resultStyles.anchorActive
+                : resultStyles.anchorMissing
+            }
+          >
             {"Occasion"}
           </Chip>
-          <Chip compact style={(ctx.readiness.has_specificity_anchor || ctx.user_skipped_specificity) ? resultStyles.anchorActive : resultStyles.anchorMissing}>
-            {ctx.user_skipped_specificity ? "Specificity (skipped)" : "Specificity"}
+          <Chip
+            compact
+            style={
+              ctx.readiness.has_specificity_anchor ||
+              ctx.user_skipped_specificity
+                ? resultStyles.anchorActive
+                : resultStyles.anchorMissing
+            }
+          >
+            {ctx.user_skipped_specificity
+              ? "Specificity (skipped)"
+              : "Specificity"}
           </Chip>
         </View>
       )}
@@ -1445,11 +1593,16 @@ const ConversationResultView: React.FC<{ result: Record<string, unknown> }> = ({
             <View style={resultStyles.contextBox}>
               {result.resolvedSystemPrompt === null ? (
                 <Text variant="bodySmall" style={resultStyles.contextField}>
-                  {"Readiness state was \"ready\" — deterministic wrap-up was used. The system prompt was not sent to the LLM."}
+                  {
+                    'Readiness state was "ready" — deterministic wrap-up was used. The system prompt was not sent to the LLM.'
+                  }
                 </Text>
               ) : (
                 <ScrollView style={resultStyles.resolvedPromptScroll}>
-                  <Text variant="bodySmall" style={resultStyles.resolvedPromptText}>
+                  <Text
+                    variant="bodySmall"
+                    style={resultStyles.resolvedPromptText}
+                  >
                     {String(result.resolvedSystemPrompt)}
                   </Text>
                 </ScrollView>
@@ -1517,12 +1670,17 @@ const OccasionResultView: React.FC<{ result: Record<string, unknown> }> = ({
               {occ.reasoning}
             </Text>
           )}
-          {i < occasions.length - 1 && <Divider style={{ marginVertical: 8 }} />}
+          {i < occasions.length - 1 && (
+            <Divider style={{ marginVertical: 8 }} />
+          )}
         </View>
       ))}
       {additional.length > 0 && (
         <View style={resultStyles.additionalSection}>
-          <Text variant="labelSmall" style={{ color: Colors.darks.brown, marginBottom: 4 }}>
+          <Text
+            variant="labelSmall"
+            style={{ color: Colors.darks.brown, marginBottom: 4 }}
+          >
             Also consider
           </Text>
           <View style={resultStyles.chipRow}>
@@ -1556,11 +1714,17 @@ const PreferencesResultView: React.FC<{ result: Record<string, unknown> }> = ({
   }
 
   const us = result.user_summary as Record<string, unknown> | undefined;
-  const userInput = typeof result.userInput === "string" ? result.userInput : null;
+  const userInput =
+    typeof result.userInput === "string" ? result.userInput : null;
   const resolvedPrompt =
-    typeof result.resolvedSystemPrompt === "string" ? result.resolvedSystemPrompt : null;
-  const rawResponse = typeof result.rawResponse === "string" ? result.rawResponse : null;
-  const modelUsed = result.modelUsed as { provider?: string; model?: string } | undefined;
+    typeof result.resolvedSystemPrompt === "string"
+      ? result.resolvedSystemPrompt
+      : null;
+  const rawResponse =
+    typeof result.rawResponse === "string" ? result.rawResponse : null;
+  const modelUsed = result.modelUsed as
+    | { provider?: string; model?: string }
+    | undefined;
 
   const arrayFields: { label: string; key: string }[] = [
     { label: "Taste & World", key: "taste_and_world" },
@@ -1572,7 +1736,9 @@ const PreferencesResultView: React.FC<{ result: Record<string, unknown> }> = ({
   return (
     <View>
       <Text variant="bodySmall" style={resultStyles.processIntro}>
-        {"Single-shot extraction (no chat). Steps 1–3 show exactly what was sent to and returned by the model. Step 4 is the parsed result the app stores."}
+        {
+          "Single-shot extraction (no chat). Steps 1–3 show exactly what was sent to and returned by the model. Step 4 is the parsed result the app stores."
+        }
       </Text>
 
       {modelUsed?.provider && modelUsed?.model && (
@@ -1598,7 +1764,10 @@ const PreferencesResultView: React.FC<{ result: Record<string, unknown> }> = ({
           {showUserInput && (
             <View style={resultStyles.contextBox}>
               <ScrollView style={resultStyles.resolvedPromptScroll}>
-                <Text variant="bodySmall" style={resultStyles.resolvedPromptText}>
+                <Text
+                  variant="bodySmall"
+                  style={resultStyles.resolvedPromptText}
+                >
                   {userInput}
                 </Text>
               </ScrollView>
@@ -1622,7 +1791,10 @@ const PreferencesResultView: React.FC<{ result: Record<string, unknown> }> = ({
           {showSystemPrompt && (
             <View style={resultStyles.contextBox}>
               <ScrollView style={resultStyles.resolvedPromptScroll}>
-                <Text variant="bodySmall" style={resultStyles.resolvedPromptText}>
+                <Text
+                  variant="bodySmall"
+                  style={resultStyles.resolvedPromptText}
+                >
                   {resolvedPrompt}
                 </Text>
               </ScrollView>
@@ -1646,7 +1818,10 @@ const PreferencesResultView: React.FC<{ result: Record<string, unknown> }> = ({
           {showRawResponse && (
             <View style={resultStyles.contextBox}>
               <ScrollView style={resultStyles.resolvedPromptScroll}>
-                <Text variant="bodySmall" style={resultStyles.resolvedPromptText}>
+                <Text
+                  variant="bodySmall"
+                  style={resultStyles.resolvedPromptText}
+                >
                   {rawResponse}
                 </Text>
               </ScrollView>
@@ -1669,7 +1844,11 @@ const PreferencesResultView: React.FC<{ result: Record<string, unknown> }> = ({
             <View style={{ marginBottom: 10 }}>
               <Text
                 variant="labelSmall"
-                style={{ color: Colors.darks.brown, fontWeight: "700", marginBottom: 2 }}
+                style={{
+                  color: Colors.darks.brown,
+                  fontWeight: "700",
+                  marginBottom: 2,
+                }}
               >
                 Summary
               </Text>
@@ -1684,12 +1863,20 @@ const PreferencesResultView: React.FC<{ result: Record<string, unknown> }> = ({
               <View key={key} style={{ marginBottom: 10 }}>
                 <Text
                   variant="labelSmall"
-                  style={{ color: Colors.darks.brown, fontWeight: "700", marginBottom: 2 }}
+                  style={{
+                    color: Colors.darks.brown,
+                    fontWeight: "700",
+                    marginBottom: 2,
+                  }}
                 >
                   {label}
                 </Text>
                 {items.map((item, i) => (
-                  <Text key={i} variant="bodyMedium" style={{ color: Colors.darks.brown }}>
+                  <Text
+                    key={i}
+                    variant="bodyMedium"
+                    style={{ color: Colors.darks.brown }}
+                  >
                     • {item}
                   </Text>
                 ))}
@@ -1697,7 +1884,10 @@ const PreferencesResultView: React.FC<{ result: Record<string, unknown> }> = ({
             ) : null;
           })}
           {typeof us.confidence === "string" && (
-            <Text variant="labelSmall" style={{ color: Colors.darks.brown, marginTop: 4 }}>
+            <Text
+              variant="labelSmall"
+              style={{ color: Colors.darks.brown, marginTop: 4 }}
+            >
               Confidence: {us.confidence}
             </Text>
           )}

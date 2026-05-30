@@ -1,8 +1,23 @@
 import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { Button, Dialog, IconButton, Portal, Text, TextInput } from "react-native-paper";
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
+import {
+  Button,
+  Dialog,
+  IconButton,
+  Portal,
+  Text,
+  TextInput,
+} from "react-native-paper";
 import { useAuth } from "../../../hooks/use-auth";
 import { Colors } from "../../../lib/colors";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
@@ -119,7 +134,10 @@ export default function GiftingPreferences() {
       setOriginalGiftingStyleText(giftingStyleText);
 
       // Re-synthesize giver profile in the background when gifting text changed
-      if (giftingStyleText.trim() && giftingStyleText !== originalGiftingStyleText) {
+      if (
+        giftingStyleText.trim() &&
+        giftingStyleText !== originalGiftingStyleText
+      ) {
         supabase.functions
           .invoke("synthesize-giver-profile", { body: { userId: user.id } })
           .catch(() => {});
@@ -192,55 +210,55 @@ export default function GiftingPreferences() {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-        <View style={styles.content}>
-          <Pressable style={styles.mainCard}>
-            <BlurView
-              intensity={20}
-              style={styles.blurBackground}
-              pointerEvents="none"
-            />
-            <View style={styles.mainCardContent}>
-              {/* Header section */}
-              <View style={styles.header}>
-                <View style={styles.headerLeft}>
-                  <Text variant="headlineSmall" style={styles.title}>
-                    Gifting Preferences
-                  </Text>
-                  <Text variant="bodyMedium" style={styles.subtitle}>
-                    Describe your gifting style in your own words. We&apos;ll personalize your gift recommendations.
-                  </Text>
+          <View style={styles.content}>
+            <Pressable style={styles.mainCard}>
+              <BlurView
+                intensity={20}
+                style={styles.blurBackground}
+                pointerEvents="none"
+              />
+              <View style={styles.mainCardContent}>
+                {/* Header section */}
+                <View style={styles.header}>
+                  <View style={styles.headerLeft}>
+                    <Text variant="headlineSmall" style={styles.title}>
+                      Gifting Preferences
+                    </Text>
+                    <Text variant="bodyMedium" style={styles.subtitle}>
+                      Describe your gifting style in your own words. We&apos;ll
+                      personalize your gift recommendations.
+                    </Text>
+                  </View>
+                  <IconButton
+                    icon="arrow-left"
+                    size={20}
+                    iconColor="#000000"
+                    onPress={() => router.back()}
+                    style={styles.backButton}
+                  />
                 </View>
-                <IconButton
-                  icon="arrow-left"
-                  size={20}
-                  iconColor="#000000"
-                  onPress={() => router.back()}
-                  style={styles.backButton}
-                />
-              </View>
 
-              {/* Gifting style text input */}
-              <View style={styles.section}>
-                <Text variant="titleMedium" style={styles.sectionTitle}>
-                  Your Gifting Style
-                </Text>
-                <TextInput
-                  mode="outlined"
-                  placeholder="e.g. I like to give thoughtful, handmade gifts. I prefer spending moderately and planning ahead. I tend to be warm and personal with my gift choices..."
-                  value={giftingStyleText}
-                  onChangeText={setGiftingStyleText}
-                  multiline
-                  numberOfLines={6}
-                  style={styles.textInput}
-                  outlineStyle={styles.textInputOutline}
-                  contentStyle={styles.textInputContent}
-                />
+                {/* Gifting style text input */}
+                <View style={styles.section}>
+                  <Text variant="titleMedium" style={styles.sectionTitle}>
+                    Your Gifting Style
+                  </Text>
+                  <TextInput
+                    mode="outlined"
+                    placeholder="e.g. I like to give thoughtful, handmade gifts. I prefer spending moderately and planning ahead. I tend to be warm and personal with my gift choices..."
+                    value={giftingStyleText}
+                    onChangeText={setGiftingStyleText}
+                    multiline
+                    numberOfLines={6}
+                    style={styles.textInput}
+                    outlineStyle={styles.textInputOutline}
+                    contentStyle={styles.textInputContent}
+                  />
+                </View>
               </View>
-
-            </View>
-          </Pressable>
-        </View>
-      </ScrollView>
+            </Pressable>
+          </View>
+        </ScrollView>
 
         {/* Floating Save Button */}
         {hasChanges && (

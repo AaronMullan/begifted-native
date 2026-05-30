@@ -38,7 +38,8 @@ export const PROMPT_REGISTRY: PromptDefinition[] = [
   {
     key: "gift_generation_system",
     label: "Gift Generation",
-    description: "System prompt for generating real, purchasable gift suggestions",
+    description:
+      "System prompt for generating real, purchasable gift suggestions",
     defaultPrompt: `BeGifted Gift Protocol v1
 
 Purpose: Generate real, purchasable gift suggestions for U.S. recipients.

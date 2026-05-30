@@ -13,7 +13,14 @@ import { Colors } from "@/lib/colors";
 import { queryKeys } from "@/lib/query-keys";
 import { useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
-import { Linking, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+  Linking,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import {
   ActivityIndicator,
   Button,
@@ -91,8 +98,8 @@ const SearchesContent: React.FC = () => {
         {runsQuery.isLoading
           ? "Loading…"
           : total === 0
-            ? "No runs recorded yet."
-            : `Showing ${startNum}-${endNum} of ${total} runs`}
+          ? "No runs recorded yet."
+          : `Showing ${startNum}-${endNum} of ${total} runs`}
       </Text>
 
       {runsQuery.error && (
@@ -125,7 +132,10 @@ const DetailDialog: React.FC<{
   onDismiss: () => void;
 }> = ({ modal, onDismiss }) => {
   const promptQuery = useQuery({
-    queryKey: ["systemPromptById", modal?.kind === "protocol" ? modal.id : null],
+    queryKey: [
+      "systemPromptById",
+      modal?.kind === "protocol" ? modal.id : null,
+    ],
     queryFn: () =>
       modal?.kind === "protocol"
         ? fetchSystemPromptById(modal.id)
@@ -134,7 +144,10 @@ const DetailDialog: React.FC<{
   });
 
   const wrapperQuery = useQuery({
-    queryKey: ["wrapperTemplate", modal?.kind === "wrapper" ? modal.hash : null],
+    queryKey: [
+      "wrapperTemplate",
+      modal?.kind === "wrapper" ? modal.hash : null,
+    ],
     queryFn: () =>
       modal?.kind === "wrapper"
         ? fetchWrapperTemplate(modal.hash)
@@ -143,7 +156,10 @@ const DetailDialog: React.FC<{
   });
 
   const recipientQuery = useQuery({
-    queryKey: ["recipientSynthProfile", modal?.kind === "recipient" ? modal.id : null],
+    queryKey: [
+      "recipientSynthProfile",
+      modal?.kind === "recipient" ? modal.id : null,
+    ],
     queryFn: () =>
       modal?.kind === "recipient"
         ? fetchRecipientSynthesizedProfile(modal.id)
@@ -177,12 +193,18 @@ const DetailDialog: React.FC<{
       ? `Protocol v${v.version} — ${v.prompt_key}`
       : `Protocol v${modal.version ?? "?"}`;
     body = v?.prompt_text ?? "";
-    meta = v ? `Created ${new Date(v.created_at).toLocaleString()}${v.is_active ? " · ACTIVE" : ""}` : null;
+    meta = v
+      ? `Created ${new Date(v.created_at).toLocaleString()}${
+          v.is_active ? " · ACTIVE" : ""
+        }`
+      : null;
   } else if (modal?.kind === "wrapper") {
     const w = wrapperQuery.data;
     title = `Wrapper ${modal.hash.slice(0, 12)}…`;
     body = w?.template_text ?? "";
-    meta = w ? `First seen ${new Date(w.first_seen_at).toLocaleString()}` : null;
+    meta = w
+      ? `First seen ${new Date(w.first_seen_at).toLocaleString()}`
+      : null;
   } else if (modal?.kind === "recipient") {
     const r = recipientQuery.data;
     title = `Recipient: ${r?.name ?? modal.name}`;
@@ -262,7 +284,9 @@ const RunCard: React.FC<{
   run: RunSummary;
   onOpenModal: (m: DetailModal) => void;
 }> = ({ run, onOpenModal }) => {
-  const ts = new Date(run.created_at).toISOString().replace("T", " ").slice(0, 16) + " UTC";
+  const ts =
+    new Date(run.created_at).toISOString().replace("T", " ").slice(0, 16) +
+    " UTC";
   const recipientName = run.recipient?.name ?? "(unknown recipient)";
   const giverName = run.giver?.name ?? "(unknown giver)";
   const occasionType = run.occasion?.occasion_type ?? "—";
@@ -270,9 +294,14 @@ const RunCard: React.FC<{
     run.budget && (run.budget.min != null || run.budget.max != null)
       ? `$${run.budget.min ?? "?"}-$${run.budget.max ?? "?"}`
       : "no budget";
-  const providerLine = [run.ai_provider, run.ai_model].filter(Boolean).join("/") || "(provider unknown)";
-  const protocolLabel = run.protocol_version != null ? `protocol v${run.protocol_version}` : null;
-  const wrapperShort = run.wrapper_template_hash ? `${run.wrapper_template_hash.slice(0, 8)}…` : null;
+  const providerLine =
+    [run.ai_provider, run.ai_model].filter(Boolean).join("/") ||
+    "(provider unknown)";
+  const protocolLabel =
+    run.protocol_version != null ? `protocol v${run.protocol_version}` : null;
+  const wrapperShort = run.wrapper_template_hash
+    ? `${run.wrapper_template_hash.slice(0, 8)}…`
+    : null;
   const runIdShort = `${run.run_id.slice(0, 8)}…`;
 
   return (
@@ -324,7 +353,10 @@ const RunCard: React.FC<{
           <Text variant="bodySmall" style={styles.metaLine}>
             {providerLine}
           </Text>
-          <Text variant="bodySmall" style={styles.metaLine}> · </Text>
+          <Text variant="bodySmall" style={styles.metaLine}>
+            {" "}
+            ·{" "}
+          </Text>
           {protocolLabel && run.protocol_prompt_id ? (
             <Pressable
               onPress={() =>
@@ -335,7 +367,10 @@ const RunCard: React.FC<{
                 })
               }
             >
-              <Text variant="bodySmall" style={[styles.metaLine, styles.metaLink]}>
+              <Text
+                variant="bodySmall"
+                style={[styles.metaLine, styles.metaLink]}
+              >
                 {protocolLabel}
               </Text>
             </Pressable>
@@ -344,7 +379,10 @@ const RunCard: React.FC<{
               (no protocol id)
             </Text>
           )}
-          <Text variant="bodySmall" style={styles.metaLine}> · wrapper </Text>
+          <Text variant="bodySmall" style={styles.metaLine}>
+            {" "}
+            · wrapper{" "}
+          </Text>
           {wrapperShort && run.wrapper_template_hash ? (
             <Pressable
               onPress={() =>
@@ -354,7 +392,10 @@ const RunCard: React.FC<{
                 })
               }
             >
-              <Text variant="bodySmall" style={[styles.metaLine, styles.metaLink]}>
+              <Text
+                variant="bodySmall"
+                style={[styles.metaLine, styles.metaLink]}
+              >
                 {wrapperShort}
               </Text>
             </Pressable>
@@ -371,10 +412,16 @@ const RunCard: React.FC<{
           SEARCHES ({run.search_queries.length})
         </Text>
         {run.search_queries.length === 0 ? (
-          <Text variant="bodySmall" style={styles.empty}>(no search queries captured)</Text>
+          <Text variant="bodySmall" style={styles.empty}>
+            (no search queries captured)
+          </Text>
         ) : (
           run.search_queries.map((q, i) => (
-            <Text key={`${run.run_id}-q-${i}`} variant="bodySmall" style={styles.queryLine}>
+            <Text
+              key={`${run.run_id}-q-${i}`}
+              variant="bodySmall"
+              style={styles.queryLine}
+            >
               • &quot;{q}&quot;
             </Text>
           ))
@@ -398,7 +445,10 @@ const RunCard: React.FC<{
               <Text variant="bodySmall">
                 {i + 1}.{" "}
                 {p.link ? (
-                  <Text style={styles.pickLink} onPress={() => Linking.openURL(p.link!)}>
+                  <Text
+                    style={styles.pickLink}
+                    onPress={() => Linking.openURL(p.link!)}
+                  >
                     {p.title}
                   </Text>
                 ) : (

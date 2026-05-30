@@ -51,14 +51,21 @@ export const CisCard: React.FC<CisCardProps> = ({
   function handleRemoveInterest(index: number) {
     const current = cis?.recipient.interests || [];
     const updated = current.filter((_, i) => i !== index);
-    setCisField("recipient", "interests", updated as CISPreview["recipient"]["interests"]);
+    setCisField(
+      "recipient",
+      "interests",
+      updated as CISPreview["recipient"]["interests"]
+    );
   }
 
   function handleAddInterest() {
     const val = newInterest.trim();
     if (!val) return;
     const current = cis?.recipient.interests || [];
-    setCisField("recipient", "interests", [...current, val] as CISPreview["recipient"]["interests"]);
+    setCisField("recipient", "interests", [
+      ...current,
+      val,
+    ] as CISPreview["recipient"]["interests"]);
     setNewInterest("");
     setAddingInterest(false);
   }
@@ -73,7 +80,10 @@ export const CisCard: React.FC<CisCardProps> = ({
     const val = newAvoid.trim();
     if (!val) return;
     const current = cis?.history.avoid || [];
-    setCisField("history", "avoid", [...current, val] as CISPreview["history"]["avoid"]);
+    setCisField("history", "avoid", [
+      ...current,
+      val,
+    ] as CISPreview["history"]["avoid"]);
     setNewAvoid("");
     setAddingAvoid(false);
   }
@@ -81,7 +91,11 @@ export const CisCard: React.FC<CisCardProps> = ({
   function handleRemovePriorGift(index: number) {
     const current = cis?.history.prior_gifts || [];
     const updated = current.filter((_, i) => i !== index);
-    setCisField("history", "prior_gifts", updated as CISPreview["history"]["prior_gifts"]);
+    setCisField(
+      "history",
+      "prior_gifts",
+      updated as CISPreview["history"]["prior_gifts"]
+    );
   }
 
   return (
@@ -92,9 +106,7 @@ export const CisCard: React.FC<CisCardProps> = ({
             <Text variant="titleSmall" style={styles.cardTitle}>
               CIS Data
             </Text>
-            {hasCisEdits && (
-              <Badge size={8} style={styles.editedBadgeTitle} />
-            )}
+            {hasCisEdits && <Badge size={8} style={styles.editedBadgeTitle} />}
           </View>
           <View style={styles.cisHeaderActions}>
             {hasCisEdits && (
@@ -122,7 +134,10 @@ export const CisCard: React.FC<CisCardProps> = ({
             ) : cis ? (
               <View style={styles.cisSections}>
                 {/* Giver section */}
-                <EditableCISSection label="Giver" hasEdits={sectionHasEdits("giver")}>
+                <EditableCISSection
+                  label="Giver"
+                  hasEdits={sectionHasEdits("giver")}
+                >
                   <TextInput
                     mode="outlined"
                     label="Name"
@@ -137,7 +152,10 @@ export const CisCard: React.FC<CisCardProps> = ({
                       <Text variant="labelSmall" style={styles.cisFieldLabel}>
                         Synthesized Profile
                       </Text>
-                      <Text variant="bodySmall" style={styles.synthesizedProfileText}>
+                      <Text
+                        variant="bodySmall"
+                        style={styles.synthesizedProfileText}
+                      >
                         {cis.giver.synthesized_profile}
                       </Text>
                     </View>
@@ -147,7 +165,10 @@ export const CisCard: React.FC<CisCardProps> = ({
                 <Divider style={styles.cisDivider} />
 
                 {/* Recipient section */}
-                <EditableCISSection label="Recipient" hasEdits={sectionHasEdits("recipient")}>
+                <EditableCISSection
+                  label="Recipient"
+                  hasEdits={sectionHasEdits("recipient")}
+                >
                   <TextInput
                     mode="outlined"
                     label="Name"
@@ -162,7 +183,9 @@ export const CisCard: React.FC<CisCardProps> = ({
                       mode="outlined"
                       label="Relationship"
                       value={cis.recipient.relationship}
-                      onChangeText={(v) => setCisField("recipient", "relationship", v)}
+                      onChangeText={(v) =>
+                        setCisField("recipient", "relationship", v)
+                      }
                       dense
                       style={[styles.cisInput, styles.cisInputFlex]}
                       outlineStyle={styles.cisInputOutline}
@@ -170,8 +193,18 @@ export const CisCard: React.FC<CisCardProps> = ({
                     <TextInput
                       mode="outlined"
                       label="Age"
-                      value={cis.recipient.age != null ? String(cis.recipient.age) : ""}
-                      onChangeText={(v) => setCisField("recipient", "age", v ? Number(v) : undefined)}
+                      value={
+                        cis.recipient.age != null
+                          ? String(cis.recipient.age)
+                          : ""
+                      }
+                      onChangeText={(v) =>
+                        setCisField(
+                          "recipient",
+                          "age",
+                          v ? Number(v) : undefined
+                        )
+                      }
                       dense
                       keyboardType="numeric"
                       style={[styles.cisInput, { width: 70 }]}
@@ -182,7 +215,9 @@ export const CisCard: React.FC<CisCardProps> = ({
                     mode="outlined"
                     label="Location"
                     value={cis.recipient.location || ""}
-                    onChangeText={(v) => setCisField("recipient", "location", v || undefined)}
+                    onChangeText={(v) =>
+                      setCisField("recipient", "location", v || undefined)
+                    }
                     dense
                     style={styles.cisInput}
                     outlineStyle={styles.cisInputOutline}
@@ -192,7 +227,10 @@ export const CisCard: React.FC<CisCardProps> = ({
                       <Text variant="labelSmall" style={styles.cisFieldLabel}>
                         Synthesized Profile
                       </Text>
-                      <Text variant="bodySmall" style={styles.synthesizedProfileText}>
+                      <Text
+                        variant="bodySmall"
+                        style={styles.synthesizedProfileText}
+                      >
                         {cis.recipient.synthesized_profile}
                       </Text>
                     </View>
@@ -224,8 +262,19 @@ export const CisCard: React.FC<CisCardProps> = ({
                           outlineStyle={styles.cisInputOutline}
                           autoFocus
                         />
-                        <IconButton icon="check" size={16} onPress={handleAddInterest} />
-                        <IconButton icon="close" size={16} onPress={() => { setAddingInterest(false); setNewInterest(""); }} />
+                        <IconButton
+                          icon="check"
+                          size={16}
+                          onPress={handleAddInterest}
+                        />
+                        <IconButton
+                          icon="close"
+                          size={16}
+                          onPress={() => {
+                            setAddingInterest(false);
+                            setNewInterest("");
+                          }}
+                        />
                       </View>
                     ) : (
                       <Chip
@@ -242,7 +291,18 @@ export const CisCard: React.FC<CisCardProps> = ({
                     mode="outlined"
                     label="Aesthetic"
                     value={(cis.recipient.aesthetic || []).join(", ")}
-                    onChangeText={(v) => setCisField("recipient", "aesthetic", v ? v.split(",").map((s) => s.trim()).filter(Boolean) : [])}
+                    onChangeText={(v) =>
+                      setCisField(
+                        "recipient",
+                        "aesthetic",
+                        v
+                          ? v
+                              .split(",")
+                              .map((s) => s.trim())
+                              .filter(Boolean)
+                          : []
+                      )
+                    }
                     dense
                     style={styles.cisInput}
                     outlineStyle={styles.cisInputOutline}
@@ -252,7 +312,10 @@ export const CisCard: React.FC<CisCardProps> = ({
                 <Divider style={styles.cisDivider} />
 
                 {/* Occasion section */}
-                <EditableCISSection label="Occasion" hasEdits={sectionHasEdits("occasion")}>
+                <EditableCISSection
+                  label="Occasion"
+                  hasEdits={sectionHasEdits("occasion")}
+                >
                   <View style={styles.cisInputRow}>
                     <TextInput
                       mode="outlined"
@@ -266,8 +329,18 @@ export const CisCard: React.FC<CisCardProps> = ({
                     <TextInput
                       mode="outlined"
                       label="Budget $"
-                      value={cis.occasion.budget_usd != null ? String(cis.occasion.budget_usd) : ""}
-                      onChangeText={(v) => setCisField("occasion", "budget_usd", v ? Number(v) : undefined)}
+                      value={
+                        cis.occasion.budget_usd != null
+                          ? String(cis.occasion.budget_usd)
+                          : ""
+                      }
+                      onChangeText={(v) =>
+                        setCisField(
+                          "occasion",
+                          "budget_usd",
+                          v ? Number(v) : undefined
+                        )
+                      }
                       dense
                       keyboardType="numeric"
                       style={[styles.cisInput, { width: 90 }]}
@@ -287,7 +360,9 @@ export const CisCard: React.FC<CisCardProps> = ({
                     mode="outlined"
                     label="Significance"
                     value={cis.occasion.significance || ""}
-                    onChangeText={(v) => setCisField("occasion", "significance", v || undefined)}
+                    onChangeText={(v) =>
+                      setCisField("occasion", "significance", v || undefined)
+                    }
                     dense
                     style={styles.cisInput}
                     outlineStyle={styles.cisInputOutline}
@@ -297,12 +372,16 @@ export const CisCard: React.FC<CisCardProps> = ({
                 <Divider style={styles.cisDivider} />
 
                 {/* History section */}
-                <EditableCISSection label="History" hasEdits={sectionHasEdits("history")}>
+                <EditableCISSection
+                  label="History"
+                  hasEdits={sectionHasEdits("history")}
+                >
                   {cis.history.prior_gifts.length > 0 ? (
                     cis.history.prior_gifts.map((gift, i) => (
                       <View key={i} style={styles.priorGiftRow}>
                         <Text variant="bodySmall" style={styles.priorGiftText}>
-                          {gift.name}{gift.reaction ? ` — ${gift.reaction}` : ""}
+                          {gift.name}
+                          {gift.reaction ? ` — ${gift.reaction}` : ""}
                         </Text>
                         <IconButton
                           icon="close"
@@ -344,8 +423,19 @@ export const CisCard: React.FC<CisCardProps> = ({
                           outlineStyle={styles.cisInputOutline}
                           autoFocus
                         />
-                        <IconButton icon="check" size={16} onPress={handleAddAvoid} />
-                        <IconButton icon="close" size={16} onPress={() => { setAddingAvoid(false); setNewAvoid(""); }} />
+                        <IconButton
+                          icon="check"
+                          size={16}
+                          onPress={handleAddAvoid}
+                        />
+                        <IconButton
+                          icon="close"
+                          size={16}
+                          onPress={() => {
+                            setAddingAvoid(false);
+                            setNewAvoid("");
+                          }}
+                        />
                       </View>
                     ) : (
                       <Chip
@@ -378,7 +468,11 @@ type EditableCISSectionProps = {
   children: React.ReactNode;
 };
 
-const EditableCISSection: React.FC<EditableCISSectionProps> = ({ label, hasEdits, children }) => (
+const EditableCISSection: React.FC<EditableCISSectionProps> = ({
+  label,
+  hasEdits,
+  children,
+}) => (
   <View style={styles.cisSection}>
     <View style={styles.cisSectionHeader}>
       <Text variant="labelMedium" style={styles.cisSectionLabel}>

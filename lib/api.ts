@@ -157,7 +157,10 @@ export async function fetchOccasions(userId: string): Promise<Occasion[]> {
         ? recipientsError.message
         : String(recipientsError);
     if (!msg.includes("Network request failed") && !msg.includes("timed out")) {
-      console.error("Error fetching recipient names for occasions:", recipientsError);
+      console.error(
+        "Error fetching recipient names for occasions:",
+        recipientsError
+      );
     }
   }
 
@@ -166,21 +169,20 @@ export async function fetchOccasions(userId: string): Promise<Occasion[]> {
 
   // Transform the data to include recipient info
   const transformedOccasions: Occasion[] = occasionsData.map((occasion) => {
-      const recipient = recipientsMap.get(occasion.recipient_id);
-      return {
-        id: occasion.id,
-        date: occasion.date,
-        occasion_type: occasion.occasion_type || "birthday",
-        recipient_id: occasion.recipient_id,
-        recipient: recipient
-          ? {
-              name: recipient.name,
-              relationship_type: recipient.relationship_type,
-            }
-          : undefined,
-      };
-    }
-  );
+    const recipient = recipientsMap.get(occasion.recipient_id);
+    return {
+      id: occasion.id,
+      date: occasion.date,
+      occasion_type: occasion.occasion_type || "birthday",
+      recipient_id: occasion.recipient_id,
+      recipient: recipient
+        ? {
+            name: recipient.name,
+            relationship_type: recipient.relationship_type,
+          }
+        : undefined,
+    };
+  });
 
   return transformedOccasions;
 }
@@ -401,9 +403,7 @@ export async function markNotificationRead(
 /**
  * Mark all notifications as read for a user
  */
-export async function markAllNotificationsRead(
-  userId: string
-): Promise<void> {
+export async function markAllNotificationsRead(userId: string): Promise<void> {
   const { error } = await supabase
     .from("app_notifications")
     .update({ read: true })
@@ -611,7 +611,7 @@ export interface AppConfig {
   recommendations_enabled: boolean;
   notifications_enabled: boolean;
   signups_enabled: boolean;
-  ai_provider: 'openai' | 'anthropic' | 'google';
+  ai_provider: "openai" | "anthropic" | "google";
   ai_model: string;
   updated_at: string;
   updated_by: string | null;
@@ -642,7 +642,11 @@ export async function updateAppConfig(
 ): Promise<void> {
   const { error } = await supabase
     .from("app_config")
-    .update({ ...flags, updated_at: new Date().toISOString(), updated_by: userId })
+    .update({
+      ...flags,
+      updated_at: new Date().toISOString(),
+      updated_by: userId,
+    })
     .eq("id", 1);
   if (error) throw error;
 }
@@ -669,7 +673,11 @@ export interface RunSummary {
   cited_domains: string[];
   recipient: { id: string; name: string } | null;
   giver: { id: string; name: string | null } | null;
-  occasion: { id: string; occasion_type: string | null; date: string | null } | null;
+  occasion: {
+    id: string;
+    occasion_type: string | null;
+    date: string | null;
+  } | null;
   budget: { min: number | null; max: number | null } | null;
   picks: RunPick[];
 }
@@ -687,7 +695,7 @@ export interface RecentRunsPage {
  */
 export async function fetchRecentRuns(
   limit: number,
-  offset: number,
+  offset: number
 ): Promise<RecentRunsPage> {
   const { data: idRows, error: idErr } = await supabase
     .from("gift_suggestions")
@@ -717,7 +725,7 @@ export async function fetchRecentRuns(
        search_queries, cited_urls, cited_domains,
        recipient_id, occasion_id,
        recipients ( id, name, user_id, gift_budget_min, gift_budget_max ),
-       occasions ( id, occasion_type, date )`,
+       occasions ( id, occasion_type, date )`
     )
     .in("run_id", pageRunIds)
     .order("created_at", { ascending: false });
@@ -728,8 +736,8 @@ export async function fetchRecentRuns(
     new Set(
       (rows ?? [])
         .map((r) => r.protocol_prompt_id as string | null)
-        .filter((id): id is string => Boolean(id)),
-    ),
+        .filter((id): id is string => Boolean(id))
+    )
   );
 
   const promptVersionById = new Map<string, number>();
@@ -751,7 +759,11 @@ export async function fetchRecentRuns(
     gift_budget_min: number | null;
     gift_budget_max: number | null;
   };
-  type OccasionEmbed = { id: string; occasion_type: string | null; date: string | null };
+  type OccasionEmbed = {
+    id: string;
+    occasion_type: string | null;
+    date: string | null;
+  };
 
   const giverIds = Array.from(
     new Set(
@@ -759,12 +771,12 @@ export async function fetchRecentRuns(
         .map((r) => {
           const raw = (r.recipients ?? null) as unknown;
           const rec: RecipientEmbed | null = Array.isArray(raw)
-            ? ((raw[0] as RecipientEmbed | undefined) ?? null)
+            ? (raw[0] as RecipientEmbed | undefined) ?? null
             : (raw as RecipientEmbed | null);
           return rec?.user_id ?? null;
         })
-        .filter((id): id is string => Boolean(id)),
-    ),
+        .filter((id): id is string => Boolean(id))
+    )
   );
 
   const giverNameById = new Map<string, string | null>();
@@ -784,10 +796,10 @@ export async function fetchRecentRuns(
     const rawRecipients = (r.recipients ?? null) as unknown;
     const rawOccasions = (r.occasions ?? null) as unknown;
     const recipient: RecipientEmbed | null = Array.isArray(rawRecipients)
-      ? ((rawRecipients[0] as RecipientEmbed | undefined) ?? null)
+      ? (rawRecipients[0] as RecipientEmbed | undefined) ?? null
       : (rawRecipients as RecipientEmbed | null);
     const occasion: OccasionEmbed | null = Array.isArray(rawOccasions)
-      ? ((rawOccasions[0] as OccasionEmbed | undefined) ?? null)
+      ? (rawOccasions[0] as OccasionEmbed | undefined) ?? null
       : (rawOccasions as OccasionEmbed | null);
 
     let summary = runMap.get(r.run_id);
@@ -806,13 +818,21 @@ export async function fetchRecentRuns(
         search_queries: (r.search_queries ?? []) as string[],
         cited_urls: (r.cited_urls ?? []) as string[],
         cited_domains: (r.cited_domains ?? []) as string[],
-        recipient: recipient ? { id: recipient.id, name: recipient.name } : null,
-        giver:
-          recipient?.user_id
-            ? { id: recipient.user_id, name: giverNameById.get(recipient.user_id) ?? null }
-            : null,
+        recipient: recipient
+          ? { id: recipient.id, name: recipient.name }
+          : null,
+        giver: recipient?.user_id
+          ? {
+              id: recipient.user_id,
+              name: giverNameById.get(recipient.user_id) ?? null,
+            }
+          : null,
         occasion: occasion
-          ? { id: occasion.id, occasion_type: occasion.occasion_type, date: occasion.date }
+          ? {
+              id: occasion.id,
+              occasion_type: occasion.occasion_type,
+              date: occasion.date,
+            }
           : null,
         budget: recipient
           ? { min: recipient.gift_budget_min, max: recipient.gift_budget_max }
@@ -840,7 +860,7 @@ export async function fetchRecentRuns(
  * Fetch a single prompt version by id (admin viewer modal)
  */
 export async function fetchSystemPromptById(
-  id: string,
+  id: string
 ): Promise<SystemPromptVersion | null> {
   const { data, error } = await supabase
     .from("system_prompt_versions")
@@ -861,7 +881,7 @@ export interface WrapperTemplate {
  * Fetch a wrapper template by its content hash (admin viewer modal)
  */
 export async function fetchWrapperTemplate(
-  hash: string,
+  hash: string
 ): Promise<WrapperTemplate | null> {
   const { data, error } = await supabase
     .from("wrapper_templates")
@@ -882,7 +902,7 @@ export interface RecipientProfileSnapshot {
  * Fetch a recipient's synthesized profile (admin viewer modal)
  */
 export async function fetchRecipientSynthesizedProfile(
-  id: string,
+  id: string
 ): Promise<RecipientProfileSnapshot | null> {
   const { data, error } = await supabase
     .from("recipients")
@@ -903,17 +923,23 @@ export interface GiverProfileSnapshot {
  * Fetch a giver's synthesized profile (admin viewer modal)
  */
 export async function fetchGiverSynthesizedProfile(
-  userId: string,
+  userId: string
 ): Promise<GiverProfileSnapshot | null> {
-  const [{ data: profile, error: profileErr }, { data: prefs, error: prefsErr }] =
-    await Promise.all([
-      supabase.from("profiles").select("id, full_name").eq("id", userId).maybeSingle(),
-      supabase
-        .from("user_preferences")
-        .select("synthesized_giver_profile")
-        .eq("user_id", userId)
-        .maybeSingle(),
-    ]);
+  const [
+    { data: profile, error: profileErr },
+    { data: prefs, error: prefsErr },
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, full_name")
+      .eq("id", userId)
+      .maybeSingle(),
+    supabase
+      .from("user_preferences")
+      .select("synthesized_giver_profile")
+      .eq("user_id", userId)
+      .maybeSingle(),
+  ]);
   if (profileErr) throw profileErr;
   if (prefsErr) throw prefsErr;
   return {

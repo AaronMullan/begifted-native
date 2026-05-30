@@ -2,7 +2,10 @@ export type Provider = "openai" | "anthropic" | "google";
 
 export const CONVERSATION_MODEL = "gpt-4.1-mini";
 
-export type AIMessage = { role: "system" | "user" | "assistant"; content: string };
+export type AIMessage = {
+  role: "system" | "user" | "assistant";
+  content: string;
+};
 
 type CallAIOptions = {
   messages: AIMessage[];
@@ -59,14 +62,21 @@ function isReasoningOpenAIModel(model: string): boolean {
 // is accepted by both gpt-5 and o-series.
 const REASONING_TOKEN_FLOOR = 4000;
 
-async function callOpenAI(model: string, apiKey: string, opts: CallAIOptions): Promise<string> {
+async function callOpenAI(
+  model: string,
+  apiKey: string,
+  opts: CallAIOptions
+): Promise<string> {
   const reasoning = isReasoningOpenAIModel(model);
   const body: Record<string, unknown> = {
     model,
     messages: opts.messages,
   };
   if (reasoning) {
-    body.max_completion_tokens = Math.max(opts.maxTokens, REASONING_TOKEN_FLOOR);
+    body.max_completion_tokens = Math.max(
+      opts.maxTokens,
+      REASONING_TOKEN_FLOOR
+    );
     body.reasoning_effort = "low";
   } else {
     body.max_tokens = opts.maxTokens;
@@ -96,7 +106,11 @@ async function callOpenAI(model: string, apiKey: string, opts: CallAIOptions): P
   return content;
 }
 
-async function callAnthropic(model: string, apiKey: string, opts: CallAIOptions): Promise<string> {
+async function callAnthropic(
+  model: string,
+  apiKey: string,
+  opts: CallAIOptions
+): Promise<string> {
   const systemMsg = opts.messages.find((m) => m.role === "system");
   const userMessages = opts.messages.filter((m) => m.role !== "system");
 
@@ -131,7 +145,11 @@ async function callAnthropic(model: string, apiKey: string, opts: CallAIOptions)
   return content;
 }
 
-async function callGoogle(model: string, apiKey: string, opts: CallAIOptions): Promise<string> {
+async function callGoogle(
+  model: string,
+  apiKey: string,
+  opts: CallAIOptions
+): Promise<string> {
   const systemMsg = opts.messages.find((m) => m.role === "system");
   const userMessages = opts.messages.filter((m) => m.role !== "system");
 
@@ -165,7 +183,8 @@ async function callGoogle(model: string, apiKey: string, opts: CallAIOptions): P
   }
 
   const data = await res.json();
-  const parts: { text?: string; thought?: boolean }[] = data.candidates?.[0]?.content?.parts ?? [];
+  const parts: { text?: string; thought?: boolean }[] =
+    data.candidates?.[0]?.content?.parts ?? [];
   const content = parts.find((p) => p.text && !p.thought)?.text;
   if (!content) throw new Error("No content in Google AI response");
   return content;
@@ -177,7 +196,7 @@ export async function callAIWithWebSearch(
   provider: Provider,
   model: string,
   apiKey: string,
-  opts: WebSearchCallOptions,
+  opts: WebSearchCallOptions
 ): Promise<string> {
   switch (provider) {
     case "openai":
@@ -192,11 +211,14 @@ export async function callAIWithWebSearch(
 async function callOpenAIWithWebSearch(
   model: string,
   apiKey: string,
-  opts: WebSearchCallOptions,
+  opts: WebSearchCallOptions
 ): Promise<string> {
   const res = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
       model,
       tool_choice: "auto",
@@ -215,8 +237,12 @@ async function callOpenAIWithWebSearch(
   }
 
   const data = await res.json();
-  const messageItem = data.output?.find((item: { type: string }) => item.type === "message");
-  const text = messageItem?.content?.find((c: { type: string }) => c.type === "output_text")?.text;
+  const messageItem = data.output?.find(
+    (item: { type: string }) => item.type === "message"
+  );
+  const text = messageItem?.content?.find(
+    (c: { type: string }) => c.type === "output_text"
+  )?.text;
   if (!text) throw new Error("No content in OpenAI response");
   return text;
 }
@@ -224,7 +250,7 @@ async function callOpenAIWithWebSearch(
 async function callGoogleWithSearch(
   model: string,
   apiKey: string,
-  opts: WebSearchCallOptions,
+  opts: WebSearchCallOptions
 ): Promise<string> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   const res = await fetch(url, {
@@ -232,7 +258,9 @@ async function callGoogleWithSearch(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: opts.userInstruction }] }],
-      systemInstruction: { parts: [{ text: `${opts.protocolPrompt}\n\n${opts.wrapperMessage}` }] },
+      systemInstruction: {
+        parts: [{ text: `${opts.protocolPrompt}\n\n${opts.wrapperMessage}` }],
+      },
       tools: [{ googleSearch: {} }],
       generationConfig: { temperature: 0.7, maxOutputTokens: 4096 },
     }),
@@ -244,7 +272,8 @@ async function callGoogleWithSearch(
   }
 
   const data = await res.json();
-  const parts: { text?: string; thought?: boolean }[] = data.candidates?.[0]?.content?.parts ?? [];
+  const parts: { text?: string; thought?: boolean }[] =
+    data.candidates?.[0]?.content?.parts ?? [];
   const text = parts.find((p) => p.text && !p.thought)?.text;
   if (!text) throw new Error("No content in Google AI response");
   return text;
@@ -253,7 +282,7 @@ async function callGoogleWithSearch(
 async function callAnthropicWithWebSearch(
   model: string,
   apiKey: string,
-  opts: WebSearchCallOptions,
+  opts: WebSearchCallOptions
 ): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 120_000);
@@ -284,7 +313,9 @@ async function callAnthropicWithWebSearch(
     const elapsed = Date.now() - start;
     console.error(`[anthropic] fetch threw after ${elapsed}ms:`, err);
     if (err instanceof Error && err.name === "AbortError") {
-      throw new Error(`Anthropic web search timed out after 120s (${elapsed}ms elapsed)`);
+      throw new Error(
+        `Anthropic web search timed out after 120s (${elapsed}ms elapsed)`
+      );
     }
     throw err;
   }
@@ -300,9 +331,14 @@ async function callAnthropicWithWebSearch(
   }
 
   const data = await res.json();
-  console.log(`[anthropic] content block types:`, data.content?.map((c: { type: string }) => c.type));
+  console.log(
+    `[anthropic] content block types:`,
+    data.content?.map((c: { type: string }) => c.type)
+  );
 
-  const textBlock = data.content?.filter((c: { type: string }) => c.type === "text").pop();
+  const textBlock = data.content
+    ?.filter((c: { type: string }) => c.type === "text")
+    .pop();
   if (!textBlock?.text) throw new Error("No content in Anthropic response");
   return textBlock.text;
 }

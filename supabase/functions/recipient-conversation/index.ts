@@ -10,7 +10,12 @@ import {
 
 import { parseOpenAIJSON } from "./utils.ts";
 import { type AIOverride } from "../_shared/ai-config-loader.ts";
-import { callAI, getApiKey, CONVERSATION_MODEL, type Provider } from "../_shared/ai-client.ts";
+import {
+  callAI,
+  getApiKey,
+  CONVERSATION_MODEL,
+  type Provider,
+} from "../_shared/ai-client.ts";
 
 // @ts-ignore - Deno environment variables are resolved at runtime
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -41,13 +46,20 @@ Rules:
 - Personal occasion WITHOUT a date → ask ONLY for the date. Example: "When is the anniversary?"
 - Max 1–2 sentences per response. Never mention gifts, relationships, or the person's details.`;
 
-  const provider: Provider = (aiOverride?.provider && aiOverride?.model) ? aiOverride.provider : "openai";
-  const model = (aiOverride?.provider && aiOverride?.model) ? aiOverride.model : CONVERSATION_MODEL;
+  const provider: Provider =
+    aiOverride?.provider && aiOverride?.model ? aiOverride.provider : "openai";
+  const model =
+    aiOverride?.provider && aiOverride?.model
+      ? aiOverride.model
+      : CONVERSATION_MODEL;
   const apiKey = getApiKey(provider);
   const reply = await callAI(provider, model, apiKey, {
     messages: [
       { role: "system", content: systemPrompt },
-      ...messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
+      ...messages.map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      })),
     ],
     maxTokens: 150,
     temperature: 0.3,
@@ -76,7 +88,11 @@ async function handleAddOccasionExtract(
 Conversation:
 ${conversationHistory}`;
 
-  const { provider: p2, model: m2 } = await loadAIConfig(supabaseUrl, supabaseServiceKey, aiOverride);
+  const { provider: p2, model: m2 } = await loadAIConfig(
+    supabaseUrl,
+    supabaseServiceKey,
+    aiOverride
+  );
   const key2 = getApiKey(p2);
   const extractRaw = await callAI(p2, m2, key2, {
     messages: [{ role: "user", content: prompt }],
@@ -127,7 +143,10 @@ serve(async (req) => {
       overrideModel,
     } = requestBody;
 
-    const aiOverride: AIOverride = { provider: overrideProvider, model: overrideModel };
+    const aiOverride: AIOverride = {
+      provider: overrideProvider,
+      model: overrideModel,
+    };
 
     if (!action) {
       return new Response(
@@ -153,7 +172,11 @@ serve(async (req) => {
           }
         );
       }
-      const result = await recommendOccasions(data, customSystemPrompt, aiOverride);
+      const result = await recommendOccasions(
+        data,
+        customSystemPrompt,
+        aiOverride
+      );
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
@@ -250,7 +273,12 @@ serve(async (req) => {
           // Partial field extraction
           if (targetFields && targetFields.length > 0) {
             // Extract specific fields
-            result = await extractFields(messages, targetFields, existingData, aiOverride);
+            result = await extractFields(
+              messages,
+              targetFields,
+              existingData,
+              aiOverride
+            );
           } else if (conversationType === "update_field") {
             // Free-form "Update what we know" flow: user can mention any field.
             // Run full extraction so whatever they said gets picked up.
@@ -264,7 +292,12 @@ serve(async (req) => {
               extract_address: "address",
             } as const;
             const targetField = fieldMap[conversationType];
-            result = await extractField(messages, targetField, existingData, aiOverride);
+            result = await extractField(
+              messages,
+              targetField,
+              existingData,
+              aiOverride
+            );
           }
           break;
         default:

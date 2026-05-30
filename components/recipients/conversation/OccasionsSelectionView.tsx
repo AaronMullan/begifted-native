@@ -62,7 +62,11 @@ export function OccasionsSelectionView({
       // For known occasion types, always use our authoritative date calculator
       const knownDate = lookupOccasionDate(type);
       if (knownDate) {
-        fromConversation.push({ date: knownDate, occasion_type: type, enabled: true });
+        fromConversation.push({
+          date: knownDate,
+          occasion_type: type,
+          enabled: true,
+        });
         continue;
       }
 
@@ -70,14 +74,22 @@ export function OccasionsSelectionView({
       const raw = occ.date?.trim() || "";
       const isoDateRe = /^\d{4}-\d{2}-\d{2}$/;
       if (raw && isoDateRe.test(raw)) {
-        fromConversation.push({ date: getNextOccurrence(raw), occasion_type: type, enabled: true });
+        fromConversation.push({
+          date: getNextOccurrence(raw),
+          occasion_type: type,
+          enabled: true,
+        });
       }
       // Otherwise drop it — we can't verify the occasion
     }
     // Add birthday from the verified extractedData field (not AI occasions)
     if (extractedData.birthday) {
       const bdayDate = getNextOccurrence(extractedData.birthday);
-      fromConversation.unshift({ date: bdayDate, occasion_type: "birthday", enabled: true });
+      fromConversation.unshift({
+        date: bdayDate,
+        occasion_type: "birthday",
+        enabled: true,
+      });
     }
 
     const seen = new Set<string>();

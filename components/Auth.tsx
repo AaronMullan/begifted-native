@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { StyleSheet, View, KeyboardAvoidingView, ScrollView, Platform } from "react-native";
+import {
+  StyleSheet,
+  View,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
+} from "react-native";
 import { TextInput, Button, Text } from "react-native-paper";
 import { useForm, Controller } from "react-hook-form";
 import { supabase } from "../lib/supabase";
@@ -64,7 +70,9 @@ export default function Auth() {
     try {
       const config = await fetchAppConfig();
       if (!config.signups_enabled) {
-        setMessage("New signups are temporarily disabled. Please check back soon.");
+        setMessage(
+          "New signups are temporarily disabled. Please check back soon."
+        );
         setLoading(false);
         return;
       }
@@ -80,7 +88,9 @@ export default function Auth() {
     if (error) {
       setMessage(`Error: ${error.message}`);
     } else if (signUpData.user?.identities?.length === 0) {
-      setMessage("Error: An account with this email already exists. Try signing in instead.");
+      setMessage(
+        "Error: An account with this email already exists. Try signing in instead."
+      );
     } else if (signUpData.session) {
       reset();
     } else {
@@ -118,138 +128,138 @@ export default function Auth() {
       style={styles.flex}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-        <ScrollView
-          style={styles.flex}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-        >
-          <View style={styles.container}>
-            <Text variant="headlineSmall" style={styles.title}>
-              {isSignUp ? "Create Account" : "Sign In"}
-            </Text>
-      <Text variant="bodyMedium" style={styles.subtitle}>
-        {isSignUp
-          ? "Enter your email and a password to get started"
-          : "Sign in with your email and password"}
-      </Text>
-
-      {/* Email Field */}
-      <View style={[styles.verticallySpaced, styles.mt20]}>
-        <Controller
-          control={control}
-          name="email"
-          rules={{
-            required: "Email is required",
-            pattern: {
-              value: /\S+@\S+\.\S+/,
-              message: "Please enter a valid email",
-            },
-          }}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
-              mode="outlined"
-              label="Email"
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              placeholder="email@address.com"
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="email-address"
-              error={!!errors.email}
-              style={styles.input}
-            />
-          )}
-        />
-        {errors.email && (
-          <Text variant="bodySmall" style={styles.errorText}>
-            {errors.email.message}
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        <View style={styles.container}>
+          <Text variant="headlineSmall" style={styles.title}>
+            {isSignUp ? "Create Account" : "Sign In"}
           </Text>
-        )}
-      </View>
-
-      {/* Password Field */}
-      <View style={styles.verticallySpaced}>
-        <Controller
-          control={control}
-          name="password"
-          rules={{
-            required: "Password is required",
-            minLength: {
-              value: 6,
-              message: "Password must be at least 6 characters",
-            },
-          }}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
-              mode="outlined"
-              label="Password"
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              secureTextEntry
-              placeholder="Password (min 6 characters)"
-              autoCapitalize="none"
-              error={!!errors.password}
-              style={styles.input}
-            />
-          )}
-        />
-        {errors.password && (
-          <Text variant="bodySmall" style={styles.errorText}>
-            {errors.password.message}
+          <Text variant="bodyMedium" style={styles.subtitle}>
+            {isSignUp
+              ? "Enter your email and a password to get started"
+              : "Sign in with your email and password"}
           </Text>
-        )}
-      </View>
 
-      {/* Submit Button */}
-      <View style={[styles.verticallySpaced, styles.mt20]}>
-        <Button
-          mode="contained"
-          disabled={loading}
-          loading={loading}
-          onPress={handleSubmit(isSignUp ? handleSignUp : handleSignIn)}
-          style={styles.button}
-        >
-          {isSignUp ? "Create Account" : "Sign In"}
-        </Button>
-        <Button
-          mode="text"
-          disabled={loading}
-          onPress={() => {
-            setIsSignUp((prev) => !prev);
-            setMessage("");
-          }}
-          style={styles.button}
-        >
-          {isSignUp
-            ? "Already have an account? Sign In"
-            : "Don't have an account? Create one"}
-        </Button>
-      </View>
-
-            {/* Success/Error Messages */}
-            {message && (
-              <View
-                style={[
-                  styles.messageContainer,
-                  message.includes("Error") && styles.errorContainer,
-                ]}
-              >
-                <Text
-                  variant="bodyMedium"
-                  style={[
-                    styles.messageText,
-                    message.includes("Error") && styles.errorMessageText,
-                  ]}
-                >
-                  {message}
-                </Text>
-              </View>
+          {/* Email Field */}
+          <View style={[styles.verticallySpaced, styles.mt20]}>
+            <Controller
+              control={control}
+              name="email"
+              rules={{
+                required: "Email is required",
+                pattern: {
+                  value: /\S+@\S+\.\S+/,
+                  message: "Please enter a valid email",
+                },
+              }}
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  mode="outlined"
+                  label="Email"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  placeholder="email@address.com"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="email-address"
+                  error={!!errors.email}
+                  style={styles.input}
+                />
+              )}
+            />
+            {errors.email && (
+              <Text variant="bodySmall" style={styles.errorText}>
+                {errors.email.message}
+              </Text>
             )}
           </View>
-        </ScrollView>
+
+          {/* Password Field */}
+          <View style={styles.verticallySpaced}>
+            <Controller
+              control={control}
+              name="password"
+              rules={{
+                required: "Password is required",
+                minLength: {
+                  value: 6,
+                  message: "Password must be at least 6 characters",
+                },
+              }}
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  mode="outlined"
+                  label="Password"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  secureTextEntry
+                  placeholder="Password (min 6 characters)"
+                  autoCapitalize="none"
+                  error={!!errors.password}
+                  style={styles.input}
+                />
+              )}
+            />
+            {errors.password && (
+              <Text variant="bodySmall" style={styles.errorText}>
+                {errors.password.message}
+              </Text>
+            )}
+          </View>
+
+          {/* Submit Button */}
+          <View style={[styles.verticallySpaced, styles.mt20]}>
+            <Button
+              mode="contained"
+              disabled={loading}
+              loading={loading}
+              onPress={handleSubmit(isSignUp ? handleSignUp : handleSignIn)}
+              style={styles.button}
+            >
+              {isSignUp ? "Create Account" : "Sign In"}
+            </Button>
+            <Button
+              mode="text"
+              disabled={loading}
+              onPress={() => {
+                setIsSignUp((prev) => !prev);
+                setMessage("");
+              }}
+              style={styles.button}
+            >
+              {isSignUp
+                ? "Already have an account? Sign In"
+                : "Don't have an account? Create one"}
+            </Button>
+          </View>
+
+          {/* Success/Error Messages */}
+          {message && (
+            <View
+              style={[
+                styles.messageContainer,
+                message.includes("Error") && styles.errorContainer,
+              ]}
+            >
+              <Text
+                variant="bodyMedium"
+                style={[
+                  styles.messageText,
+                  message.includes("Error") && styles.errorMessageText,
+                ]}
+              >
+                {message}
+              </Text>
+            </View>
+          )}
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }

@@ -19,10 +19,7 @@ import { useFontsLoader } from "../hooks/use-fonts-loader";
 import { usePushNotifications } from "../hooks/use-push-notifications";
 import { defaultQueryOptions } from "../lib/query-defaults";
 import { persistOptions } from "../lib/query-persister";
-import {
-  captureMutationError,
-  captureQueryError,
-} from "../lib/sentry-helpers";
+import { captureMutationError, captureQueryError } from "../lib/sentry-helpers";
 import * as Sentry from "@sentry/react-native";
 
 Sentry.init({

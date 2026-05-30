@@ -98,11 +98,12 @@ serve(async (req) => {
       auth: { persistSession: false },
     });
 
-    const ext = resolvedContentType === "image/png"
-      ? "png"
-      : resolvedContentType === "image/webp"
-      ? "webp"
-      : "jpg";
+    const ext =
+      resolvedContentType === "image/png"
+        ? "png"
+        : resolvedContentType === "image/webp"
+        ? "webp"
+        : "jpg";
     const path = `${user.id}/${Date.now()}.${ext}`;
 
     const { data: uploadData, error: uploadError } = await admin.storage
@@ -123,7 +124,10 @@ serve(async (req) => {
       .from(BUCKET)
       .getPublicUrl(uploadData.path);
 
-    return jsonResponse({ publicUrl: urlData.publicUrl, path: uploadData.path });
+    return jsonResponse({
+      publicUrl: urlData.publicUrl,
+      path: uploadData.path,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return jsonResponse({ error: message }, 500);

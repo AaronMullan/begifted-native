@@ -72,13 +72,10 @@ serve(async (req) => {
       .maybeSingle();
 
     if (recipientError || !recipient) {
-      return new Response(
-        JSON.stringify({ error: "Recipient not found" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 404,
-        }
-      );
+      return new Response(JSON.stringify({ error: "Recipient not found" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 404,
+      });
     }
 
     const { data: occasions } = await supabase
@@ -117,12 +114,23 @@ serve(async (req) => {
     }
 
     if (recipient.emotional_tone_preference) {
-      parts.push(`Gift tone preference: ${recipient.emotional_tone_preference}`);
+      parts.push(
+        `Gift tone preference: ${recipient.emotional_tone_preference}`
+      );
     }
 
-    if (recipient.gift_budget_min != null || recipient.gift_budget_max != null) {
-      const min = recipient.gift_budget_min != null ? `$${recipient.gift_budget_min}` : null;
-      const max = recipient.gift_budget_max != null ? `$${recipient.gift_budget_max}` : null;
+    if (
+      recipient.gift_budget_min != null ||
+      recipient.gift_budget_max != null
+    ) {
+      const min =
+        recipient.gift_budget_min != null
+          ? `$${recipient.gift_budget_min}`
+          : null;
+      const max =
+        recipient.gift_budget_max != null
+          ? `$${recipient.gift_budget_max}`
+          : null;
       if (min && max) parts.push(`Budget: ${min}–${max}`);
       else if (max) parts.push(`Budget: up to ${max}`);
       else if (min) parts.push(`Budget: at least ${min}`);
@@ -157,9 +165,7 @@ serve(async (req) => {
         .replace(/^```json\s*/, "")
         .replace(/\s*```$/, "");
     } else if (cleanContent.startsWith("```")) {
-      cleanContent = cleanContent
-        .replace(/^```\s*/, "")
-        .replace(/\s*```$/, "");
+      cleanContent = cleanContent.replace(/^```\s*/, "").replace(/\s*```$/, "");
     }
 
     const parsed = JSON.parse(cleanContent);
