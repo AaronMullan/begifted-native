@@ -55,16 +55,15 @@ serve(async (req) => {
     // Fetch user preferences
     const { data: prefs } = await supabase
       .from("user_preferences")
-      .select("user_description, gifting_style_text, user_summary")
+      .select("user_description, user_summary")
       .eq("user_id", userId)
       .maybeSingle();
 
     const userDescription = prefs?.user_description ?? "";
     const userSummary =
       (prefs?.user_summary as Record<string, any> | null) ?? null;
-    const giftingStyleText = prefs?.gifting_style_text ?? "";
 
-    if (!userDescription && !userSummary && !giftingStyleText) {
+    if (!userDescription && !userSummary) {
       return new Response(
         JSON.stringify({ error: "No user data available for synthesis" }),
         {
@@ -143,7 +142,7 @@ serve(async (req) => {
         ]
           .filter(Boolean)
           .join("\n")
-      : giftingStyleText;
+      : "";
 
     const userContext = [
       userDescription && `Self-description: ${userDescription}`,
