@@ -1,0 +1,10 @@
+# Commits listed here are skipped by `git blame` so line attribution
+# points at the original author rather than the reformatting pass.
+#
+# Configure once locally:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# GitHub honors this file automatically in the web blame view.
+
+# chore: format codebase with Prettier (DEV-95)
+0c2977d4c0f062c9ff655a1ddda5d5a0718ff7ce
