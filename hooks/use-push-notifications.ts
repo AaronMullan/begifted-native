@@ -39,11 +39,11 @@ export function usePushNotifications(): void {
     if (user?.id && user.id !== previousUserId.current) {
       previousUserId.current = user.id;
       registerForPushNotifications(user.id).catch((err) =>
-        console.error("[push] Registration failed:", err),
+        console.error("[push] Registration failed:", err)
       );
     } else if (!user && previousUserId.current) {
       unregisterPushToken().catch((err) =>
-        console.error("[push] Unregistration failed:", err),
+        console.error("[push] Unregistration failed:", err)
       );
       previousUserId.current = null;
     }
@@ -73,7 +73,7 @@ export function usePushNotifications(): void {
         if (data?.recipientId) {
           router.push(`/contacts/${data.recipientId}`);
         }
-      },
+      }
     );
 
     return () => subscription.remove();

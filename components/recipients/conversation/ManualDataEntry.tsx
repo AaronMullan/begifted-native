@@ -1,5 +1,13 @@
 import { useState, useEffect } from "react";
-import { View, ScrollView, StyleSheet, KeyboardAvoidingView, Keyboard, Platform, Pressable } from "react-native";
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Keyboard,
+  Platform,
+  Pressable,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, TextInput, Button, HelperText } from "react-native-paper";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
@@ -94,193 +102,197 @@ export function ManualDataEntry({
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-        <Text variant="headlineSmall" style={styles.title}>
-          Manual Entry
-        </Text>
-        <Text variant="bodyMedium" style={styles.description}>
-          {partialData
-            ? "We couldn't extract all the information. Please complete the required fields."
-            : "Enter the recipient information manually."}
-        </Text>
-
-        {/* Basic Information Section */}
-        <View style={styles.section}>
-          <Text variant="titleLarge" style={styles.sectionTitle}>
-            Basic Information
+          <Text variant="headlineSmall" style={styles.title}>
+            Manual Entry
+          </Text>
+          <Text variant="bodyMedium" style={styles.description}>
+            {partialData
+              ? "We couldn't extract all the information. Please complete the required fields."
+              : "Enter the recipient information manually."}
           </Text>
 
-          <View style={styles.fieldContainer}>
-            <TextInput
-              mode="outlined"
-              label="Name *"
-              value={name}
-              onChangeText={setName}
-              placeholder="Enter name"
-              style={styles.input}
-            />
-          </View>
+          {/* Basic Information Section */}
+          <View style={styles.section}>
+            <Text variant="titleLarge" style={styles.sectionTitle}>
+              Basic Information
+            </Text>
 
-          <View style={styles.fieldContainer}>
-            <TextInput
-              mode="outlined"
-              label="Relationship *"
-              value={relationshipType}
-              onChangeText={setRelationshipType}
-              placeholder="e.g., Sister, Friend, Colleague"
-              style={styles.input}
-            />
-          </View>
-
-          <View style={styles.fieldContainer}>
-            <TextInput
-              mode="outlined"
-              label="Birthday"
-              value={birthday}
-              onChangeText={setBirthday}
-              placeholder="YYYY-MM-DD or MM-DD"
-              error={isInvalidBirthdayInput(birthday)}
-              style={styles.input}
-            />
-            {isInvalidBirthdayInput(birthday) && (
-              <HelperText type="error" visible>
-                Use YYYY-MM-DD (e.g. 1990-12-07) or MM-DD (e.g. 12-07) if the
-                year is unknown.
-              </HelperText>
-            )}
-          </View>
-
-          <View style={styles.fieldContainer}>
-            <TextInput
-              mode="outlined"
-              label="Interests"
-              value={interests}
-              onChangeText={setInterests}
-              placeholder="e.g., reading, hiking, coffee (comma-separated)"
-              multiline
-              numberOfLines={3}
-              style={styles.input}
-            />
-          </View>
-        </View>
-
-        {/* Gift Preferences Section */}
-        <View style={styles.section}>
-          <Text variant="titleLarge" style={styles.sectionTitle}>
-            Gift Preferences
-          </Text>
-
-          <View style={styles.row}>
-            <View style={[styles.fieldContainer, styles.halfWidth]}>
+            <View style={styles.fieldContainer}>
               <TextInput
                 mode="outlined"
-                label="Budget Min"
-                value={budgetMin}
-                onChangeText={setBudgetMin}
-                placeholder="$"
-                keyboardType="numeric"
+                label="Name *"
+                value={name}
+                onChangeText={setName}
+                placeholder="Enter name"
                 style={styles.input}
               />
             </View>
 
-            <View style={[styles.fieldContainer, styles.halfWidth]}>
+            <View style={styles.fieldContainer}>
               <TextInput
                 mode="outlined"
-                label="Budget Max"
-                value={budgetMax}
-                onChangeText={setBudgetMax}
-                placeholder="$"
-                keyboardType="numeric"
-                style={styles.input}
-              />
-            </View>
-          </View>
-        </View>
-
-        {/* Address Section */}
-        <View style={styles.section}>
-          <Text variant="titleLarge" style={styles.sectionTitle}>
-            Address (Optional)
-          </Text>
-
-          <View style={styles.fieldContainer}>
-            <TextInput
-              mode="outlined"
-              label="Street Address"
-              value={address}
-              onChangeText={setAddress}
-              placeholder="123 Main Street"
-              style={styles.input}
-            />
-          </View>
-
-          <View style={styles.fieldContainer}>
-            <TextInput
-              mode="outlined"
-              label="Address Line 2"
-              value={addressLine2}
-              onChangeText={setAddressLine2}
-              placeholder="Apt, Suite, etc."
-              style={styles.input}
-            />
-          </View>
-
-          <View style={styles.row}>
-            <View style={[styles.fieldContainer, styles.halfWidth]}>
-              <TextInput
-                mode="outlined"
-                label="City"
-                value={city}
-                onChangeText={setCity}
-                placeholder="City"
+                label="Relationship *"
+                value={relationshipType}
+                onChangeText={setRelationshipType}
+                placeholder="e.g., Sister, Friend, Colleague"
                 style={styles.input}
               />
             </View>
 
-            <View style={[styles.fieldContainer, styles.halfWidth]}>
+            <View style={styles.fieldContainer}>
               <TextInput
                 mode="outlined"
-                label="State"
-                value={state}
-                onChangeText={setState}
-                placeholder="State"
-                maxLength={2}
-                autoCapitalize="characters"
+                label="Birthday"
+                value={birthday}
+                onChangeText={setBirthday}
+                placeholder="YYYY-MM-DD or MM-DD"
+                error={isInvalidBirthdayInput(birthday)}
+                style={styles.input}
+              />
+              {isInvalidBirthdayInput(birthday) && (
+                <HelperText type="error" visible>
+                  Use YYYY-MM-DD (e.g. 1990-12-07) or MM-DD (e.g. 12-07) if the
+                  year is unknown.
+                </HelperText>
+              )}
+            </View>
+
+            <View style={styles.fieldContainer}>
+              <TextInput
+                mode="outlined"
+                label="Interests"
+                value={interests}
+                onChangeText={setInterests}
+                placeholder="e.g., reading, hiking, coffee (comma-separated)"
+                multiline
+                numberOfLines={3}
                 style={styles.input}
               />
             </View>
           </View>
 
-          <View style={styles.row}>
-            <View style={[styles.fieldContainer, styles.halfWidth]}>
+          {/* Gift Preferences Section */}
+          <View style={styles.section}>
+            <Text variant="titleLarge" style={styles.sectionTitle}>
+              Gift Preferences
+            </Text>
+
+            <View style={styles.row}>
+              <View style={[styles.fieldContainer, styles.halfWidth]}>
+                <TextInput
+                  mode="outlined"
+                  label="Budget Min"
+                  value={budgetMin}
+                  onChangeText={setBudgetMin}
+                  placeholder="$"
+                  keyboardType="numeric"
+                  style={styles.input}
+                />
+              </View>
+
+              <View style={[styles.fieldContainer, styles.halfWidth]}>
+                <TextInput
+                  mode="outlined"
+                  label="Budget Max"
+                  value={budgetMax}
+                  onChangeText={setBudgetMax}
+                  placeholder="$"
+                  keyboardType="numeric"
+                  style={styles.input}
+                />
+              </View>
+            </View>
+          </View>
+
+          {/* Address Section */}
+          <View style={styles.section}>
+            <Text variant="titleLarge" style={styles.sectionTitle}>
+              Address (Optional)
+            </Text>
+
+            <View style={styles.fieldContainer}>
               <TextInput
                 mode="outlined"
-                label="ZIP Code"
-                value={zipCode}
-                onChangeText={setZipCode}
-                placeholder="ZIP"
-                keyboardType="numeric"
-                maxLength={10}
+                label="Street Address"
+                value={address}
+                onChangeText={setAddress}
+                placeholder="123 Main Street"
                 style={styles.input}
               />
             </View>
 
-            <View style={[styles.fieldContainer, styles.halfWidth]}>
+            <View style={styles.fieldContainer}>
               <TextInput
                 mode="outlined"
-                label="Country"
-                value={country}
-                onChangeText={setCountry}
-                placeholder="Country"
+                label="Address Line 2"
+                value={addressLine2}
+                onChangeText={setAddressLine2}
+                placeholder="Apt, Suite, etc."
                 style={styles.input}
               />
             </View>
+
+            <View style={styles.row}>
+              <View style={[styles.fieldContainer, styles.halfWidth]}>
+                <TextInput
+                  mode="outlined"
+                  label="City"
+                  value={city}
+                  onChangeText={setCity}
+                  placeholder="City"
+                  style={styles.input}
+                />
+              </View>
+
+              <View style={[styles.fieldContainer, styles.halfWidth]}>
+                <TextInput
+                  mode="outlined"
+                  label="State"
+                  value={state}
+                  onChangeText={setState}
+                  placeholder="State"
+                  maxLength={2}
+                  autoCapitalize="characters"
+                  style={styles.input}
+                />
+              </View>
+            </View>
+
+            <View style={styles.row}>
+              <View style={[styles.fieldContainer, styles.halfWidth]}>
+                <TextInput
+                  mode="outlined"
+                  label="ZIP Code"
+                  value={zipCode}
+                  onChangeText={setZipCode}
+                  placeholder="ZIP"
+                  keyboardType="numeric"
+                  maxLength={10}
+                  style={styles.input}
+                />
+              </View>
+
+              <View style={[styles.fieldContainer, styles.halfWidth]}>
+                <TextInput
+                  mode="outlined"
+                  label="Country"
+                  value={country}
+                  onChangeText={setCountry}
+                  placeholder="Country"
+                  style={styles.input}
+                />
+              </View>
+            </View>
           </View>
-        </View>
         </ScrollView>
 
         {/* Footer Actions */}
         <View style={[styles.footer, { paddingBottom: footerBottomPadding }]}>
-          <Button mode="outlined" onPress={onCancel} style={styles.cancelButton}>
+          <Button
+            mode="outlined"
+            onPress={onCancel}
+            style={styles.cancelButton}
+          >
             Cancel
           </Button>
 

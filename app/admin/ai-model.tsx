@@ -59,7 +59,10 @@ const AiModelContent: React.FC = () => {
 
   function selectProvider(provider: Provider) {
     if (!config) return;
-    updateConfig.mutate({ ai_provider: provider, ai_model: PROVIDER_MODELS[provider][0] });
+    updateConfig.mutate({
+      ai_provider: provider,
+      ai_model: PROVIDER_MODELS[provider][0],
+    });
   }
 
   function selectModel(model: string) {
@@ -69,7 +72,10 @@ const AiModelContent: React.FC = () => {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+    >
       <AdminNavbar title="AI Model" />
 
       <Text variant="bodyMedium" style={styles.subtitle}>
@@ -96,7 +102,11 @@ const AiModelContent: React.FC = () => {
               onValueChange={(v) => selectProvider(v as Provider)}
               buttons={[
                 { value: "openai", label: "OpenAI", showSelectedCheck: false },
-                { value: "anthropic", label: "Claude", showSelectedCheck: false },
+                {
+                  value: "anthropic",
+                  label: "Claude",
+                  showSelectedCheck: false,
+                },
                 { value: "google", label: "Google", showSelectedCheck: false },
               ]}
               style={styles.segmentedButtons}
@@ -126,7 +136,6 @@ const AiModelContent: React.FC = () => {
                 <Menu.Item key={m} onPress={() => selectModel(m)} title={m} />
               ))}
             </Menu>
-            
           </Card.Content>
         </Card>
       )}

@@ -60,7 +60,8 @@ serve(async (req) => {
       .maybeSingle();
 
     const userDescription = prefs?.user_description ?? "";
-    const userSummary = prefs?.user_summary as Record<string, any> | null ?? null;
+    const userSummary =
+      (prefs?.user_summary as Record<string, any> | null) ?? null;
     const giftingStyleText = prefs?.gifting_style_text ?? "";
 
     if (!userDescription && !userSummary && !giftingStyleText) {
@@ -112,24 +113,36 @@ serve(async (req) => {
         ];
 
         historyContext = `Gift history patterns:
-- Total gifts suggested: ${suggestions.length} across ${recipientIds.length} recipient(s)
-- Price range: ${minPrice != null ? `$${minPrice}` : "unknown"} – ${maxPrice != null ? `$${maxPrice}` : "unknown"}
+- Total gifts suggested: ${suggestions.length} across ${
+          recipientIds.length
+        } recipient(s)
+- Price range: ${minPrice != null ? `$${minPrice}` : "unknown"} – ${
+          maxPrice != null ? `$${maxPrice}` : "unknown"
+        }
 - Average gift price: ${avgPrice != null ? `$${avgPrice}` : "unknown"}
 - Recipients include: ${uniqueRelationships.join(", ")}`;
       }
     }
 
     const joinField = (v: any): string =>
-      Array.isArray(v) ? v.join("; ") : (typeof v === "string" ? v : "");
+      Array.isArray(v) ? v.join("; ") : typeof v === "string" ? v : "";
 
     const giftingContext = userSummary
       ? [
           userSummary.user_summary && `Summary: ${userSummary.user_summary}`,
-          joinField(userSummary.taste_and_world) && `Taste & world: ${joinField(userSummary.taste_and_world)}`,
-          joinField(userSummary.care_and_relationship_style) && `Care & relationship style: ${joinField(userSummary.care_and_relationship_style)}`,
-          joinField(userSummary.giver_style_implications) && `Giver style: ${joinField(userSummary.giver_style_implications)}`,
-          joinField(userSummary.things_to_avoid) && `Avoid: ${joinField(userSummary.things_to_avoid)}`,
-        ].filter(Boolean).join("\n")
+          joinField(userSummary.taste_and_world) &&
+            `Taste & world: ${joinField(userSummary.taste_and_world)}`,
+          joinField(userSummary.care_and_relationship_style) &&
+            `Care & relationship style: ${joinField(
+              userSummary.care_and_relationship_style
+            )}`,
+          joinField(userSummary.giver_style_implications) &&
+            `Giver style: ${joinField(userSummary.giver_style_implications)}`,
+          joinField(userSummary.things_to_avoid) &&
+            `Avoid: ${joinField(userSummary.things_to_avoid)}`,
+        ]
+          .filter(Boolean)
+          .join("\n")
       : giftingStyleText;
 
     const userContext = [
@@ -159,9 +172,7 @@ serve(async (req) => {
         .replace(/^```json\s*/, "")
         .replace(/\s*```$/, "");
     } else if (cleanContent.startsWith("```")) {
-      cleanContent = cleanContent
-        .replace(/^```\s*/, "")
-        .replace(/\s*```$/, "");
+      cleanContent = cleanContent.replace(/^```\s*/, "").replace(/\s*```$/, "");
     }
 
     const parsed = JSON.parse(cleanContent);

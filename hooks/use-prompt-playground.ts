@@ -12,7 +12,7 @@ import {
   fetchActiveSystemPrompt,
   deployNewPromptVersion,
 } from "@/lib/api";
-import type { PromptTestRun , AppConfig } from "@/lib/api";
+import type { PromptTestRun, AppConfig } from "@/lib/api";
 import {
   PROMPT_REGISTRY,
   getPromptByKey,
@@ -120,8 +120,10 @@ export function usePromptPlayground(userId: string) {
   // in production, so Playground tests reflect real behavior. User can still
   // override via the dropdown, in which case `userTouchedModelRef` blocks the
   // per-task auto-sync until they switch prompts again.
-  const [playgroundProvider, setPlaygroundProviderRaw] = useState<Provider>("openai");
-  const [playgroundModel, setPlaygroundModelRaw] = useState<string>("gpt-4.1-mini");
+  const [playgroundProvider, setPlaygroundProviderRaw] =
+    useState<Provider>("openai");
+  const [playgroundModel, setPlaygroundModelRaw] =
+    useState<string>("gpt-4.1-mini");
   const userTouchedModelRef = useRef(false);
 
   useEffect(() => {
@@ -313,19 +315,16 @@ export function usePromptPlayground(userId: string) {
     setIsRefining(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke(
-        "refine-prompt",
-        {
-          body: {
-            currentPrompt,
-            userInstruction: message,
-            chatHistory: chatMessages,
-            promptCategory: isGiftGeneration ? undefined : selectedPromptKey,
-            overrideProvider: playgroundProvider,
-            overrideModel: playgroundModel,
-          },
-        }
-      );
+      const { data, error } = await supabase.functions.invoke("refine-prompt", {
+        body: {
+          currentPrompt,
+          userInstruction: message,
+          chatHistory: chatMessages,
+          promptCategory: isGiftGeneration ? undefined : selectedPromptKey,
+          overrideProvider: playgroundProvider,
+          overrideModel: playgroundModel,
+        },
+      });
 
       if (error) throw new Error(await extractInvokeError(error));
 
@@ -336,12 +335,17 @@ export function usePromptPlayground(userId: string) {
       setChatMessages((prev) => [...prev, assistantMsg]);
 
       if (data.revisedPrompt) {
-        setPendingRefinement({ prompt: data.revisedPrompt, explanation: data.explanation });
+        setPendingRefinement({
+          prompt: data.revisedPrompt,
+          explanation: data.explanation,
+        });
       }
     } catch (err) {
       const errorMsg: ChatMessage = {
         role: "assistant",
-        content: `Error refining prompt: ${err instanceof Error ? err.message : "Unknown error"}`,
+        content: `Error refining prompt: ${
+          err instanceof Error ? err.message : "Unknown error"
+        }`,
       };
       setChatMessages((prev) => [...prev, errorMsg]);
     } finally {
@@ -392,7 +396,9 @@ export function usePromptPlayground(userId: string) {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || `Request failed with status ${response.status}`);
+          throw new Error(
+            errorData.error || `Request failed with status ${response.status}`
+          );
         }
 
         data = await response.json();
@@ -401,7 +407,13 @@ export function usePromptPlayground(userId: string) {
         const msgs =
           testMessages.length > 0
             ? testMessages
-            : [{ role: "user", content: testInput || "Hi, I want to add my mom to my gift list." }];
+            : [
+                {
+                  role: "user",
+                  content:
+                    testInput || "Hi, I want to add my mom to my gift list.",
+                },
+              ];
 
         const { data: result, error } = await supabase.functions.invoke(
           "recipient-conversation",
@@ -454,7 +466,10 @@ export function usePromptPlayground(userId: string) {
           (r) => r.id === selectedRecipientId
         );
         const recipientName = recipient?.name || testInput.trim() || "Mary";
-        const preview = currentPrompt.replace(/\{\{recipientName\}\}/g, recipientName);
+        const preview = currentPrompt.replace(
+          /\{\{recipientName\}\}/g,
+          recipientName
+        );
         data = { preview, recipientName };
       } else if (selectedPromptKey === "user_preferences_extraction") {
         // Test user preferences extraction
@@ -504,7 +519,9 @@ export function usePromptPlayground(userId: string) {
     } catch (err) {
       console.error("Generation error:", err);
       setGenerationResult({
-        error: `[${playgroundProvider}/${playgroundModel}] ${err instanceof Error ? err.message : "Failed to generate"}`,
+        error: `[${playgroundProvider}/${playgroundModel}] ${
+          err instanceof Error ? err.message : "Failed to generate"
+        }`,
       });
     } finally {
       setIsGenerating(false);
@@ -599,7 +616,9 @@ export function usePromptPlayground(userId: string) {
       setTestMessages([
         {
           role: "assistant",
-          content: `[${playgroundProvider}/${playgroundModel}] Error: ${err instanceof Error ? err.message : "Failed to get response"}`,
+          content: `[${playgroundProvider}/${playgroundModel}] Error: ${
+            err instanceof Error ? err.message : "Failed to get response"
+          }`,
         },
       ]);
     } finally {
@@ -639,7 +658,9 @@ export function usePromptPlayground(userId: string) {
         ...prev,
         {
           role: "assistant",
-          content: `Error: ${err instanceof Error ? err.message : "Failed to get response"}`,
+          content: `Error: ${
+            err instanceof Error ? err.message : "Failed to get response"
+          }`,
         },
       ]);
     } finally {
@@ -739,7 +760,8 @@ export function usePromptPlayground(userId: string) {
 
     // CIS preview + editing (gift generation only)
     cisPreview: cisPreviewQuery.data || null,
-    wrapperPreview: (cisPreviewQuery.data as Record<string, unknown>)?.wrapperPreview as string | undefined,
+    wrapperPreview: (cisPreviewQuery.data as Record<string, unknown>)
+      ?.wrapperPreview as string | undefined,
     editedCis,
     cisEdits,
     hasCisEdits,

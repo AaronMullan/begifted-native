@@ -1,6 +1,21 @@
 import { useState, useEffect } from "react";
-import { View, Modal, StyleSheet, KeyboardAvoidingView, Keyboard, Platform, Pressable } from "react-native";
-import { Text, TextInput, IconButton, Button, Dialog, Portal } from "react-native-paper";
+import {
+  View,
+  Modal,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Keyboard,
+  Platform,
+  Pressable,
+} from "react-native";
+import {
+  Text,
+  TextInput,
+  IconButton,
+  Button,
+  Dialog,
+  Portal,
+} from "react-native-paper";
 import { Colors } from "../../../lib/colors";
 
 interface OccasionEditorProps {
@@ -37,7 +52,9 @@ export function OccasionEditor({
     const digits = text.replace(/\D/g, "").slice(0, 8);
     let formatted = digits;
     if (digits.length > 6) {
-      formatted = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+      formatted = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(
+        6
+      )}`;
     } else if (digits.length > 4) {
       formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
     }

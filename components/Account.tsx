@@ -1,6 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
-import { StyleSheet, View, Alert, KeyboardAvoidingView, ScrollView, Keyboard, Platform, Pressable } from "react-native";
+import {
+  StyleSheet,
+  View,
+  Alert,
+  KeyboardAvoidingView,
+  ScrollView,
+  Keyboard,
+  Platform,
+  Pressable,
+} from "react-native";
 import { TextInput, Button } from "react-native-paper";
 import { Session } from "@supabase/supabase-js";
 

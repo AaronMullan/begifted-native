@@ -132,9 +132,7 @@ const PromptsContent: React.FC = () => {
                 setExpandedVersionId(null);
               }}
               title={def.label}
-              leadingIcon={
-                def.key === selectedPromptKey ? "check" : undefined
-              }
+              leadingIcon={def.key === selectedPromptKey ? "check" : undefined}
             />
           ))}
         </Menu>
@@ -220,9 +218,7 @@ const PromptsContent: React.FC = () => {
             <Text
               variant="bodySmall"
               style={styles.promptPreview}
-              numberOfLines={
-                expandedVersionId === version.id ? undefined : 3
-              }
+              numberOfLines={expandedVersionId === version.id ? undefined : 3}
             >
               {version.prompt_text}
             </Text>
@@ -236,9 +232,7 @@ const PromptsContent: React.FC = () => {
                 }
                 compact
               >
-                {expandedVersionId === version.id
-                  ? "Show less"
-                  : "Expand"}
+                {expandedVersionId === version.id ? "Show less" : "Expand"}
               </Button>
               {!version.is_active && (
                 <Button

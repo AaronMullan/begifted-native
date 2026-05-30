@@ -13,7 +13,8 @@ import { normalizeBirthday } from "../utils/birthday";
  * the review form can surface its inline error.
  */
 function sanitizeExtractedBirthday(extracted: ExtractedData): ExtractedData {
-  if (!("birthday" in extracted) || extracted.birthday == null) return extracted;
+  if (!("birthday" in extracted) || extracted.birthday == null)
+    return extracted;
   const canonical = normalizeBirthday(extracted.birthday);
   if (canonical === null) return extracted;
   if (canonical === extracted.birthday) return extracted;
@@ -153,7 +154,9 @@ export function useConversationFlow(
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(
     null
   );
-  const [conversationContext, setConversationContext] = useState<string | null>(null);
+  const [conversationContext, setConversationContext] = useState<string | null>(
+    null
+  );
   const [shouldShowNextStepButton, setShouldShowNextStepButton] =
     useState(false);
 

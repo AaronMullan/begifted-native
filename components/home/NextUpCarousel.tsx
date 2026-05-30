@@ -69,7 +69,10 @@ function NextUpCard({ occasion }: { occasion: Occasion }) {
             color={Colors.brand.gold}
           />
         </View>
-        <OccasionOverflowButton occasion={occasion} tint={Colors.brand.mediumTeal} />
+        <OccasionOverflowButton
+          occasion={occasion}
+          tint={Colors.brand.mediumTeal}
+        />
       </View>
     </Pressable>
   );

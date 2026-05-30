@@ -13,7 +13,8 @@ export async function loadAIConfig(
     return { provider: override.provider, model: override.model };
   }
 
-  const fallbackProvider = (Deno.env.get("AI_PROVIDER") ?? "openai") as Provider;
+  const fallbackProvider = (Deno.env.get("AI_PROVIDER") ??
+    "openai") as Provider;
   const fallbackModel = Deno.env.get("AI_MODEL") ?? "gpt-5.4";
 
   try {

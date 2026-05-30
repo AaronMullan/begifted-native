@@ -8,7 +8,10 @@ type RecipientCardProps = {
   onPress: (recipient: Recipient) => void;
 };
 
-export default function RecipientCard({ recipient, onPress }: RecipientCardProps) {
+export default function RecipientCard({
+  recipient,
+  onPress,
+}: RecipientCardProps) {
   const relationship =
     recipient.relationship_type && recipient.relationship_type !== "null"
       ? recipient.relationship_type

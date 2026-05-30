@@ -25,8 +25,7 @@ export const queryKeys = {
     ["giftSuggestions", recipientId] as const,
 
   // Gift Feedback (DEV-48)
-  giftFeedback: (recipientId: string) =>
-    ["giftFeedback", recipientId] as const,
+  giftFeedback: (recipientId: string) => ["giftFeedback", recipientId] as const,
 
   // Notifications
   notifications: (userId: string) => ["notifications", userId] as const,
@@ -47,8 +46,7 @@ export const queryKeys = {
   promptVersionHistory: (promptKey: string) =>
     ["systemPrompt", promptKey, "history"] as const,
   allProfiles: () => ["allProfiles"] as const,
-  recipientsForUser: (userId: string) =>
-    ["recipientsForUser", userId] as const,
+  recipientsForUser: (userId: string) => ["recipientsForUser", userId] as const,
 
   // App Config (Kill Switch)
   appConfig: ["appConfig"] as const,

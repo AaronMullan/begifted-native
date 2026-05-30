@@ -137,9 +137,7 @@ export function formatBirthdayDisplay(
 }
 
 /** True when the stored birthday includes a year (vs. month-day only). */
-export function birthdayHasYear(
-  birthday: string | null | undefined
-): boolean {
+export function birthdayHasYear(birthday: string | null | undefined): boolean {
   const parts = parseBirthdayParts(birthday);
   return parts !== null && parts.year !== null;
 }

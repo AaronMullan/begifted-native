@@ -14,7 +14,11 @@ import {
   PoltawskiNowy_600SemiBold,
   PoltawskiNowy_700Bold,
 } from "@expo-google-fonts/poltawski-nowy";
-import { DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold } from "@expo-google-fonts/dm-sans";
+import {
+  DMSans_400Regular,
+  DMSans_500Medium,
+  DMSans_600SemiBold,
+} from "@expo-google-fonts/dm-sans";
 
 /**
  * Hook to load custom fonts.

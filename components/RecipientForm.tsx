@@ -1,4 +1,12 @@
-import { View, StyleSheet, KeyboardAvoidingView, ScrollView, Keyboard, Platform, Pressable } from "react-native";
+import {
+  View,
+  StyleSheet,
+  KeyboardAvoidingView,
+  ScrollView,
+  Keyboard,
+  Platform,
+  Pressable,
+} from "react-native";
 import { Text, Button } from "react-native-paper";
 import { Recipient } from "../types/recipient";
 import { RecipientFields } from "./recipients/RecipientFields";
@@ -108,7 +116,11 @@ export default function RecipientForm({
             />
 
             <View style={styles.formButtons}>
-              <Button mode="outlined" onPress={onCancel} style={styles.cancelButton}>
+              <Button
+                mode="outlined"
+                onPress={onCancel}
+                style={styles.cancelButton}
+              >
                 Cancel
               </Button>
 

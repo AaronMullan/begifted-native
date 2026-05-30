@@ -5,3 +5,7 @@ web-build
 *.log
 package-lock.json
 yarn.lock
+
+# Native build output (Expo prebuild)
+ios
+android

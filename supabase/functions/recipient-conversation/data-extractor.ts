@@ -23,9 +23,17 @@ async function resolveAIConfig(
   defaultModel: string = CONVERSATION_MODEL
 ): Promise<AIConfig> {
   if (override?.provider && override?.model) {
-    return { provider: override.provider, model: override.model, apiKey: getApiKey(override.provider) };
+    return {
+      provider: override.provider,
+      model: override.model,
+      apiKey: getApiKey(override.provider),
+    };
   }
-  return { provider: "openai", model: defaultModel, apiKey: getApiKey("openai") };
+  return {
+    provider: "openai",
+    model: defaultModel,
+    apiKey: getApiKey("openai"),
+  };
 }
 // Generalized conversation handler - supports different conversation types
 export async function handleConversation(
@@ -124,12 +132,17 @@ Return JSON with what's been established:
   "readiness_score": "0-10 scale (debugging only)"
 }`;
     try {
-      const contextRaw = await callAI(aiConfig.provider, aiConfig.model, aiConfig.apiKey, {
-        messages: [{ role: "user", content: quickExtractionPrompt }],
-        maxTokens: 500,
-        temperature: 0.5,
-        jsonMode: true,
-      });
+      const contextRaw = await callAI(
+        aiConfig.provider,
+        aiConfig.model,
+        aiConfig.apiKey,
+        {
+          messages: [{ role: "user", content: quickExtractionPrompt }],
+          maxTokens: 500,
+          temperature: 0.5,
+          jsonMode: true,
+        }
+      );
       try {
         contextInfo = parseOpenAIJSON(contextRaw);
       } catch (e) {
@@ -146,7 +159,14 @@ Return JSON with what's been established:
             has_price_anchor: false,
             has_age_anchor: false,
             has_specificity_anchor: false,
-            missing_requirements: ["recipient_anchor", "occasion_anchor", "timing_anchor", "price_anchor", "age_anchor", "specificity_anchor"],
+            missing_requirements: [
+              "recipient_anchor",
+              "occasion_anchor",
+              "timing_anchor",
+              "price_anchor",
+              "age_anchor",
+              "specificity_anchor",
+            ],
             reason: "Failed to parse context extraction.",
           },
         };
@@ -165,7 +185,14 @@ Return JSON with what's been established:
           has_price_anchor: false,
           has_age_anchor: false,
           has_specificity_anchor: false,
-          missing_requirements: ["recipient_anchor", "occasion_anchor", "timing_anchor", "price_anchor", "age_anchor", "specificity_anchor"],
+          missing_requirements: [
+            "recipient_anchor",
+            "occasion_anchor",
+            "timing_anchor",
+            "price_anchor",
+            "age_anchor",
+            "specificity_anchor",
+          ],
           reason: "Error in context extraction.",
         },
       };
@@ -192,16 +219,20 @@ Return JSON with what's been established:
     }
 
     const hasName = !!(contextInfo.name || contextInfo.existing_name);
-    const hasRelationship = !!(contextInfo.relationship || contextInfo.existing_relationship);
+    const hasRelationship = !!(
+      contextInfo.relationship || contextInfo.existing_relationship
+    );
     contextInfo.readiness.has_recipient_anchor = hasName && hasRelationship;
 
     const hasOccasion =
       !!(contextInfo.birthday || contextInfo.existing_birthday) ||
-      (Array.isArray(contextInfo.occasions_mentioned) && contextInfo.occasions_mentioned.length > 0);
+      (Array.isArray(contextInfo.occasions_mentioned) &&
+        contextInfo.occasions_mentioned.length > 0);
     contextInfo.readiness.has_occasion_anchor = hasOccasion;
 
     const pendingDates = contextInfo.occasions_needing_dates ?? [];
-    const hasTiming = !contextInfo.needs_occasion_date && pendingDates.length === 0;
+    const hasTiming =
+      !contextInfo.needs_occasion_date && pendingDates.length === 0;
     contextInfo.readiness.has_timing_anchor = hasTiming;
 
     const hasPrice = !!contextInfo.has_price_guidance;
@@ -210,14 +241,21 @@ Return JSON with what's been established:
     const hasAge = !!contextInfo.has_age_context;
     contextInfo.readiness.has_age_anchor = hasAge;
 
-    const interestCount = (contextInfo.interests || contextInfo.existing_interests || []).length;
-    const hasSpecificity = interestCount >= 1 || !!contextInfo.user_skipped_specificity;
+    const interestCount = (
+      contextInfo.interests ||
+      contextInfo.existing_interests ||
+      []
+    ).length;
+    const hasSpecificity =
+      interestCount >= 1 || !!contextInfo.user_skipped_specificity;
     contextInfo.readiness.has_specificity_anchor = hasSpecificity;
 
     if (!contextInfo.readiness.has_recipient_anchor) {
       contextInfo.readiness.state = "not_captured";
     } else if (!hasOccasion) {
-      contextInfo.readiness.state = hasSpecificity ? "captured_needs_occasion" : "captured_needs_both";
+      contextInfo.readiness.state = hasSpecificity
+        ? "captured_needs_occasion"
+        : "captured_needs_both";
     } else if (!hasTiming) {
       contextInfo.readiness.state = "captured_needs_timing";
     } else if (!hasPrice) {
@@ -233,7 +271,8 @@ Return JSON with what's been established:
     // If all anchors are satisfied, skip the reply LLM entirely — return a
     // deterministic wrap-up so the message and button are always in sync.
     if (contextInfo.readiness.state === "ready") {
-      const wrapUpName = contextInfo.name || contextInfo.existing_name || "this person";
+      const wrapUpName =
+        contextInfo.name || contextInfo.existing_name || "this person";
       const wrapUpTemplate = await loadActivePrompt(
         supabaseUrl,
         supabaseServiceKey,
@@ -251,7 +290,8 @@ Return JSON with what's been established:
 
   // Pre-compute dynamic template content
   const readinessState = contextInfo.readiness?.state ?? "not_captured";
-  const recipientName = contextInfo.name || contextInfo.existing_name || "this person";
+  const recipientName =
+    contextInfo.name || contextInfo.existing_name || "this person";
   const stateGuidance = buildStateGuidance(readinessState, recipientName);
   const priorityGuidance = buildPriorityGuidance(contextInfo, recipientName);
 
@@ -360,7 +400,10 @@ Return JSON with what's been established:
 }
 // --- Helpers for pre-computing dynamic template content ---
 
-function buildStateGuidance(readinessState: string, recipientName: string): string {
+function buildStateGuidance(
+  readinessState: string,
+  recipientName: string
+): string {
   switch (readinessState) {
     case "not_captured":
       return "→ We don't know who this person is yet. Ask about name and relationship.";
@@ -383,11 +426,17 @@ function buildStateGuidance(readinessState: string, recipientName: string): stri
   }
 }
 
-function buildPriorityGuidance(contextInfo: ContextInfo, recipientName: string): string {
+function buildPriorityGuidance(
+  contextInfo: ContextInfo,
+  recipientName: string
+): string {
   const pendingDates = contextInfo.occasions_needing_dates ?? [];
-  const nextPendingDate = pendingDates[0] ?? contextInfo.occasion_needing_date ?? null;
+  const nextPendingDate =
+    pendingDates[0] ?? contextInfo.occasion_needing_date ?? null;
   const timingGuidance = nextPendingDate
-    ? `Ask ONLY for the date of "${nextPendingDate}" (pending: ${pendingDates.join(", ") || nextPendingDate}).`
+    ? `Ask ONLY for the date of "${nextPendingDate}" (pending: ${
+        pendingDates.join(", ") || nextPendingDate
+      }).`
     : "Not currently needed.";
 
   return `1. RECIPIENT IDENTITY (name + relationship) — if not yet captured, ask about who this person is.
@@ -486,7 +535,9 @@ Be conversational and helpful. Ask follow-up questions if needed, or confirm the
 
 Current exchange #${messageCount}:`;
 }
-async function addBirthdayAsOccasion(extractedData: ExtractedData): Promise<void> {
+async function addBirthdayAsOccasion(
+  extractedData: ExtractedData
+): Promise<void> {
   const raw = extractedData.birthday;
   if (!raw) return;
 
@@ -562,12 +613,17 @@ Return ONLY valid JSON (no markdown formatting):
   "relationship_type": "exact relationship found or null"
 }`;
   console.log("🔍 PASS 1: Extracting critical fields...");
-  const criticalRaw = await callAI(aiConfig.provider, aiConfig.model, aiConfig.apiKey, {
-    messages: [{ role: "user", content: criticalFieldsPrompt }],
-    maxTokens: 150,
-    temperature: 0.3,
-    jsonMode: true,
-  });
+  const criticalRaw = await callAI(
+    aiConfig.provider,
+    aiConfig.model,
+    aiConfig.apiKey,
+    {
+      messages: [{ role: "user", content: criticalFieldsPrompt }],
+      maxTokens: 150,
+      temperature: 0.3,
+      jsonMode: true,
+    }
+  );
   console.log("Critical fields raw response:", criticalRaw);
   let criticalFields;
   try {
@@ -626,12 +682,17 @@ IMPORTANT:
 - Use descriptive occasion_type names (e.g., "anniversary", "spring_equinox", "new_years", "christmas")
 - If the priority fields have values, use them exactly as provided above.`;
   console.log("🔍 PASS 2: Full extraction with context...");
-  const fullRaw = await callAI(aiConfig.provider, aiConfig.model, aiConfig.apiKey, {
-    messages: [{ role: "user", content: fullExtractionPrompt }],
-    maxTokens: 500,
-    temperature: 0.3,
-    jsonMode: true,
-  });
+  const fullRaw = await callAI(
+    aiConfig.provider,
+    aiConfig.model,
+    aiConfig.apiKey,
+    {
+      messages: [{ role: "user", content: fullExtractionPrompt }],
+      maxTokens: 500,
+      temperature: 0.3,
+      jsonMode: true,
+    }
+  );
   console.log("Full extraction raw response:", fullRaw);
   let extractedData;
   try {
@@ -668,9 +729,7 @@ IMPORTANT:
 
     for (const occasion of extractedData.occasions) {
       const dateMissing =
-        !occasion.date ||
-        occasion.date === "null" ||
-        occasion.date === null;
+        !occasion.date || occasion.date === "null" || occasion.date === null;
       if (!dateMissing) continue;
 
       const holidayOccasions = convertHolidaysToOccasions([
@@ -778,12 +837,17 @@ Return ONLY valid JSON (no markdown formatting) with these fields:
 
 Only include the requested fields. If a field wasn't mentioned, set it to null.`;
   console.log("🔍 Extracting fields:", targetFields);
-  const fieldsRaw = await callAI(aiConfig.provider, aiConfig.model, aiConfig.apiKey, {
-    messages: [{ role: "user", content: extractionPrompt }],
-    maxTokens: 300,
-    temperature: 0.3,
-    jsonMode: true,
-  });
+  const fieldsRaw = await callAI(
+    aiConfig.provider,
+    aiConfig.model,
+    aiConfig.apiKey,
+    {
+      messages: [{ role: "user", content: extractionPrompt }],
+      maxTokens: 300,
+      temperature: 0.3,
+      jsonMode: true,
+    }
+  );
   console.log("Field extraction raw response:", fieldsRaw);
   let extractedData;
   try {
@@ -954,12 +1018,17 @@ Return JSON only, no markdown:
 
   let occasionsRaw: string;
   try {
-    occasionsRaw = await callAI(aiConfig.provider, aiConfig.model, aiConfig.apiKey, {
-      messages: [{ role: "user", content: prompt }],
-      maxTokens: 900,
-      temperature: 0.75,
-      jsonMode: true,
-    });
+    occasionsRaw = await callAI(
+      aiConfig.provider,
+      aiConfig.model,
+      aiConfig.apiKey,
+      {
+        messages: [{ role: "user", content: prompt }],
+        maxTokens: 900,
+        temperature: 0.75,
+        jsonMode: true,
+      }
+    );
   } catch (err) {
     console.error("recommendOccasions AI error:", err);
     return getFallbackOccasionRecommendations(birthday);

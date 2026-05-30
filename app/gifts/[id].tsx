@@ -52,7 +52,12 @@ type GiftListProps = {
   emptyName: string;
 };
 
-function GiftList({ suggestions, expandedId, onExpand, emptyName }: GiftListProps) {
+function GiftList({
+  suggestions,
+  expandedId,
+  onExpand,
+  emptyName,
+}: GiftListProps) {
   if (suggestions.length === 0) {
     return (
       <Text style={styles.emptyText}>

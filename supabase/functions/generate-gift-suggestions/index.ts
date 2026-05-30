@@ -51,7 +51,8 @@ interface RequestBody {
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 function buildAvoidSection(existing: ExistingSuggestion[]): string {
@@ -62,14 +63,22 @@ function buildAvoidSection(existing: ExistingSuggestion[]): string {
     if (s.link) {
       try {
         domain = `, ${new URL(s.link).hostname.replace(/^www\./, "")}`;
-      } catch { /* skip */ }
+      } catch {
+        /* skip */
+      }
     }
     return `- "${s.title}"${price}${domain}`;
   });
-  return `\nAVOID these already-suggested items (do NOT suggest these or similar items):\n${lines.join("\n")}\n`;
+  return `\nAVOID these already-suggested items (do NOT suggest these or similar items):\n${lines.join(
+    "\n"
+  )}\n`;
 }
 
-function buildWrapperMessage(cis: CIS, maxResults: number, avoidSection: string): string {
+function buildWrapperMessage(
+  cis: CIS,
+  maxResults: number,
+  avoidSection: string
+): string {
   return `
 You are BeGifted — an AI gift concierge.
 
@@ -113,16 +122,23 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { provider, model } = await loadAIConfig(supabaseUrl, serviceRoleKey, {
-      provider: overrideProvider,
-      model: overrideModel,
-    });
+    const { provider, model } = await loadAIConfig(
+      supabaseUrl,
+      serviceRoleKey,
+      {
+        provider: overrideProvider,
+        model: overrideModel,
+      }
+    );
 
     const apiKey = getApiKey(provider);
     if (!apiKey) {
       return new Response(
         JSON.stringify({ error: `Missing API key for provider: ${provider}` }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
@@ -141,7 +157,9 @@ Deno.serve(async (req: Request) => {
         if (activePrompt?.prompt_text) {
           protocolPrompt = activePrompt.prompt_text;
         }
-      } catch { /* fall back to hardcoded */ }
+      } catch {
+        /* fall back to hardcoded */
+      }
     }
 
     const maxResults = 3;
@@ -159,7 +177,9 @@ Deno.serve(async (req: Request) => {
 
     let parsed: { status: string; suggestions: unknown[] };
     try {
-      parsed = cleanText ? JSON.parse(cleanText) : { status: "no_results", suggestions: [] };
+      parsed = cleanText
+        ? JSON.parse(cleanText)
+        : { status: "no_results", suggestions: [] };
     } catch {
       const match = cleanText?.match(/"suggestions":\s*\[([\s\S]*?)\]/);
       if (match) {
@@ -198,8 +218,13 @@ Deno.serve(async (req: Request) => {
   } catch (err) {
     console.error("[generate-gift-suggestions] Error:", err);
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      JSON.stringify({
+        error: err instanceof Error ? err.message : "Unknown error",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
   }
 });

@@ -17,21 +17,21 @@ export default function OnboardingRecipient() {
   const queryClient = useQueryClient();
   const [completing, setCompleting] = useState(false);
 
-  async function completeOnboarding(destination: "/contacts/add" | "/contacts") {
+  async function completeOnboarding(
+    destination: "/contacts/add" | "/contacts"
+  ) {
     if (!user) return;
 
     try {
       setCompleting(true);
-      await supabase
-        .from("user_preferences")
-        .upsert(
-          {
-            user_id: user.id,
-            onboarding_completed: true,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "user_id" }
-        );
+      await supabase.from("user_preferences").upsert(
+        {
+          user_id: user.id,
+          onboarding_completed: true,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" }
+      );
       queryClient.invalidateQueries({
         queryKey: queryKeys.userPreferences(user.id),
       });

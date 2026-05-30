@@ -44,7 +44,10 @@ export default function HomeHeroCard({ occasion }: HomeHeroCardProps) {
           </Text>
           <MaterialIcons name="chevron-right" size={14} color={Colors.white} />
         </View>
-        <OccasionOverflowButton occasion={occasion} tint={Colors.brand.lightTeal} />
+        <OccasionOverflowButton
+          occasion={occasion}
+          tint={Colors.brand.lightTeal}
+        />
       </View>
     </Pressable>
   );

@@ -2,10 +2,7 @@ import { useState } from "react";
 import { Alert, View } from "react-native";
 import { lookupOccasionDate } from "../utils/occasion-dates";
 import { useCreateOccasion } from "./use-occasion-mutations";
-import {
-  useConversationFlow,
-  type Message,
-} from "./use-conversation-flow";
+import { useConversationFlow, type Message } from "./use-conversation-flow";
 
 interface UseAddOccasionFlowOptions {
   recipientId: string;
@@ -52,7 +49,10 @@ export function useAddOccasionFlow({
 
     const extracted = await genericFinish();
     if (!extracted?.occasions || extracted.occasions.length === 0) {
-      Alert.alert("Error", "Could not determine the occasion. Please try again.");
+      Alert.alert(
+        "Error",
+        "Could not determine the occasion. Please try again."
+      );
       return;
     }
 

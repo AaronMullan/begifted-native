@@ -28,7 +28,7 @@ export function isBackgroundCancelledFetch(err: unknown): boolean {
 
 export function captureQueryError(
   error: unknown,
-  queryKey: readonly unknown[],
+  queryKey: readonly unknown[]
 ): void {
   const err = toError(error);
   if (isOfflineError(err)) return;
@@ -41,7 +41,7 @@ export function captureQueryError(
 
 export function captureMutationError(
   error: unknown,
-  mutationKey: readonly unknown[] | undefined,
+  mutationKey: readonly unknown[] | undefined
 ): void {
   const err = toError(error);
   Sentry.captureException(err, {
