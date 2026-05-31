@@ -578,6 +578,39 @@ async function addBirthdayAsOccasion(
   });
 }
 
+// A single-anchor amount (e.g. "around $150") should yield a usable range so
+// gift generation isn't pinned to one exact price. If extraction still
+// collapses min === max, expand it around the anchor (0.8x–1.25x, snapped to
+// $5). Also coerces string/"null" values to numbers. DEV-100.
+// Operates only on freshly-extracted output — it never touches stored data.
+function normalizeBudgetRange(data: {
+  gift_budget_min?: number | string | null;
+  gift_budget_max?: number | string | null;
+}): void {
+  const toNumber = (v: unknown): number | null => {
+    if (v === null || v === undefined || v === "" || v === "null") return null;
+    const n = typeof v === "number" ? v : Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const min = toNumber(data.gift_budget_min);
+  const max = toNumber(data.gift_budget_max);
+
+  // Persist coerced numeric values (or null) back onto the object.
+  if ("gift_budget_min" in data) data.gift_budget_min = min;
+  if ("gift_budget_max" in data) data.gift_budget_max = max;
+
+  // Only intervene on a collapsed single anchor: both set, equal, positive.
+  if (min === null || max === null || min !== max || min <= 0) return;
+
+  const anchor = min;
+  data.gift_budget_min = Math.floor((anchor * 0.8) / 5) * 5;
+  data.gift_budget_max = Math.ceil((anchor * 1.25) / 5) * 5;
+  console.log(
+    `Budget collapsed to single value ${anchor}; expanded to ${data.gift_budget_min}-${data.gift_budget_max}`
+  );
+}
+
 // Full recipient extraction (for adding new recipients)
 export async function extractFullRecipient(
   messages: Message[],
@@ -657,8 +690,8 @@ Extract and return valid JSON (no markdown formatting) with this exact structure
   "relationship_type": "${criticalFields.relationship_type || "null"}",
   "birthday": "Birthday or null. Use YYYY-MM-DD only when the year is explicit; use MM-DD when only month and day are known. Never use placeholder years like 0000.",
   "interests": ["array of interests mentioned"],
-  "gift_budget_min": "number or null",
-  "gift_budget_max": "number or null", 
+  "gift_budget_min": "Lower end of the gift budget range as a number, or null. RULES: (a) explicit range like \"$50-$75\" -> 50. (b) single anchor like \"around $150\"/\"$150\" -> about 0.8x the anchor (e.g. 120). (c) upper-limit only like \"under $150\"/\"up to $250\" -> null. (d) vague answer like \"flexible\"/\"nothing too expensive\" -> null. NEVER set min equal to max for a single anchor; a single amount must become a range.",
+  "gift_budget_max": "Upper end of the gift budget range as a number, or null. RULES: (a) explicit range like \"$50-$75\" -> 75. (b) single anchor like \"around $150\"/\"$150\" -> about 1.25x the anchor (e.g. 190). (c) upper-limit only like \"under $150\"/\"up to $250\" -> that number (150 / 250). (d) vague answer -> null.",
   "emotional_tone_preference": "string or null",
   "address": "string or null",
   "address_line_2": "string or null",
@@ -722,6 +755,9 @@ IMPORTANT:
   if (criticalFields.relationship_type && !extractedData.relationship_type) {
     extractedData.relationship_type = criticalFields.relationship_type;
   }
+
+  // Expand a collapsed single-anchor budget into a usable range. DEV-100.
+  normalizeBudgetRange(extractedData);
 
   // Process occasions - fill in missing dates using holiday lookup
   if (extractedData.occasions && Array.isArray(extractedData.occasions)) {
@@ -796,8 +832,9 @@ export async function extractFields(
         case "interests":
           return `"interests": ["array of interests mentioned or updated"]`;
         case "gift_budget_min":
+          return `"gift_budget_min": "Lower end of the gift budget range as a number, or null. Explicit range \"$50-$75\" -> 50. Single anchor \"around $150\" -> about 0.8x (e.g. 120). Upper-limit only \"under $150\" -> null. Vague \"flexible\" -> null. Never set min equal to max for a single anchor."`;
         case "gift_budget_max":
-          return `"${field}": "number or null"`;
+          return `"gift_budget_max": "Upper end of the gift budget range as a number, or null. Explicit range \"$50-$75\" -> 75. Single anchor \"around $150\" -> about 1.25x (e.g. 190). Upper-limit only \"under $150\"/\"up to $250\" -> that number. Vague -> null."`;
         case "birthday":
           return `"birthday": "YYYY-MM-DD when year is explicit, MM-DD when only month and day are known, or null. Never use placeholder years like 0000."`;
         case "emotional_tone_preference":
@@ -858,6 +895,8 @@ Only include the requested fields. If a field wasn't mentioned, set it to null.`
     // Return empty object if parsing fails
     extractedData = {};
   }
+  // Expand a collapsed single-anchor budget into a usable range. DEV-100.
+  normalizeBudgetRange(extractedData);
   console.log("=== END PARTIAL EXTRACTION ===");
   return {
     extractedData,
