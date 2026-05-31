@@ -13,6 +13,7 @@ import { GiftSuggestionsView } from "../../../components/recipients/GiftSuggesti
 import { ConversationView } from "../../../components/recipients/conversation/ConversationView";
 import { useAddOccasionFlow } from "../../../hooks/use-add-occasion-flow";
 import { useConversationFlow } from "../../../hooks/use-conversation-flow";
+import { useUserPreferences } from "../../../hooks/use-user-preferences";
 import { formatShortName } from "../../../lib/format-name";
 import { useToast } from "../../../hooks/use-toast";
 import {
@@ -62,6 +63,9 @@ export default function RecipientEditPage() {
   // poller can detect when the edge function has written a fresh one.
   const resyncBaselineRef = useRef<string>("");
   const { showToast, toast } = useToast();
+  const { data: userPreferences } = useUserPreferences();
+  const defaultEmotionalTone =
+    userPreferences?.user_summary?.default_emotional_tone;
 
   // Fetch recipient data
   useEffect(() => {
@@ -568,6 +572,7 @@ export default function RecipientEditPage() {
         {activeTab === "details" ? (
           <AboutRecipientView
             recipient={recipient}
+            defaultEmotionalTone={defaultEmotionalTone}
             isResynthesizing={isResynthesizing}
             onResynthesize={() => resynthesizeProfile()}
             onRecipientUpdated={(updated) => setRecipient(updated)}

@@ -38,6 +38,11 @@ import {
 
 type AboutRecipientViewProps = {
   recipient: Recipient;
+  /**
+   * The giver's onboarding-derived default tone. Shown (clearly labeled) as the
+   * recipient's tone when they have none of their own set (DEV-99).
+   */
+  defaultEmotionalTone?: string;
   /** True while the synopsis is being regenerated server-side. */
   isResynthesizing: boolean;
   /** Trigger a profile resynthesis (owned by the detail screen). */
@@ -67,6 +72,7 @@ function formatAddress(r: Recipient): string {
 
 export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
   recipient,
+  defaultEmotionalTone,
   isResynthesizing,
   onResynthesize,
   onRecipientUpdated,
@@ -214,9 +220,22 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
         <View style={styles.card}>
           <View style={styles.cardInner}>
             <Text style={styles.fieldLabel}>EMOTIONAL TONE</Text>
-            <Text style={styles.fieldValue}>
-              {recipient.emotional_tone_preference?.trim() || "—"}
-            </Text>
+            {recipient.emotional_tone_preference?.trim() ? (
+              <Text style={styles.fieldValue}>
+                {recipient.emotional_tone_preference.trim()}
+              </Text>
+            ) : defaultEmotionalTone?.trim() ? (
+              <>
+                <Text style={styles.fieldValue}>
+                  {defaultEmotionalTone.trim()}
+                </Text>
+                <Text style={styles.fieldHint}>
+                  Default from your profile · tap to change
+                </Text>
+              </>
+            ) : (
+              <Text style={styles.fieldValue}>—</Text>
+            )}
 
             <View style={styles.row}>
               <View style={styles.col}>
@@ -334,6 +353,7 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
       <GiftPreferencesDialog
         visible={preferencesOpen}
         recipient={recipient}
+        defaultEmotionalTone={defaultEmotionalTone}
         onClose={() => setPreferencesOpen(false)}
         onSave={async (fields) => {
           await handleSavePartial(fields, true);
@@ -357,6 +377,7 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
 type GiftPreferencesDialogProps = {
   visible: boolean;
   recipient: Recipient;
+  defaultEmotionalTone?: string;
   onClose: () => void;
   onSave: (fields: Partial<Recipient>) => Promise<void>;
 };
@@ -364,10 +385,17 @@ type GiftPreferencesDialogProps = {
 const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
   visible,
   recipient,
+  defaultEmotionalTone,
   onClose,
   onSave,
 }) => {
-  const [tone, setTone] = useState(recipient.emotional_tone_preference ?? "");
+  // Seed the tone field with the recipient's own tone, falling back to the
+  // giver's default so a single Save accepts that default for this recipient.
+  const seededTone =
+    recipient.emotional_tone_preference?.trim() ||
+    defaultEmotionalTone?.trim() ||
+    "";
+  const [tone, setTone] = useState(seededTone);
   const [minBudget, setMinBudget] = useState(
     recipient.gift_budget_min != null ? String(recipient.gift_budget_min) : ""
   );
@@ -385,7 +413,7 @@ const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
 
   React.useEffect(() => {
     if (visible) {
-      setTone(recipient.emotional_tone_preference ?? "");
+      setTone(seededTone);
       setMinBudget(
         recipient.gift_budget_min != null
           ? String(recipient.gift_budget_min)
@@ -402,7 +430,7 @@ const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
       setState(recipient.state ?? "");
       setZipCode(recipient.zip_code ?? "");
     }
-  }, [visible, recipient]);
+  }, [visible, recipient, seededTone]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -758,6 +786,12 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: Colors.blues.dark,
     fontWeight: "600",
+  },
+  fieldHint: {
+    fontSize: 12,
+    fontStyle: "italic",
+    color: Colors.blues.medium,
+    marginTop: 2,
   },
   row: {
     flexDirection: "row",

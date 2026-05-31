@@ -59,6 +59,7 @@ Return ONLY valid JSON:
   "care_and_relationship_style": ["Signals about how the user notices, values, or supports other people."],
   "giver_style_implications": ["Practical implications for how BeGifted should choose and frame recommendations."],
   "things_to_avoid": ["Any stated dislikes, constraints, or recommendation types to avoid."],
+  "default_emotional_tone": "A short free-form phrase (2-5 words) describing the emotional tone this user's gifts tend to carry, used as the default tone for new recipients (e.g. \\"warm and personal\\", \\"playful and a little nostalgic\\", \\"practical and understated\\"). Infer it from how they describe their taste and how they care for others. Empty string if there is no signal.",
   "confidence": "low"
 }`;
 
@@ -110,6 +111,10 @@ Return ONLY valid JSON:
           extracted.giver_style_implications
         ),
         things_to_avoid: toStringArray(extracted.things_to_avoid),
+        default_emotional_tone:
+          typeof extracted.default_emotional_tone === "string"
+            ? extracted.default_emotional_tone.trim()
+            : "",
         confidence:
           typeof extracted.confidence === "string"
             ? extracted.confidence

@@ -71,7 +71,7 @@ serve(async (req) => {
     const { data: recipient, error: recipientError } = await supabase
       .from("recipients")
       .select(
-        "name, relationship_type, interests, birthday, emotional_tone_preference, gift_budget_min, gift_budget_max, city, state, country"
+        "user_id, name, relationship_type, interests, birthday, emotional_tone_preference, gift_budget_min, gift_budget_max, city, state, country"
       )
       .eq("id", recipientId)
       .maybeSingle();
@@ -118,10 +118,24 @@ serve(async (req) => {
       parts.push(`Interests: ${recipient.interests.join(", ")}`);
     }
 
-    if (recipient.emotional_tone_preference) {
-      parts.push(
-        `Gift tone preference: ${recipient.emotional_tone_preference}`
-      );
+    // Tone: prefer the recipient's own tone. When it's unset, fall back to the
+    // giver's onboarding-derived default tone (DEV-99) so gift generation still
+    // reflects how this user likes to give, rather than no tone at all.
+    const recipientTone = recipient.emotional_tone_preference?.trim();
+    if (recipientTone) {
+      parts.push(`Gift tone preference: ${recipientTone}`);
+    } else if (recipient.user_id) {
+      const { data: prefs } = await supabase
+        .from("user_preferences")
+        .select("user_summary")
+        .eq("user_id", recipient.user_id)
+        .maybeSingle();
+      const defaultTone = prefs?.user_summary?.default_emotional_tone;
+      if (typeof defaultTone === "string" && defaultTone.trim()) {
+        parts.push(
+          `Gift tone preference (giver's default — this recipient has none set): ${defaultTone.trim()}`
+        );
+      }
     }
 
     if (

@@ -202,6 +202,7 @@ Return ONLY valid JSON:
   "care_and_relationship_style": ["Signals about how the user notices, values, or supports other people."],
   "giver_style_implications": ["Practical implications for how BeGifted should choose and frame recommendations."],
   "things_to_avoid": ["Any stated dislikes, constraints, or recommendation types to avoid."],
+  "default_emotional_tone": "A short free-form phrase describing the emotional tone this user's gifts tend to carry, used as the default tone for new recipients. Empty string if no signal.",
   "confidence": "low"
 }`,
     templateVariables: [],
