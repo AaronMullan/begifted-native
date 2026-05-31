@@ -6,7 +6,9 @@ import { Colors } from "../../lib/colors";
 import { Typography, Radii } from "../../lib/typography";
 import type { Occasion } from "../../lib/api";
 import {
+  daysUntil,
   formatOccasionTypeLower,
+  formatShortDate,
   possessive,
 } from "../../utils/home-occasions";
 import OccasionOverflowButton from "./OccasionOverflowButton";
@@ -21,6 +23,10 @@ export default function HomeHeroCard({ occasion }: HomeHeroCardProps) {
   const headline = `${possessive(recipientName)} ${formatOccasionTypeLower(
     occasion.occasion_type
   )} is coming up.`;
+  const days = daysUntil(occasion.date);
+  const dayLabel =
+    days === 0 ? "Today" : days === 1 ? "Tomorrow" : `In ${days} days`;
+  const countdown = `${dayLabel} · ${formatShortDate(occasion.date)}`;
 
   const handlePress = () => {
     // TODO(DEV-69): navigate to gift recommendation page for this occasion
@@ -34,9 +40,12 @@ export default function HomeHeroCard({ occasion }: HomeHeroCardProps) {
       accessibilityLabel={`View ${possessive(recipientName)} gift ideas`}
       style={styles.card}
     >
-      <Text variant="displaySmall" style={styles.headline}>
-        {headline}
-      </Text>
+      <View style={styles.header}>
+        <Text style={styles.countdown}>{countdown}</Text>
+        <Text variant="displaySmall" style={styles.headline}>
+          {headline}
+        </Text>
+      </View>
       <View style={styles.footer}>
         <View style={styles.cta}>
           <Text style={styles.ctaText}>
@@ -64,6 +73,13 @@ const styles = StyleSheet.create({
     minHeight: 170,
     justifyContent: "space-between",
     gap: 16,
+  },
+  header: {
+    gap: 6,
+  },
+  countdown: {
+    ...Typography.eyebrow,
+    color: Colors.brand.lightTeal,
   },
   headline: {
     ...Typography.h1,
