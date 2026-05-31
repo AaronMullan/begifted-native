@@ -28,6 +28,7 @@ export interface UserPreferences {
   user_summary: UserSummary | null;
   synthesized_giver_profile: string | null;
   auto_fallback_enabled: boolean;
+  notification_lead_days: number;
 }
 
 /**
