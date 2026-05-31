@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Button,
   Dialog,
+  HelperText,
   IconButton,
   Menu,
   Portal,
@@ -29,6 +30,11 @@ import {
   useUpdateOccasion,
 } from "../../hooks/use-occasion-mutations";
 import { OccasionEditor } from "./conversation/OccasionEditor";
+import {
+  formatBirthdayDisplay,
+  isInvalidBirthdayInput,
+  normalizeBirthday,
+} from "../../utils/birthday";
 
 type AboutRecipientViewProps = {
   recipient: Recipient;
@@ -249,6 +255,11 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
                 </Text>
               </View>
             </View>
+
+            <Text style={styles.fieldLabel}>BIRTHDAY</Text>
+            <Text style={styles.fieldValue}>
+              {formatBirthdayDisplay(recipient.birthday) || "—"}
+            </Text>
           </View>
         </View>
       </Pressable>
@@ -534,27 +545,45 @@ const InformationDialog: React.FC<InformationDialogProps> = ({
   onClose,
   onSave,
 }) => {
+  // Seed the editable birthday from canonical storage. Strip the vCard "--"
+  // prefix ("--08-18" → "08-18") so the year-unknown form reads naturally; both
+  // forms re-normalize on save.
+  const seedBirthday = (b?: string) => (b ? b.replace(/^--/, "") : "");
+
   const [name, setName] = useState(recipient.name);
   const [relationshipType, setRelationshipType] = useState(
     recipient.relationship_type
   );
+  const [birthday, setBirthday] = useState(seedBirthday(recipient.birthday));
   const [saving, setSaving] = useState(false);
 
   React.useEffect(() => {
     if (visible) {
       setName(recipient.name);
       setRelationshipType(recipient.relationship_type);
+      setBirthday(seedBirthday(recipient.birthday));
     }
   }, [visible, recipient]);
 
-  const canSave = name.trim().length > 0 && relationshipType.trim().length > 0;
+  const birthdayInvalid = isInvalidBirthdayInput(birthday);
+  const canSave =
+    name.trim().length > 0 &&
+    relationshipType.trim().length > 0 &&
+    !birthdayInvalid;
 
   const handleSave = async () => {
     if (!canSave) return;
     setSaving(true);
+    const trimmedBirthday = birthday.trim();
     await onSave({
       name: name.trim(),
       relationship_type: relationshipType.trim(),
+      // Empty leaves the stored birthday untouched (undefined = no change),
+      // matching how the other optional fields behave here.
+      birthday:
+        trimmedBirthday === ""
+          ? undefined
+          : normalizeBirthday(trimmedBirthday) ?? undefined,
     });
     setSaving(false);
   };
@@ -593,6 +622,20 @@ const InformationDialog: React.FC<InformationDialogProps> = ({
                 onChangeText={setRelationshipType}
                 style={styles.input}
               />
+              <TextInput
+                mode="outlined"
+                label="Birthday"
+                value={birthday}
+                onChangeText={setBirthday}
+                placeholder="1985-08-18 or 08-18"
+                autoCapitalize="none"
+                style={styles.input}
+              />
+              <HelperText type={birthdayInvalid ? "error" : "info"}>
+                {birthdayInvalid
+                  ? "Use a date like 1985-08-18, or 08-18 if you don't know the year."
+                  : "Year optional — add it so we can show their age accurately."}
+              </HelperText>
             </View>
             <View style={styles.modalFooter}>
               <Button

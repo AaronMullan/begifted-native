@@ -15,6 +15,10 @@ import { useAddOccasionFlow } from "../../../hooks/use-add-occasion-flow";
 import { useConversationFlow } from "../../../hooks/use-conversation-flow";
 import { formatShortName } from "../../../lib/format-name";
 import { useToast } from "../../../hooks/use-toast";
+import {
+  backfillBirthdayFromAge,
+  normalizeBirthday,
+} from "../../../utils/birthday";
 
 function formatOccasionType(type: string): string {
   return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -186,6 +190,28 @@ export default function RecipientEditPage() {
       if (value !== undefined && value !== null && value !== "") {
         (updates as Record<string, unknown>)[key] = value;
       }
+    }
+
+    // Normalize any extracted birthday into canonical storage form so we never
+    // persist a loose "08-18" (DEV-105).
+    if (typeof updates.birthday === "string") {
+      const normalized = normalizeBirthday(updates.birthday);
+      if (normalized) updates.birthday = normalized;
+      else delete updates.birthday;
+    }
+
+    // Turn a user-volunteered age ("he's 47") into a birth year so the synopsis
+    // can derive age instead of the LLM guessing. Backfill respects a birthday
+    // we already know with a year (DEV-105).
+    const extractedAge = (extracted as Record<string, unknown>).age;
+    const ageNum =
+      typeof extractedAge === "number" ? extractedAge : Number(extractedAge);
+    const backfilledBirthday = backfillBirthdayFromAge(
+      Number.isFinite(ageNum) ? ageNum : null,
+      updates.birthday ?? recipient.birthday
+    );
+    if (backfilledBirthday) {
+      updates.birthday = backfilledBirthday;
     }
 
     if (Object.keys(updates).length > 0) {
