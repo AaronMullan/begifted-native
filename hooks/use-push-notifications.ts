@@ -71,7 +71,11 @@ export function usePushNotifications(): void {
       (response) => {
         const data = response.notification.request.content.data;
         if (data?.recipientId) {
-          router.push(`/contacts/${data.recipientId}`);
+          const occasionId = data.occasionId as string | undefined;
+          const query = occasionId
+            ? `?tab=gifts&occasionId=${occasionId}`
+            : `?tab=gifts`;
+          router.push(`/contacts/${data.recipientId}${query}`);
         }
       }
     );

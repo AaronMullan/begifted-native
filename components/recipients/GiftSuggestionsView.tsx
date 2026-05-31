@@ -10,6 +10,12 @@ type GiftSuggestionsViewProps = {
   loading: boolean;
   recipientName: string;
   isGenerating?: boolean;
+  /** When set, only suggestions for this occasion are shown. */
+  occasionIdFilter?: string | null;
+  /** Human-readable label for the filtered occasion, e.g. "Christmas · Dec 25". */
+  occasionLabel?: string;
+  /** Clears the occasion filter to reveal every suggestion. */
+  onClearOccasionFilter?: () => void;
 };
 
 const formatPrice = (price?: number) => {
@@ -119,10 +125,17 @@ export const GiftSuggestionsView: React.FC<GiftSuggestionsViewProps> = ({
   loading,
   recipientName,
   isGenerating = false,
+  occasionIdFilter = null,
+  occasionLabel,
+  onClearOccasionFilter,
 }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const latestId = suggestions[0]?.id ?? null;
+  const visibleSuggestions = occasionIdFilter
+    ? suggestions.filter((s) => s.occasion_id === occasionIdFilter)
+    : suggestions;
+
+  const latestId = visibleSuggestions[0]?.id ?? null;
   const activeExpandedId = expandedId ?? latestId;
 
   const toggle = (id: string) => {
@@ -140,23 +153,43 @@ export const GiftSuggestionsView: React.FC<GiftSuggestionsViewProps> = ({
     );
   }
 
-  if (suggestions.length === 0 && !isGenerating) {
+  const occasionHeader =
+    occasionIdFilter && occasionLabel ? (
+      <View style={styles.occasionHeader}>
+        <View style={styles.occasionHeaderText}>
+          <Text style={styles.occasionHeaderLabel}>Showing gifts for</Text>
+          <Text style={styles.occasionHeaderValue}>{occasionLabel}</Text>
+        </View>
+        {onClearOccasionFilter && (
+          <Pressable onPress={onClearOccasionFilter} hitSlop={6}>
+            <Text style={styles.viewAllLink}>View all gifts ›</Text>
+          </Pressable>
+        )}
+      </View>
+    ) : null;
+
+  if (visibleSuggestions.length === 0 && !isGenerating) {
     return (
-      <View style={styles.emptyContainer}>
-        <MaterialIcons name="card-giftcard" size={64} color="#ccc" />
-        <Text variant="titleLarge" style={styles.emptyTitle}>
-          No Gift Ideas Yet
-        </Text>
-        <Text variant="bodyMedium" style={styles.emptyText}>
-          Gift suggestions will appear here once they&apos;re generated for{" "}
-          {recipientName}.
-        </Text>
+      <View style={styles.container}>
+        {occasionHeader}
+        <View style={styles.emptyContainer}>
+          <MaterialIcons name="card-giftcard" size={64} color="#ccc" />
+          <Text variant="titleLarge" style={styles.emptyTitle}>
+            No Gift Ideas Yet
+          </Text>
+          <Text variant="bodyMedium" style={styles.emptyText}>
+            {occasionIdFilter
+              ? `No gift suggestions for this occasion yet.`
+              : `Gift suggestions will appear here once they're generated for ${recipientName}.`}
+          </Text>
+        </View>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      {occasionHeader}
       {isGenerating && (
         <View style={styles.generatingContainer}>
           <ActivityIndicator size="small" />
@@ -167,7 +200,7 @@ export const GiftSuggestionsView: React.FC<GiftSuggestionsViewProps> = ({
       )}
 
       <View style={styles.list}>
-        {suggestions.map((suggestion) => (
+        {visibleSuggestions.map((suggestion) => (
           <SuggestionCard
             key={suggestion.id}
             suggestion={suggestion}
@@ -207,6 +240,39 @@ const styles = StyleSheet.create({
   generatingText: {
     marginLeft: 12,
     color: "#666",
+  },
+  occasionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  occasionHeaderText: {
+    flex: 1,
+    marginRight: 12,
+  },
+  occasionHeaderLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+    color: Colors.blues.dark,
+    opacity: 0.6,
+    marginBottom: 2,
+  },
+  occasionHeaderValue: {
+    fontFamily: "Fraunces_600SemiBold",
+    fontSize: 18,
+    color: Colors.blues.dark,
+  },
+  viewAllLink: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: Colors.yellows.amber,
   },
   emptyContainer: {
     alignItems: "center",

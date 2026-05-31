@@ -68,7 +68,11 @@ export default function NotificationsScreen() {
     }
     const recipientId = notification.data?.recipientId;
     if (recipientId) {
-      router.push(`/contacts/${recipientId}`);
+      const occasionId = notification.data?.occasionId;
+      const query = occasionId
+        ? `?tab=gifts&occasionId=${occasionId}`
+        : `?tab=gifts`;
+      router.push(`/contacts/${recipientId}${query}`);
     }
   }
 

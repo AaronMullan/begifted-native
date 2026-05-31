@@ -16,6 +16,17 @@ import { useConversationFlow } from "../../../hooks/use-conversation-flow";
 import { formatShortName } from "../../../lib/format-name";
 import { useToast } from "../../../hooks/use-toast";
 
+function formatOccasionType(type: string): string {
+  return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function formatOccasionDate(dateString: string): string {
+  const [year, month, day] = dateString.split("-").map(Number);
+  if (!year || !month || !day) return dateString;
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 export default function RecipientEditPage() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -24,6 +35,7 @@ export default function RecipientEditPage() {
     tab?: string;
     addOccasion?: string;
     generating?: string;
+    occasionId?: string;
   }>();
   const recipientId = params.id;
   const initialTab = (params.tab as "details" | "gifts") || "gifts";
@@ -34,6 +46,10 @@ export default function RecipientEditPage() {
   const [suggestions, setSuggestions] = useState<GiftSuggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "gifts">(initialTab);
+  const [occasionFilter, setOccasionFilter] = useState<string | null>(
+    params.occasionId ?? null
+  );
+  const [occasionLabel, setOccasionLabel] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [showAddOccasionChat, setShowAddOccasionChat] = useState(false);
   const [showUpdateChat, setShowUpdateChat] = useState(false);
@@ -206,6 +222,40 @@ export default function RecipientEditPage() {
       setActiveTab(params.tab as "details" | "gifts");
     }
   }, [params.tab]);
+
+  // Sync the occasion filter when navigated with a new occasionId param
+  useEffect(() => {
+    if (params.occasionId) {
+      setOccasionFilter(params.occasionId);
+    }
+  }, [params.occasionId]);
+
+  // Resolve a human-readable label ("Christmas · Dec 25") for the filtered
+  // occasion so the gifts header can name it without a second screen.
+  useEffect(() => {
+    if (!occasionFilter) {
+      setOccasionLabel("");
+      return;
+    }
+    let cancelled = false;
+    const fetchOccasionLabel = async () => {
+      const { data, error } = await supabase
+        .from("occasions")
+        .select("occasion_type, date")
+        .eq("id", occasionFilter)
+        .maybeSingle();
+      if (cancelled || error || !data) return;
+      setOccasionLabel(
+        `${formatOccasionType(
+          data.occasion_type || "birthday"
+        )} · ${formatOccasionDate(data.date)}`
+      );
+    };
+    fetchOccasionLabel();
+    return () => {
+      cancelled = true;
+    };
+  }, [occasionFilter]);
 
   const fetchSuggestions = useCallback(
     async (recipientId: string, checkForNew: boolean = false) => {
@@ -507,6 +557,9 @@ export default function RecipientEditPage() {
             loading={loadingSuggestions}
             recipientName={formatShortName(recipient.name)}
             isGenerating={isGenerating}
+            occasionIdFilter={occasionFilter}
+            occasionLabel={occasionLabel}
+            onClearOccasionFilter={() => setOccasionFilter(null)}
           />
         )}
       </ScrollView>
