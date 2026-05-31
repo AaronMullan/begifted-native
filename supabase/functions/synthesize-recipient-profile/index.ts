@@ -31,6 +31,11 @@ Draw from ALL available signals:
 
 Write in third person (e.g. "Sarah is..."). Be specific and concrete. Surface personality, lifestyle, and values — not gift ideas. If occasions are present, note what's coming up.
 
+AGE & DATES — read carefully:
+- Only state the recipient's age if an explicit "Age:" line is given in the context below. Never guess, estimate, or infer an age from anything else.
+- Upcoming occasions (including birthdays) are FUTURE events the giver is shopping for — they are NOT the recipient's birth date. Never treat an occasion's date or year as biographical, and never use it to compute or imply an age or a year of birth.
+- If no "Age:" line is present, do not mention the recipient's age or year of birth at all.
+
 Also extract two structured fields that downstream occasion suggestions consume:
 
 - knownRoles: an array of life roles this recipient plays that could unlock role-specific gifting occasions (Mother's Day, Father's Day, Teacher Appreciation, etc.). Use lowercase strings. Examples: "mother", "father", "grandmother", "grandfather", "teacher", "nurse", "caregiver", "veteran". Only include a role if the signal is explicit or strongly implied by the input. The relationship_type may itself imply a role (e.g. "mom" → ["mother"], "mother-in-law" → ["mother"]). Do not invent roles.
@@ -137,11 +142,29 @@ serve(async (req) => {
     }
 
     if (occasions && occasions.length > 0) {
+      // Show occasions as month/day only. These are upcoming events the giver
+      // is shopping for — not biographical dates. Leaking the (future) year is
+      // exactly what made the synthesizer write a wrong birth year / age into
+      // the profile (DEV-105).
+      const fmtMonthDay = (iso: string): string => {
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+        if (!m) return iso;
+        const d = new Date(
+          Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+        );
+        return d.toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          timeZone: "UTC",
+        });
+      };
       const occasionLines = occasions
         .slice(0, 5)
-        .map((o: any) => `${o.occasion_type} on ${o.date}`)
+        .map((o: any) => `${o.occasion_type} on ${fmtMonthDay(o.date)}`)
         .join(", ");
-      parts.push(`Upcoming occasions: ${occasionLines}`);
+      parts.push(
+        `Upcoming occasions (future events to shop for, NOT birth dates): ${occasionLines}`
+      );
     }
 
     const recipientContext = parts.join("\n");

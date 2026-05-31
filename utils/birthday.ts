@@ -141,3 +141,40 @@ export function birthdayHasYear(birthday: string | null | undefined): boolean {
   const parts = parseBirthdayParts(birthday);
   return parts !== null && parts.year !== null;
 }
+
+/**
+ * Backfill a birth year from a user-volunteered current age (DEV-105). When
+ * someone says "he's 47" in the update chat we have no birth date to anchor on,
+ * so we approximate one. Age is a derived value, not a stored one — the synopsis
+ * recomputes it from this year every time, so an off-by-one is harmless and far
+ * better than a wrong LLM-invented age.
+ *
+ * Rules (mirrors the ticket's Path A):
+ *   - If we already know the full birthday (year included), the age claim is
+ *     redundant — trust the stored date and return null (no change).
+ *   - If we know only month/day, backfill the year onto it.
+ *   - If we know nothing, store a synthetic year-only date (Jan 1) so the
+ *     synopsis still has a real year to derive age from.
+ *
+ * Returns the normalized birthday string to persist, or null when nothing
+ * should change (already have a year, or the age is implausible).
+ */
+export function backfillBirthdayFromAge(
+  age: number | null | undefined,
+  existingBirthday: string | null | undefined
+): string | null {
+  if (age == null || !Number.isFinite(age)) return null;
+  const rounded = Math.round(age);
+  if (rounded <= 0 || rounded > 130) return null;
+
+  const parts = parseBirthdayParts(existingBirthday);
+  // Already know the real birth year — don't overwrite the truth with a guess.
+  if (parts && parts.year !== null) return null;
+
+  const year = new Date().getFullYear() - rounded;
+  const month = parts?.month ?? 1;
+  const day = parts?.day ?? 1;
+  const mm = String(month).padStart(2, "0");
+  const dd = String(day).padStart(2, "0");
+  return normalizeBirthday(`${year}-${mm}-${dd}`);
+}

@@ -33,6 +33,7 @@ export interface ExtractedData {
   relationship_type?: string;
   interests?: string[];
   birthday?: string;
+  age?: number | null;
   knownRoles?: string[];
   householdContext?: string;
   emotional_tone_preference?: string;

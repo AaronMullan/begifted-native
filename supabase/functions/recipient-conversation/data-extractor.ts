@@ -689,6 +689,7 @@ Extract and return valid JSON (no markdown formatting) with this exact structure
   "name": "${criticalFields.name || "null"}",
   "relationship_type": "${criticalFields.relationship_type || "null"}",
   "birthday": "Birthday or null. Use YYYY-MM-DD only when the year is explicit; use MM-DD when only month and day are known. Never use placeholder years like 0000.",
+  "age": "The recipient's CURRENT age in whole years as a number, but ONLY when the user explicitly states it (e.g. \"he's 47\", \"she just turned 30\", \"my 8 year old\"). Do NOT infer age from relationship, life stage, grade, graduation, hobbies, or occasion. null if not explicitly stated.",
   "interests": ["array of interests mentioned"],
   "gift_budget_min": "Lower end of the gift budget range as a number, or null. RULES: (a) explicit range like \"$50-$75\" -> 50. (b) single anchor like \"around $150\"/\"$150\" -> about 0.8x the anchor (e.g. 120). (c) upper-limit only like \"under $150\"/\"up to $250\" -> null. (d) vague answer like \"flexible\"/\"nothing too expensive\" -> null. NEVER set min equal to max for a single anchor; a single amount must become a range.",
   "gift_budget_max": "Upper end of the gift budget range as a number, or null. RULES: (a) explicit range like \"$50-$75\" -> 75. (b) single anchor like \"around $150\"/\"$150\" -> about 1.25x the anchor (e.g. 190). (c) upper-limit only like \"under $150\"/\"up to $250\" -> that number (150 / 250). (d) vague answer -> null.",
@@ -758,6 +759,14 @@ IMPORTANT:
 
   // Expand a collapsed single-anchor budget into a usable range. DEV-100.
   normalizeBudgetRange(extractedData);
+
+  // Coerce a user-stated age to a positive number or null (DEV-105). Only an
+  // explicit age should reach here; the client turns it into a birth year so
+  // the synopsis can derive age instead of letting the LLM guess.
+  if (extractedData.age != null) {
+    const n = Number(extractedData.age);
+    extractedData.age = Number.isFinite(n) && n > 0 ? n : null;
+  }
 
   // Process occasions - fill in missing dates using holiday lookup
   if (extractedData.occasions && Array.isArray(extractedData.occasions)) {
