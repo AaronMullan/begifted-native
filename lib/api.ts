@@ -12,6 +12,12 @@ export interface UserSummary {
   care_and_relationship_style: string[];
   giver_style_implications: string[];
   things_to_avoid: string[];
+  /**
+   * Free-form phrase describing the user's default gifting tone, seeded from
+   * onboarding. Used as the fallback tone for recipients who have none set.
+   * Optional because rows extracted before this field shipped won't have it.
+   */
+  default_emotional_tone?: string;
   confidence: "low" | "medium" | "high";
 }
 
