@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import {
+  ActivityIndicator,
   Button,
   Dialog,
   IconButton,
@@ -31,6 +32,10 @@ import { OccasionEditor } from "./conversation/OccasionEditor";
 
 type AboutRecipientViewProps = {
   recipient: Recipient;
+  /** True while the synopsis is being regenerated server-side. */
+  isResynthesizing: boolean;
+  /** Trigger a profile resynthesis (owned by the detail screen). */
+  onResynthesize: () => void;
   onRecipientUpdated: (updated: Recipient) => void;
   onOpenUpdateChat: () => void;
   onDelete: () => void;
@@ -54,18 +59,10 @@ function formatAddress(r: Recipient): string {
   return [line1, line2, line3].filter(Boolean).join("\n");
 }
 
-async function triggerProfileResync(recipientId: string) {
-  try {
-    await supabase.functions.invoke("synthesize-recipient-profile", {
-      body: { recipientId },
-    });
-  } catch (err) {
-    console.error("synthesize-recipient-profile failed:", err);
-  }
-}
-
 export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
   recipient,
+  isResynthesizing,
+  onResynthesize,
   onRecipientUpdated,
   onOpenUpdateChat,
   onDelete,
@@ -102,7 +99,7 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
     }
     onRecipientUpdated({ ...recipient, ...fields });
     if (triggerResync) {
-      triggerProfileResync(recipient.id);
+      onResynthesize();
     }
   };
 
@@ -128,7 +125,17 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
       <Text style={styles.sectionLabel}>
         HOW BEGIFTED UNDERSTANDS {recipient.name.toUpperCase()}
       </Text>
-      <Text style={styles.narrative}>
+      {isResynthesizing && (
+        <View style={styles.refreshingRow}>
+          <ActivityIndicator size={14} color={Colors.blues.medium} />
+          <Text style={styles.refreshingText}>
+            Refreshing recipient profile…
+          </Text>
+        </View>
+      )}
+      <Text
+        style={[styles.narrative, isResynthesizing && styles.narrativeDimmed]}
+      >
         {recipient.synthesized_profile?.trim() ||
           `We're still getting to know ${recipient.name}. Tap below to share more.`}
       </Text>
@@ -642,6 +649,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     color: Colors.darks.black,
+  },
+  narrativeDimmed: {
+    opacity: 0.4,
+  },
+  refreshingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+  refreshingText: {
+    fontSize: 13,
+    fontStyle: "italic",
+    color: Colors.blues.medium,
   },
   updateLink: {
     alignSelf: "flex-start",

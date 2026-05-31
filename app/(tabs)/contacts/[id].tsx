@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, IconButton } from "react-native-paper";
@@ -37,6 +37,10 @@ export default function RecipientEditPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showAddOccasionChat, setShowAddOccasionChat] = useState(false);
   const [showUpdateChat, setShowUpdateChat] = useState(false);
+  const [isResynthesizing, setIsResynthesizing] = useState(false);
+  // Snapshot of the synopsis taken when a resynthesis is kicked off, so the
+  // poller can detect when the edge function has written a fresh one.
+  const resyncBaselineRef = useRef<string>("");
   const { showToast, toast } = useToast();
 
   // Fetch recipient data
@@ -110,6 +114,25 @@ export default function RecipientEditPage() {
       : undefined,
   });
 
+  // Kick off a profile resynthesis and surface a "refreshing" state until the
+  // edge function writes a new synopsis. `baseline` is the synopsis we expect
+  // to change; the poller below watches for it to differ. Fire-and-forget on
+  // the network call — the server still completes even if the app backgrounds,
+  // and the poller (with its max-wait timeout) is the source of truth.
+  const resynthesizeProfile = (baseline?: string) => {
+    if (!recipientId) return;
+    resyncBaselineRef.current =
+      baseline ?? recipient?.synthesized_profile ?? "";
+    setIsResynthesizing(true);
+    supabase.functions
+      .invoke("synthesize-recipient-profile", {
+        body: { recipientId },
+      })
+      .catch((err) => {
+        console.error("synthesize-recipient-profile failed:", err);
+      });
+  };
+
   const handleFinishUpdateChat = async () => {
     if (!recipient) return;
     const extracted = await updateFlow.handleFinishConversation();
@@ -163,14 +186,7 @@ export default function RecipientEditPage() {
     }
 
     setIsGenerating(true);
-    supabase.functions
-      .invoke("synthesize-recipient-profile", {
-        body: { recipientId: recipient.id },
-      })
-      .catch((err) => {
-        console.error("synthesize-recipient-profile failed:", err);
-        setIsGenerating(false);
-      });
+    resynthesizeProfile(recipient.synthesized_profile ?? "");
 
     showToast(`Updated ${recipient.name}'s profile.`);
     setShowUpdateChat(false);
@@ -277,6 +293,56 @@ export default function RecipientEditPage() {
       clearInterval(pollInterval);
     };
   }, [isGenerating, recipient, fetchSuggestions]);
+
+  // Poll the recipient row for a freshly synthesized profile after an update.
+  // The synthesize edge function regenerates synthesized_profile (plus
+  // known_roles / household_context) server-side; we watch for it to change
+  // from the baseline snapshot taken when the resync was triggered.
+  useEffect(() => {
+    if (!isResynthesizing || !recipientId) return;
+
+    const POLL_INTERVAL = 4000; // 4 seconds
+    const MAX_POLL_TIME = 90000; // 90 seconds
+    const startTime = Date.now();
+
+    const pollInterval = setInterval(async () => {
+      if (Date.now() - startTime >= MAX_POLL_TIME) {
+        setIsResynthesizing(false);
+        clearInterval(pollInterval);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("recipients")
+        .select(
+          "synthesized_profile, known_roles, household_context, updated_at"
+        )
+        .eq("id", recipientId)
+        .maybeSingle();
+
+      if (error || !data) return;
+
+      if ((data.synthesized_profile ?? "") !== resyncBaselineRef.current) {
+        setRecipient((prev) =>
+          prev
+            ? {
+                ...prev,
+                synthesized_profile:
+                  data.synthesized_profile ?? prev.synthesized_profile,
+                known_roles: data.known_roles ?? prev.known_roles,
+                household_context:
+                  data.household_context ?? prev.household_context,
+                updated_at: data.updated_at ?? prev.updated_at,
+              }
+            : prev
+        );
+        setIsResynthesizing(false);
+        clearInterval(pollInterval);
+      }
+    }, POLL_INTERVAL);
+
+    return () => clearInterval(pollInterval);
+  }, [isResynthesizing, recipientId]);
 
   const handleDelete = async () => {
     if (!recipient) return;
@@ -426,6 +492,8 @@ export default function RecipientEditPage() {
         {activeTab === "details" ? (
           <AboutRecipientView
             recipient={recipient}
+            isResynthesizing={isResynthesizing}
+            onResynthesize={() => resynthesizeProfile()}
             onRecipientUpdated={(updated) => setRecipient(updated)}
             onOpenUpdateChat={() => {
               updateFlow.resetConversation();
