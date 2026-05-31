@@ -23,7 +23,12 @@ interface NotificationPreferences {
   system_updates_enabled: boolean;
   promotional_emails_enabled: boolean;
   timezone: string;
+  notification_lead_days: number;
 }
+
+const LEAD_DAYS_PRESETS = [14, 21, 28];
+const LEAD_DAYS_MIN = 7;
+const LEAD_DAYS_MAX = 60;
 
 const TIMEZONES = [
   { value: "America/New_York", label: "Eastern Time (ET)" },
@@ -49,6 +54,7 @@ export default function Notifications() {
     system_updates_enabled: true,
     promotional_emails_enabled: false,
     timezone: "America/New_York",
+    notification_lead_days: 21,
   });
 
   const [originalPreferences, setOriginalPreferences] =
@@ -102,6 +108,7 @@ export default function Notifications() {
           system_updates_enabled: data.system_updates_enabled ?? true,
           promotional_emails_enabled: data.promotional_emails_enabled ?? false,
           timezone: data.timezone || "America/New_York",
+          notification_lead_days: data.notification_lead_days ?? 21,
         };
         setPreferences(prefs);
         setOriginalPreferences(prefs);
@@ -129,6 +136,7 @@ export default function Notifications() {
         system_updates_enabled: preferences.system_updates_enabled,
         promotional_emails_enabled: preferences.promotional_emails_enabled,
         timezone: preferences.timezone,
+        notification_lead_days: preferences.notification_lead_days,
         updated_at: new Date().toISOString(),
       };
 
@@ -166,6 +174,14 @@ export default function Notifications() {
       timezone,
     }));
     setShowTimezonePicker(false);
+  }
+
+  function setLeadDays(days: number) {
+    const clamped = Math.min(LEAD_DAYS_MAX, Math.max(LEAD_DAYS_MIN, days));
+    setPreferences((prev) => ({
+      ...prev,
+      notification_lead_days: clamped,
+    }));
   }
 
   const hasChanges =
@@ -324,6 +340,78 @@ export default function Notifications() {
                   trackColor={{ false: "#E0E0E0", true: "#333333" }}
                   thumbColor="#fff"
                 />
+              </View>
+            </View>
+
+            {/* Gift Reminder Lead Time Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Gift reminder lead time</Text>
+              <Text style={styles.sectionSubtitle}>
+                How far ahead of an occasion you want gift ideas — earlier means
+                more time to order and ship.
+              </Text>
+
+              <View style={styles.leadStepperRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.leadStepperButton,
+                    preferences.notification_lead_days <= LEAD_DAYS_MIN &&
+                      styles.leadStepperButtonDisabled,
+                  ]}
+                  onPress={() =>
+                    setLeadDays(preferences.notification_lead_days - 1)
+                  }
+                  disabled={preferences.notification_lead_days <= LEAD_DAYS_MIN}
+                >
+                  <MaterialIcons name="remove" size={22} color="#000000" />
+                </TouchableOpacity>
+
+                <View style={styles.leadStepperValue}>
+                  <Text style={styles.leadStepperNumber}>
+                    {preferences.notification_lead_days}
+                  </Text>
+                  <Text style={styles.leadStepperUnit}>days</Text>
+                </View>
+
+                <TouchableOpacity
+                  style={[
+                    styles.leadStepperButton,
+                    preferences.notification_lead_days >= LEAD_DAYS_MAX &&
+                      styles.leadStepperButtonDisabled,
+                  ]}
+                  onPress={() =>
+                    setLeadDays(preferences.notification_lead_days + 1)
+                  }
+                  disabled={preferences.notification_lead_days >= LEAD_DAYS_MAX}
+                >
+                  <MaterialIcons name="add" size={22} color="#000000" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.leadPresetRow}>
+                {LEAD_DAYS_PRESETS.map((preset) => {
+                  const selected =
+                    preferences.notification_lead_days === preset;
+                  return (
+                    <TouchableOpacity
+                      key={preset}
+                      style={[
+                        styles.leadPresetChip,
+                        selected && styles.leadPresetChipSelected,
+                      ]}
+                      onPress={() => setLeadDays(preset)}
+                    >
+                      <Text
+                        style={[
+                          styles.leadPresetChipText,
+                          selected && styles.leadPresetChipTextSelected,
+                        ]}
+                      >
+                        {preset / 7} weeks
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
 
@@ -556,6 +644,66 @@ const styles = StyleSheet.create({
   timezoneOptionTextSelected: {
     fontWeight: "600",
     color: "#000000",
+  },
+  leadStepperRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  leadStepperButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  leadStepperButtonDisabled: {
+    opacity: 0.4,
+  },
+  leadStepperValue: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "center",
+    minWidth: 120,
+  },
+  leadStepperNumber: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#000000",
+  },
+  leadStepperUnit: {
+    fontSize: 16,
+    color: Colors.darks.black,
+    opacity: 0.7,
+    marginLeft: 6,
+  },
+  leadPresetRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 12,
+  },
+  leadPresetChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    backgroundColor: "#f8f8f8",
+  },
+  leadPresetChipSelected: {
+    backgroundColor: "#000000",
+    borderColor: "#000000",
+  },
+  leadPresetChipText: {
+    fontSize: 14,
+    color: "#000000",
+  },
+  leadPresetChipTextSelected: {
+    color: "#ffffff",
+    fontWeight: "600",
   },
   saveButton: {
     backgroundColor: "#000000",
