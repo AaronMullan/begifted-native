@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { ActivityIndicator, Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -8,8 +8,7 @@ import { BOTTOM_NAV_HEIGHT, HEADER_HEIGHT } from "../../lib/constants";
 import { useRecipient } from "../../hooks/use-recipient";
 import { useGiftSuggestions } from "../../hooks/use-gift-suggestions";
 import { useBottomNavScrollVisibility } from "../../hooks/use-bottom-nav-scroll-visibility";
-import PrimaryGiftCard from "../../components/gifts/PrimaryGiftCard";
-import CollapsedGiftCard from "../../components/gifts/CollapsedGiftCard";
+import GiftSuggestionsList from "../../components/gifts/GiftSuggestionsList";
 
 const firstName = (name?: string) => {
   if (!name) return "";
@@ -45,45 +44,6 @@ function GiftIdeasHeader({ name, onAboutPress }: GiftIdeasHeaderProps) {
   );
 }
 
-type GiftListProps = {
-  suggestions: import("../../types/recipient").GiftSuggestion[];
-  expandedId: string | null;
-  onExpand: (id: string) => void;
-  emptyName: string;
-};
-
-function GiftList({
-  suggestions,
-  expandedId,
-  onExpand,
-  emptyName,
-}: GiftListProps) {
-  if (suggestions.length === 0) {
-    return (
-      <Text style={styles.emptyText}>
-        No gift ideas yet for {emptyName || "this recipient"}.
-      </Text>
-    );
-  }
-
-  const activeId = expandedId ?? suggestions[0].id;
-  const primary = suggestions.find((s) => s.id === activeId);
-  const rest = suggestions.filter((s) => s.id !== activeId);
-
-  return (
-    <View style={styles.list}>
-      {primary && <PrimaryGiftCard suggestion={primary} />}
-      {rest.map((s) => (
-        <CollapsedGiftCard
-          key={s.id}
-          suggestion={s}
-          onPress={() => onExpand(s.id)}
-        />
-      ))}
-    </View>
-  );
-}
-
 export default function GiftIdeasPage() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -91,7 +51,7 @@ export default function GiftIdeasPage() {
   const { data: suggestions = [], isLoading: loadingSuggestions } =
     useGiftSuggestions(id);
   const { handleScroll } = useBottomNavScrollVisibility();
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   const isLoading = loadingRecipient || loadingSuggestions;
   const name = firstName(recipient?.name);
@@ -110,6 +70,7 @@ export default function GiftIdeasPage() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={styles.scroll}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
@@ -118,11 +79,10 @@ export default function GiftIdeasPage() {
     >
       <View style={styles.content}>
         <GiftIdeasHeader name={name} onAboutPress={handleAboutPress} />
-        <GiftList
+        <GiftSuggestionsList
           suggestions={suggestions}
-          expandedId={expandedId}
-          onExpand={setExpandedId}
-          emptyName={name}
+          recipientName={name}
+          onExpand={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
         />
       </View>
     </ScrollView>
@@ -163,15 +123,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     letterSpacing: 1.2,
-  },
-  list: {
-    gap: 12,
-  },
-  emptyText: {
-    color: Colors.darks.black,
-    opacity: 0.7,
-    textAlign: "center",
-    paddingVertical: 40,
   },
   centered: {
     flex: 1,
