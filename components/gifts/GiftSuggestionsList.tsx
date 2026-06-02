@@ -35,18 +35,27 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
   onClearOccasionFilter,
   onExpand,
 }) => {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  // `undefined` = default (feature the first suggestion); `null` = user
+  // collapsed everything; a string = a specific featured suggestion.
+  const [expandedId, setExpandedId] = useState<string | null | undefined>(
+    undefined
+  );
 
   const handleExpand = (id: string) => {
     setExpandedId(id);
     onExpand?.();
   };
 
+  const handleCollapse = () => {
+    setExpandedId(null);
+  };
+
   const visibleSuggestions = occasionId
     ? suggestions.filter((s) => s.occasion_id === occasionId)
     : suggestions;
 
-  const activeId = expandedId ?? visibleSuggestions[0]?.id ?? null;
+  const activeId =
+    expandedId === undefined ? visibleSuggestions[0]?.id ?? null : expandedId;
   const primary = visibleSuggestions.find((s) => s.id === activeId);
   const rest = visibleSuggestions.filter((s) => s.id !== activeId);
 
@@ -111,13 +120,16 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
 
       <View style={styles.list}>
         {primary && (
-          <PrimaryGiftCard suggestion={primary} occasionId={occasionId} />
+          <PrimaryGiftCard
+            suggestion={primary}
+            occasionId={occasionId}
+            onCollapse={handleCollapse}
+          />
         )}
         {rest.map((s) => (
           <CollapsedGiftCard
             key={s.id}
             suggestion={s}
-            occasionId={occasionId}
             onPress={() => handleExpand(s.id)}
           />
         ))}
