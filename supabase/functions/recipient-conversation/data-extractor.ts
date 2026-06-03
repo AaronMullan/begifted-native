@@ -1062,14 +1062,14 @@ Do not suggest fictional, invented, or "creative" occasions that are not real ca
 RULES:
 - DATES MUST BE IN THE FUTURE: suggestedDate must be today or a future date (YYYY-MM-DD). Use the next occurrence for annual events. For birthday, use next upcoming birthday. Never use past years.
 - Include birthday if provided; for ages 30, 40, 50, etc. set isMilestone true.
-- type: lowercase snake_case (e.g. national_bird_day, national_bbq_day, record_store_day).
+- type: lowercase snake_case, one of: birthday, major_gifting_holiday, relationship_based_occasion, interest_based_observance. Put the specific occasion in "name" (e.g. type "interest_based_observance", name "Record Store Day").
 - reasoning: one short sentence tying the occasion to their interests (only for real occasions).
 
 Return JSON only, no markdown:
 {
   "primaryOccasions": [
     {
-      "type": "snake_case_type",
+      "type": "birthday | major_gifting_holiday | relationship_based_occasion | interest_based_observance",
       "name": "Human-readable name",
       "suggestedDate": "YYYY-MM-DD or null",
       "isMilestone": false,
