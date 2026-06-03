@@ -284,16 +284,31 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
 export async function fetchGiftSuggestions(
   recipientId: string
 ): Promise<GiftSuggestion[]> {
-  const { data, error } = await supabase
-    .from("gift_suggestions")
-    .select("*")
-    .eq("recipient_id", recipientId)
-    .not("price", "is", null)
-    .gt("price", 0)
-    .order("generated_at", { ascending: false });
+  // Fetch suggestions and any "removal" feedback in parallel so rejected/owned/
+  // problem gifts stay hidden across refetches, not just optimistically (DEV-108).
+  const [suggestionsRes, removedRes] = await Promise.all([
+    supabase
+      .from("gift_suggestions")
+      .select("*")
+      .eq("recipient_id", recipientId)
+      .not("price", "is", null)
+      .gt("price", 0)
+      .order("generated_at", { ascending: false }),
+    supabase
+      .from("gift_feedback")
+      .select("gift_suggestion_id")
+      .eq("recipient_id", recipientId)
+      .in("action", GIFT_REMOVAL_ACTIONS),
+  ]);
 
-  if (error) throw error;
-  return data || [];
+  if (suggestionsRes.error) throw suggestionsRes.error;
+  if (removedRes.error) throw removedRes.error;
+
+  const removedIds = new Set(
+    (removedRes.data ?? []).map((row) => row.gift_suggestion_id)
+  );
+
+  return (suggestionsRes.data ?? []).filter((s) => !removedIds.has(s.id));
 }
 
 export const GIFT_FEEDBACK_ACTIONS = [
@@ -307,6 +322,19 @@ export const GIFT_FEEDBACK_ACTIONS = [
 ] as const;
 
 export type GiftFeedbackAction = (typeof GIFT_FEEDBACK_ACTIONS)[number];
+
+/**
+ * Feedback actions that mean "this gift no longer belongs in the visible list"
+ * (DEV-108). These mirror the actions the backend `append_rejected_gift_to_avoid_list`
+ * trigger reacts to. `keep_in_mix`, `chose`, and free-text notes do NOT remove a gift.
+ */
+export const GIFT_REMOVAL_ACTIONS: GiftFeedbackAction[] = [
+  "already_have",
+  "not_for_them",
+  "price_off",
+  "product_problem",
+  "remove",
+];
 
 export interface GiftFeedback {
   id: string;
