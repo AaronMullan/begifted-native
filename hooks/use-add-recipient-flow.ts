@@ -369,6 +369,11 @@ export function useAddRecipientFlow(
         birthday: extracted.birthday || initialBirthday || undefined,
         emotional_tone_preference:
           extracted.emotional_tone_preference || undefined,
+        // Parent/household signal captured during the conversation, so the
+        // occasion prompt can unlock Mother's/Father's Day for a spouse who
+        // is also a parent (DEV-114). Synthesis later refines the saved copy.
+        knownRoles: extracted.knownRoles || undefined,
+        householdContext: extracted.householdContext || undefined,
         gift_budget_min: extracted.gift_budget_min || undefined,
         gift_budget_max: extracted.gift_budget_max || undefined,
         address: extracted.address || initialAddress?.address || undefined,

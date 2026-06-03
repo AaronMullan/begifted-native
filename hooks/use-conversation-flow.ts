@@ -43,6 +43,11 @@ export interface ExtractedData {
   interests?: string[];
   birthday?: string;
   emotional_tone_preference?: string;
+  // Life roles / household signal captured during extraction. Feeds the
+  // occasion prompt so a spouse-who-is-a-parent gets Mother's/Father's Day,
+  // while spouse/partner status alone never implies parenthood (DEV-114).
+  knownRoles?: string[];
+  householdContext?: string;
   gift_budget_min?: number;
   gift_budget_max?: number;
   address?: string;
