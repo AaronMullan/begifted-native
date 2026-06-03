@@ -61,7 +61,7 @@ const CATEGORY_TYPES = new Set([
   "interest_based_observance",
 ]);
 
-function slugifyOccasionName(name: string): string {
+export function slugifyOccasionName(name: string): string {
   return name
     .toLowerCase()
     .trim()
