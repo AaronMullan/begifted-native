@@ -9,6 +9,7 @@ import { fetchIsAdmin } from "@/lib/api";
 import { Colors } from "@/lib/colors";
 import type { PromptDefinition } from "@/lib/prompt-registry";
 import type { Recipient } from "@/types/recipient";
+import { formatOccasionType } from "@/utils/home-occasions";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
@@ -1657,7 +1658,7 @@ const OccasionResultView: React.FC<{ result: Record<string, unknown> }> = ({
           </View>
           <View style={resultStyles.chipRow}>
             <Chip compact style={resultStyles.contextChip}>
-              {occ.type}
+              {formatOccasionType(String(occ.type ?? ""))}
             </Chip>
             {occ.suggestedDate && (
               <Text variant="bodySmall" style={resultStyles.occasionDate}>
