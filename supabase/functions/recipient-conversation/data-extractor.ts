@@ -694,6 +694,8 @@ Extract and return valid JSON (no markdown formatting) with this exact structure
   "gift_budget_min": "Lower end of the gift budget range as a number, or null. RULES: (a) explicit range like \"$50-$75\" -> 50. (b) single anchor like \"around $150\"/\"$150\" -> about 0.8x the anchor (e.g. 120). (c) upper-limit only like \"under $150\"/\"up to $250\" -> null. (d) vague answer like \"flexible\"/\"nothing too expensive\" -> null. NEVER set min equal to max for a single anchor; a single amount must become a range.",
   "gift_budget_max": "Upper end of the gift budget range as a number, or null. RULES: (a) explicit range like \"$50-$75\" -> 75. (b) single anchor like \"around $150\"/\"$150\" -> about 1.25x the anchor (e.g. 190). (c) upper-limit only like \"under $150\"/\"up to $250\" -> that number (150 / 250). (d) vague answer -> null.",
   "emotional_tone_preference": "string or null",
+  "knownRoles": "Array of life roles the recipient EXPLICITLY plays, drawn only from clear conversational signals — e.g. ['mother'] when the user says they have kids together / mentions the recipient's child, ['father'], ['grandmother'], ['grandfather']. CRITICAL: do NOT infer 'mother'/'father' from spouse/partner/wife/husband status alone — only when the conversation makes parenthood explicit (their child, 'we have kids', 'mom of three', etc.). Empty array [] if no role is clearly stated.",
+  "householdContext": "Short phrase describing the recipient's household when explicitly mentioned — e.g. 'shares a household with the user and their two children'. null if not stated. Do not infer children or a shared household from spouse/partner status alone.",
   "address": "string or null",
   "address_line_2": "string or null",
   "city": "string or null",
