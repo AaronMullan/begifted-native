@@ -7,13 +7,11 @@ import { useGiftActionDrawer } from "./GiftActionDrawerProvider";
 
 type GiftCardActionButtonProps = {
   suggestion: GiftSuggestion;
-  variant?: "expanded" | "collapsed";
   occasionId?: string | null;
 };
 
 export default function GiftCardActionButton({
   suggestion,
-  variant = "expanded",
   occasionId,
 }: GiftCardActionButtonProps) {
   const { openDrawer } = useGiftActionDrawer();
@@ -23,30 +21,21 @@ export default function GiftCardActionButton({
     openDrawer(suggestion, occasionId);
   };
 
-  const iconName = variant === "expanded" ? "expand-less" : "expand-more";
-  const color =
-    variant === "expanded" ? Colors.blues.medium : Colors.yellows.gold;
-
   return (
     <Pressable
       onPress={handlePress}
       hitSlop={8}
       accessibilityRole="button"
       accessibilityLabel="Gift options"
-      style={[styles.button, { borderColor: color }]}
+      style={styles.button}
     >
-      <MaterialIcons name={iconName} size={20} color={color} />
+      <MaterialIcons name="more-horiz" size={22} color={Colors.blues.dark} />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   button: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    padding: 4,
   },
 });

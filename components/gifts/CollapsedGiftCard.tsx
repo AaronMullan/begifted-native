@@ -2,18 +2,16 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 import { Colors } from "../../lib/colors";
 import type { GiftSuggestion } from "../../types/recipient";
-import GiftCardActionButton from "./GiftCardActionButton";
+import GiftCardExpandButton from "./GiftCardExpandButton";
 
 type CollapsedGiftCardProps = {
   suggestion: GiftSuggestion;
   onPress: () => void;
-  occasionId?: string | null;
 };
 
 export default function CollapsedGiftCard({
   suggestion,
   onPress,
-  occasionId,
 }: CollapsedGiftCardProps) {
   return (
     <Pressable
@@ -26,11 +24,7 @@ export default function CollapsedGiftCard({
         {suggestion.title}
       </Text>
       <View style={styles.actionWrap}>
-        <GiftCardActionButton
-          suggestion={suggestion}
-          variant="collapsed"
-          occasionId={occasionId}
-        />
+        <GiftCardExpandButton expanded={false} onPress={onPress} />
       </View>
     </Pressable>
   );

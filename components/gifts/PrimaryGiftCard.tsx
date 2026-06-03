@@ -4,10 +4,12 @@ import { Button, Text } from "react-native-paper";
 import { Colors } from "../../lib/colors";
 import type { GiftSuggestion } from "../../types/recipient";
 import GiftCardActionButton from "./GiftCardActionButton";
+import GiftCardExpandButton from "./GiftCardExpandButton";
 
 type PrimaryGiftCardProps = {
   suggestion: GiftSuggestion;
   occasionId?: string | null;
+  onCollapse: () => void;
 };
 
 const MIN_IMAGE_SIZE = 200;
@@ -24,6 +26,7 @@ const formatPrice = (price?: number) => {
 export default function PrimaryGiftCard({
   suggestion,
   occasionId,
+  onCollapse,
 }: PrimaryGiftCardProps) {
   const [showImage, setShowImage] = useState(false);
 
@@ -43,11 +46,8 @@ export default function PrimaryGiftCard({
   return (
     <View style={styles.card}>
       <View style={styles.actionRow}>
-        <GiftCardActionButton
-          suggestion={suggestion}
-          variant="expanded"
-          occasionId={occasionId}
-        />
+        <GiftCardActionButton suggestion={suggestion} occasionId={occasionId} />
+        <GiftCardExpandButton expanded onPress={onCollapse} />
       </View>
 
       {showImage && suggestion.image_url && (
@@ -96,6 +96,8 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
+    alignItems: "center",
+    gap: 8,
   },
   imageWrap: {
     aspectRatio: 1,

@@ -9,7 +9,7 @@ import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { Colors } from "../../../lib/colors";
 import type { GiftSuggestion, Recipient } from "../../../types/recipient";
 import { AboutRecipientView } from "../../../components/recipients/AboutRecipientView";
-import { GiftSuggestionsView } from "../../../components/recipients/GiftSuggestionsView";
+import GiftSuggestionsList from "../../../components/gifts/GiftSuggestionsList";
 import { ConversationView } from "../../../components/recipients/conversation/ConversationView";
 import { useAddOccasionFlow } from "../../../hooks/use-add-occasion-flow";
 import { useConversationFlow } from "../../../hooks/use-conversation-flow";
@@ -62,6 +62,7 @@ export default function RecipientEditPage() {
   // Snapshot of the synopsis taken when a resynthesis is kicked off, so the
   // poller can detect when the edge function has written a fresh one.
   const resyncBaselineRef = useRef<string>("");
+  const scrollRef = useRef<ScrollView>(null);
   const { showToast, toast } = useToast();
   const { data: userPreferences } = useUserPreferences();
   const defaultEmotionalTone =
@@ -563,6 +564,7 @@ export default function RecipientEditPage() {
       )}
 
       <ScrollView
+        ref={scrollRef}
         style={styles.content}
         contentContainerStyle={{
           paddingBottom: BOTTOM_NAV_HEIGHT + Math.max(insets.bottom, 0),
@@ -583,15 +585,20 @@ export default function RecipientEditPage() {
             onDelete={handleDelete}
           />
         ) : (
-          <GiftSuggestionsView
-            suggestions={suggestions}
-            loading={loadingSuggestions}
-            recipientName={formatShortName(recipient.name)}
-            isGenerating={isGenerating}
-            occasionIdFilter={occasionFilter}
-            occasionLabel={occasionLabel}
-            onClearOccasionFilter={() => setOccasionFilter(null)}
-          />
+          <View style={styles.giftsContainer}>
+            <GiftSuggestionsList
+              suggestions={suggestions}
+              loading={loadingSuggestions}
+              recipientName={formatShortName(recipient.name)}
+              isGenerating={isGenerating}
+              occasionId={occasionFilter}
+              occasionLabel={occasionLabel}
+              onClearOccasionFilter={() => setOccasionFilter(null)}
+              onExpand={() =>
+                scrollRef.current?.scrollTo({ y: 0, animated: true })
+              }
+            />
+          </View>
         )}
       </ScrollView>
       {toast}
@@ -644,5 +651,9 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  giftsContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
   },
 });

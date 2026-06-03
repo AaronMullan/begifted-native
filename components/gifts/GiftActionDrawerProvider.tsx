@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useRef, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   BottomSheetModal,
   BottomSheetModalProvider,
@@ -34,10 +40,17 @@ const GiftActionDrawerProvider: React.FC<ProviderProps> = ({ children }) => {
   const sheetRef = useRef<BottomSheetModal>(null);
   const [state, setState] = useState<GiftActionDrawerState | null>(null);
 
+  // Present the sheet only after the new state has committed. Calling
+  // present() synchronously inside openDrawer races the setState, so the sheet
+  // would render and (with enableDynamicSizing) measure against the previous
+  // gift — showing the wrong gift's title and breaking subsequent opens.
+  useEffect(() => {
+    if (state) sheetRef.current?.present();
+  }, [state]);
+
   const value: GiftActionDrawerContextValue = {
     openDrawer: (suggestion, occasionId = null) => {
       setState({ suggestion, occasionId });
-      sheetRef.current?.present();
     },
     closeDrawer: () => {
       sheetRef.current?.dismiss();
