@@ -319,9 +319,32 @@ export const GIFT_FEEDBACK_ACTIONS = [
   "price_off",
   "product_problem",
   "remove",
+  // Free-text "Gift feedback" (DEV-109): its own action so it maps to the
+  // `free_text_feedback` signal instead of being overloaded onto keep_in_mix.
+  "gift_feedback",
 ] as const;
 
 export type GiftFeedbackAction = (typeof GIFT_FEEDBACK_ACTIONS)[number];
+
+/**
+ * Normalized signal carried by every feedback event (DEV-109). Derived from
+ * `action` by a Postgres trigger (`gift_feedback_signal_for_action`) — the DB
+ * is the source of truth, so downstream consumers (generation context,
+ * signal-specific CIS) don't treat every rejection as the same kind.
+ */
+export const GIFT_FEEDBACK_SIGNAL_TYPES = [
+  "neutral_or_soft_positive",
+  "strong_positive",
+  "owned_item",
+  "negative_taste",
+  "budget_feedback",
+  "product_quality_issue",
+  "display_removal_or_weak_negative",
+  "free_text_feedback",
+] as const;
+
+export type GiftFeedbackSignalType =
+  (typeof GIFT_FEEDBACK_SIGNAL_TYPES)[number];
 
 /**
  * Feedback actions that mean "this gift no longer belongs in the visible list"
@@ -343,6 +366,12 @@ export interface GiftFeedback {
   gift_suggestion_id: string;
   occasion_id: string | null;
   action: GiftFeedbackAction;
+  // DEV-109: normalized signal + denormalized gift fields, populated by the
+  // BEFORE INSERT trigger so consumers needn't join back to gift_suggestions.
+  signal_type: GiftFeedbackSignalType;
+  gift_title: string | null;
+  price: number | null;
+  category_tags: string[] | null;
   notes: string | null;
   created_at: string;
 }

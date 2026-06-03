@@ -212,7 +212,9 @@ export default function GiftActionDrawer({
               />
               <Button
                 mode="contained"
-                onPress={() => handleAction("keep_in_mix", note.trim() || null)}
+                onPress={() =>
+                  handleAction("gift_feedback", note.trim() || null)
+                }
                 disabled={submit.isPending || !note.trim()}
                 loading={submit.isPending}
               >
