@@ -44,7 +44,10 @@ app-example
 /android
 .vercel
 .supabase
-.claude/
+.claude/*
+# Share team-wide Claude Code config; keep personal overrides + local state private
+!.claude/settings.json
+!.claude/skills/
 supabase/.temp/
 
 .env.local

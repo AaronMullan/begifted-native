@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // empty'); [ -n \"$f\" ] && [ -f \"$f\" ] && npx prettier --write --ignore-unknown \"$f\" >/dev/null 2>&1; case \"$f\" in *.ts|*.tsx) npx tsc --noEmit || exit 2 ;; esac",
+            "statusMessage": "Formatting + typechecking…"
+          }
+        ]
+      }
+    ]
+  }
+}
