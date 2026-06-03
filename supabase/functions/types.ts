@@ -36,6 +36,9 @@ export interface ExtractedData {
   age?: number | null;
   knownRoles?: string[];
   householdContext?: string;
+  importantDates?: string[];
+  knownOccasions?: string[];
+  culturalContext?: string;
   emotional_tone_preference?: string;
   gift_budget_min?: number;
   gift_budget_max?: number;
@@ -61,6 +64,9 @@ export interface RecipientData {
   birthday?: string;
   knownRoles?: string[];
   householdContext?: string;
+  importantDates?: string[];
+  knownOccasions?: string[];
+  culturalContext?: string;
   emotional_tone_preference?: string;
   gift_budget_min?: number;
   gift_budget_max?: number;

@@ -989,6 +989,29 @@ export async function recommendOccasions(
     (extractedData as ExtractedData).householdContext ||
     (extractedData as RecipientData).householdContext ||
     "";
+  const importantDates =
+    (extractedData as ExtractedData).importantDates ||
+    (extractedData as RecipientData).importantDates ||
+    [];
+  const explicitKnownOccasions =
+    (extractedData as ExtractedData).knownOccasions ||
+    (extractedData as RecipientData).knownOccasions ||
+    [];
+  // Fall back to the recipient's already-captured occasions as known
+  // occasions so the prompt can use (and avoid re-suggesting) them.
+  const trackedOccasions = (extractedData as ExtractedData).occasions || [];
+  const knownOccasions =
+    explicitKnownOccasions.length > 0
+      ? explicitKnownOccasions
+      : trackedOccasions
+          .filter((o) => o.occasion_type && o.occasion_type !== "birthday")
+          .map((o) =>
+            o.date ? `${o.occasion_type} (${o.date})` : o.occasion_type
+          );
+  const culturalContext =
+    (extractedData as ExtractedData).culturalContext ||
+    (extractedData as RecipientData).culturalContext ||
+    "";
 
   const today = new Date().toISOString().split("T")[0];
   const birthdayStr = birthday ? `- Birthday: ${birthday}` : "";
@@ -1000,6 +1023,17 @@ export async function recommendOccasions(
     knownRoles.length > 0 ? `- Known roles: ${knownRoles.join(", ")}` : "";
   const householdContextStr = householdContext
     ? `- Household context: ${householdContext}`
+    : "";
+  const importantDatesStr =
+    importantDates.length > 0
+      ? `- Important dates: ${importantDates.join(", ")}`
+      : "";
+  const knownOccasionsStr =
+    knownOccasions.length > 0
+      ? `- Known occasions: ${knownOccasions.join(", ")}`
+      : "";
+  const culturalContextStr = culturalContext
+    ? `- Cultural context: ${culturalContext}`
     : "";
 
   // Build the prompt — custom > DB > hardcoded fallback
@@ -1062,6 +1096,9 @@ Return JSON only, no markdown:
     .replace("{{birthday}}", birthdayStr)
     .replace("{{knownRoles}}", knownRolesStr)
     .replace("{{householdContext}}", householdContextStr)
+    .replace("{{importantDates}}", importantDatesStr)
+    .replace("{{knownOccasions}}", knownOccasionsStr)
+    .replace("{{culturalContext}}", culturalContextStr)
     .replace("{{interests}}", interestsStr);
 
   let occasionsRaw: string;

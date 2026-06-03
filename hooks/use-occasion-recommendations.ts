@@ -43,6 +43,9 @@ export type OccasionRecommendationsInput = Pick<
   Partial<ExtractedData> & {
     knownRoles?: string[];
     householdContext?: string;
+    importantDates?: string[];
+    knownOccasions?: string[];
+    culturalContext?: string;
   };
 
 /**
@@ -81,6 +84,12 @@ export function useOccasionRecommendations(
                 interests: extractedData.interests ?? [],
                 knownRoles: extractedData.knownRoles ?? [],
                 householdContext: extractedData.householdContext ?? "",
+                // Already-captured occasions feed the prompt's
+                // {{knownOccasions}} context (server derives the list).
+                occasions: extractedData.occasions ?? [],
+                importantDates: extractedData.importantDates ?? [],
+                knownOccasions: extractedData.knownOccasions ?? [],
+                culturalContext: extractedData.culturalContext ?? "",
               },
             },
           }
@@ -139,6 +148,10 @@ export function useOccasionRecommendations(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     (extractedData?.knownRoles ?? []).join(","),
     extractedData?.householdContext ?? "",
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    (extractedData?.occasions ?? [])
+      .map((o) => `${o.occasion_type}:${o.date}`)
+      .join(","),
   ]);
 
   return { recommendations, isLoading };
