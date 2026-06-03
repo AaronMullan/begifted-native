@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { View, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Text, IconButton, Button } from "react-native-paper";
+import { Text, IconButton, Button, Chip } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import {
   useOccasionRecommendations,
   mapRecommendationsToOccasions,
+  slugifyOccasionName,
 } from "../../../hooks/use-occasion-recommendations";
 import {
   lookupOccasionDate,
@@ -117,13 +118,36 @@ export function OccasionsSelectionView({
     );
   };
 
+  // Secondary/discovery occasions the AI surfaced as plain names (no dates).
+  // Offer the ones not already tracked as tappable chips.
+  const existingTypes = new Set(selectedOccasions.map((o) => o.occasion_type));
+  const availableSuggestions = (recommendations?.additionalSuggestions ?? [])
+    .map((name) => ({ name, slug: slugifyOccasionName(name) }))
+    .filter(({ slug }) => slug.length > 0 && !existingTypes.has(slug));
+
+  const handleAddSuggestion = (slug: string) => {
+    if (selectedOccasions.some((o) => o.occasion_type === slug)) return;
+    // Resolve a date for known holidays; otherwise add undated and open the
+    // editor so the user can set one (OccasionItem shows "Add Date").
+    const resolved = lookupOccasionDate(slug);
+    const newIndex = selectedOccasions.length;
+    setSelectedOccasions((prev) => [
+      ...prev,
+      { date: resolved ?? "", occasion_type: slug, enabled: true },
+    ]);
+    if (!resolved) setEditingOccasionIndex(newIndex);
+  };
+
   const handleContinue = async () => {
     if (isProcessing) return; // Prevent double-clicks
 
     setIsProcessing(true);
     try {
+      // Drop occasions without a valid date (e.g. a tapped suggestion the user
+      // never dated) — an empty date fails the occasions batch insert.
+      const isoDateRe = /^\d{4}-\d{2}-\d{2}$/;
       const enabledOccasions = selectedOccasions
-        .filter((occ) => occ.enabled)
+        .filter((occ) => occ.enabled && isoDateRe.test(occ.date.trim()))
         .map((occ) => ({
           date: occ.date,
           occasion_type: occ.occasion_type,
@@ -224,6 +248,30 @@ export function OccasionsSelectionView({
             )}
           </>
         )}
+
+        {!isLoadingRecommendations && availableSuggestions.length > 0 && (
+          <View style={styles.suggestionsSection}>
+            <Text variant="titleSmall" style={styles.suggestionsTitle}>
+              Also consider
+            </Text>
+            <Text variant="bodySmall" style={styles.suggestionsSubtext}>
+              Tap to add a suggestion to the list above.
+            </Text>
+            <View style={styles.suggestionsChips}>
+              {availableSuggestions.map(({ name, slug }) => (
+                <Chip
+                  key={slug}
+                  mode="outlined"
+                  icon="plus"
+                  onPress={() => handleAddSuggestion(slug)}
+                  style={styles.suggestionChip}
+                >
+                  {name}
+                </Chip>
+              ))}
+            </View>
+          </View>
+        )}
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: footerBottomPadding }]}>
@@ -319,6 +367,24 @@ const styles = StyleSheet.create({
   },
   occasionsList: {
     gap: 12,
+  },
+  suggestionsSection: {
+    marginTop: 24,
+  },
+  suggestionsTitle: {
+    marginBottom: 4,
+  },
+  suggestionsSubtext: {
+    marginBottom: 12,
+    color: "#666",
+  },
+  suggestionsChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  suggestionChip: {
+    backgroundColor: "transparent",
   },
   footer: {
     flexDirection: "row",
