@@ -7,6 +7,54 @@ import { parseBirthdayParts } from "../utils/birthday";
 
 const ISO_DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+/** Format a full ISO date (YYYY-MM-DD) as e.g. "September 22, 2001". */
+function formatLongDate(iso: string): string | null {
+  const match = ISO_DATE_ONLY.exec(iso.trim());
+  if (!match) return null;
+  const [year, month, day] = iso.trim().split("-").map(Number);
+  const monthName = MONTH_NAMES[month - 1];
+  if (!monthName) return null;
+  return `${monthName} ${day}, ${year}`;
+}
+
+/**
+ * Promote dated anniversary occasions into human-readable importantDates the
+ * occasion prompt can anchor a real suggestedDate (and milestone) on — e.g.
+ * "wedding anniversary — September 22, 2001". Only year-bearing ISO dates
+ * qualify, since the whole point is conveying the year. Falls back to any
+ * explicitly-provided importantDates.
+ */
+function deriveImportantDates(data: OccasionRecommendationsInput): string[] {
+  if (data.importantDates && data.importantDates.length > 0) {
+    return data.importantDates;
+  }
+  const occasions = data.occasions ?? [];
+  return occasions
+    .filter((o) => /anniversary/i.test(o.occasion_type ?? ""))
+    .map((o) => {
+      const formatted = o.date ? formatLongDate(o.date) : null;
+      if (!formatted) return null;
+      const label = o.occasion_type.replace(/_/g, " ").trim();
+      return `${label} — ${formatted}`;
+    })
+    .filter((s): s is string => s !== null);
+}
+
 const CATEGORY_TYPES = new Set([
   "major_gifting_holiday",
   "relationship_based_occasion",
@@ -87,7 +135,7 @@ export function useOccasionRecommendations(
                 // Already-captured occasions feed the prompt's
                 // {{knownOccasions}} context (server derives the list).
                 occasions: extractedData.occasions ?? [],
-                importantDates: extractedData.importantDates ?? [],
+                importantDates: deriveImportantDates(extractedData),
                 knownOccasions: extractedData.knownOccasions ?? [],
                 culturalContext: extractedData.culturalContext ?? "",
               },
