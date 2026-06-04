@@ -3,9 +3,8 @@ name: Apply DB Migrations
 # Applies any new supabase/migrations/** to the production database on merge to
 # main, so migrations can no longer be merged-but-never-applied.
 #
-# Requires the `SUPABASE_DB_URL` repo secret: the project's Postgres connection
-# string (session pooler or direct), with the password percent-encoded. Found in
-# Supabase Dashboard → Project Settings → Database → Connection string.
+# Uses the Supabase Management API via SUPABASE_ACCESS_TOKEN — the same secret the
+# edge-functions workflow uses. No database password / connection string needed.
 
 on:
   push:
@@ -22,17 +21,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          version: latest
+          node-version: 20
 
-      - name: Push pending migrations
+      - name: Apply pending migrations
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: |
-          if [ -z "$SUPABASE_DB_URL" ]; then
-            echo "::error::SUPABASE_DB_URL secret is not set. Add the project's Postgres connection string (password percent-encoded) under Settings → Secrets and variables → Actions."
-            exit 1
-          fi
-          supabase db push --db-url "$SUPABASE_DB_URL" --yes
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: qgcyndtymegkobgfcpdh
+        run: node scripts/apply-migrations.mjs
