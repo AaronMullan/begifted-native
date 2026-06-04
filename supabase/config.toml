@@ -1,0 +1,5 @@
+# Minimal Supabase CLI config.
+# This repo uses the Supabase CLI only for `supabase db push` in CI
+# (see .github/workflows/apply-migrations.yml). Local-stack settings
+# (api/db/studio/auth ports, etc.) are intentionally omitted.
+project_id = "qgcyndtymegkobgfcpdh"
