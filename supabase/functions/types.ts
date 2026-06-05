@@ -32,6 +32,9 @@ export interface ExtractedData {
   name?: string;
   relationship_type?: string;
   interests?: string[];
+  // Interests the user wants dropped in an update conversation. Reconciled
+  // against the recipient's existing interests on the client (DEV-119).
+  interests_removed?: string[];
   birthday?: string;
   age?: number | null;
   knownRoles?: string[];

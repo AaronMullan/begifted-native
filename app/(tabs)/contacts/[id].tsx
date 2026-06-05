@@ -25,6 +25,33 @@ function formatOccasionType(type: string): string {
   return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+// Apply an interests delta from an update conversation to the current list:
+// keep what's there, drop the removed ones, append the newly-liked ones —
+// case-insensitive, order-preserving. Reconciling (rather than overwriting with
+// the extractor's freshly-mentioned interests) is what prevents an update like
+// "she likes jewelry" from wiping everything else we know (DEV-119).
+function reconcileInterests(
+  current: string[],
+  added: string[],
+  removed: string[]
+): string[] {
+  const norm = (s: string) => s.trim().toLowerCase();
+  const removedSet = new Set(
+    removed.filter((i): i is string => typeof i === "string").map(norm)
+  );
+  const seen = new Set<string>();
+  const merged: string[] = [];
+  for (const raw of [...current, ...added]) {
+    if (typeof raw !== "string") continue;
+    const value = raw.trim();
+    const key = norm(value);
+    if (!value || removedSet.has(key) || seen.has(key)) continue;
+    seen.add(key);
+    merged.push(value);
+  }
+  return merged;
+}
+
 function formatOccasionDate(dateString: string): string {
   const [year, month, day] = dateString.split("-").map(Number);
   if (!year || !month || !day) return dateString;
@@ -195,6 +222,30 @@ export default function RecipientEditPage() {
       if (value !== undefined && value !== null && value !== "") {
         (updates as Record<string, unknown>)[key] = value;
       }
+    }
+
+    // Interests are reconciled, never overwritten. The extractor runs on just
+    // this update conversation, so its `interests` are only the freshly-liked
+    // ones and `interests_removed` are the ones the user dropped ("not into
+    // pokemon, into fortnite"). A blind write would wipe everything else we
+    // already know the recipient likes (DEV-119).
+    const addedInterests = Array.isArray(extracted.interests)
+      ? extracted.interests
+      : [];
+    const removedInterests = Array.isArray(extracted.interests_removed)
+      ? extracted.interests_removed
+      : [];
+    if (addedInterests.length > 0 || removedInterests.length > 0) {
+      updates.interests = reconcileInterests(
+        recipient.interests ?? [],
+        addedInterests,
+        removedInterests
+      );
+    } else {
+      // No interest signal this turn — leave the stored list untouched. (The
+      // loop above may have copied an empty extracted array; drop it so we
+      // never clobber existing interests with [].)
+      delete (updates as Record<string, unknown>).interests;
     }
 
     // Normalize any extracted birthday into canonical storage form so we never
