@@ -1,8 +1,13 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 import { queryKeys } from "../lib/query-keys";
 import {
   GIFT_REMOVAL_ACTIONS,
   insertGiftFeedback,
+  triggerGiftBackfill,
   type GiftFeedbackAction,
   type InsertGiftFeedbackInput,
 } from "../lib/api";
@@ -16,6 +21,26 @@ type SubmitGiftFeedbackVars = {
   occasionId?: string | null;
   notes?: string | null;
 };
+
+/** Target number of visible gift ideas the list backfills toward (DEV-118). */
+const VISIBLE_TARGET = 3;
+
+/**
+ * After triggering a backfill, the backend generation runs async (seconds), so
+ * refetch the suggestions a few times until the replacement lands or we give up.
+ * Bounded so a recipient the model can't fill a 3rd idea for won't poll forever.
+ */
+function pollForBackfill(queryClient: QueryClient, recipientId: string) {
+  const key = queryKeys.giftSuggestions(recipientId);
+  const delaysMs = [8000, 16000, 25000, 35000, 50000];
+  for (const delay of delaysMs) {
+    setTimeout(() => {
+      const current = queryClient.getQueryData<GiftSuggestion[]>(key) ?? [];
+      if (current.length >= VISIBLE_TARGET) return; // already refilled
+      queryClient.invalidateQueries({ queryKey: key });
+    }, delay);
+  }
+}
 
 export function useSubmitGiftFeedback() {
   const { user } = useAuth();
@@ -54,6 +79,18 @@ export function useSubmitGiftFeedback() {
           context.previous
         );
       }
+    },
+    // When a removal drops the visible list below 3, immediately ask the backend
+    // to backfill the deficit and poll for the replacement to land (DEV-118).
+    onSuccess: (_data, vars) => {
+      if (!GIFT_REMOVAL_ACTIONS.includes(vars.action)) return;
+      const remaining =
+        queryClient.getQueryData<GiftSuggestion[]>(
+          queryKeys.giftSuggestions(vars.recipientId)
+        ) ?? [];
+      if (remaining.length >= VISIBLE_TARGET) return;
+      triggerGiftBackfill(vars.recipientId, vars.occasionId);
+      pollForBackfill(queryClient, vars.recipientId);
     },
     onSettled: (_data, _err, vars) => {
       queryClient.invalidateQueries({
