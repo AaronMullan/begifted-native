@@ -11,7 +11,7 @@ import {
   formatShortDate,
   possessive,
 } from "../../utils/home-occasions";
-import OccasionOverflowButton from "./OccasionOverflowButton";
+import OccasionAvatar from "./OccasionAvatar";
 
 type HomeHeroCardProps = {
   occasion: Occasion;
@@ -40,37 +40,32 @@ export default function HomeHeroCard({ occasion }: HomeHeroCardProps) {
       accessibilityLabel={`View ${possessive(recipientName)} gift ideas`}
       style={styles.card}
     >
+      <OccasionAvatar name={recipientName} size={45} />
       <View style={styles.header}>
         <Text style={styles.countdown}>{countdown}</Text>
         <Text variant="displaySmall" style={styles.headline}>
           {headline}
         </Text>
       </View>
-      <View style={styles.footer}>
-        <View style={styles.cta}>
-          <Text style={styles.ctaText}>
-            View {possessive(recipientName)} gift ideas
-          </Text>
-          <MaterialIcons name="chevron-right" size={14} color={Colors.white} />
-        </View>
-        <OccasionOverflowButton
-          occasion={occasion}
-          tint={Colors.brand.lightTeal}
-        />
+      <View style={styles.cta}>
+        <Text style={styles.ctaText}>
+          View {possessive(recipientName)} gift ideas
+        </Text>
+        <MaterialIcons name="chevron-right" size={14} color={Colors.white} />
       </View>
     </Pressable>
   );
 }
 
-// Spec: Figma "module: primary" (360x170, radius ~8). We use Radii.sm and tweak
-// padding/fontSize to reach the Figma proportions while staying touch-friendly.
+// Spec: Figma frame 2182:2182 "module: primary" (360x205, dark teal, radius 12).
+// 45px avatar top-left, eyebrow + H1 headline, large CTA pinned to the bottom.
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.brand.mediumTeal,
-    borderRadius: Radii.sm,
-    paddingHorizontal: 19,
-    paddingVertical: 20,
-    minHeight: 170,
+    backgroundColor: Colors.brand.darkTeal,
+    borderRadius: Radii.md,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    minHeight: 205,
     justifyContent: "space-between",
     gap: 16,
   },
@@ -79,16 +74,11 @@ const styles = StyleSheet.create({
   },
   countdown: {
     ...Typography.eyebrow,
-    color: Colors.brand.lightTeal,
+    color: Colors.white,
   },
   headline: {
     ...Typography.h1,
     color: Colors.white,
-  },
-  footer: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
   },
   cta: {
     flexDirection: "row",

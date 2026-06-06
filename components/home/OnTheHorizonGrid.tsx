@@ -10,7 +10,6 @@ import {
   formatShortDate,
   possessive,
 } from "../../utils/home-occasions";
-import OccasionOverflowButton from "./OccasionOverflowButton";
 
 type OnTheHorizonGridProps = {
   occasions: Occasion[];
@@ -51,39 +50,34 @@ function HorizonCard({ occasion }: { occasion: Occasion }) {
       <Text style={styles.title}>
         {possessive(name)} {formatOccasionType(occasion.occasion_type)}
       </Text>
-      <View style={styles.footer}>
-        <View style={styles.dateRow}>
-          <Text style={styles.dateText}>{formatShortDate(occasion.date)}</Text>
-          <MaterialIcons
-            name="chevron-right"
-            size={10}
-            color={Colors.brand.gold}
-          />
-        </View>
-        <OccasionOverflowButton
-          occasion={occasion}
-          tint={Colors.brand.mediumTeal}
+      <View style={styles.dateRow}>
+        <Text style={styles.dateText}>{formatShortDate(occasion.date)}</Text>
+        <MaterialIcons
+          name="chevron-right"
+          size={12}
+          color={Colors.brand.gold}
         />
       </View>
     </Pressable>
   );
 }
 
-// Spec: Figma "module: tertiary" (170x70, radius 12, transparent fill,
-// 2px white stroke).
+// Spec: Figma frame 2182:2182 "On the horizon" cards (175x70, radius 12,
+// transparent fill, 2px medium-teal stroke). Dark-teal H3 title, gold large-CTA
+// date pinned to the bottom.
 const styles = StyleSheet.create({
   section: {
     gap: 8,
   },
   sectionLabel: {
     ...Typography.sectionHeadAc,
-    color: Colors.brand.mediumTeal,
+    color: Colors.brand.gold,
     paddingHorizontal: 4,
   },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 20,
+    gap: 10,
   },
   card: {
     flexBasis: "48%",
@@ -91,9 +85,9 @@ const styles = StyleSheet.create({
     minWidth: 0,
     backgroundColor: Colors.transparent,
     borderWidth: 2,
-    borderColor: Colors.white,
+    borderColor: Colors.brand.mediumTeal,
     borderRadius: Radii.md,
-    paddingHorizontal: 10,
+    paddingHorizontal: 13,
     paddingVertical: 11,
     minHeight: 70,
     justifyContent: "space-between",
@@ -101,12 +95,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.h3,
-    color: Colors.brand.mediumTeal,
-  },
-  footer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    color: Colors.brand.darkTeal,
   },
   dateRow: {
     flexDirection: "row",
@@ -114,7 +103,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   dateText: {
-    ...Typography.smallCta,
+    ...Typography.largeCta,
     color: Colors.brand.gold,
   },
 });

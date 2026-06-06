@@ -4,7 +4,7 @@ import { Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Colors } from "../../lib/colors";
-import { Radii } from "../../lib/typography";
+import { Radii, Typography } from "../../lib/typography";
 import ContactPicker from "../ContactPicker";
 import ContactsAccessIntro from "../ContactsAccessIntro";
 import PeopleCtaTiles from "../contacts/PeopleCtaTiles";
@@ -51,11 +51,12 @@ export default function AddPeopleTile() {
       <Pressable
         onPress={handlePress}
         accessibilityRole="button"
-        accessibilityLabel="Add people"
-        style={styles.tile}
+        accessibilityLabel="Add more people"
+        style={styles.row}
       >
-        <MaterialIcons name="add" size={28} color={Colors.blues.dark} />
-        <Text style={styles.label}>Add People</Text>
+        <MaterialIcons name="add" size={16} color={Colors.white} />
+        <Text style={styles.label}>Add More People</Text>
+        <MaterialIcons name="chevron-right" size={14} color={Colors.white} />
       </Pressable>
 
       <Modal
@@ -96,22 +97,19 @@ export default function AddPeopleTile() {
 }
 
 const styles = StyleSheet.create({
-  tile: {
-    width: 110,
-    height: 110,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.blues.dark,
-    backgroundColor: "transparent",
+  row: {
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    minHeight: 40,
+    borderRadius: Radii.md,
+    backgroundColor: Colors.brand.mediumTeal,
+    paddingHorizontal: 16,
     gap: 6,
   },
   label: {
-    fontFamily: "RobotoFlex_400Regular",
-    color: Colors.blues.dark,
-    fontSize: 13,
-    fontWeight: "500",
+    ...Typography.largeCta,
+    color: Colors.white,
   },
   backdrop: {
     flex: 1,
