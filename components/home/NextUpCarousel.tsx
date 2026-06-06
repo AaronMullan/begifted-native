@@ -11,7 +11,9 @@ import {
   formatShortDate,
   possessive,
 } from "../../utils/home-occasions";
+import OccasionAvatar from "./OccasionAvatar";
 import OccasionOverflowButton from "./OccasionOverflowButton";
+import { HOME_EDGE_INSET } from "./home-layout";
 
 type NextUpCarouselProps = {
   occasions: Occasion[];
@@ -26,22 +28,34 @@ export default function NextUpCarousel({ occasions }: NextUpCarouselProps) {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
       >
-        {occasions.map((occasion) => (
-          <NextUpCard key={occasion.id} occasion={occasion} />
+        {occasions.map((occasion, index) => (
+          <NextUpCard key={occasion.id} occasion={occasion} index={index} />
         ))}
       </ScrollView>
     </View>
   );
 }
 
-function NextUpCard({ occasion }: { occasion: Occasion }) {
+function NextUpCard({
+  occasion,
+  index,
+}: {
+  occasion: Occasion;
+  index: number;
+}) {
   const router = useRouter();
   const name = occasion.recipient?.name ?? "Someone";
   const days = daysUntil(occasion.date);
   const dayLabel =
     days === 0 ? "Today" : days === 1 ? "Tomorrow" : `In ${days} days`;
+  // Figma alternates the two visible cards: left medium-teal, right gold.
+  const isGold = index % 2 === 1;
+  const cardColor = isGold ? Colors.brand.gold : Colors.brand.mediumTeal;
+  // Avatar circle is the opposite card color so it always contrasts.
+  const avatarColor = isGold ? Colors.brand.mediumTeal : Colors.brand.gold;
 
   const handlePress = () => {
     router.push(`/gifts/${occasion.recipient_id}`);
@@ -52,36 +66,43 @@ function NextUpCard({ occasion }: { occasion: Occasion }) {
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={`View ${possessive(name)} gift ideas`}
-      style={styles.card}
+      style={[styles.card, { backgroundColor: cardColor }]}
     >
-      <Text style={styles.countdown}>
-        {dayLabel} · {formatShortDate(occasion.date)}
-      </Text>
-      <Text style={styles.title}>
-        {possessive(name)} {formatOccasionType(occasion.occasion_type)}
-      </Text>
+      <OccasionAvatar
+        name={name}
+        size={30}
+        photoUrl={occasion.recipient?.photo_url}
+        circleColor={avatarColor}
+        initialsColor={Colors.white}
+      />
+      <View style={styles.body}>
+        <Text style={styles.countdown}>
+          {dayLabel} · {formatShortDate(occasion.date)}
+        </Text>
+        <Text style={styles.title}>
+          {possessive(name)} {formatOccasionType(occasion.occasion_type)}
+        </Text>
+      </View>
       <View style={styles.footer}>
         <View style={styles.cta}>
-          <Text style={styles.ctaText}>View {possessive(name)} gift ideas</Text>
+          <Text style={styles.ctaText}>View Gift Ideas</Text>
           <MaterialIcons
             name="chevron-right"
-            size={12}
-            color={Colors.brand.gold}
+            size={14}
+            color={Colors.brand.darkTeal}
           />
         </View>
-        <OccasionOverflowButton
-          occasion={occasion}
-          tint={Colors.brand.mediumTeal}
-        />
+        <OccasionOverflowButton occasion={occasion} tint={Colors.white} />
       </View>
     </Pressable>
   );
 }
 
-// Spec: Figma "module: secondary" (170x110, radius ~8.8). Carousel keeps
-// horizontal scrolling but card width matches the Figma 2-up grid so the first
-// two tiles visually line up like the static design.
-const CARD_WIDTH = 170;
+// Spec: Figma frame 2182:2182 NEXT UP cards (175x150, radius 12). Cards
+// alternate medium-teal / gold; 30px avatar top-left, dark-teal eyebrow,
+// white H2 title, dark-teal large CTA. Carousel keeps horizontal scrolling
+// while the first two tiles line up like the static 2-up design.
+const CARD_WIDTH = 175;
 
 const styles = StyleSheet.create({
   section: {
@@ -89,35 +110,42 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     ...Typography.sectionHeadAc,
-    color: Colors.brand.mediumTeal,
+    color: Colors.brand.gold,
     paddingHorizontal: 4,
   },
+  scroll: {
+    // Bleed past the content column so cards run to the screen edges and the
+    // next card peeks — the Figma carousel-leakage cue.
+    marginHorizontal: -HOME_EDGE_INSET,
+  },
   scrollContent: {
-    gap: 20,
-    paddingRight: 20,
+    gap: 10,
+    paddingHorizontal: HOME_EDGE_INSET,
   },
   card: {
     width: CARD_WIDTH,
-    backgroundColor: Colors.white,
-    borderRadius: Radii.sm,
-    paddingHorizontal: 10,
-    paddingVertical: 12,
-    minHeight: 110,
+    borderRadius: Radii.md,
+    paddingHorizontal: 13,
+    paddingVertical: 15,
+    minHeight: 150,
     justifyContent: "space-between",
-    gap: 8,
+    gap: 10,
   },
-  countdown: {
-    ...Typography.eyebrow,
-    color: Colors.brand.gold,
-  },
-  title: {
-    ...Typography.h2,
-    color: Colors.brand.mediumTeal,
+  body: {
+    gap: 4,
   },
   footer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+  },
+  countdown: {
+    ...Typography.eyebrow,
+    color: Colors.brand.darkTeal,
+  },
+  title: {
+    ...Typography.h2,
+    color: Colors.white,
   },
   cta: {
     flexDirection: "row",
@@ -125,7 +153,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   ctaText: {
-    ...Typography.smallCta,
-    color: Colors.brand.gold,
+    ...Typography.largeCta,
+    color: Colors.brand.darkTeal,
   },
 });

@@ -11,7 +11,6 @@ import HomeHeroCard from "../../components/home/HomeHeroCard";
 import NextUpCarousel from "../../components/home/NextUpCarousel";
 import OnTheHorizonGrid from "../../components/home/OnTheHorizonGrid";
 import AddPeopleTile from "../../components/home/AddPeopleTile";
-import RecentMomentsLink from "../../components/home/RecentMomentsLink";
 import GradientBackground from "../../components/GradientBackground";
 
 export default function Dashboard() {
@@ -81,7 +80,10 @@ export default function Dashboard() {
         scrollEventThrottle={16}
       >
         <View style={styles.content}>
-          {groups.hero && <HomeHeroCard occasion={groups.hero} />}
+          <View style={styles.heroBlock}>
+            {groups.hero && <HomeHeroCard occasion={groups.hero} />}
+            <AddPeopleTile />
+          </View>
           <NextUpCarousel occasions={groups.nextUp} />
           <OnTheHorizonGrid occasions={groups.horizon} />
           {!groups.hero && (
@@ -89,11 +91,6 @@ export default function Dashboard() {
               No upcoming occasions yet.
             </Text>
           )}
-          <View style={styles.bottomRow}>
-            <AddPeopleTile />
-            {/* TODO(DEV-48): show once the gift-feedback CTA is live */}
-            {false && <RecentMomentsLink />}
-          </View>
         </View>
       </ScrollView>
     </View>
@@ -125,6 +122,9 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
     gap: 32,
   },
+  heroBlock: {
+    gap: 12,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
@@ -144,12 +144,5 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     textAlign: "center",
     paddingVertical: 40,
-  },
-  bottomRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    gap: 16,
-    paddingHorizontal: 4,
   },
 });

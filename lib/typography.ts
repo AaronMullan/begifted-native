@@ -58,11 +58,11 @@ export const Typography = {
   } satisfies TextStyle,
   eyebrow: {
     fontFamily: FontFamily.sans.regular,
-    fontSize: 10,
+    fontSize: 11,
   } satisfies TextStyle,
   largeCta: {
     fontFamily: FontFamily.sans.semibold,
-    fontSize: 10,
+    fontSize: 11,
     lineHeight: 12,
   } satisfies TextStyle,
   smallCta: {
@@ -71,7 +71,7 @@ export const Typography = {
   } satisfies TextStyle,
   sectionHeadAc: {
     fontFamily: FontFamily.sans.semibold,
-    fontSize: 10,
+    fontSize: 11,
     lineHeight: 28,
     textTransform: "uppercase",
   } satisfies TextStyle,

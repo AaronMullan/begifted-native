@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -11,6 +11,7 @@ import {
   possessive,
 } from "../../utils/home-occasions";
 import OccasionOverflowButton from "./OccasionOverflowButton";
+import { HOME_EDGE_INSET } from "./home-layout";
 
 type OnTheHorizonGridProps = {
   occasions: Occasion[];
@@ -22,11 +23,16 @@ export default function OnTheHorizonGrid({ occasions }: OnTheHorizonGridProps) {
   return (
     <View style={styles.section}>
       <Text style={styles.sectionLabel}>ON THE HORIZON</Text>
-      <View style={styles.grid}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+      >
         {occasions.map((occasion) => (
           <HorizonCard key={occasion.id} occasion={occasion} />
         ))}
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -56,7 +62,7 @@ function HorizonCard({ occasion }: { occasion: Occasion }) {
           <Text style={styles.dateText}>{formatShortDate(occasion.date)}</Text>
           <MaterialIcons
             name="chevron-right"
-            size={10}
+            size={12}
             color={Colors.brand.gold}
           />
         </View>
@@ -69,31 +75,35 @@ function HorizonCard({ occasion }: { occasion: Occasion }) {
   );
 }
 
-// Spec: Figma "module: tertiary" (170x70, radius 12, transparent fill,
-// 2px white stroke).
+// Spec: Figma frame 2182:2182 "On the horizon" carousel (175x70 cards, radius
+// 12, transparent fill, 2px medium-teal stroke). Dark-teal H3 title, gold
+// large-CTA date + overflow on the bottom row. Bleeds to the screen edges so
+// the next card peeks.
+const CARD_WIDTH = 175;
+
 const styles = StyleSheet.create({
   section: {
     gap: 8,
   },
   sectionLabel: {
     ...Typography.sectionHeadAc,
-    color: Colors.brand.mediumTeal,
+    color: Colors.brand.gold,
     paddingHorizontal: 4,
   },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 20,
+  scroll: {
+    marginHorizontal: -HOME_EDGE_INSET,
+  },
+  scrollContent: {
+    gap: 10,
+    paddingHorizontal: HOME_EDGE_INSET,
   },
   card: {
-    flexBasis: "48%",
-    flexGrow: 1,
-    minWidth: 0,
+    width: CARD_WIDTH,
     backgroundColor: Colors.transparent,
     borderWidth: 2,
-    borderColor: Colors.white,
+    borderColor: Colors.brand.mediumTeal,
     borderRadius: Radii.md,
-    paddingHorizontal: 10,
+    paddingHorizontal: 13,
     paddingVertical: 11,
     minHeight: 70,
     justifyContent: "space-between",
@@ -101,7 +111,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.h3,
-    color: Colors.brand.mediumTeal,
+    color: Colors.brand.darkTeal,
   },
   footer: {
     flexDirection: "row",
@@ -114,7 +124,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   dateText: {
-    ...Typography.smallCta,
+    ...Typography.largeCta,
     color: Colors.brand.gold,
   },
 });
