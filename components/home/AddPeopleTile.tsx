@@ -54,7 +54,7 @@ export default function AddPeopleTile() {
         accessibilityLabel="Add more people"
         style={styles.row}
       >
-        <MaterialIcons name="add" size={16} color={Colors.white} />
+        <MaterialIcons name="add" size={16} color={Colors.brand.darkTeal} />
         <Text style={styles.label}>Add More People</Text>
         <MaterialIcons name="chevron-right" size={14} color={Colors.white} />
       </Pressable>

@@ -12,6 +12,7 @@ import {
   possessive,
 } from "../../utils/home-occasions";
 import OccasionAvatar from "./OccasionAvatar";
+import OccasionOverflowButton from "./OccasionOverflowButton";
 
 type HomeHeroCardProps = {
   occasion: Occasion;
@@ -51,11 +52,15 @@ export default function HomeHeroCard({ occasion }: HomeHeroCardProps) {
           {headline}
         </Text>
       </View>
-      <View style={styles.cta}>
-        <Text style={styles.ctaText}>
-          View {possessive(recipientName)} gift ideas
-        </Text>
-        <MaterialIcons name="chevron-right" size={14} color={Colors.white} />
+      <View style={styles.footer}>
+        <View style={styles.cta}>
+          <Text style={styles.ctaText}>View gift ideas</Text>
+          <MaterialIcons name="chevron-right" size={14} color={Colors.white} />
+        </View>
+        <OccasionOverflowButton
+          occasion={occasion}
+          tint={Colors.brand.lightTeal}
+        />
       </View>
     </Pressable>
   );
@@ -83,6 +88,11 @@ const styles = StyleSheet.create({
   headline: {
     ...Typography.h1,
     color: Colors.white,
+  },
+  footer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
   },
   cta: {
     flexDirection: "row",

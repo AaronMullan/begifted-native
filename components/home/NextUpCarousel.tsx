@@ -12,6 +12,8 @@ import {
   possessive,
 } from "../../utils/home-occasions";
 import OccasionAvatar from "./OccasionAvatar";
+import OccasionOverflowButton from "./OccasionOverflowButton";
+import { HOME_EDGE_INSET } from "./home-layout";
 
 type NextUpCarouselProps = {
   occasions: Occasion[];
@@ -26,6 +28,7 @@ export default function NextUpCarousel({ occasions }: NextUpCarouselProps) {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
       >
         {occasions.map((occasion, index) => (
@@ -71,6 +74,8 @@ function NextUpCard({
         name={name}
         size={30}
         photoUrl={occasion.recipient?.photo_url}
+        circleColor={Colors.brand.darkTeal}
+        initialsColor={Colors.white}
       />
       <View style={styles.body}>
         <Text style={styles.countdown}>
@@ -80,12 +85,18 @@ function NextUpCard({
           {possessive(name)} {formatOccasionType(occasion.occasion_type)}
         </Text>
       </View>
-      <View style={styles.cta}>
-        <Text style={styles.ctaText}>View {possessive(name)} gift ideas</Text>
-        <MaterialIcons
-          name="chevron-right"
-          size={14}
-          color={Colors.brand.darkTeal}
+      <View style={styles.footer}>
+        <View style={styles.cta}>
+          <Text style={styles.ctaText}>View Gift Ideas</Text>
+          <MaterialIcons
+            name="chevron-right"
+            size={14}
+            color={Colors.brand.darkTeal}
+          />
+        </View>
+        <OccasionOverflowButton
+          occasion={occasion}
+          tint={Colors.brand.darkTeal}
         />
       </View>
     </Pressable>
@@ -107,9 +118,14 @@ const styles = StyleSheet.create({
     color: Colors.brand.gold,
     paddingHorizontal: 4,
   },
+  scroll: {
+    // Bleed past the content column so cards run to the screen edges and the
+    // next card peeks — the Figma carousel-leakage cue.
+    marginHorizontal: -HOME_EDGE_INSET,
+  },
   scrollContent: {
     gap: 10,
-    paddingRight: 20,
+    paddingHorizontal: HOME_EDGE_INSET,
   },
   card: {
     width: CARD_WIDTH,
@@ -122,6 +138,11 @@ const styles = StyleSheet.create({
   },
   body: {
     gap: 4,
+  },
+  footer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   countdown: {
     ...Typography.eyebrow,
