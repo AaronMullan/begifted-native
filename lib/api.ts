@@ -402,6 +402,35 @@ export async function insertGiftFeedback(
   return data;
 }
 
+/** be-gifted backend base URL (Vercel). Same host the prompt playground uses. */
+const BEGIFTED_BACKEND_URL = "https://be-gifted.vercel.app";
+
+/**
+ * Ask the backend to top the visible gift list back up to 3 after a removal
+ * (DEV-118). Fire-and-forget: the backend generates only the deficit (so
+ * un-dismissed suggestions are preserved), dedupes against history + the avoid
+ * list, and stores the replacement. Failures are swallowed — a missed backfill
+ * self-heals on the next daily generation run.
+ */
+export async function triggerGiftBackfill(
+  recipientId: string,
+  occasionId?: string | null
+): Promise<void> {
+  try {
+    await fetch(`${BEGIFTED_BACKEND_URL}/api/generate-gifts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        recipientId,
+        mode: "backfill",
+        occasionId: occasionId ?? undefined,
+      }),
+    });
+  } catch (err) {
+    console.warn("[backfill] trigger failed (non-blocking):", err);
+  }
+}
+
 /**
  * Fetch all gift feedback rows for a recipient, newest first.
  */
