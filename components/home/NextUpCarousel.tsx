@@ -53,6 +53,9 @@ function NextUpCard({
     days === 0 ? "Today" : days === 1 ? "Tomorrow" : `In ${days} days`;
   // Figma alternates the two visible cards: left medium-teal, right gold.
   const isGold = index % 2 === 1;
+  const cardColor = isGold ? Colors.brand.gold : Colors.brand.mediumTeal;
+  // Avatar circle is the opposite card color so it always contrasts.
+  const avatarColor = isGold ? Colors.brand.mediumTeal : Colors.brand.gold;
 
   const handlePress = () => {
     router.push(`/gifts/${occasion.recipient_id}`);
@@ -63,18 +66,13 @@ function NextUpCard({
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={`View ${possessive(name)} gift ideas`}
-      style={[
-        styles.card,
-        {
-          backgroundColor: isGold ? Colors.brand.gold : Colors.brand.mediumTeal,
-        },
-      ]}
+      style={[styles.card, { backgroundColor: cardColor }]}
     >
       <OccasionAvatar
         name={name}
         size={30}
         photoUrl={occasion.recipient?.photo_url}
-        circleColor={Colors.brand.darkTeal}
+        circleColor={avatarColor}
         initialsColor={Colors.white}
       />
       <View style={styles.body}>
@@ -94,10 +92,7 @@ function NextUpCard({
             color={Colors.brand.darkTeal}
           />
         </View>
-        <OccasionOverflowButton
-          occasion={occasion}
-          tint={Colors.brand.darkTeal}
-        />
+        <OccasionOverflowButton occasion={occasion} tint={Colors.white} />
       </View>
     </Pressable>
   );
