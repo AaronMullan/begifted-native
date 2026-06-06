@@ -4,7 +4,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, IconButton } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../../lib/supabase";
+import { queryKeys } from "../../../lib/query-keys";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { Colors } from "../../../lib/colors";
 import type { GiftSuggestion, Recipient } from "../../../types/recipient";
@@ -52,6 +54,63 @@ function reconcileInterests(
   return merged;
 }
 
+// Insert occasions captured by the general "Update what we know" chat into the
+// occasions table, de-duplicating against the recipient's existing occasions by
+// (date, type) so re-mentioning one never creates a copy. Returns the number of
+// rows inserted. Swallows its own errors (logging them) so a failed occasion
+// write never fails the surrounding profile update (DEV-125).
+async function persistUpdateChatOccasions(
+  userId: string,
+  recipientId: string,
+  occasions: { date: string; occasion_type: string }[]
+): Promise<number> {
+  const candidates = occasions.filter((o) => o && o.date);
+  if (candidates.length === 0) return 0;
+
+  const occasionKey = (date: string, type: string) =>
+    `${date}::${(type || "custom").toLowerCase()}`;
+
+  try {
+    const { data: existing } = await supabase
+      .from("occasions")
+      .select("date, occasion_type")
+      .eq("recipient_id", recipientId)
+      .eq("user_id", userId);
+
+    const seen = new Set(
+      (existing ?? []).map((o) =>
+        occasionKey(o.date, o.occasion_type ?? "custom")
+      )
+    );
+
+    const rows = candidates
+      .map((o) => ({
+        user_id: userId,
+        recipient_id: recipientId,
+        date: o.date,
+        occasion_type: o.occasion_type || "custom",
+      }))
+      .filter((o) => {
+        const key = occasionKey(o.date, o.occasion_type);
+        if (seen.has(key)) return false;
+        seen.add(key); // also de-dupe within this batch
+        return true;
+      });
+
+    if (rows.length === 0) return 0;
+
+    const { error } = await supabase.from("occasions").insert(rows);
+    if (error) {
+      console.error("Failed to persist occasions from update chat:", error);
+      return 0;
+    }
+    return rows.length;
+  } catch (error) {
+    console.error("Failed to persist occasions from update chat:", error);
+    return 0;
+  }
+}
+
 function formatOccasionDate(dateString: string): string {
   const [year, month, day] = dateString.split("-").map(Number);
   if (!year || !month || !day) return dateString;
@@ -90,6 +149,7 @@ export default function RecipientEditPage() {
   // poller can detect when the edge function has written a fresh one.
   const resyncBaselineRef = useRef<string>("");
   const scrollRef = useRef<ScrollView>(null);
+  const queryClient = useQueryClient();
   const { showToast, toast } = useToast();
   const { data: userPreferences } = useUserPreferences();
   const defaultEmotionalTone =
@@ -281,6 +341,23 @@ export default function RecipientEditPage() {
       } else {
         setRecipient((prev) => (prev ? { ...prev, ...updates } : null));
       }
+    }
+
+    // Persist any occasions mentioned in the update chat. The add-recipient flow
+    // does this; the general update chat previously dropped them on the floor
+    // (DEV-125). Non-fatal: a failure here never breaks the profile update.
+    const insertedOccasions = await persistUpdateChatOccasions(
+      session.user.id,
+      recipient.id,
+      Array.isArray(extracted.occasions) ? extracted.occasions : []
+    );
+    if (insertedOccasions > 0) {
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.occasions(session.user.id),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.recipientOccasions(recipient.id),
+      });
     }
 
     setIsGenerating(true);
