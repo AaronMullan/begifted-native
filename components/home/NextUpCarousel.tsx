@@ -67,7 +67,11 @@ function NextUpCard({
         },
       ]}
     >
-      <OccasionAvatar name={name} size={30} />
+      <OccasionAvatar
+        name={name}
+        size={30}
+        photoUrl={occasion.recipient?.photo_url}
+      />
       <View style={styles.body}>
         <Text style={styles.countdown}>
           {dayLabel} · {formatShortDate(occasion.date)}

@@ -40,7 +40,11 @@ export default function HomeHeroCard({ occasion }: HomeHeroCardProps) {
       accessibilityLabel={`View ${possessive(recipientName)} gift ideas`}
       style={styles.card}
     >
-      <OccasionAvatar name={recipientName} size={45} />
+      <OccasionAvatar
+        name={recipientName}
+        size={45}
+        photoUrl={occasion.recipient?.photo_url}
+      />
       <View style={styles.header}>
         <Text style={styles.countdown}>{countdown}</Text>
         <Text variant="displaySmall" style={styles.headline}>

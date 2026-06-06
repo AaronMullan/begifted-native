@@ -1,27 +1,40 @@
 import { StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
+import { Image } from "expo-image";
 import { Colors } from "../../lib/colors";
 import { FontFamily } from "../../lib/typography";
 
 type OccasionAvatarProps = {
   name: string;
   size: number;
+  photoUrl?: string | null;
 };
 
 /**
- * Circular initials avatar for the home cards (Figma "User" component).
- * White fill + dark-teal initials reads on the dark-teal hero, medium-teal,
- * and gold card backgrounds. Occasion data carries no photo, so this is
- * always the initials fallback.
+ * Circular avatar for the home cards (Figma "User" component). Shows the
+ * recipient photo when available; otherwise a white circle + dark-teal initials,
+ * which reads on the dark-teal hero, medium-teal, and gold card backgrounds.
  */
-export default function OccasionAvatar({ name, size }: OccasionAvatarProps) {
+export default function OccasionAvatar({
+  name,
+  size,
+  photoUrl,
+}: OccasionAvatarProps) {
+  const dimensions = { width: size, height: size, borderRadius: size / 2 };
+
+  if (photoUrl) {
+    return (
+      <Image
+        source={{ uri: photoUrl }}
+        style={dimensions}
+        contentFit="cover"
+        accessibilityLabel={`${name} photo`}
+      />
+    );
+  }
+
   return (
-    <View
-      style={[
-        styles.circle,
-        { width: size, height: size, borderRadius: size / 2 },
-      ]}
-    >
+    <View style={[styles.circle, dimensions]}>
       <Text style={[styles.initials, { fontSize: Math.round(size * 0.4) }]}>
         {getInitials(name)}
       </Text>

@@ -83,6 +83,7 @@ export interface Occasion {
   recipient?: {
     name: string;
     relationship_type: string;
+    photo_url: string | null;
   };
 }
 
@@ -154,7 +155,7 @@ export async function fetchOccasions(userId: string): Promise<Occasion[]> {
   const recipientIds = [...new Set(occasionsData.map((o) => o.recipient_id))];
   const { data: recipientsData, error: recipientsError } = await supabase
     .from("recipients")
-    .select("id, name, relationship_type")
+    .select("id, name, relationship_type, photo_url")
     .in("id", recipientIds);
 
   if (recipientsError) {
@@ -185,6 +186,7 @@ export async function fetchOccasions(userId: string): Promise<Occasion[]> {
         ? {
             name: recipient.name,
             relationship_type: recipient.relationship_type,
+            photo_url: recipient.photo_url ?? null,
           }
         : undefined,
     };
