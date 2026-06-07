@@ -12,7 +12,6 @@ import {
   possessive,
 } from "../../utils/home-occasions";
 import OccasionAvatar from "./OccasionAvatar";
-import OccasionOverflowButton from "./OccasionOverflowButton";
 
 type HomeHeroCardProps = {
   occasion: Occasion;
@@ -57,10 +56,6 @@ export default function HomeHeroCard({ occasion }: HomeHeroCardProps) {
           <Text style={styles.ctaText}>View gift ideas</Text>
           <MaterialIcons name="chevron-right" size={14} color={Colors.white} />
         </View>
-        <OccasionOverflowButton
-          occasion={occasion}
-          tint={Colors.brand.lightTeal}
-        />
       </View>
     </Pressable>
   );

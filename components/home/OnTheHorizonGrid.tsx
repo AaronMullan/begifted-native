@@ -10,7 +10,6 @@ import {
   formatShortDate,
   possessive,
 } from "../../utils/home-occasions";
-import OccasionOverflowButton from "./OccasionOverflowButton";
 import { HOME_EDGE_INSET } from "./home-layout";
 
 type OnTheHorizonGridProps = {
@@ -66,10 +65,6 @@ function HorizonCard({ occasion }: { occasion: Occasion }) {
             color={Colors.brand.gold}
           />
         </View>
-        <OccasionOverflowButton
-          occasion={occasion}
-          tint={Colors.brand.mediumTeal}
-        />
       </View>
     </Pressable>
   );
