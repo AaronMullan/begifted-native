@@ -56,7 +56,7 @@ export default function BottomNav() {
         <View style={styles.navContent}>
           {NAV_ITEMS.map((item) => {
             const isActive = isRouteActive(item, pathname);
-            const tint = isActive ? Colors.blues.dark : Colors.neutrals.dark;
+            const tint = isActive ? Colors.blues.dark : Colors.white;
             return (
               <Link key={item.key} href={item.href} asChild>
                 <TouchableOpacity

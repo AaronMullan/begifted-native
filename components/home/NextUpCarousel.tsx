@@ -12,7 +12,6 @@ import {
   possessive,
 } from "../../utils/home-occasions";
 import OccasionAvatar from "./OccasionAvatar";
-import OccasionOverflowButton from "./OccasionOverflowButton";
 import { HOME_EDGE_INSET } from "./home-layout";
 
 type NextUpCarouselProps = {
@@ -92,7 +91,6 @@ function NextUpCard({
             color={Colors.brand.darkTeal}
           />
         </View>
-        <OccasionOverflowButton occasion={occasion} tint={Colors.white} />
       </View>
     </Pressable>
   );
