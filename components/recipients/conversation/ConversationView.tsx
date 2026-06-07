@@ -130,6 +130,7 @@ export function ConversationView({
         ref={scrollViewRef}
         style={styles.messagesContainer}
         contentContainerStyle={styles.messagesContent}
+        keyboardShouldPersistTaps="handled"
       >
         {messages.map((message) => (
           <View
