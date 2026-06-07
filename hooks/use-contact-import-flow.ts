@@ -63,9 +63,11 @@ export function useContactImportFlow() {
       }
     }
 
-    Sentry.captureMessage("contact_picker_select", {
+    Sentry.addBreadcrumb({
+      category: "flow",
+      message: "contact_picker_select",
       level: "info",
-      tags: {
+      data: {
         flow: "add_recipient",
         step: "picker_select",
         has_picker_image: contact.imageUri ? "yes" : "no",

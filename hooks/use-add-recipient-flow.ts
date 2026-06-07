@@ -147,9 +147,11 @@ export function useAddRecipientFlow(
   const [savedRecipientId, setSavedRecipientId] = useState<string | null>(null);
 
   useEffect(() => {
-    Sentry.captureMessage("add_recipient_flow_hook_init", {
+    Sentry.addBreadcrumb({
+      category: "flow",
+      message: "add_recipient_flow_hook_init",
       level: "info",
-      tags: {
+      data: {
         flow: "add_recipient",
         step: "hook_init",
         has_initial_photo_uri: initialPhotoUri ? "yes" : "no",
@@ -234,9 +236,11 @@ export function useAddRecipientFlow(
       try {
         const photoUri = cachedPhotoUri.current;
         if (!photoUri) {
-          Sentry.captureMessage("photo_skipped_at_save", {
+          Sentry.addBreadcrumb({
+            category: "flow",
+            message: "photo_skipped_at_save",
             level: "info",
-            tags: {
+            data: {
               flow: "add_recipient",
               step: "photo_skip",
             },
