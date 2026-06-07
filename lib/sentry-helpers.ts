@@ -15,8 +15,41 @@ export function toError(value: unknown): Error {
   return new Error(String(value));
 }
 
+// Offline / transient network failures surface in several string shapes:
+// "Network request failed", "TypeError: Network request failed" (coerced
+// Supabase PostgrestErrors), and "Network request timed out" (background
+// pollers like unreadCount). Substring-match the common "Network request"
+// stem so all variants are treated as expected offline noise, not bugs.
 export function isOfflineError(err: Error): boolean {
-  return err.message === "Network request failed";
+  return err.message.includes("Network request");
+}
+
+// A stale access token surfaces as PGRST301 / "JWT expired" on a foregrounded
+// PostgREST request. supabase-js self-heals via AppState auto-refresh
+// (lib/supabase.ts), so the rejected in-flight request is benign — don't page
+// Sentry for it.
+function isSelfHealingAuthError(error: unknown, err: Error): boolean {
+  if (/jwt expired/i.test(err.message)) return true;
+  if (error && typeof error === "object") {
+    return (error as { code?: unknown }).code === "PGRST301";
+  }
+  return false;
+}
+
+// Single suppression check for both query and mutation reporters. Catches the
+// network/offline shapes (including PostgrestErrors that carry the underlying
+// network message in `details`) and self-healing transient auth errors.
+export function isExpectedTransientError(error: unknown): boolean {
+  const err = toError(error);
+  if (isOfflineError(err)) return true;
+  if (isSelfHealingAuthError(error, err)) return true;
+  if (error && typeof error === "object") {
+    const details = (error as { details?: unknown }).details;
+    if (typeof details === "string" && details.includes("Network request")) {
+      return true;
+    }
+  }
+  return false;
 }
 
 // iOS cancels in-flight fetches when the app loses foreground, surfacing as
@@ -30,8 +63,8 @@ export function captureQueryError(
   error: unknown,
   queryKey: readonly unknown[]
 ): void {
+  if (isExpectedTransientError(error)) return;
   const err = toError(error);
-  if (isOfflineError(err)) return;
   Sentry.captureException(err, {
     tags: { source: "react_query", kind: "query" },
     contexts: { query: { queryKey: JSON.stringify(queryKey) } },
@@ -43,6 +76,7 @@ export function captureMutationError(
   error: unknown,
   mutationKey: readonly unknown[] | undefined
 ): void {
+  if (isExpectedTransientError(error)) return;
   const err = toError(error);
   Sentry.captureException(err, {
     tags: { source: "react_query", kind: "mutation" },
