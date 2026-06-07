@@ -5,6 +5,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import {
   BottomSheetBackdrop,
   BottomSheetModal,
+  BottomSheetTextInput,
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import type { GiftSuggestion } from "../../types/recipient";
@@ -119,6 +120,9 @@ export default function GiftActionDrawer({
             pressBehavior="close"
           />
         )}
+        keyboardBehavior="interactive"
+        keyboardBlurBehavior="restore"
+        android_keyboardInputMode="adjustResize"
         handleIndicatorStyle={styles.handle}
         backgroundStyle={styles.background}
       >
@@ -209,6 +213,7 @@ export default function GiftActionDrawer({
                 onChangeText={setNote}
                 placeholder="What did you think?"
                 style={styles.noteInput}
+                render={(props) => <BottomSheetTextInput {...props} />}
               />
               <Button
                 mode="contained"
