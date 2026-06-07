@@ -63,7 +63,10 @@ export function useNotificationMutations() {
   });
 
   const markAllRead = useMutation({
-    mutationFn: () => markAllNotificationsRead(user!.id),
+    mutationFn: () => {
+      if (!user) return Promise.resolve();
+      return markAllNotificationsRead(user.id);
+    },
     onSuccess: () => {
       if (!user) return;
       queryClient.invalidateQueries({

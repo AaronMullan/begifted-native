@@ -54,13 +54,17 @@ export default function NotificationsScreen() {
     }
   }, [authLoading, user, router]);
 
-  // Auto-mark all notifications as read when viewing this screen
+  // Auto-mark all notifications as read when viewing this screen.
+  // Guard against concurrent fires and don't depend on the mutation object
+  // (which is a new reference each render and would re-fire a PATCH storm).
+  const isMarkingAllRead = markAllRead.isPending;
   useEffect(() => {
-    if (unreadCount > 0) {
+    if (unreadCount > 0 && !isMarkingAllRead) {
       markAllRead.mutate();
       Notifications.setBadgeCountAsync(0);
     }
-  }, [unreadCount, markAllRead]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unreadCount, isMarkingAllRead]);
 
   function handleNotificationPress(notification: AppNotification) {
     if (!notification.read) {
