@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Image, Linking, StyleSheet, View } from "react-native";
+import { Image, StyleSheet, View } from "react-native";
 import { Button, Text } from "react-native-paper";
 import { Colors } from "../../lib/colors";
+import { openLink } from "../../lib/open-link";
 import type { GiftSuggestion } from "../../types/recipient";
 import GiftCardActionButton from "./GiftCardActionButton";
 import GiftCardExpandButton from "./GiftCardExpandButton";
@@ -40,7 +41,7 @@ export default function PrimaryGiftCard({
   }, [suggestion.image_url]);
 
   const handleViewProduct = () => {
-    if (suggestion.link) Linking.openURL(suggestion.link);
+    if (suggestion.link) openLink(suggestion.link);
   };
 
   return (
