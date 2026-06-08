@@ -11,6 +11,8 @@ import { useForm, Controller } from "react-hook-form";
 import { supabase } from "../lib/supabase";
 import { fetchAppConfig } from "../lib/api";
 import { Session } from "@supabase/supabase-js";
+import { Colors } from "../lib/colors";
+import { Typography, Radii } from "../lib/typography";
 
 type FormData = {
   email: string;
@@ -159,19 +161,21 @@ export default function Auth() {
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
                   mode="outlined"
-                  label="Email"
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
-                  placeholder="email@address.com"
                   autoCapitalize="none"
                   autoCorrect={false}
                   keyboardType="email-address"
                   error={!!errors.email}
+                  outlineColor={Colors.brand.mediumTeal}
+                  activeOutlineColor={Colors.brand.darkTeal}
+                  outlineStyle={styles.inputOutline}
                   style={styles.input}
                 />
               )}
             />
+            <Text style={[Typography.eyebrow, styles.fieldLabel]}>EMAIL</Text>
             {errors.email && (
               <Text variant="bodySmall" style={styles.errorText}>
                 {errors.email.message}
@@ -194,18 +198,22 @@ export default function Auth() {
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
                   mode="outlined"
-                  label="Password"
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
                   secureTextEntry
-                  placeholder="Password (min 6 characters)"
                   autoCapitalize="none"
                   error={!!errors.password}
+                  outlineColor={Colors.brand.mediumTeal}
+                  activeOutlineColor={Colors.brand.darkTeal}
+                  outlineStyle={styles.inputOutline}
                   style={styles.input}
                 />
               )}
             />
+            <Text style={[Typography.eyebrow, styles.fieldLabel]}>
+              PASSWORD (MIN 6 CHARACTERS)
+            </Text>
             {errors.password && (
               <Text variant="bodySmall" style={styles.errorText}>
                 {errors.password.message}
@@ -296,6 +304,15 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 4,
+    backgroundColor: Colors.white,
+  },
+  inputOutline: {
+    borderRadius: Radii.sm,
+  },
+  fieldLabel: {
+    color: Colors.brand.mediumTeal,
+    letterSpacing: 1,
+    marginLeft: 4,
   },
   errorText: {
     color: "#FF3B30",
