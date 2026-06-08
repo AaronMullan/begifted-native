@@ -22,7 +22,7 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
   const headerHeight = insets.top + 4 + 40 + 8;
   const { animatedStyle } = useHeaderVisibility(headerHeight);
 
-  if (pathname.startsWith("/onboarding")) {
+  if (pathname.startsWith("/onboarding") || pathname.startsWith("/intro")) {
     return null;
   }
 

@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import Auth from "../components/Auth";
 import GradientBackground from "../components/GradientBackground";
+import { hasSeenIntro, markIntroSeen } from "../lib/intro-storage";
 
 export default function Index() {
   const [session, setSession] = useState<Session | null>(null);
@@ -22,33 +23,55 @@ export default function Index() {
   useEffect(() => {
     let isMounted = true;
 
+    async function routeAuthenticatedUser(session: Session) {
+      // A session implies the user is past the pre-auth intro; set the gate
+      // so a later sign-out returns them to <Auth />, not the slider.
+      void markIntroSeen();
+      try {
+        const { data } = await supabase
+          .from("user_preferences")
+          .select("onboarding_completed")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+
+        if (!isMounted || hasNavigated.current) return;
+
+        hasNavigated.current = true;
+        const route = data?.onboarding_completed
+          ? "/dashboard"
+          : "/onboarding/welcome";
+        router.replace(route as Href);
+      } catch {
+        if (!isMounted || hasNavigated.current) return;
+        hasNavigated.current = true;
+        router.replace("/onboarding/welcome" as Href);
+      }
+    }
+
+    async function routeUnauthenticated() {
+      // First-launch users see the pre-auth intro slider; once the gate is set
+      // (intro seen, or a prior session existed) we fall through to <Auth />.
+      const seenIntro = await hasSeenIntro();
+      if (!isMounted || hasNavigated.current) return;
+
+      if (!seenIntro) {
+        hasNavigated.current = true;
+        router.replace("/intro");
+        return;
+      }
+
+      setLoading(false);
+    }
+
     async function handleSession(session: Session | null) {
       if (!isMounted || hasNavigated.current) return;
 
       setSession(session);
 
       if (session?.user) {
-        try {
-          const { data } = await supabase
-            .from("user_preferences")
-            .select("onboarding_completed")
-            .eq("user_id", session.user.id)
-            .maybeSingle();
-
-          if (!isMounted || hasNavigated.current) return;
-
-          hasNavigated.current = true;
-          const route = data?.onboarding_completed
-            ? "/dashboard"
-            : "/onboarding/welcome";
-          router.replace(route as Href);
-        } catch {
-          if (!isMounted || hasNavigated.current) return;
-          hasNavigated.current = true;
-          router.replace("/onboarding/welcome" as Href);
-        }
+        await routeAuthenticatedUser(session);
       } else {
-        setLoading(false);
+        await routeUnauthenticated();
       }
     }
 
