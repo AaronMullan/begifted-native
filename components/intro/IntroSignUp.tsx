@@ -267,6 +267,8 @@ const styles = StyleSheet.create({
   buttonLabel: {
     ...Typography.largeCta,
     fontSize: 13,
+    // largeCta sets lineHeight 12, which clips a 13px glyph — give it room.
+    lineHeight: 18,
     letterSpacing: 1.5,
     color: Colors.white,
   },

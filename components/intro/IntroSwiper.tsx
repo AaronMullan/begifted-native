@@ -86,7 +86,18 @@ export default function IntroSwiper({ onSignUp }: IntroSwiperProps) {
           {SLIDES.map((s, i) => (
             <View
               key={s.id}
-              style={[styles.dot, i === index && styles.dotActive]}
+              style={[
+                styles.dot,
+                // Inactive dots flip light on the dark full-bleed photo slide
+                // so they stay visible against the grass.
+                {
+                  backgroundColor:
+                    SLIDES[index].id === "details"
+                      ? "rgba(255,255,255,0.55)"
+                      : "rgba(26,68,83,0.25)",
+                },
+                i === index && styles.dotActive,
+              ]}
             />
           ))}
         </View>
@@ -269,7 +280,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "rgba(26,68,83,0.25)",
   },
   dotActive: {
     width: 22,
@@ -285,6 +295,8 @@ const styles = StyleSheet.create({
   ctaLabel: {
     ...Typography.largeCta,
     fontSize: 13,
+    // largeCta sets lineHeight 12, which clips a 13px glyph — give it room.
+    lineHeight: 18,
     letterSpacing: 1.5,
     color: Colors.white,
   },
