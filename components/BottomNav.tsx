@@ -39,8 +39,12 @@ export default function BottomNav() {
   const insets = useSafeAreaInsets();
   const { animatedStyle } = useBottomNavVisibility();
 
-  // Hide on admin and onboarding routes
-  if (pathname.startsWith("/admin") || pathname.startsWith("/onboarding")) {
+  // Hide on admin, onboarding, and pre-auth intro routes
+  if (
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/onboarding") ||
+    pathname.startsWith("/intro")
+  ) {
     return null;
   }
 
