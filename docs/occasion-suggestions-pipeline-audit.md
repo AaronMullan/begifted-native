@@ -1,6 +1,6 @@
 # Gift Occasion Suggestions — Non-Prompt Pipeline Audit (DEV-140)
 
-_Last updated: 2026-06-09. Scope: the non-prompt implementation pipeline behind "Gift Occasion Suggestions," prompted by Caspian's 2026-06-08 Slack thread in #design. The prompt itself (active `occasion_recommendations` **v6**) is excellent and out of scope — this audit covers everything around it: what context actually reaches the model, how the response is parsed, and what the frontend renders._
+_Last updated: 2026-06-09. Scope: the non-prompt implementation pipeline behind "Gift Occasion Suggestions," prompted by Caspian's 2026-06-08 Slack thread in #dev. The prompt itself (active `occasion_recommendations` **v6**) is excellent and out of scope — this audit covers everything around it: what context actually reaches the model, how the response is parsed, and what the frontend renders._
 
 ## TL;DR
 
