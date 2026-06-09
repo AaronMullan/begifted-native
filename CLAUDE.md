@@ -18,6 +18,8 @@ Do not claim a tool failed or assert how a tool, test, or remote system behaves 
 
 **Never commit or push directly to `main`.** Always create a feature branch, commit there, and open a PR. Run typecheck before opening a PR.
 
+**Deploy edge functions via PR, never the CLI.** Don't run `supabase functions deploy`. Merging to `main` auto-deploys edge functions through `.github/workflows/deploy-edge-functions.yml`. Migrations likewise auto-apply on merge via `.github/workflows/apply-migrations.yml`.
+
 ## Commands
 
 ```bash
@@ -28,6 +30,15 @@ npm run web            # Run web version
 npm run lint           # ESLint
 npm run format         # Prettier format
 npm run format:check   # Check formatting
+```
+
+Builds & OTA (EAS):
+
+```bash
+eas build --profile development --platform ios   # Dev client
+eas build --profile preview --platform ios       # TestFlight/store
+eas build --profile production --platform ios    # Production
+eas update --branch production                    # OTA update
 ```
 
 No test framework is currently configured.
@@ -57,6 +68,14 @@ WHERE prompt_key = '<key>' AND is_active = true LIMIT 1;
 ```
 
 **Critical:** `lib/supabase.ts` must import `react-native-url-polyfill/auto` as a standard import at the top of the file, before any Supabase imports. Never use `require()` for the polyfill. Never duplicate this import in other files. Never override `global.fetch` in the Supabase client config.
+
+**Reasoning-model token budget.** For OpenAI reasoning models (`gpt-5*`, `o`-series, matched by `isReasoningOpenAIModel` in `supabase/functions/_shared/ai-client.ts`), `max_completion_tokens` is the **total** budget including hidden reasoning tokens — a tight budget tuned for visible output gets consumed by reasoning, returns empty content, and silently fires caller-side fallbacks. Keep the floor (currently 4000) and send `reasoning_effort: "low"`. Debugging heuristic: if an LLM flow "returns garbage," check `prompt_test_runs`/logs for the hardcoded fallback signature byte-for-byte — that means the AI call threw, not that the model misbehaved.
+
+**Migrations vs. live schema.** Committed files in `supabase/migrations/` do not guarantee the change is live. The CI applier (`scripts/apply-migrations.mjs`) compares filename prefix only and **skips any version already recorded in `schema_migrations`** — so a recorded-but-unapplied migration can never be fixed by editing/re-merging that file; ship a **new** version with idempotent DDL (`ADD COLUMN IF NOT EXISTS …`). Always verify the object actually exists via `information_schema` (Supabase MCP `execute_sql`), not just `list_migrations`.
+
+### Sibling backend repo (`be-gifted`)
+
+Some backend lives in the sibling Next.js repo `be-gifted`, not here. The daily gift-generation cron and all `app_notifications` inserts live at `be-gifted/app/api/cron/generate-gifts/route.ts` (no notification inserts exist in `begifted-native`). When triaging notification timing, delivery, deep-linking, or gift-generation bugs, the fix likely belongs in that repo; the client here only renders `app_notifications` rows and handles taps (`app/(tabs)/notifications.tsx`, `hooks/use-push-notifications.ts`).
 
 ## Code Conventions
 
@@ -119,11 +138,12 @@ Existing references: tab scenes (`dashboard.tsx`, `calendar.tsx`, `notifications
 
 ### Fonts
 
-Three faces are loaded in `hooks/use-fonts-loader.ts`:
+All faces are loaded in `hooks/use-fonts-loader.ts` and exposed via `FontFamily` in `lib/typography.ts`. New work uses the redesign faces:
 
-- **Fraunces** (serif): use `Fraunces_600SemiBold` for prominent display titles (hero headlines, card titles).
-- **RobotoFlex** (sans): body text, section labels.
-- **AzeretMono** (monospace): code-style accents only — not the brand wordmark.
+- **Poltawski Nowy** (`FontFamily.serif.*`, weights 400/500/600/700): display/serif — headlines, card titles.
+- **DM Sans** (`FontFamily.sans.*`, weights 400/500/600): UI/sans — body, labels, CTAs.
+
+Legacy faces are still loaded so older screens don't break, but **don't use them in new code**: **Fraunces** (`FontFamily.fraunces.*`, old display face), **RobotoFlex** (`FontFamily.body`), **AzeretMono** (`FontFamily.mono`, code-style accents only). Prefer the `Typography.*` tokens over referencing faces directly.
 
 ### Brand assets
 
@@ -135,6 +155,8 @@ Both inline their SVG paths via `react-native-svg`. The project does not have `r
 ### Design source
 
 `BeGifted_mobile design refinements_050126.pdf` (repo root) is the source of truth for the home redesign and ongoing design refinements. When a palette match in `lib/colors.ts` isn't obvious, pixel-sample directly from the PDF using `pdftoppm` (poppler) + `magick` (ImageMagick); both are installed locally.
+
+**Design tokens** are mirrored from Figma file `vKruEWmOFcWGuYC8nHfsOU` ("BeGifted pages_2"), node `28:47`: colors in `lib/colors.ts` (`Colors.brand.*`, `Colors.gradients.*`), typography in `lib/typography.ts` (`Typography.*`, `FontFamily`, `Radii`). Prefer `Colors.brand.*` and `Typography.*` for new UI. The refresh procedure is documented in `docs/design-system.md`. Note: the MD3 Paper theme in `app/_layout.tsx` still uses black/gray primary — not yet wired to brand teal.
 
 ### Path Aliases
 
