@@ -64,30 +64,14 @@ primary `360×170` (r≈8), secondary `170×110` (r≈8.8), tertiary `170×70` (
 People `359×45` (r12), bottom nav `402×55`, sign-up button `153×33` (r24, `#04697E`),
 avatar circle ≈30dia, generic card r12, header strips bottom-radius 18.
 
-## Root cause: "fonts too small in-app, fine in Figma"
+## "Fonts too small in-app" — parked for now
 
-There is **no font-scaling utility** in the app (no `moderateScale` / `RFValue` /
-`PixelRatio`-based normalization). `Typography` sizes render as literal points. Two
-consequences:
-
-1. **Width is not the cause.** The design frame (402pt) is _wider_ than most test devices
-   (393/390/375pt), so if anything literal points read slightly _large_ relative to a narrower
-   screen — not small. A width-based conversion alone would not fix Erik's complaint.
-2. **Absolute size + viewing context is the cause.** The canonical scale is genuinely small in
-   places (8–12pt for CTAs/eyebrows/titles). Those read fine in Figma zoomed to fill a monitor,
-   but are tiny on a physical phone. Closing this needs a **global type-scale decision**, not a
-   number copied from Figma.
-
-### What shipped: the conversion _mechanism_ (not the value)
-
-`lib/typography.ts` now multiplies every size by `TYPE_SCALE` (default **1.0** — zero visual
-change). This gives one knob to dial type up app-wide after on-device review, instead of editing
-every token. **`TYPE_SCALE` should stay 1.0 until a multiplier is agreed on-device with Erik**
-(likely ~1.1–1.25; confirm by side-by-side on a real device). This is the design-decision part of
-the ticket and is intentionally left for sign-off.
-
-`DESIGN_FRAME_WIDTH` (402) is exported so a responsive `deviceWidth / 402` ratio can be layered
-on later if desired.
+The token sizes already match Figma 1:1, and the app has no font-scaling utility — sizes render
+as literal points. The "type reads small on a phone" feeling is a separate, app-wide question
+(it would affect every screen, not just home) and is **not being addressed here** by team
+decision. If we revisit it, the options are: bump the base sizes in Figma, or introduce a
+deliberate responsive scale — but only after looking on a real device, not by guessing a
+multiplier in code.
 
 ## Tickets this audit relates to
 
@@ -99,7 +83,7 @@ on later if desired.
 - This audit makes **no** existing ticket redundant. It de-risks DEV-162 by pinning the canonical
   frame width and spacing.
 
-## Follow-ups requiring design sign-off
+## Follow-ups
 
-1. Pick the `TYPE_SCALE` multiplier on-device (or bump the base sizes in Figma instead).
-2. Decide the responsive strategy for DEV-162 (scale layout by `deviceWidth / 402`).
+1. DEV-162: decide the responsive strategy (scale layout by `deviceWidth / 402`).
+2. Type sizing on-device is parked (see above) — revisit only if/when it's prioritized.

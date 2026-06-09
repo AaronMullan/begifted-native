@@ -12,7 +12,7 @@ is 402×874, so raw Figma point values map 1:1 to React Native points. See
 Tokens live in:
 
 - `lib/colors.ts` → `Colors.brand`
-- `lib/typography.ts` → `Typography`, `FontFamily`, `Radii`, `TYPE_SCALE`
+- `lib/typography.ts` → `Typography`, `FontFamily`, `Radii`
 - `lib/spacing.ts` → `Spacing`, `DESIGN_FRAME_WIDTH`
 
 ## Colors
@@ -55,8 +55,6 @@ Two primary families: **Poltawski Nowy** (serif display) and **DM Sans** (UI san
 All sizes are verified 1:1 against Dev Mode at the 402pt frame. Notes:
 `eyebrow` / `largeCta` / `sectionHeadAc` are **11**, not 10 (earlier doc revisions listed 10).
 `sectionHeadAc` line-height is **28** in-app (Figma's `2px` is a design artifact, not literal).
-Type sizes are multiplied by `TYPE_SCALE` (default 1.0) — the global knob for the
-"too small on-device" parity gap; see `docs/design-parity-audit.md`.
 
 > Fraunces is still loaded for legacy screens (`FontFamily.fraunces.*`). New work should use Poltawski Nowy via `FontFamily.serif.*` to match Figma.
 
