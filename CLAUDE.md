@@ -156,7 +156,7 @@ Both inline their SVG paths via `react-native-svg`. The project does not have `r
 
 `BeGifted_mobile design refinements_050126.pdf` (repo root) is the source of truth for the home redesign and ongoing design refinements. When a palette match in `lib/colors.ts` isn't obvious, pixel-sample directly from the PDF using `pdftoppm` (poppler) + `magick` (ImageMagick); both are installed locally.
 
-**Design tokens** are mirrored from Figma file `vKruEWmOFcWGuYC8nHfsOU` ("BeGifted pages_2"), node `28:47`: colors in `lib/colors.ts` (`Colors.brand.*`, `Colors.gradients.*`), typography in `lib/typography.ts` (`Typography.*`, `FontFamily`, `Radii`). Prefer `Colors.brand.*` and `Typography.*` for new UI. The refresh procedure is documented in `docs/design-system.md`. Note: the MD3 Paper theme in `app/_layout.tsx` still uses black/gray primary — not yet wired to brand teal.
+**Design tokens** are mirrored from the canonical Figma file `SUQTk93YAXlLo7NxkXC7Br` ("BeGifted pages_FINAL_for-dev"), node `28:47`: colors in `lib/colors.ts` (`Colors.brand.*`, `Colors.gradients.*`), typography in `lib/typography.ts` (`Typography.*`, `FontFamily`, `Radii`, `TYPE_SCALE`), spacing in `lib/spacing.ts` (`Spacing`, `DESIGN_FRAME_WIDTH`). The design frames are **402pt** wide (iPhone 16/17 Pro), so Figma point values map 1:1 to RN points. Prefer `Colors.brand.*`, `Typography.*`, and `Spacing.*` for new UI. The refresh procedure and full parity audit are documented in `docs/design-system.md` and `docs/design-parity-audit.md`. Superseded file: `vKruEWmOFcWGuYC8nHfsOU` ("BeGifted pages_2"). Note: the MD3 Paper theme in `app/_layout.tsx` still uses black/gray primary — not yet wired to brand teal.
 
 ### Path Aliases
 
