@@ -21,3 +21,17 @@ export async function openLink(url: string): Promise<void> {
     // Ignore — opening an external product link should never crash the app.
   }
 }
+
+/**
+ * Derive the retailer domain from a product URL for engagement analytics
+ * (DEV-151), e.g. "https://www.amazon.com/dp/123" -> "amazon.com". Relies on
+ * the global `URL` registered by react-native-url-polyfill (imported in
+ * lib/supabase.ts). Returns null when the URL can't be parsed.
+ */
+export function retailerDomain(url: string): string | null {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+}

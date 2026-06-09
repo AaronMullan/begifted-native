@@ -404,6 +404,45 @@ export async function insertGiftFeedback(
   return data;
 }
 
+export interface OutboundClick {
+  id: string;
+  user_id: string;
+  recipient_id: string;
+  gift_suggestion_id: string | null;
+  occasion_id: string | null;
+  product_url: string;
+  retailer_domain: string | null;
+  platform: string | null;
+  created_at: string;
+}
+
+export interface InsertOutboundClickInput {
+  user_id: string;
+  recipient_id: string;
+  gift_suggestion_id?: string | null;
+  occasion_id?: string | null;
+  product_url: string;
+  retailer_domain?: string | null;
+  platform?: string | null;
+}
+
+/**
+ * Log an outbound product-page click (DEV-151). Append-only engagement signal
+ * fired when a user taps a product CTA; not a purchase-conversion metric.
+ */
+export async function insertOutboundClick(
+  input: InsertOutboundClickInput
+): Promise<OutboundClick> {
+  const { data, error } = await supabase
+    .from("outbound_clicks")
+    .insert(input)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 /** be-gifted backend base URL (Vercel). Same host the prompt playground uses. */
 const BEGIFTED_BACKEND_URL = "https://be-gifted.vercel.app";
 

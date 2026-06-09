@@ -3,6 +3,7 @@ import { Image, StyleSheet, View } from "react-native";
 import { Button, Text } from "react-native-paper";
 import { Colors } from "../../lib/colors";
 import { openLink } from "../../lib/open-link";
+import { useLogOutboundClick } from "../../hooks/use-log-outbound-click";
 import type { GiftSuggestion } from "../../types/recipient";
 import GiftCardActionButton from "./GiftCardActionButton";
 import GiftCardExpandButton from "./GiftCardExpandButton";
@@ -30,6 +31,7 @@ export default function PrimaryGiftCard({
   onCollapse,
 }: PrimaryGiftCardProps) {
   const [showImage, setShowImage] = useState(false);
+  const logClick = useLogOutboundClick();
 
   useEffect(() => {
     if (!suggestion.image_url) return;
@@ -41,7 +43,14 @@ export default function PrimaryGiftCard({
   }, [suggestion.image_url]);
 
   const handleViewProduct = () => {
-    if (suggestion.link) openLink(suggestion.link);
+    if (!suggestion.link) return;
+    logClick.mutate({
+      recipientId: suggestion.recipient_id,
+      giftSuggestionId: suggestion.id,
+      occasionId: occasionId ?? suggestion.occasion_id ?? null,
+      productUrl: suggestion.link,
+    });
+    openLink(suggestion.link);
   };
 
   return (
