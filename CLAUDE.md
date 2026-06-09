@@ -45,6 +45,7 @@ All Supabase queries live in `lib/api.ts`. Query cache keys are centralized in `
 ### Backend (Supabase)
 
 **Edge Functions** (Deno, in `supabase/functions/`):
+
 - `recipient-conversation` — AI conversation for extracting recipient data from natural language
 - `generate-gift-suggestions` — AI gift recommendations
 
@@ -62,6 +63,7 @@ WHERE prompt_key = '<key>' AND is_active = true LIMIT 1;
 ### UI Components — React Native Paper Only
 
 All interactive UI must use React Native Paper components. This is strictly enforced:
+
 - **Buttons:** `Button` from `react-native-paper` (modes: contained, outlined, text, elevated). Never use `TouchableOpacity`.
 - **Text:** `Text` from `react-native-paper` with `variant` prop. Never style text with raw StyleSheet.
 - **Inputs:** `TextInput` from `react-native-paper`. Never use RN's `TextInput`.
@@ -75,6 +77,8 @@ Core RN components (`View`, `ScrollView`, `FlatList`, `Image`) are allowed for l
 ### Implementing from Designs (Figma/PDF)
 
 Before coding, confirm the intended interaction model and the exact components/icons (e.g., chat vs textarea, three-dots vs chevron, SVG vs `MaterialIcons`). Do not change colors or icons that the design does not specify.
+
+**Verify design intent before writing a line.** For any UI work driven by a Figma/PDF spec, first summarize the intent back and wait for confirmation: which control triggers each action, exact colors/icons, layout/placement, and whether the flow is single-shot or chat. Do not assume — wrong inferences here (chevron vs three-dots, textarea vs full chat, off-spec button colors) have repeatedly caused rework. When the spec is ambiguous, ask rather than guess.
 
 ### TypeScript
 
@@ -96,6 +100,7 @@ Before coding, confirm the intended interaction model and the exact components/i
 - Custom color palette in `lib/colors.ts`
 - Custom MD3 theme: 18px border radius, black primary, gray secondary
 - Prefer Paper component props over custom StyleSheet where possible
+- After Prettier (or the auto-format hook) runs, review the diff and revert unrelated formatting churn so a PR contains only intentional changes — never let reflowed lines in untouched code ride along.
 
 ### GradientBackground — render per-screen, not at root
 
@@ -115,6 +120,7 @@ Existing references: tab scenes (`dashboard.tsx`, `calendar.tsx`, `notifications
 ### Fonts
 
 Three faces are loaded in `hooks/use-fonts-loader.ts`:
+
 - **Fraunces** (serif): use `Fraunces_600SemiBold` for prominent display titles (hero headlines, card titles).
 - **RobotoFlex** (sans): body text, section labels.
 - **AzeretMono** (monospace): code-style accents only — not the brand wordmark.
