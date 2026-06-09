@@ -21,6 +21,7 @@ const NAV_LINKS = [
   { path: "/admin/playground", label: "Playground", icon: "flask-outline" },
   { path: "/admin/prompts", label: "Version History", icon: "history" },
   { path: "/admin/searches", label: "Searches", icon: "magnify" },
+  { path: "/admin/clicks", label: "Engagement", icon: "cursor-default-click" },
   { path: "/admin/ai-model", label: "AI Model", icon: "robot" },
   { path: "/admin/kill-switch", label: "Kill Switch", icon: "power" },
 ] as const;
