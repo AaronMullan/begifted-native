@@ -443,6 +443,70 @@ export async function insertOutboundClick(
   return data;
 }
 
+/** A single outbound click with its recipient/gift joined, for the admin viewer. */
+export interface OutboundClickRow {
+  id: string;
+  created_at: string;
+  product_url: string;
+  retailer_domain: string | null;
+  platform: string | null;
+  recipient: { id: string; name: string } | null;
+  gift_suggestion: { id: string; title: string } | null;
+}
+
+export interface OutboundClicksPage {
+  clicks: OutboundClickRow[];
+  total: number;
+}
+
+/**
+ * Fetch a page of outbound clicks newest-first for the admin engagement viewer
+ * (DEV-151). Joins recipient name + gift title; relies on the admin RLS read
+ * policy on outbound_clicks. Returns the total count for pagination.
+ */
+export async function fetchOutboundClicks(
+  limit: number,
+  offset: number
+): Promise<OutboundClicksPage> {
+  const { data, error, count } = await supabase
+    .from("outbound_clicks")
+    .select(
+      `id, created_at, product_url, retailer_domain, platform,
+       recipients ( id, name ),
+       gift_suggestions ( id, title )`,
+      { count: "exact" }
+    )
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) throw error;
+
+  // Embedded to-one relations come back as an object or (depending on the
+  // client's inference) a single-element array — normalize both, like
+  // fetchRecentRuns does.
+  const clicks: OutboundClickRow[] = (data ?? []).map((r) => {
+    const rawRecipient = (r.recipients ?? null) as unknown;
+    const recipient = (
+      Array.isArray(rawRecipient) ? rawRecipient[0] ?? null : rawRecipient
+    ) as OutboundClickRow["recipient"];
+    const rawGift = (r.gift_suggestions ?? null) as unknown;
+    const giftSuggestion = (
+      Array.isArray(rawGift) ? rawGift[0] ?? null : rawGift
+    ) as OutboundClickRow["gift_suggestion"];
+    return {
+      id: r.id,
+      created_at: r.created_at,
+      product_url: r.product_url,
+      retailer_domain: r.retailer_domain,
+      platform: r.platform,
+      recipient,
+      gift_suggestion: giftSuggestion,
+    };
+  });
+
+  return { clicks, total: count ?? 0 };
+}
+
 /** be-gifted backend base URL (Vercel). Same host the prompt playground uses. */
 const BEGIFTED_BACKEND_URL = "https://be-gifted.vercel.app";
 

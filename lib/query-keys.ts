@@ -53,4 +53,7 @@ export const queryKeys = {
 
   // Admin — Searches viewer
   recentRuns: (page: number) => ["recentRuns", page] as const,
+
+  // Admin — Outbound clicks (engagement) viewer
+  outboundClicks: (page: number) => ["outboundClicks", page] as const,
 };
