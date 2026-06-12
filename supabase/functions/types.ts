@@ -42,6 +42,9 @@ export interface ExtractedData {
   importantDates?: string[];
   knownOccasions?: string[];
   culturalContext?: string;
+  // Stored synthesized recipient profile (existing recipients only). Fed into
+  // occasion recommendations as the richer recipient-profile lens (DEV-155).
+  synthesized_profile?: string;
   emotional_tone_preference?: string;
   gift_budget_min?: number;
   gift_budget_max?: number;
@@ -70,6 +73,9 @@ export interface RecipientData {
   importantDates?: string[];
   knownOccasions?: string[];
   culturalContext?: string;
+  // Stored synthesized recipient profile, fed into occasion recommendations as
+  // the richer recipient-profile lens (DEV-155).
+  synthesized_profile?: string;
   emotional_tone_preference?: string;
   gift_budget_min?: number;
   gift_budget_max?: number;
