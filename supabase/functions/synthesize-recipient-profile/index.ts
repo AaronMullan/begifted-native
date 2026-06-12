@@ -27,14 +27,13 @@ Draw from ALL available signals:
 - Interests and hobbies
 - Emotional tone preference (e.g. sentimental, practical, fun)
 - Budget range
-- Upcoming occasions and their timing
 
-Write in third person (e.g. "Sarah is..."). Be specific and concrete. Surface personality, lifestyle, and values — not gift ideas. If occasions are present, note what's coming up.
+Write in third person (e.g. "Sarah is..."). Be specific and concrete. Surface personality, lifestyle, and values — not gift ideas or upcoming events.
 
 AGE & DATES — read carefully:
 - Only state the recipient's age if an explicit "Age:" line is given in the context below. Never guess, estimate, or infer an age from anything else.
-- Upcoming occasions (including birthdays) are FUTURE events the giver is shopping for — they are NOT the recipient's birth date. Never treat an occasion's date or year as biographical, and never use it to compute or imply an age or a year of birth.
 - If no "Age:" line is present, do not mention the recipient's age or year of birth at all.
+- Never put a calendar date in the profile — no gifting or holiday dates, occasion dates, anniversaries, or birthdays. The profile describes who the person is, not when events happen. Any occasions listed in the context are background only and must not appear in the profile text.
 
 Also extract two structured fields that downstream occasion suggestions consume:
 
@@ -156,29 +155,30 @@ serve(async (req) => {
     }
 
     if (occasions && occasions.length > 0) {
-      // Show occasions as month/day only. These are upcoming events the giver
-      // is shopping for — not biographical dates. Leaking the (future) year is
-      // exactly what made the synthesizer write a wrong birth year / age into
-      // the profile (DEV-105).
-      const fmtMonthDay = (iso: string): string => {
-        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-        if (!m) return iso;
-        const d = new Date(
-          Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+      // Occasion TYPES only — never the dates. These gifting/holiday dates are
+      // stored separately and consumed directly by gift generation; feeding
+      // them here is what made the synthesizer write date references into the
+      // profile prose and bloat it (DEV-152; earlier month/day-only mitigation
+      // in DEV-105 wasn't enough). We still surface the occasion types because
+      // some (Mother's Day, Father's Day, Teacher Appreciation) are signals for
+      // the knownRoles extraction below — but they must not appear in the
+      // profile text.
+      const occasionTypes = Array.from(
+        new Set(
+          occasions
+            .slice(0, 5)
+            .map((o: any) => o.occasion_type)
+            .filter(
+              (t: unknown): t is string =>
+                typeof t === "string" && t.trim().length > 0
+            )
+        )
+      ).join(", ");
+      if (occasionTypes) {
+        parts.push(
+          `Gifting occasions on record (background signal for role inference only — do NOT mention these, or any dates, in the profile): ${occasionTypes}`
         );
-        return d.toLocaleDateString("en-US", {
-          month: "long",
-          day: "numeric",
-          timeZone: "UTC",
-        });
-      };
-      const occasionLines = occasions
-        .slice(0, 5)
-        .map((o: any) => `${o.occasion_type} on ${fmtMonthDay(o.date)}`)
-        .join(", ");
-      parts.push(
-        `Upcoming occasions (future events to shop for, NOT birth dates): ${occasionLines}`
-      );
+      }
     }
 
     const recipientContext = parts.join("\n");
