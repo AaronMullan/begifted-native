@@ -1016,13 +1016,28 @@ export async function recommendOccasions(
     (extractedData as ExtractedData).culturalContext ||
     (extractedData as RecipientData).culturalContext ||
     "";
+  // The recipient's stored synthesized profile — the richer "CIS / recipient
+  // profile" lens the v6 prompt is written to use. Absent at add-time (new
+  // recipient not yet synthesized); present for existing recipients (DEV-155).
+  const synthesizedProfile = (
+    (extractedData as ExtractedData).synthesized_profile ||
+    (extractedData as RecipientData).synthesized_profile ||
+    ""
+  ).trim();
 
   const today = new Date().toISOString().split("T")[0];
   const birthdayStr = birthday ? `- Birthday: ${birthday}` : "";
-  const interestsStr =
+  // Fold the synthesized profile into the {{interests}} block so the prompt's
+  // recipient-profile references have something to anchor on, without needing a
+  // new placeholder/prompt version. Labeled distinctly from the raw interests.
+  const interestsLine =
     interests.length > 0
       ? `- Interests: ${interests.join(", ")}`
       : "- Interests: (none specified)";
+  const profileLine = synthesizedProfile
+    ? `- Recipient profile (synthesized): ${synthesizedProfile}`
+    : "";
+  const interestsStr = [interestsLine, profileLine].filter(Boolean).join("\n");
   const knownRolesStr =
     knownRoles.length > 0 ? `- Known roles: ${knownRoles.join(", ")}` : "";
   const householdContextStr = householdContext

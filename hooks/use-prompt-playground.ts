@@ -450,6 +450,10 @@ export function usePromptPlayground(userId: string) {
                 interests: recipient.interests,
                 knownRoles: recipient.known_roles ?? [],
                 householdContext: recipient.household_context ?? "",
+                // Feed the stored synthesized profile so rich existing
+                // recipients (e.g. Atticus) reach the prompt's recipient
+                // lens — the gap DEV-155 closes.
+                synthesized_profile: recipient.synthesized_profile ?? "",
               },
               customSystemPrompt: currentPrompt,
               overrideProvider: playgroundProvider,

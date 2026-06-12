@@ -94,6 +94,9 @@ export type OccasionRecommendationsInput = Pick<
     importantDates?: string[];
     knownOccasions?: string[];
     culturalContext?: string;
+    // Stored synthesized profile — only present for existing recipients, never
+    // at add-time. Lets the prompt use the richer recipient lens (DEV-155).
+    synthesized_profile?: string;
   };
 
 /**
@@ -138,6 +141,9 @@ export function useOccasionRecommendations(
                 importantDates: deriveImportantDates(extractedData),
                 knownOccasions: extractedData.knownOccasions ?? [],
                 culturalContext: extractedData.culturalContext ?? "",
+                // Present only for existing recipients; the prompt uses it as
+                // the richer recipient-profile lens (DEV-155).
+                synthesized_profile: extractedData.synthesized_profile ?? "",
               },
             },
           }
