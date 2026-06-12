@@ -1,24 +1,30 @@
-import * as WebBrowser from "expo-web-browser";
-import { Colors } from "./colors";
+import * as Sentry from "@sentry/react-native";
+import { Linking } from "react-native";
 
 /**
- * Open a URL in an in-app browser sheet (SFSafariViewController on iOS /
- * Chrome Custom Tabs on Android) so the user stays inside BeGifted and can
- * return to exactly where they left off via "Done"/back.
+ * Open a URL in the system browser (Safari on iOS / Chrome on Android).
  *
- * Toolbar chrome is tinted to brand colors. Errors are swallowed so a bad
- * URL never crashes the calling screen.
+ * Product/retailer links must use the system browser, NOT an in-app sheet:
+ * on iOS the in-app browser is `SFSafariViewController`, a sandbox that can't
+ * open popups/new windows — so Shopify accelerated checkout, Shop Pay, Apple
+ * Pay / PayPal handoff silently fail — and has an isolated cookie store, so
+ * logins and saved cards aren't shared. See DEV-149 (reverses DEV-128).
+ *
+ * Returns `true` if the link opened, `false` otherwise. Open failures are
+ * reported to Sentry rather than swallowed; callers should surface a fallback
+ * (e.g. offer to copy the link) when this returns `false`.
  */
-export async function openLink(url: string): Promise<void> {
-  if (!url) return;
+export async function openLink(url: string): Promise<boolean> {
+  if (!url) return false;
   try {
-    await WebBrowser.openBrowserAsync(url, {
-      toolbarColor: Colors.brand.darkTeal,
-      controlsColor: Colors.brand.cream,
-      dismissButtonStyle: "done",
+    await Linking.openURL(url);
+    return true;
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: { feature: "open-product-link" },
+      extra: { url },
     });
-  } catch {
-    // Ignore — opening an external product link should never crash the app.
+    return false;
   }
 }
 
