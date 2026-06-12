@@ -36,10 +36,10 @@ export default function FAQ() {
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <Text variant="headlineMedium" style={styles.title}>
-                BeGifted FAQ
+                Help & FAQ
               </Text>
               <Text variant="bodyLarge" style={styles.subtitle}>
-                Frequently asked questions about BeGifted
+                Quick answers about how BeGifted works.
               </Text>
             </View>
             <IconButton
