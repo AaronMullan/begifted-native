@@ -40,11 +40,12 @@ function formatLongDate(iso: string): string | null {
  * explicitly-provided importantDates.
  */
 function deriveImportantDates(data: OccasionRecommendationsInput): string[] {
-  if (data.importantDates && data.importantDates.length > 0) {
-    return data.importantDates;
-  }
-  const occasions = data.occasions ?? [];
-  return occasions
+  // Explicit important dates captured during extraction (DEV-156), merged with
+  // anniversary occasions already saved with a year-bearing ISO date. Merging
+  // (rather than early-returning on explicit) keeps a dated anniversary from
+  // being lost when the extractor also surfaced an unrelated important date.
+  const explicit = data.importantDates ?? [];
+  const fromOccasions = (data.occasions ?? [])
     .filter((o) => /anniversary/i.test(o.occasion_type ?? ""))
     .map((o) => {
       const formatted = o.date ? formatLongDate(o.date) : null;
@@ -53,6 +54,16 @@ function deriveImportantDates(data: OccasionRecommendationsInput): string[] {
       return `${label} — ${formatted}`;
     })
     .filter((s): s is string => s !== null);
+
+  const seen = new Set(explicit.map((s) => s.toLowerCase()));
+  const merged = [...explicit];
+  for (const d of fromOccasions) {
+    if (!seen.has(d.toLowerCase())) {
+      seen.add(d.toLowerCase());
+      merged.push(d);
+    }
+  }
+  return merged;
 }
 
 const CATEGORY_TYPES = new Set([
