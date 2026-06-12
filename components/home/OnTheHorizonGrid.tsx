@@ -1,4 +1,10 @@
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -11,14 +17,20 @@ import {
   formatShortDate,
   possessive,
 } from "../../utils/home-occasions";
-import { HOME_EDGE_INSET } from "./home-layout";
+import { homeCardWidth, HOME_EDGE_INSET } from "./home-layout";
 
 type OnTheHorizonGridProps = {
   occasions: Occasion[];
 };
 
 export default function OnTheHorizonGrid({ occasions }: OnTheHorizonGridProps) {
+  const { width: windowWidth } = useWindowDimensions();
+
   if (occasions.length === 0) return null;
+
+  // Size cards to the viewport so two full cards + a fixed peek always fit,
+  // regardless of phone width (DEV-162).
+  const cardWidth = homeCardWidth(windowWidth);
 
   return (
     <View style={styles.section}>
@@ -30,14 +42,24 @@ export default function OnTheHorizonGrid({ occasions }: OnTheHorizonGridProps) {
         contentContainerStyle={styles.scrollContent}
       >
         {occasions.map((occasion) => (
-          <HorizonCard key={occasion.id} occasion={occasion} />
+          <HorizonCard
+            key={occasion.id}
+            occasion={occasion}
+            width={cardWidth}
+          />
         ))}
       </ScrollView>
     </View>
   );
 }
 
-function HorizonCard({ occasion }: { occasion: Occasion }) {
+function HorizonCard({
+  occasion,
+  width,
+}: {
+  occasion: Occasion;
+  width: number;
+}) {
   const router = useRouter();
   const name = occasion.recipient?.name ?? "Someone";
 
@@ -52,7 +74,7 @@ function HorizonCard({ occasion }: { occasion: Occasion }) {
       accessibilityLabel={`View ${possessive(name)} ${formatOccasionType(
         occasion.occasion_type
       )}`}
-      style={styles.card}
+      style={[styles.card, { width }]}
     >
       <View style={styles.titleGroup}>
         <Text style={styles.title}>{possessive(name)}</Text>
@@ -74,12 +96,12 @@ function HorizonCard({ occasion }: { occasion: Occasion }) {
   );
 }
 
-// Spec: Figma frame 2182:2182 "On the horizon" carousel (175x70 cards, radius
-// 12, transparent fill, 2px medium-teal stroke). Dark-teal H3 title, gold
-// large-CTA date + overflow on the bottom row. Bleeds to the screen edges so
-// the next card peeks.
-const CARD_WIDTH = 175;
-
+// Spec: Figma frame 2182:2182 "On the horizon" carousel (175x70 cards at the
+// 402pt frame, radius 12, transparent fill, 2px medium-teal stroke). Dark-teal
+// H3 title, gold large-CTA date + overflow on the bottom row. Width is derived
+// per device (see `homeCardWidth`) so two cards + a peek fit on any width and
+// the next-card peek is consistent across phones (DEV-162); only the height is
+// fixed here. Bleeds to the screen edges so the next card peeks.
 const styles = StyleSheet.create({
   section: {
     // Section head → cards (Figma Dev Mode, DEV-161): 17pt.
@@ -98,7 +120,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: HOME_EDGE_INSET,
   },
   card: {
-    width: CARD_WIDTH,
     backgroundColor: Colors.transparent,
     borderWidth: 2,
     borderColor: Colors.brand.mediumTeal,
