@@ -79,9 +79,12 @@ function NextUpCard({
         <Text style={styles.countdown}>
           {dayLabel} · {formatShortDate(occasion.date)}
         </Text>
-        <Text style={styles.title}>
-          {possessive(name)} {formatOccasionType(occasion.occasion_type)}
-        </Text>
+        <View style={styles.titleGroup}>
+          <Text style={styles.title}>{possessive(name)}</Text>
+          <Text style={styles.title}>
+            {formatOccasionType(occasion.occasion_type)}
+          </Text>
+        </View>
       </View>
       <View style={styles.footer}>
         <View style={styles.cta}>
@@ -133,6 +136,11 @@ const styles = StyleSheet.create({
   },
   body: {
     gap: 4,
+  },
+  titleGroup: {
+    // Name and occasion stack on separate lines (DEV-163) to free up layout
+    // room for responsive resizing (DEV-162). Tight line stacking; exact
+    // spacing/type pending the Figma Dev Mode audit (DEV-161).
   },
   footer: {
     flexDirection: "row",
