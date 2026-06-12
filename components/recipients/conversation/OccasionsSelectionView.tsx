@@ -165,7 +165,7 @@ export function OccasionsSelectionView({
     setEditingOccasionIndex(index);
   };
 
-  const handleSaveOccasionDate = (date: string) => {
+  const handleSaveOccasionDate = (date: string, _isAnnual: boolean) => {
     if (editingOccasionIndex !== null) {
       setSelectedOccasions((prev) =>
         prev.map((occ, i) =>
@@ -302,6 +302,7 @@ export function OccasionsSelectionView({
           visible={editingOccasionIndex !== null}
           onClose={handleCloseEditor}
           onSave={handleSaveOccasionDate}
+          showRecurrence={false}
         />
       )}
     </View>

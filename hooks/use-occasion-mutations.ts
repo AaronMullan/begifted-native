@@ -33,7 +33,7 @@ export function useUpdateOccasion() {
     }: {
       occasionId: string;
       recipientId: string;
-      fields: { date?: string; occasion_type?: string };
+      fields: { date?: string; occasion_type?: string; is_annual?: boolean };
     }): Promise<void> => {
       await updateOccasion(occasionId, fields);
     },
@@ -63,13 +63,15 @@ export function useCreateOccasion() {
       recipientId,
       date,
       occasionType,
+      isAnnual = true,
     }: {
       recipientId: string;
       date: string;
       occasionType: string;
+      isAnnual?: boolean;
     }) => {
       if (!user) throw new Error("Not authenticated");
-      return createOccasion(user.id, recipientId, date, occasionType);
+      return createOccasion(user.id, recipientId, date, occasionType, isAnnual);
     },
     onSuccess: (_, variables) => {
       if (user) {
