@@ -1,11 +1,11 @@
 ---
 name: slack-to-jira
-description: Turn a Slack message into Jira tickets. Paste a Slack message link; Claude reads the message (and its thread), extracts actionable items, drafts tickets for review, files the approved ones, then drafts and (on approval) posts a Slack reply linking the new tickets. Use when a Slack thread needs to become tracked work.
+description: Turn a Slack message into Jira tickets. Paste a Slack message link; Claude reads the message (and its thread), extracts actionable items, drafts tickets for review, files the approved ones, then leaves a Slack reply as a draft in the thread for the user to send. Use when a Slack thread needs to become tracked work.
 ---
 
 # Slack → Jira
 
-Convert a Slack discussion into tracked Jira work, with two approval gates: you sign off on the **ticket drafts** before anything is filed, and on the **Slack reply** before anything is posted.
+Convert a Slack discussion into tracked Jira work, with two approval gates: you sign off on the **ticket drafts** before anything is filed, and on the **Slack reply** before the draft is created in Slack. The reply is always left as a Slack **draft** for the user to send themselves — never posted directly.
 
 Argument: a Slack message permalink (e.g. `https://<workspace>.slack.com/archives/C0ABCDEF/p1700000000123456`). If none is given, ask for one before proceeding.
 
@@ -16,7 +16,7 @@ Argument: a Slack message permalink (e.g. `https://<workspace>.slack.com/archive
 3. Resolve author display names with `slack_read_user_profile` where the messages only carry user IDs, so the ticket drafts and reply read in plain English.
 4. **Pull any attached images by default** — if a message carries an image/file (e.g. a screenshot), read it with `slack_read_file` and fold what it shows into the relevant ticket. Screenshots usually contain the concrete detail (the exact error, the bloated output, the bad UI) that sharpens a draft. Only skip if the attachment is plainly irrelevant (an emoji, a meme).
 
-Keep the permalink — every ticket links back to it, and the reply is posted into this thread.
+Keep the permalink — every ticket links back to it, and the reply draft is attached to this thread.
 
 ## Step 2 — Extract actionable items
 
@@ -39,18 +39,19 @@ For each approved item, create the ticket with `jira_create_issue` (project `DEV
 
 ## Step 5 — Draft the Slack reply, wait for approval
 
-Draft a concise reply for the thread: a one-line acknowledgement plus a bullet per filed ticket (`KEY — summary` with its URL), and a note for any item intentionally not filed. Use `slack_send_message_draft` (or just print it). **Show it and wait for approval.** Do not post yet.
+Compose a concise reply for the thread: a one-line acknowledgement plus a bullet per filed ticket (`KEY — summary` with its URL), and a note for any item intentionally not filed. **Print it in the conversation and wait for approval.** Do not touch Slack yet.
 
-## Step 6 — Post
+## Step 6 — Create the Slack draft
 
-On approval, post the reply **into the original thread** with `slack_send_message` (channel + thread_ts from Step 1), so it threads under the source message rather than landing in the channel root.
+On approval, create the reply as a **Slack draft** with `slack_send_message_draft` (channel + `thread_ts` from Step 1, so it attaches to the source thread, not the channel root). **Never use `slack_send_message`** — sending directly stamps a "sent by Claude" annotation on the message; a draft the user sends themselves is the only known way to avoid it. Tell the user the draft is waiting in Slack's Drafts & Sent for them to send.
 
 ## Notes
 
-- **Two hard stops:** never file tickets before Step 3 approval, never post before Step 5 approval. Everything else runs straight through.
+- **Two hard stops:** never file tickets before Step 3 approval, never create the Slack draft before Step 5 approval. Everything else runs straight through.
 - **Dedup is mandatory** — `jira_search` before filing. A duplicate is worse than a miss.
 - Create issues **individually** with `jira_create_issue`; avoid `jira_batch_create_issues`.
 - Don't pass a `comment` argument to `jira_transition_issue` — it requires ADF, not plain text. (Relevant only if a thread item asks to move an existing ticket.)
-- Post the reply as a **threaded** message (pass `thread_ts`), not a new channel message.
+- The reply is always a **draft** (`slack_send_message_draft`), always **threaded** (pass `thread_ts`) — never `slack_send_message`, which adds a "sent by Claude" annotation.
+- Slack allows only one attached draft per channel — if `draft_already_exists` comes back, tell the user to send or delete the existing draft rather than retrying.
 - If the thread is long or spans sub-threads and you only processed part of it, **say so** — never let a partial pass read as "captured everything."
 - This skill produces tickets; it does not implement them. Hand a filed key to `/ticket <KEY>` to do the work.
