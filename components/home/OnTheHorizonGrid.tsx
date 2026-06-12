@@ -4,6 +4,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Colors } from "../../lib/colors";
 import { Typography, Radii } from "../../lib/typography";
+import { Spacing } from "../../lib/spacing";
 import type { Occasion } from "../../lib/api";
 import {
   formatOccasionType,
@@ -78,7 +79,8 @@ const CARD_WIDTH = 175;
 
 const styles = StyleSheet.create({
   section: {
-    gap: 8,
+    // Section head → cards (Figma Dev Mode, DEV-161): 17pt.
+    gap: Spacing.sectionHeadToContent,
   },
   sectionLabel: {
     ...Typography.sectionHeadAc,

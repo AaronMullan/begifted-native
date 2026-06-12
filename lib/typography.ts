@@ -1,13 +1,17 @@
 import type { TextStyle } from "react-native";
 
 /**
- * Typography tokens mirrored from Figma file "BeGifted pages_2" (node 28:47).
+ * Typography tokens mirrored from Figma file "BeGifted pages_FINAL_for-dev"
+ * (file SUQTk93YAXlLo7NxkXC7Br, "BeGifted Design Elements" node 28:47).
  *
  * The BG* tokens are the canonical text styles defined in the design file.
  * Display/serif tokens use Poltawski Nowy; UI/sans tokens use DM Sans.
  *
  * Apply via React Native Paper's <Text style={Typography.h1}> or by spreading
  * onto a custom StyleSheet entry.
+ *
+ * The design frames are 402pt wide (iPhone 16/17 Pro logical width), so the raw
+ * Figma font sizes map 1:1 to React Native points.
  */
 
 export const FontFamily = {
@@ -72,8 +76,16 @@ export const Typography = {
   sectionHeadAc: {
     fontFamily: FontFamily.sans.semibold,
     fontSize: 11,
+    // Figma defines lineHeight 2px here; in-app we use 28 for section spacing.
     lineHeight: 28,
     textTransform: "uppercase",
+  } satisfies TextStyle,
+  // Title-case top copy (Figma "BG top copy": Poltawski Nowy 600 12/14)
+  topCopy: {
+    fontFamily: FontFamily.serif.semibold,
+    fontSize: 12,
+    lineHeight: 14,
+    textTransform: "capitalize",
   } satisfies TextStyle,
   // Primary module headline (Figma "module: primary")
   moduleHeadline: {

@@ -1,6 +1,7 @@
 import { View, StyleSheet, ScrollView } from "react-native";
 import { Text, ActivityIndicator } from "react-native-paper";
 import { Colors } from "../../lib/colors";
+import { Spacing } from "../../lib/spacing";
 import { BOTTOM_NAV_HEIGHT } from "../../lib/constants";
 import { useBottomNavScrollVisibility } from "../../hooks/use-bottom-nav-scroll-visibility";
 import { useAuth } from "../../hooks/use-auth";
@@ -120,10 +121,13 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     backgroundColor: "transparent",
     alignSelf: "stretch",
-    gap: 32,
+    // Between-section rhythm from Figma Dev Mode (DEV-161): module/add-people
+    // → section head ≈ 48–52pt.
+    gap: Spacing.sectionGap,
   },
   heroBlock: {
-    gap: 12,
+    // Hero module → "Add More People" row (Figma: 23pt).
+    gap: Spacing.moduleStackGap,
   },
   loadingContainer: {
     flex: 1,
