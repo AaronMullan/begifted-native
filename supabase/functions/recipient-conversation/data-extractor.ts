@@ -1162,8 +1162,11 @@ function getFallbackOccasionRecommendations(
       reasoning: "Everyone deserves to feel special on their birthday.",
     });
   }
+  // No generic-holiday filler: when the AI call fails we return birthday-only
+  // rather than re-injecting the exact holidays the v6 prompt suppresses
+  // (DEV-158). An empty list is honest about the failure.
   return {
     primaryOccasions: primary,
-    additionalSuggestions: ["Christmas", "New Year", "Thanksgiving"],
+    additionalSuggestions: [],
   };
 }

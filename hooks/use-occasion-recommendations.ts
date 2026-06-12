@@ -236,9 +236,12 @@ function getFallbackRecommendations(
       reasoning: "Everyone deserves to feel special on their birthday.",
     });
   }
+  // No generic-holiday filler: when the edge function errors we return
+  // birthday-only rather than re-injecting the exact holidays the v6 prompt's
+  // generic-holiday filter exists to suppress (DEV-158).
   return {
     primaryOccasions,
-    additionalSuggestions: ["Christmas", "New Year", "Thanksgiving"],
+    additionalSuggestions: [],
   };
 }
 
@@ -285,8 +288,12 @@ export function mapRecommendationsToOccasions(
         date = lookupOccasionDate(typeSlug);
       }
 
-      if (!date) return null;
-      return { date, occasion_type: occasionType, enabled: true };
+      // Carry undated primary occasions through with an empty date rather than
+      // dropping them — the v6 prompt explicitly allows `suggestedDate: null`
+      // for a known-but-undated occasion (e.g. a wedding anniversary). They
+      // render with an "Add Date" affordance that opens the editor on tap, the
+      // same way tapped `additionalSuggestions` chips do (DEV-157).
+      return { date: date ?? "", occasion_type: occasionType, enabled: true };
     })
     .filter((o): o is NonNullable<typeof o> => o !== null);
 }
