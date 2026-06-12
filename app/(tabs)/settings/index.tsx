@@ -104,6 +104,14 @@ export default function Settings() {
       iconColor: "#000000",
       route: "/settings/support" as any,
     },
+    {
+      id: "faq",
+      title: "Help & FAQ",
+      description: "Quick answers about how BeGifted works",
+      icon: "quiz",
+      iconColor: "#000000",
+      route: "/faq" as any,
+    },
   ];
 
   return (
