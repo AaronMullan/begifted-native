@@ -965,6 +965,44 @@ function inferRolesFromRelationship(relationship: string): string[] {
 }
 
 /**
+ * Canonicalize common relationship nicknames to a consistent vocabulary before
+ * the occasion prompt sees them (e.g. "hubby" → "husband", "mom" → "mother"),
+ * so the model reasons from a stable set of terms. Only an exact match of the
+ * whole (trimmed, lowercased) relationship is rewritten — phrases like "college
+ * roommate" and already-canonical terms pass through unchanged, so no nuance is
+ * lost (DEV-160).
+ */
+const RELATIONSHIP_SYNONYMS: Record<string, string> = {
+  hubby: "husband",
+  wifey: "wife",
+  mom: "mother",
+  mum: "mother",
+  mommy: "mother",
+  mama: "mother",
+  dad: "father",
+  daddy: "father",
+  papa: "father",
+  grandma: "grandmother",
+  granny: "grandmother",
+  nana: "grandmother",
+  grandpa: "grandfather",
+  grampa: "grandfather",
+  gramps: "grandfather",
+  sis: "sister",
+  bro: "brother",
+  gf: "girlfriend",
+  bf: "boyfriend",
+  "significant other": "partner",
+  bestie: "best friend",
+  bff: "best friend",
+};
+
+function normalizeRelationship(relationship: string): string {
+  const trimmed = relationship.trim();
+  return RELATIONSHIP_SYNONYMS[trimmed.toLowerCase()] ?? trimmed;
+}
+
+/**
  * Recommend occasions based on the recipient's interests, relationship, and birthday.
  * Leans into hobbies and interests (e.g. running → race day, music → Record Store Day).
  */
@@ -975,7 +1013,9 @@ export async function recommendOccasions(
 ): Promise<OccasionRecommendations> {
   const aiConfig = await resolveAIConfig(aiOverride, "gpt-5.4-mini");
   const name = extractedData.name || "this person";
-  const relationship = extractedData.relationship_type || "";
+  const relationship = normalizeRelationship(
+    extractedData.relationship_type || ""
+  );
   const birthday = extractedData.birthday || null;
   const interests =
     (extractedData as ExtractedData).interests ||

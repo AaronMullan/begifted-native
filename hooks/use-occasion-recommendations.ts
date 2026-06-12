@@ -112,7 +112,10 @@ export function useOccasionRecommendations(
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!extractedData?.name || !extractedData?.relationship_type) {
+    // Only a name is required. A missing relationship no longer hard-bails to
+    // zero recommendations (Michelle's `relationship: null` case) — we still run
+    // and let the prompt produce birthday + interest-based occasions (DEV-160).
+    if (!extractedData?.name) {
       setRecommendations(null);
       return;
     }
@@ -127,7 +130,7 @@ export function useOccasionRecommendations(
               action: "recommend_occasions",
               extractedData: {
                 name: extractedData.name,
-                relationship_type: extractedData.relationship_type,
+                relationship_type: extractedData.relationship_type ?? "",
                 birthday: extractedData.birthday ?? null,
                 interests: extractedData.interests ?? [],
                 knownRoles: extractedData.knownRoles ?? [],
