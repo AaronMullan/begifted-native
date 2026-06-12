@@ -36,6 +36,7 @@
     "@tanstack/react-query-persist-client": "^5.90.22",
     "expo": "54.0.13",
     "expo-blur": "~15.0.8",
+    "expo-clipboard": "~8.0.8",
     "expo-constants": "~18.0.9",
     "expo-contacts": "~15.0.9",
     "expo-dev-client": "~6.0.20",

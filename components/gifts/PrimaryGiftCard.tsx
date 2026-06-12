@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import * as Clipboard from "expo-clipboard";
 import { Image, StyleSheet, View } from "react-native";
-import { Button, Text } from "react-native-paper";
+import { Button, Snackbar, Text } from "react-native-paper";
 import { Colors } from "../../lib/colors";
 import { openLink } from "../../lib/open-link";
 import { useLogOutboundClick } from "../../hooks/use-log-outbound-click";
@@ -31,6 +32,7 @@ export default function PrimaryGiftCard({
   onCollapse,
 }: PrimaryGiftCardProps) {
   const [showImage, setShowImage] = useState(false);
+  const [openFailed, setOpenFailed] = useState(false);
   const logClick = useLogOutboundClick();
 
   useEffect(() => {
@@ -42,7 +44,7 @@ export default function PrimaryGiftCard({
     );
   }, [suggestion.image_url]);
 
-  const handleViewProduct = () => {
+  const handleViewProduct = async () => {
     if (!suggestion.link) return;
     logClick.mutate({
       recipientId: suggestion.recipient_id,
@@ -50,49 +52,70 @@ export default function PrimaryGiftCard({
       occasionId: occasionId ?? suggestion.occasion_id ?? null,
       productUrl: suggestion.link,
     });
-    openLink(suggestion.link);
+    const opened = await openLink(suggestion.link);
+    if (!opened) setOpenFailed(true);
+  };
+
+  const handleCopyLink = async () => {
+    if (!suggestion.link) return;
+    await Clipboard.setStringAsync(suggestion.link);
+    setOpenFailed(false);
   };
 
   return (
-    <View style={styles.card}>
-      <View style={styles.actionRow}>
-        <GiftCardActionButton suggestion={suggestion} occasionId={occasionId} />
-        <GiftCardExpandButton expanded onPress={onCollapse} />
-      </View>
-
-      {showImage && suggestion.image_url && (
-        <View style={styles.imageWrap}>
-          <Image
-            source={{ uri: suggestion.image_url }}
-            style={styles.image}
-            resizeMode="contain"
+    <>
+      <View style={styles.card}>
+        <View style={styles.actionRow}>
+          <GiftCardActionButton
+            suggestion={suggestion}
+            occasionId={occasionId}
           />
+          <GiftCardExpandButton expanded onPress={onCollapse} />
         </View>
-      )}
 
-      <Text style={styles.title}>{suggestion.title}</Text>
-      <View style={styles.priceRow}>
-        <Text style={styles.price}>{formatPrice(suggestion.price)}</Text>
-        {suggestion.link && (
-          <Button
-            mode="text"
-            compact
-            textColor={Colors.blues.dark}
-            onPress={handleViewProduct}
-            labelStyle={styles.ctaLabel}
-          >
-            Get this gift ›
-          </Button>
+        {showImage && suggestion.image_url && (
+          <View style={styles.imageWrap}>
+            <Image
+              source={{ uri: suggestion.image_url }}
+              style={styles.image}
+              resizeMode="contain"
+            />
+          </View>
+        )}
+
+        <Text style={styles.title}>{suggestion.title}</Text>
+        <View style={styles.priceRow}>
+          <Text style={styles.price}>{formatPrice(suggestion.price)}</Text>
+          {suggestion.link && (
+            <Button
+              mode="text"
+              compact
+              textColor={Colors.blues.dark}
+              onPress={handleViewProduct}
+              labelStyle={styles.ctaLabel}
+            >
+              Get this gift ›
+            </Button>
+          )}
+        </View>
+
+        {suggestion.description && (
+          <View style={styles.whySection}>
+            <Text style={styles.whyHeading}>Why this fits</Text>
+            <Text style={styles.whyBody}>{suggestion.description}</Text>
+          </View>
         )}
       </View>
 
-      {suggestion.description && (
-        <View style={styles.whySection}>
-          <Text style={styles.whyHeading}>Why this fits</Text>
-          <Text style={styles.whyBody}>{suggestion.description}</Text>
-        </View>
-      )}
-    </View>
+      <Snackbar
+        visible={openFailed}
+        onDismiss={() => setOpenFailed(false)}
+        duration={6000}
+        action={{ label: "Copy link", onPress: handleCopyLink }}
+      >
+        We couldn&apos;t open this product page. Try copying the link instead.
+      </Snackbar>
+    </>
   );
 }
 
