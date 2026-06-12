@@ -1,24 +1,29 @@
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 import { Colors } from "../../lib/colors";
+import { Typography, Radii } from "../../lib/typography";
 import type { GiftSuggestion } from "../../types/recipient";
 import GiftCardExpandButton from "./GiftCardExpandButton";
 
 type CollapsedGiftCardProps = {
   suggestion: GiftSuggestion;
   onPress: () => void;
+  /** Past Gifts use an outlined (stroke, no fill) row to read as distinct from
+   * the filled "new" recommendation cards. */
+  outlined?: boolean;
 };
 
 export default function CollapsedGiftCard({
   suggestion,
   onPress,
+  outlined = false,
 }: CollapsedGiftCardProps) {
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`Expand ${suggestion.title}`}
-      style={styles.row}
+      style={[styles.row, outlined ? styles.outlined : styles.filled]}
     >
       <Text style={styles.title} numberOfLines={1}>
         {suggestion.title}
@@ -32,8 +37,7 @@ export default function CollapsedGiftCard({
 
 const styles = StyleSheet.create({
   row: {
-    backgroundColor: Colors.white,
-    borderRadius: 18,
+    borderRadius: Radii.md,
     paddingVertical: 16,
     paddingHorizontal: 20,
     flexDirection: "row",
@@ -41,11 +45,18 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 12,
   },
+  filled: {
+    backgroundColor: Colors.white,
+  },
+  outlined: {
+    backgroundColor: Colors.transparent,
+    borderWidth: 2,
+    borderColor: Colors.brand.mediumTeal,
+  },
   title: {
+    ...Typography.h2,
     flex: 1,
-    fontFamily: "Fraunces_600SemiBold",
-    color: Colors.blues.dark,
-    fontSize: 16,
+    color: Colors.brand.darkTeal,
   },
   actionWrap: {
     flexShrink: 0,

@@ -12,8 +12,7 @@ export default function GiftCardExpandButton({
   expanded,
   onPress,
 }: GiftCardExpandButtonProps) {
-  const iconName = expanded ? "expand-less" : "expand-more";
-  const color = expanded ? Colors.blues.medium : Colors.yellows.gold;
+  const color = expanded ? Colors.brand.mediumTeal : Colors.brand.gold;
 
   return (
     <Pressable
@@ -21,20 +20,26 @@ export default function GiftCardExpandButton({
       hitSlop={8}
       accessibilityRole="button"
       accessibilityLabel={expanded ? "Collapse gift" : "Expand gift"}
-      style={[styles.button, { borderColor: color }]}
+      style={styles.button}
     >
-      <MaterialIcons name={iconName} size={20} color={color} />
+      <MaterialIcons
+        name="expand-circle-down"
+        size={24}
+        color={color}
+        // The Figma asset is `expand_circle_down` for both states; rotate it to
+        // read as a collapse affordance when the card is open.
+        style={expanded ? styles.flipped : undefined}
+      />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   button: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  flipped: {
+    transform: [{ rotate: "180deg" }],
   },
 });

@@ -3,9 +3,14 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { ActivityIndicator, Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
+import { FontFamily } from "../../lib/typography";
 import type { GiftSuggestion } from "../../types/recipient";
 import PrimaryGiftCard from "./PrimaryGiftCard";
 import CollapsedGiftCard from "./CollapsedGiftCard";
+
+/** How many of the newest suggestions show as active recommendation cards.
+ * Anything older falls into the collapsed "Past Gifts" section (DEV-165). */
+const ACTIVE_COUNT = 3;
 
 type GiftSuggestionsListProps = {
   suggestions: GiftSuggestion[];
@@ -20,9 +25,6 @@ type GiftSuggestionsListProps = {
   occasionLabel?: string;
   /** Clears the occasion filter to reveal every suggestion. */
   onClearOccasionFilter?: () => void;
-  /** Fired when a collapsed suggestion is expanded (hoisted to the top), so the
-   * host can scroll its view back up to reveal the newly featured card. */
-  onExpand?: () => void;
 };
 
 const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
@@ -33,31 +35,29 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
   occasionId = null,
   occasionLabel,
   onClearOccasionFilter,
-  onExpand,
 }) => {
-  // `undefined` = default (feature the first suggestion); `null` = user
-  // collapsed everything; a string = a specific featured suggestion.
+  // `undefined` = default (feature the newest active suggestion); `null` = user
+  // collapsed everything; a string = a specific featured suggestion. A single
+  // accordion state spans both the active and Past Gifts cards: only one card is
+  // open at a time and it expands in place — never reordered to the top.
   const [expandedId, setExpandedId] = useState<string | null | undefined>(
     undefined
   );
 
-  const handleExpand = (id: string) => {
-    setExpandedId(id);
-    onExpand?.();
-  };
-
-  const handleCollapse = () => {
-    setExpandedId(null);
-  };
+  const handleExpand = (id: string) => setExpandedId(id);
+  const handleCollapse = () => setExpandedId(null);
 
   const visibleSuggestions = occasionId
     ? suggestions.filter((s) => s.occasion_id === occasionId)
     : suggestions;
 
+  // Suggestions arrive newest-first (api orders by generated_at desc). The newest
+  // three are the active recommendations; the remainder are "Past Gifts".
+  const activeSuggestions = visibleSuggestions.slice(0, ACTIVE_COUNT);
+  const pastSuggestions = visibleSuggestions.slice(ACTIVE_COUNT);
+
   const activeId =
-    expandedId === undefined ? visibleSuggestions[0]?.id ?? null : expandedId;
-  const primary = visibleSuggestions.find((s) => s.id === activeId);
-  const rest = visibleSuggestions.filter((s) => s.id !== activeId);
+    expandedId === undefined ? activeSuggestions[0]?.id ?? null : expandedId;
 
   if (loading) {
     return (
@@ -106,6 +106,23 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
     );
   }
 
+  const renderCard = (suggestion: GiftSuggestion, outlined: boolean) =>
+    suggestion.id === activeId ? (
+      <PrimaryGiftCard
+        key={suggestion.id}
+        suggestion={suggestion}
+        occasionId={occasionId}
+        onCollapse={handleCollapse}
+      />
+    ) : (
+      <CollapsedGiftCard
+        key={suggestion.id}
+        suggestion={suggestion}
+        outlined={outlined}
+        onPress={() => handleExpand(suggestion.id)}
+      />
+    );
+
   return (
     <View>
       {occasionHeader}
@@ -119,21 +136,17 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
       )}
 
       <View style={styles.list}>
-        {primary && (
-          <PrimaryGiftCard
-            suggestion={primary}
-            occasionId={occasionId}
-            onCollapse={handleCollapse}
-          />
-        )}
-        {rest.map((s) => (
-          <CollapsedGiftCard
-            key={s.id}
-            suggestion={s}
-            onPress={() => handleExpand(s.id)}
-          />
-        ))}
+        {activeSuggestions.map((s) => renderCard(s, false))}
       </View>
+
+      {pastSuggestions.length > 0 && (
+        <View style={styles.pastSection}>
+          <Text style={styles.pastHeader}>Past Gifts</Text>
+          <View style={styles.list}>
+            {pastSuggestions.map((s) => renderCard(s, true))}
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -143,6 +156,17 @@ export default GiftSuggestionsList;
 const styles = StyleSheet.create({
   list: {
     gap: 12,
+  },
+  pastSection: {
+    marginTop: 28,
+    gap: 12,
+  },
+  pastHeader: {
+    fontFamily: FontFamily.sans.semibold,
+    fontSize: 11,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    color: Colors.brand.darkTeal,
   },
   loadingContainer: {
     alignItems: "center",
