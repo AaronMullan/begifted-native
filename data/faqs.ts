@@ -6,13 +6,9 @@
  * fallback used by `lib/faq-sheet.ts` when EXPO_PUBLIC_FAQ_SHEET_ID is unset.
  *
  * Gating (DEV-153): five copydeck entries are intentionally held back because
- * they describe features that are not live in the beta yet. Restore them when
- * the related work ships:
- *   - "Can I add or edit occasions for someone?"   — DES-5 (add/edit occasions from profile)
- *   - "Do occasions repeat every year?"            — DEV-154 (recurring occasions)
- *   - "How do I get help?" (Support & Help flow)   — DES-6 (Support & Help is still "Coming Soon")
- *   - "What if I forget my password?"              — DES-7 (forgot password)
- *   - "Can I resend my verification email?"        — DES-7 (resend verification email)
+ * they describe features that are not live in the beta yet. Their full approved
+ * copy is preserved in the GATED_FAQS block below — when the related work ships,
+ * uncomment each entry and move it into the `faqs` array in its copydeck section.
  */
 export const faqs = [
   // Getting Started
@@ -81,3 +77,34 @@ export const faqs = [
     a: "The current beta is for iPhone.\n\nBeta access is limited while we test, improve, and expand the experience.",
   },
 ];
+
+/**
+ * GATED_FAQS — approved copy held back until the related feature ships (DEV-153).
+ * Not rendered. To restore an entry, move it into `faqs` above (into the section
+ * noted in its comment) once the linked work is live.
+ */
+// {
+//   // People & Occasions — restore when DES-5 (add/edit occasions from profile) ships
+//   q: "Can I add or edit occasions for someone?",
+//   a: "Yes. You can add, edit, or remove occasions from a person’s profile so BeGifted knows which moments matter.",
+// },
+// {
+//   // People & Occasions — restore when DEV-154 (recurring occasions) ships
+//   q: "Do occasions repeat every year?",
+//   a: "Some occasions, like birthdays and anniversaries, can repeat every year so you do not have to recreate them each time.",
+// },
+// {
+//   // Access & Support — restore when DES-6 (Support & Help contact flow) ships
+//   q: "How do I get help?",
+//   a: "Go to Support & Help in Settings to contact the BeGifted team.",
+// },
+// {
+//   // Access & Support — restore when DES-7 (forgot password) ships
+//   q: "What if I forget my password?",
+//   a: "Use “Forgot password” on the sign-in screen to reset your password.",
+// },
+// {
+//   // Access & Support — restore when DES-7 (resend verification email) ships
+//   q: "Can I resend my verification email?",
+//   a: "Yes. From the verification screen, you can request a new verification email.",
+// },
