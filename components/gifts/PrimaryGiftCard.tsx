@@ -81,7 +81,7 @@ export default function PrimaryGiftCard({
             onPress={handleViewProduct}
             labelStyle={styles.ctaLabel}
           >
-            View Product ›
+            Get this gift ›
           </Button>
         )}
       </View>
