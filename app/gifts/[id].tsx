@@ -4,6 +4,7 @@ import { ActivityIndicator, Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Colors } from "../../lib/colors";
+import { Typography, FontFamily } from "../../lib/typography";
 import { BOTTOM_NAV_HEIGHT, HEADER_HEIGHT } from "../../lib/constants";
 import { useRecipient } from "../../hooks/use-recipient";
 import { useGiftSuggestions } from "../../hooks/use-gift-suggestions";
@@ -21,12 +22,13 @@ type GiftIdeasHeaderProps = {
 };
 
 function GiftIdeasHeader({ name, onAboutPress }: GiftIdeasHeaderProps) {
-  const titleName = name ? `${name}'s` : "Their";
-  const aboutLabel = name ? `ABOUT ${name.toUpperCase()}` : "ABOUT THEM";
+  const possessive = name ? `${name}'s` : "Their";
+  const aboutLabel = name ? `About ${name}` : "About them";
 
   return (
     <View style={styles.header}>
-      <Text style={styles.title}>{titleName} Gift Ideas</Text>
+      <Text style={styles.title}>{possessive}</Text>
+      <Text style={styles.title}>Gift Ideas</Text>
       <Pressable
         onPress={onAboutPress}
         accessibilityRole="link"
@@ -37,7 +39,7 @@ function GiftIdeasHeader({ name, onAboutPress }: GiftIdeasHeaderProps) {
         <MaterialIcons
           name="chevron-right"
           size={14}
-          color={Colors.blues.teal}
+          color={Colors.brand.gold}
         />
       </Pressable>
     </View>
@@ -79,11 +81,7 @@ export default function GiftIdeasPage() {
     >
       <View style={styles.content}>
         <GiftIdeasHeader name={name} onAboutPress={handleAboutPress} />
-        <GiftSuggestionsList
-          suggestions={suggestions}
-          recipientName={name}
-          onExpand={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
-        />
+        <GiftSuggestionsList suggestions={suggestions} recipientName={name} />
       </View>
     </ScrollView>
   );
@@ -104,25 +102,23 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   header: {
-    gap: 6,
+    gap: 2,
   },
   title: {
-    fontFamily: "Fraunces_600SemiBold",
-    color: Colors.blues.dark,
-    fontSize: 32,
-    lineHeight: 38,
+    ...Typography.h1,
+    color: Colors.brand.darkTeal,
   },
   aboutRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 2,
+    marginTop: 6,
   },
   aboutLabel: {
-    fontFamily: "RobotoFlex_400Regular",
-    color: Colors.blues.teal,
-    fontSize: 12,
-    fontWeight: "600",
-    letterSpacing: 1.2,
+    fontFamily: FontFamily.sans.semibold,
+    color: Colors.brand.gold,
+    fontSize: 11,
+    lineHeight: 12,
   },
   centered: {
     flex: 1,

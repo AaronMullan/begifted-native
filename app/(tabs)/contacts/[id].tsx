@@ -722,9 +722,6 @@ export default function RecipientEditPage() {
               occasionId={occasionFilter}
               occasionLabel={occasionLabel}
               onClearOccasionFilter={() => setOccasionFilter(null)}
-              onExpand={() =>
-                scrollRef.current?.scrollTo({ y: 0, animated: true })
-              }
             />
           </View>
         )}

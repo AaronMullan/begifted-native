@@ -3,6 +3,7 @@ import * as Clipboard from "expo-clipboard";
 import { Image, StyleSheet, View } from "react-native";
 import { Button, Snackbar, Text } from "react-native-paper";
 import { Colors } from "../../lib/colors";
+import { Typography, FontFamily, Radii } from "../../lib/typography";
 import { openLink } from "../../lib/open-link";
 import { useLogOutboundClick } from "../../hooks/use-log-outbound-click";
 import type { GiftSuggestion } from "../../types/recipient";
@@ -15,7 +16,7 @@ type PrimaryGiftCardProps = {
   onCollapse: () => void;
 };
 
-const MIN_IMAGE_SIZE = 200;
+const IMAGE_SIZE = 200;
 
 const formatPrice = (price?: number) => {
   if (!price) return "Price not available";
@@ -39,7 +40,7 @@ export default function PrimaryGiftCard({
     if (!suggestion.image_url) return;
     Image.getSize(
       suggestion.image_url,
-      (w, h) => setShowImage(w >= MIN_IMAGE_SIZE && h >= MIN_IMAGE_SIZE),
+      (w, h) => setShowImage(w >= IMAGE_SIZE && h >= IMAGE_SIZE),
       () => setShowImage(false)
     );
   }, [suggestion.image_url]);
@@ -65,11 +66,7 @@ export default function PrimaryGiftCard({
   return (
     <>
       <View style={styles.card}>
-        <View style={styles.actionRow}>
-          <GiftCardActionButton
-            suggestion={suggestion}
-            occasionId={occasionId}
-          />
+        <View style={styles.topRow}>
           <GiftCardExpandButton expanded onPress={onCollapse} />
         </View>
 
@@ -90,21 +87,28 @@ export default function PrimaryGiftCard({
             <Button
               mode="text"
               compact
-              textColor={Colors.blues.dark}
+              textColor={Colors.brand.gold}
               onPress={handleViewProduct}
               labelStyle={styles.ctaLabel}
             >
-              Get this gift ›
+              View Product ›
             </Button>
           )}
         </View>
 
         {suggestion.description && (
           <View style={styles.whySection}>
-            <Text style={styles.whyHeading}>Why this fits</Text>
+            <Text style={styles.whyHeading}>Why This Fits</Text>
             <Text style={styles.whyBody}>{suggestion.description}</Text>
           </View>
         )}
+
+        <View style={styles.bottomRow}>
+          <GiftCardActionButton
+            suggestion={suggestion}
+            occasionId={occasionId}
+          />
+        </View>
       </View>
 
       <Snackbar
@@ -122,39 +126,35 @@ export default function PrimaryGiftCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.white,
-    borderRadius: 18,
+    borderRadius: Radii.md,
     padding: 20,
     gap: 12,
   },
-  actionRow: {
+  topRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
     alignItems: "center",
-    gap: 8,
   },
   imageWrap: {
-    aspectRatio: 1,
-    width: "100%",
+    width: IMAGE_SIZE,
+    height: IMAGE_SIZE,
+    alignSelf: "center",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 16,
-    paddingBottom: 8,
   },
   image: {
     width: "100%",
     height: "100%",
   },
   title: {
-    fontFamily: "Fraunces_600SemiBold",
-    color: Colors.blues.dark,
-    fontSize: 20,
-    lineHeight: 24,
+    ...Typography.h2,
+    color: Colors.brand.darkTeal,
   },
   price: {
-    fontFamily: "RobotoFlex_400Regular",
-    color: Colors.yellows.gold,
-    fontSize: 16,
-    fontWeight: "500",
+    fontFamily: FontFamily.sans.semibold,
+    color: Colors.brand.gold,
+    fontSize: 11,
+    lineHeight: 12,
   },
   priceRow: {
     flexDirection: "row",
@@ -162,26 +162,32 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   ctaLabel: {
-    fontFamily: "RobotoFlex_400Regular",
-    fontSize: 14,
-    fontWeight: "500",
-    letterSpacing: 0.2,
+    fontFamily: FontFamily.sans.semibold,
+    fontSize: 11,
+    lineHeight: 12,
+    marginVertical: 0,
   },
   whySection: {
     gap: 6,
     paddingTop: 4,
   },
   whyHeading: {
-    fontFamily: "RobotoFlex_400Regular",
-    color: Colors.blues.dark,
-    fontSize: 13,
-    fontWeight: "700",
+    fontFamily: FontFamily.sans.semibold,
+    color: Colors.brand.darkTeal,
+    fontSize: 11,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   whyBody: {
-    fontFamily: "RobotoFlex_400Regular",
-    color: Colors.blues.dark,
-    fontSize: 14,
-    lineHeight: 20,
-    opacity: 0.85,
+    fontFamily: FontFamily.sans.regular,
+    color: Colors.darks.black,
+    fontSize: 10,
+    lineHeight: 12,
+  },
+  bottomRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    paddingTop: 4,
   },
 });
