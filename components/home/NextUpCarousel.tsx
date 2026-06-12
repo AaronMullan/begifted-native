@@ -1,4 +1,10 @@
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -13,14 +19,20 @@ import {
   possessive,
 } from "../../utils/home-occasions";
 import OccasionAvatar from "./OccasionAvatar";
-import { HOME_EDGE_INSET } from "./home-layout";
+import { homeCardWidth, HOME_EDGE_INSET } from "./home-layout";
 
 type NextUpCarouselProps = {
   occasions: Occasion[];
 };
 
 export default function NextUpCarousel({ occasions }: NextUpCarouselProps) {
+  const { width: windowWidth } = useWindowDimensions();
+
   if (occasions.length === 0) return null;
+
+  // Size cards to the viewport so two full cards + a fixed peek always fit,
+  // regardless of phone width (DEV-162).
+  const cardWidth = homeCardWidth(windowWidth);
 
   return (
     <View style={styles.section}>
@@ -32,7 +44,12 @@ export default function NextUpCarousel({ occasions }: NextUpCarouselProps) {
         contentContainerStyle={styles.scrollContent}
       >
         {occasions.map((occasion, index) => (
-          <NextUpCard key={occasion.id} occasion={occasion} index={index} />
+          <NextUpCard
+            key={occasion.id}
+            occasion={occasion}
+            index={index}
+            width={cardWidth}
+          />
         ))}
       </ScrollView>
     </View>
@@ -42,9 +59,11 @@ export default function NextUpCarousel({ occasions }: NextUpCarouselProps) {
 function NextUpCard({
   occasion,
   index,
+  width,
 }: {
   occasion: Occasion;
   index: number;
+  width: number;
 }) {
   const router = useRouter();
   const name = occasion.recipient?.name ?? "Someone";
@@ -66,7 +85,7 @@ function NextUpCard({
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={`View ${possessive(name)} gift ideas`}
-      style={[styles.card, { backgroundColor: cardColor }]}
+      style={[styles.card, { width, backgroundColor: cardColor }]}
     >
       <OccasionAvatar
         name={name}
@@ -100,12 +119,12 @@ function NextUpCard({
   );
 }
 
-// Spec: Figma frame 2182:2182 NEXT UP cards (175x150, radius 12). Cards
-// alternate medium-teal / gold; 30px avatar top-left, dark-teal eyebrow,
-// white H2 title, dark-teal large CTA. Carousel keeps horizontal scrolling
-// while the first two tiles line up like the static 2-up design.
-const CARD_WIDTH = 175;
-
+// Spec: Figma frame 2182:2182 NEXT UP cards (175x150 at the 402pt frame, radius
+// 12). Cards alternate medium-teal / gold; 30px avatar top-left, dark-teal
+// eyebrow, white H2 title, dark-teal large CTA. Width is now derived per device
+// (see `homeCardWidth`) so two cards + a peek fit on any width; only the height
+// is fixed here. Carousel keeps horizontal scrolling while the first two tiles
+// line up like the static 2-up design.
 const styles = StyleSheet.create({
   section: {
     // Section head → cards (Figma Dev Mode, DEV-161): 17pt.
@@ -126,7 +145,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: HOME_EDGE_INSET,
   },
   card: {
-    width: CARD_WIDTH,
     borderRadius: Radii.md,
     paddingHorizontal: 13,
     paddingVertical: 15,
