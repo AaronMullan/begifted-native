@@ -51,6 +51,11 @@ export interface ExtractedData {
   // while spouse/partner status alone never implies parenthood (DEV-114).
   knownRoles?: string[];
   householdContext?: string;
+  // Cultural/ethnic/religious context and important personal dates captured
+  // during extraction. Feed the occasion prompt's {{culturalContext}} and
+  // {{importantDates}} placeholders (DEV-156).
+  culturalContext?: string;
+  importantDates?: string[];
   gift_budget_min?: number;
   gift_budget_max?: number;
   address?: string;

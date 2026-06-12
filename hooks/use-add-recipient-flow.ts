@@ -378,6 +378,10 @@ export function useAddRecipientFlow(
         // is also a parent (DEV-114). Synthesis later refines the saved copy.
         knownRoles: extracted.knownRoles || undefined,
         householdContext: extracted.householdContext || undefined,
+        // Cultural context + important personal dates feed the occasion prompt's
+        // {{culturalContext}} / {{importantDates}} placeholders (DEV-156).
+        culturalContext: extracted.culturalContext || undefined,
+        importantDates: extracted.importantDates || undefined,
         gift_budget_min: extracted.gift_budget_min || undefined,
         gift_budget_max: extracted.gift_budget_max || undefined,
         address: extracted.address || initialAddress?.address || undefined,
