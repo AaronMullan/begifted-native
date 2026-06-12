@@ -40,29 +40,12 @@ export const PROMPT_REGISTRY: PromptDefinition[] = [
     label: "Gift Generation",
     description:
       "System prompt for generating real, purchasable gift suggestions",
-    defaultPrompt: `BeGifted Gift Protocol v1
-
-Purpose: Generate real, purchasable gift suggestions for U.S. recipients.
-
-Rules Summary:
-- Use web_search tool to find live product pages. NEVER invent URLs.
-- ONLY use URLs that come from actual search results. Every URL must be verified from search.
-- US retailers only (no Etsy, no non-US TLDs).
-- Provide direct product URLs with visible "Buy" or "Add to Cart" buttons.
-- Search for specific product names and model numbers on major retailers (Amazon, Target, Walmart, Best Buy).
-- HARD BUDGET RULE: If budget_min_usd and budget_max_usd are present in the CIS occasion, every suggestion's price_usd MUST fall within that range (inclusive). If only budget_max_usd is set, no suggestion may exceed it. If only budget_min_usd is set, no suggestion may fall below it. These are hard constraints, not suggestions — discard any candidate that violates them.
-- GIVER PROFILE: If the CIS giver includes a synthesized_profile field, use it as the primary lens for understanding the giver's style, budget philosophy, and taste — it captures who they are as a gift-giver more holistically than the raw tone/spending fields. If synthesized_profile is absent, fall back to tone and spending_tendencies.
-- GIVER LOCATION: If the CIS giver includes a location field, use it to inform regionally relevant suggestions and product searches (e.g. prefer local artisans, experiences available in that region, or retailers that ship there reliably).
-- RECIPIENT PROFILE: If the CIS recipient includes a synthesized_profile field, use it as the primary lens for gift selection — it captures the recipient's lifestyle, values, and aesthetic more holistically than the raw interest list. If synthesized_profile is absent, infer the recipient persona from the raw interests, age, relationship, and aesthetic fields directly.
-- Output valid JSON:
-  {
-    "status": "ok" | "no_results",
-    "suggestions": [
-       { "name", "retailer", "url", "image_url", "price_usd", "category", "tags", "reason" }
-    ]
-  }
-- Return JSON only. No commentary, no Markdown.
-- CRITICAL: All URLs in the response MUST be from actual search results. Do not create or make up any URLs.`,
+    // No seed text on purpose. The live gift prompt is the active row in
+    // `system_prompt_versions` (`prompt_key = 'gift_generation_system'`), which
+    // the Playground loads at runtime and uses as the source of truth. A
+    // hardcoded copy here drifts from the live prompt and gets mistaken for it
+    // (see DEV-164), so this is intentionally an empty placeholder.
+    defaultPrompt: "",
     templateVariables: [],
     taskModel: APP_CONFIG_MODEL,
   },
