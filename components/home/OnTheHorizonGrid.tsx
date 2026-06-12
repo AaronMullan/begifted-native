@@ -54,9 +54,12 @@ function HorizonCard({ occasion }: { occasion: Occasion }) {
       )}`}
       style={styles.card}
     >
-      <Text style={styles.title}>
-        {possessive(name)} {formatOccasionType(occasion.occasion_type)}
-      </Text>
+      <View style={styles.titleGroup}>
+        <Text style={styles.title}>{possessive(name)}</Text>
+        <Text style={styles.title}>
+          {formatOccasionType(occasion.occasion_type)}
+        </Text>
+      </View>
       <View style={styles.footer}>
         <View style={styles.dateRow}>
           <Text style={styles.dateText}>{formatShortDate(occasion.date)}</Text>
@@ -105,6 +108,11 @@ const styles = StyleSheet.create({
     minHeight: 70,
     justifyContent: "space-between",
     gap: 8,
+  },
+  titleGroup: {
+    // Name and occasion stack on separate lines (DEV-163) to free up layout
+    // room for responsive resizing (DEV-162). Tight line stacking; exact
+    // spacing/type pending the Figma Dev Mode audit (DEV-161).
   },
   title: {
     ...Typography.h3,
