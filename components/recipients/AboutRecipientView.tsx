@@ -172,6 +172,9 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
               <Text style={styles.occasionDate}>
                 {formatOccasionDate(occasion.date)}
               </Text>
+              <Text style={styles.occasionRecurrence}>
+                {occasion.is_annual ? "Repeats yearly" : "One-time"}
+              </Text>
             </View>
             <Menu
               visible={openMenuId === occasion.id}
@@ -340,11 +343,11 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
           occasion={editingOccasion}
           visible={!!editingOccasion}
           onClose={() => setEditingOccasion(null)}
-          onSave={(date) => {
+          onSave={(date, isAnnual) => {
             updateOccasion.mutate({
               occasionId: editingOccasion.id,
               recipientId: recipient.id,
-              fields: { date },
+              fields: { date, is_annual: isAnnual },
             });
           }}
         />
@@ -768,6 +771,11 @@ const styles = StyleSheet.create({
   occasionDate: {
     fontSize: 14,
     color: Colors.yellows.orange,
+    marginTop: 2,
+  },
+  occasionRecurrence: {
+    fontSize: 12,
+    color: Colors.blues.medium,
     marginTop: 2,
   },
   overflowButton: {

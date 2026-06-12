@@ -80,6 +80,8 @@ export interface Occasion {
   date: string;
   occasion_type: string;
   recipient_id: string;
+  /** Whether the occasion repeats every year (birthdays, anniversaries) or is one-time. */
+  is_annual: boolean;
   recipient?: {
     name: string;
     relationship_type: string;
@@ -131,7 +133,7 @@ export async function fetchOccasions(userId: string): Promise<Occasion[]> {
   // Fetch occasions
   const { data: occasionsData, error: occasionsError } = await supabase
     .from("occasions")
-    .select("id, date, occasion_type, recipient_id")
+    .select("id, date, occasion_type, recipient_id, is_annual")
     .eq("user_id", userId)
     .gte("date", today.toISOString().split("T")[0])
     .order("date", { ascending: true });
@@ -182,6 +184,7 @@ export async function fetchOccasions(userId: string): Promise<Occasion[]> {
       date: occasion.date,
       occasion_type: occasion.occasion_type || "birthday",
       recipient_id: occasion.recipient_id,
+      is_annual: occasion.is_annual ?? true,
       recipient: recipient
         ? {
             name: recipient.name,
@@ -203,7 +206,7 @@ export async function fetchRecipientOccasions(
 ): Promise<Occasion[]> {
   const { data, error } = await supabase
     .from("occasions")
-    .select("id, date, occasion_type, recipient_id")
+    .select("id, date, occasion_type, recipient_id, is_annual")
     .eq("recipient_id", recipientId)
     .order("date", { ascending: true });
 
@@ -211,6 +214,7 @@ export async function fetchRecipientOccasions(
   return (data || []).map((o) => ({
     ...o,
     occasion_type: o.occasion_type || "birthday",
+    is_annual: o.is_annual ?? true,
   }));
 }
 
@@ -219,7 +223,7 @@ export async function fetchRecipientOccasions(
  */
 export async function updateOccasion(
   occasionId: string,
-  fields: { date?: string; occasion_type?: string }
+  fields: { date?: string; occasion_type?: string; is_annual?: boolean }
 ): Promise<void> {
   const { error } = await supabase
     .from("occasions")
@@ -236,7 +240,8 @@ export async function createOccasion(
   userId: string,
   recipientId: string,
   date: string,
-  occasionType: string
+  occasionType: string,
+  isAnnual: boolean = true
 ): Promise<Occasion> {
   const { data, error } = await supabase
     .from("occasions")
@@ -245,12 +250,17 @@ export async function createOccasion(
       recipient_id: recipientId,
       date,
       occasion_type: occasionType,
+      is_annual: isAnnual,
     })
-    .select("id, date, occasion_type, recipient_id")
+    .select("id, date, occasion_type, recipient_id, is_annual")
     .single();
 
   if (error) throw error;
-  return { ...data, occasion_type: data.occasion_type || occasionType };
+  return {
+    ...data,
+    occasion_type: data.occasion_type || occasionType,
+    is_annual: data.is_annual ?? isAnnual,
+  };
 }
 
 /**
