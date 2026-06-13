@@ -20,12 +20,24 @@ export const HOME_CARD_PEEK = 32;
 
 /**
  * Card width that shows exactly two full cards plus {@link HOME_CARD_PEEK} of
- * the next, given the live window width (the carousel bleeds edge-to-edge, so
- * the window width is the usable track). Layout across the track:
- * `card · gap · card · gap · peek`. Solving for the card:
- *   2·W + 2·gap + peek = windowWidth  →  W = (windowWidth − 2·gap − peek) / 2
- * At the 402pt design frame this returns 175, matching Figma exactly.
+ * the next, given the live window width.
+ *
+ * The carousel track spans the full window, but its content is inset by one
+ * {@link HOME_EDGE_INSET} on the left so the first card aligns with the content
+ * column (the hero card, section labels). The peek then appears at the right
+ * screen edge. Layout from the left screen edge:
+ *   inset · card · gap · card · gap · peek
+ * Solving for the card:
+ *   inset + 2·W + 2·gap + peek = windowWidth
+ *   → W = (windowWidth − inset − 2·gap − peek) / 2
+ *
+ * Dropping the `inset` term (the original DEV-162 bug) made every card 10pt too
+ * wide, which pinned the peek at a constant ~12pt on all devices instead of 32 —
+ * present but too subtle to read as "scroll me". At the 402pt design frame this
+ * now returns 165; the next card peeks a true 32pt on every width.
  */
 export function homeCardWidth(windowWidth: number): number {
-  return (windowWidth - 2 * HOME_CARD_GAP - HOME_CARD_PEEK) / 2;
+  return (
+    (windowWidth - HOME_EDGE_INSET - 2 * HOME_CARD_GAP - HOME_CARD_PEEK) / 2
+  );
 }
