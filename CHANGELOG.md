@@ -19,6 +19,11 @@ heading (e.g. `## 2026-06-15 — OTA`) and tag the release commit. Started
 
 ### App (ships next build / OTA)
 
+- Removing the gift you're currently viewing on a recipient's **Gifts** tab no
+  longer drops you into an empty list — the next gift idea now opens
+  automatically in the main view, so it feels like "here's the next best idea"
+  instead of the browsing flow ending. Applies to "Remove this idea", "Not for
+  them", "They already have this", and "Product problem" (DEV-167).
 - The bottom menu bar and top header now stay pinned in place at all times —
   they no longer slide away when you scroll down or reappear when you scroll up.
   Page content scrolls beneath them while both stay fixed and tappable (DEV-173).

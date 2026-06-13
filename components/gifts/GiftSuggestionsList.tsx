@@ -56,8 +56,21 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
   const activeSuggestions = visibleSuggestions.slice(0, ACTIVE_COUNT);
   const pastSuggestions = visibleSuggestions.slice(ACTIVE_COUNT);
 
+  // If the currently open gift was just removed (or filtered out of view), the
+  // stale `expandedId` would match no card and collapse the page to a list-only
+  // dead state. Fall back to the first active recommendation so one gift always
+  // stays open in display mode while valid recommendations remain (DEV-167). An
+  // explicit user collapse (`null`) is still respected.
+  const expandedStillVisible =
+    typeof expandedId === "string" &&
+    visibleSuggestions.some((s) => s.id === expandedId);
+
   const activeId =
-    expandedId === undefined ? activeSuggestions[0]?.id ?? null : expandedId;
+    expandedId === null
+      ? null
+      : expandedStillVisible
+      ? expandedId
+      : activeSuggestions[0]?.id ?? null;
 
   if (loading) {
     return (
