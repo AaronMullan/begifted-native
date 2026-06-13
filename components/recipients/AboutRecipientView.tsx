@@ -36,6 +36,7 @@ import {
   normalizeBirthday,
 } from "../../utils/birthday";
 import { formatOccasionType } from "../../utils/home-occasions";
+import { cleanRelationship } from "../../lib/format-name";
 
 type AboutRecipientViewProps = {
   recipient: Recipient;
@@ -270,7 +271,7 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
               <View style={styles.col}>
                 <Text style={styles.fieldLabel}>RELATIONSHIP</Text>
                 <Text style={styles.fieldValue}>
-                  {recipient.relationship_type}
+                  {cleanRelationship(recipient.relationship_type) || "—"}
                 </Text>
               </View>
             </View>
@@ -579,8 +580,10 @@ const InformationDialog: React.FC<InformationDialogProps> = ({
   const seedBirthday = (b?: string) => (b ? b.replace(/^--/, "") : "");
 
   const [name, setName] = useState(recipient.name);
+  // Seed empty when the stored value is the placeholder "null" so Save can't
+  // silently re-persist it; the user must enter a real relationship (DEV-139).
   const [relationshipType, setRelationshipType] = useState(
-    recipient.relationship_type
+    cleanRelationship(recipient.relationship_type)
   );
   const [birthday, setBirthday] = useState(seedBirthday(recipient.birthday));
   const [saving, setSaving] = useState(false);
@@ -588,7 +591,7 @@ const InformationDialog: React.FC<InformationDialogProps> = ({
   React.useEffect(() => {
     if (visible) {
       setName(recipient.name);
-      setRelationshipType(recipient.relationship_type);
+      setRelationshipType(cleanRelationship(recipient.relationship_type));
       setBirthday(seedBirthday(recipient.birthday));
     }
   }, [visible, recipient]);
