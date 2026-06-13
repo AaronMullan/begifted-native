@@ -35,6 +35,7 @@ import {
   isInvalidBirthdayInput,
   normalizeBirthday,
 } from "../../utils/birthday";
+import { formatOccasionType } from "../../utils/home-occasions";
 
 type AboutRecipientViewProps = {
   recipient: Recipient;
@@ -51,10 +52,6 @@ type AboutRecipientViewProps = {
   onOpenUpdateChat: () => void;
   onDelete: () => void;
 };
-
-function formatOccasionType(type: string): string {
-  return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
 
 function formatOccasionDate(dateString: string): string {
   const [year, month, day] = dateString.split("-").map(Number);
