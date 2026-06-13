@@ -107,24 +107,25 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   container: {
-    paddingTop: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: "rgba(255,255,255,0.15)",
     backgroundColor: Colors.blues.medium,
   },
   navContent: {
+    // Fixed 55px content row; the safe-area inset is applied separately as
+    // additive paddingBottom on the container so it never crushes this row.
+    height: 55,
     maxWidth: 800,
     width: "100%",
     alignSelf: "center",
     flexDirection: "row",
     justifyContent: "space-around",
-    alignItems: "center",
+    alignItems: "stretch",
   },
   navItem: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 4,
     gap: 2,
   },
   label: {

@@ -19,6 +19,10 @@ heading (e.g. `## 2026-06-15 — OTA`) and tag the release commit. Started
 
 ### App (ships next build / OTA)
 
+- The bottom menu bar now sits a touch tighter — its icon-and-label row is a
+  clean fixed height, while the gap above the home indicator at the bottom of
+  the screen is preserved (the indicator never overlaps the tappable icons)
+  (DEV-172).
 - Removing the gift you're currently viewing on a recipient's **Gifts** tab no
   longer drops you into an empty list — the next gift idea now opens
   automatically in the main view, so it feels like "here's the next best idea"
