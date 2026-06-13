@@ -15,7 +15,6 @@ import { useToast } from "../../../hooks/use-toast";
 import { useAuth } from "../../../hooks/use-auth";
 import { useRecipients } from "../../../hooks/use-recipients";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
-import { useBottomNavScrollVisibility } from "../../../hooks/use-bottom-nav-scroll-visibility";
 
 export default function Contacts() {
   const router = useRouter();
@@ -34,7 +33,6 @@ export default function Contacts() {
     selectContact,
   } = useContactImportFlow();
   const { toast } = useToast();
-  const { handleScroll } = useBottomNavScrollVisibility();
 
   const handleAddManually = () => router.push("/contacts/add");
 
@@ -58,8 +56,6 @@ export default function Contacts() {
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
       >
         <View style={styles.content}>
           <View style={styles.header}>

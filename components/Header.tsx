@@ -1,11 +1,10 @@
-import { View, StyleSheet, Text, Pressable, Animated } from "react-native";
+import { View, StyleSheet, Text, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Link, usePathname } from "expo-router";
 import { useAuth } from "../hooks/use-auth";
 import { useUnreadCount } from "../hooks/use-notifications";
-import { useHeaderVisibility } from "../hooks/use-header-visibility";
 import { Colors } from "../lib/colors";
 import BrandMark from "./BrandMark";
 import BrandWordmark from "./BrandWordmark";
@@ -19,8 +18,6 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
   const pathname = usePathname();
   const { user } = useAuth();
   const { data: unreadCount = 0 } = useUnreadCount();
-  const headerHeight = insets.top + 4 + 40 + 8;
-  const { animatedStyle } = useHeaderVisibility(headerHeight);
 
   if (pathname.startsWith("/onboarding") || pathname.startsWith("/intro")) {
     return null;
@@ -39,11 +36,10 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
       : "U";
 
   return (
-    <Animated.View
+    <View
       style={[
         styles.headerBackground,
         { paddingTop: insets.top + 4, backgroundColor: "transparent" },
-        animatedStyle,
       ]}
     >
       <View style={styles.headerContent}>
@@ -97,7 +93,7 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
           </Link>
         </View>
       </View>
-    </Animated.View>
+    </View>
   );
 }
 
