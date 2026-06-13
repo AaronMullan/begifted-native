@@ -12,6 +12,7 @@ import { useBottomNavScrollVisibility } from "../../hooks/use-bottom-nav-scroll-
 import MenuCard from "../../components/MenuCard";
 import GradientBackground from "../../components/GradientBackground";
 import { formatShortName } from "../../lib/format-name";
+import { formatOccasionType } from "../../utils/home-occasions";
 
 interface Occasion {
   id: string;
@@ -89,9 +90,7 @@ export default function Calendar() {
   function formatOccasionTitle(occasion: Occasion): string {
     const recipientName = occasion.recipient?.name || "Unknown";
     const shortName = formatShortName(recipientName);
-    const occasionType = occasion.occasion_type
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (c) => c.toUpperCase());
+    const occasionType = formatOccasionType(occasion.occasion_type);
     // Handle possessive correctly
     const possessive = shortName.endsWith("s")
       ? `${shortName}'`

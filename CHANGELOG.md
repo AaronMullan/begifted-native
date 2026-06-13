@@ -27,6 +27,10 @@ heading (e.g. `## 2026-06-15 — OTA`) and tag the release commit. Started
   takes effect immediately and the gift stays gone — "Remove this gift", "Not
   for them", "They already have this", and "Product problem" all drop the gift
   and the list refills toward 3 (DEV-137).
+- Possessive occasion names now display correctly — "Father's Day" no longer
+  shows as "Father'S Day" (and the same fix covers "Mother's Day", "New Year's
+  Day", etc.) on the Calendar, contact detail, and About-recipient screens
+  (DEV-138).
 
 ### Backend (live on merge)
 

@@ -23,10 +23,7 @@ import {
   backfillBirthdayFromAge,
   normalizeBirthday,
 } from "../../../utils/birthday";
-
-function formatOccasionType(type: string): string {
-  return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
+import { formatOccasionType } from "../../../utils/home-occasions";
 
 // Apply an interests delta from an update conversation to the current list:
 // keep what's there, drop the removed ones, append the newly-liked ones —
