@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, IconButton } from "react-native-paper";
@@ -9,9 +9,10 @@ import { supabase } from "../../../lib/supabase";
 import { queryKeys } from "../../../lib/query-keys";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { Colors } from "../../../lib/colors";
-import type { GiftSuggestion, Recipient } from "../../../types/recipient";
+import type { Recipient } from "../../../types/recipient";
 import { AboutRecipientView } from "../../../components/recipients/AboutRecipientView";
 import GiftSuggestionsList from "../../../components/gifts/GiftSuggestionsList";
+import { useGiftSuggestions } from "../../../hooks/use-gift-suggestions";
 import { ConversationView } from "../../../components/recipients/conversation/ConversationView";
 import { useAddOccasionFlow } from "../../../hooks/use-add-occasion-flow";
 import { useConversationFlow } from "../../../hooks/use-conversation-flow";
@@ -134,8 +135,6 @@ export default function RecipientEditPage() {
 
   const [recipient, setRecipient] = useState<Recipient | null>(null);
   const [loading, setLoading] = useState(true);
-  const [suggestions, setSuggestions] = useState<GiftSuggestion[]>([]);
-  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "gifts">(initialTab);
   const [occasionFilter, setOccasionFilter] = useState<string | null>(
     params.occasionId ?? null
@@ -150,6 +149,15 @@ export default function RecipientEditPage() {
   const resyncBaselineRef = useRef<string>("");
   const scrollRef = useRef<ScrollView>(null);
   const queryClient = useQueryClient();
+  // Canonical suggestions source: shares the TanStack Query cache with the
+  // feedback drawer's mutation (optimistic removal + backfill) and applies the
+  // GIFT_REMOVAL_ACTIONS filter, so dismissed gifts disappear and stay gone
+  // here too — not only on the standalone Gift Ideas screen (DEV-137).
+  const {
+    data: suggestions = [],
+    isLoading: loadingSuggestions,
+    refetch: refetchSuggestions,
+  } = useGiftSuggestions(recipientId);
   const { showToast, toast } = useToast();
   const { data: userPreferences } = useUserPreferences();
   const defaultEmotionalTone =
@@ -416,59 +424,6 @@ export default function RecipientEditPage() {
     };
   }, [occasionFilter]);
 
-  const fetchSuggestions = useCallback(
-    async (recipientId: string, checkForNew: boolean = false) => {
-      setLoadingSuggestions(true);
-      try {
-        const { data, error } = await supabase
-          .from("gift_suggestions")
-          .select("*")
-          .eq("recipient_id", recipientId)
-          .order("generated_at", { ascending: false });
-
-        if (error) throw error;
-        const newSuggestions = data || [];
-
-        // Check if new suggestions appeared (for polling detection)
-        if (checkForNew) {
-          setSuggestions((prevSuggestions) => {
-            // Compare by checking if there are more suggestions or newer timestamps
-            if (newSuggestions.length > prevSuggestions.length) {
-              // New suggestions detected, stop generating
-              setIsGenerating(false);
-            } else if (
-              newSuggestions.length > 0 &&
-              prevSuggestions.length > 0
-            ) {
-              // Check if the newest suggestion is newer than what we had
-              const newestNew = new Date(newSuggestions[0].generated_at);
-              const newestOld = new Date(prevSuggestions[0].generated_at);
-              if (newestNew > newestOld) {
-                setIsGenerating(false);
-              }
-            }
-            return newSuggestions;
-          });
-        } else {
-          setSuggestions(newSuggestions);
-        }
-      } catch (error) {
-        console.error("Error fetching suggestions:", error);
-        setSuggestions([]);
-      } finally {
-        setLoadingSuggestions(false);
-      }
-    },
-    []
-  );
-
-  // Fetch gift suggestions when recipient changes
-  useEffect(() => {
-    if (recipient) {
-      fetchSuggestions(recipient.id);
-    }
-  }, [recipient, fetchSuggestions]);
-
   // Auto-start polling when navigated from the add flow with generating=true
   useEffect(() => {
     if (recipient && params.generating === "true" && suggestions.length === 0) {
@@ -476,9 +431,19 @@ export default function RecipientEditPage() {
     }
   }, [recipient, params.generating]);
 
-  // Polling logic for gift generation
+  // Polling logic for gift generation. The suggestions list itself comes from
+  // useGiftSuggestions; here we just refetch on an interval and watch for a
+  // newly generated idea (a longer list, or a newer newest timestamp than the
+  // baseline captured when generation started) to clear the spinner.
   useEffect(() => {
     if (!isGenerating || !recipient) return;
+
+    const newestTimestamp = (list: typeof suggestions) =>
+      list[0] ? new Date(list[0].generated_at).getTime() : 0;
+    const baseline = {
+      count: suggestions.length,
+      newest: newestTimestamp(suggestions),
+    };
 
     const POLL_INTERVAL = 10000; // 10 seconds
     const MAX_POLL_TIME = 300000; // 5 minutes
@@ -493,15 +458,21 @@ export default function RecipientEditPage() {
         return;
       }
 
-      // Fetch suggestions to check for new ones (pass true to check for new suggestions)
-      await fetchSuggestions(recipient.id, true);
+      const { data } = await refetchSuggestions();
+      const next = data ?? [];
+      if (
+        next.length > baseline.count ||
+        newestTimestamp(next) > baseline.newest
+      ) {
+        setIsGenerating(false);
+      }
     }, POLL_INTERVAL);
 
     // Cleanup on unmount or when isGenerating becomes false
     return () => {
       clearInterval(pollInterval);
     };
-  }, [isGenerating, recipient, fetchSuggestions]);
+  }, [isGenerating, recipient, refetchSuggestions]);
 
   // Poll the recipient row for a freshly synthesized profile after an update.
   // The synthesize edge function regenerates synthesized_profile (plus
