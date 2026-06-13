@@ -21,7 +21,9 @@ Take a Jira ticket from investigation to merged-ready PR. The ticket ID is passe
 
 4. **Implement** the narrowest fix across the affected files. Follow the conventions in CLAUDE.md (Paper-only UI, no `useCallback`/`useMemo`, `import type`, etc.). For edge-function or parser changes, read the active prompt from `system_prompt_versions` first — the prompt is the source of truth.
 
-5. **Verify.** Run typecheck and lint until clean:
+5. **Update the changelog.** Add one user-facing line to the `## Unreleased` section of `CHANGELOG.md` (repo root) describing what a tester will _notice_ — not the technical change. Group it under `### App (ships next build / OTA)` for RN/JS changes or `### Backend (live on merge)` for edge-function/migration changes. Commit it with the fix. (Backend changes in the sibling `be-gifted` repo: note them in this app's changelog only if a tester would see the effect in the app.)
+
+6. **Verify.** Run typecheck and lint until clean:
 
    ```bash
    npm run typecheck && npm run lint
@@ -29,7 +31,7 @@ Take a Jira ticket from investigation to merged-ready PR. The ticket ID is passe
 
    Do not claim either passed unless you ran it and saw the result.
 
-6. **Open a PR.** Commit, push, and open a PR referencing the ticket:
+7. **Open a PR.** Commit, push, and open a PR referencing the ticket:
 
    ```bash
    gh pr create --title "<type>: <summary> (<TICKET-ID>)" --body "..."
@@ -37,13 +39,13 @@ Take a Jira ticket from investigation to merged-ready PR. The ticket ID is passe
 
    The PR body should state root cause, the change, and how it was verified. If the work spans both repos, open a PR in each and cross-link them.
 
-7. **Transition the ticket to Done** with `jira_transition_issue` (do NOT pass a `comment` argument — it requires ADF, not plain text; add any note separately via `jira_add_comment`).
+8. **Transition the ticket to Done** with `jira_transition_issue` (do NOT pass a `comment` argument — it requires ADF, not plain text; add any note separately via `jira_add_comment`).
 
-8. **Draft a Slack summary.** Write a clipboard-ready, plain-English summary of what changed and why for the team. Offer to send it via the Slack MCP, or just print it for the user to copy.
+9. **Draft a Slack summary.** Write a clipboard-ready, plain-English summary of what changed and why for the team. **Don't mention the PR or code review** — nobody reviews the PRs. Do say whether it's **live now** (backend changes deploy on merge) or **waiting for the next build/OTA** (app changes), and tell testers **what to look for** once it's live. Offer to send it via the Slack MCP as a _draft_ (always `slack_send_message_draft`, never send) — in the original report thread when the ticket links one — or print it for the user to copy.
 
 ## Autonomous mode
 
-Run the whole pipeline end-to-end without stopping between steps. The done-state is: a PR open and ready for review in each affected repo, the Jira ticket transitioned to Done, and a Slack summary drafted. **Pause only when:**
+Run the whole pipeline end-to-end without stopping between steps. The done-state is: a PR open in each affected repo (with the changelog updated), the Jira ticket transitioned to Done, and a Slack summary drafted. **Pause only when:**
 
 - Scope is ambiguous or the ticket is underspecified (ask a focused question, don't guess).
 - A change is destructive or hard to reverse (schema drop, prod data mutation, edge-function deploy) — surface it for sign-off first.
