@@ -31,7 +31,13 @@ heading (e.g. `## 2026-06-15 — OTA`) and tag the release commit. Started
   shows as "Father'S Day" (and the same fix covers "Mother's Day", "New Year's
   Day", etc.) on the Calendar, contact detail, and About-recipient screens
   (DEV-138).
+- A recipient with no relationship saved no longer shows the word "null" on their
+  About card — it now shows "—", and opening **Information** starts the
+  Relationship field empty so you can type the real relationship and have it
+  stick (DEV-139).
 
 ### Backend (live on merge)
 
-_None yet._
+- Adding a recipient without clearly stating your relationship to them no longer
+  saves the literal word "null" as the relationship — the app now asks you to
+  fill it in on the review screen instead (DEV-139).

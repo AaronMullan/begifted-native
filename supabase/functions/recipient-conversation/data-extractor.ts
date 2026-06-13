@@ -35,6 +35,19 @@ async function resolveAIConfig(
     apiKey: getApiKey("openai"),
   };
 }
+// The LLM occasionally emits the literal string "null" (or a similar
+// placeholder) for an unknown name/relationship. Because recipients.name and
+// recipients.relationship_type are NOT NULL, that string gets persisted and
+// shown to users as the word "null" (DEV-139). Coerce these placeholders to a
+// real null so the required-field gate in the review screen treats them as
+// missing and asks the user for a real value instead of saving the placeholder.
+const PLACEHOLDER_STRINGS = new Set(["null", "undefined", "none", "n/a", ""]);
+function coercePlaceholderToNull<T>(value: T): T | null {
+  return typeof value === "string" &&
+    PLACEHOLDER_STRINGS.has(value.trim().toLowerCase())
+    ? null
+    : value;
+}
 // Generalized conversation handler - supports different conversation types
 export async function handleConversation(
   messages: Message[],
@@ -669,6 +682,11 @@ Return ONLY valid JSON (no markdown formatting):
       relationship_type: null,
     };
   }
+  // Don't let a "null"-the-string placeholder pose as a real value (DEV-139).
+  criticalFields.name = coercePlaceholderToNull(criticalFields.name);
+  criticalFields.relationship_type = coercePlaceholderToNull(
+    criticalFields.relationship_type
+  );
   // PASS 2: Full extraction with critical fields as context
   const fullExtractionPrompt = `COMPREHENSIVE RECIPIENT DATA EXTRACTION
 
@@ -686,8 +704,12 @@ Look for holidays, occasions, and special events like: "we celebrate Christmas",
 
 Extract and return valid JSON (no markdown formatting) with this exact structure:
 {
-  "name": "${criticalFields.name || "null"}",
-  "relationship_type": "${criticalFields.relationship_type || "null"}",
+  "name": ${criticalFields.name ? JSON.stringify(criticalFields.name) : "null"},
+  "relationship_type": ${
+    criticalFields.relationship_type
+      ? JSON.stringify(criticalFields.relationship_type)
+      : "null"
+  },
   "birthday": "Birthday or null. Use YYYY-MM-DD only when the year is explicit; use MM-DD when only month and day are known. Never use placeholder years like 0000.",
   "age": "The recipient's CURRENT age in whole years as a number, but ONLY when the user explicitly states it (e.g. \"he's 47\", \"she just turned 30\", \"my 8 year old\"). Do NOT infer age from relationship, life stage, grade, graduation, hobbies, or occasion. null if not explicitly stated.",
   "interests": ["array of interests the recipient LIKES / is into, as expressed in this conversation"],
@@ -756,6 +778,11 @@ IMPORTANT:
     };
   }
   // Final validation and enhancement
+  // Strip any "null"-the-string the model echoed back, so it doesn't pose as a
+  // real value below or get persisted (DEV-139).
+  extractedData.name = coercePlaceholderToNull(extractedData.name) ?? undefined;
+  extractedData.relationship_type =
+    coercePlaceholderToNull(extractedData.relationship_type) ?? undefined;
   if (criticalFields.name && !extractedData.name) {
     extractedData.name = criticalFields.name;
   }

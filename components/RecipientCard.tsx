@@ -1,5 +1,5 @@
 import type { Recipient } from "../types/recipient";
-import { formatShortName } from "../lib/format-name";
+import { cleanRelationship, formatShortName } from "../lib/format-name";
 import { parseBirthdayParts } from "../utils/birthday";
 import MenuCard from "./MenuCard";
 
@@ -12,10 +12,7 @@ export default function RecipientCard({
   recipient,
   onPress,
 }: RecipientCardProps) {
-  const relationship =
-    recipient.relationship_type && recipient.relationship_type !== "null"
-      ? recipient.relationship_type
-      : "";
+  const relationship = cleanRelationship(recipient.relationship_type);
 
   const birthdayParts = parseBirthdayParts(recipient.birthday);
   let birthday = "";
