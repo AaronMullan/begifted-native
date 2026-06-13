@@ -8,7 +8,6 @@ import { useOccasions } from "../../hooks/use-occasions";
 import { useRecipients } from "../../hooks/use-recipients";
 import { useDeleteOccasion } from "../../hooks/use-occasion-mutations";
 import { useToast } from "../../hooks/use-toast";
-import { useBottomNavScrollVisibility } from "../../hooks/use-bottom-nav-scroll-visibility";
 import MenuCard from "../../components/MenuCard";
 import GradientBackground from "../../components/GradientBackground";
 import { formatShortName } from "../../lib/format-name";
@@ -36,7 +35,6 @@ export default function Calendar() {
   const { data: recipients = [] } = useRecipients();
   const deleteOccasion = useDeleteOccasion();
   const { toast, showToast } = useToast();
-  const { handleScroll } = useBottomNavScrollVisibility();
   const [occasionToDelete, setOccasionToDelete] = useState<Occasion | null>(
     null
   );
@@ -174,11 +172,7 @@ export default function Calendar() {
     <View style={styles.container}>
       <GradientBackground />
       <View style={styles.headerSpacer} />
-      <ScrollView
-        style={styles.scrollView}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-      >
+      <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
           {/* Header section */}
           <View style={styles.header}>
