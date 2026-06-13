@@ -19,6 +19,10 @@ heading (e.g. `## 2026-06-15 — OTA`) and tag the release commit. Started
 
 ### App (ships next build / OTA)
 
+- Home screen carousels (**Next Up** and **On the Horizon**) now show a
+  consistent peek of the next card on every phone size — about 32pt of the
+  following card is always visible, making it obvious you can swipe for more
+  (DEV-162).
 - Removing a gift from the feedback drawer on a recipient's **Gifts** tab now
   takes effect immediately and the gift stays gone — "Remove this gift", "Not
   for them", "They already have this", and "Product problem" all drop the gift
