@@ -3,7 +3,6 @@ import { Text, ActivityIndicator } from "react-native-paper";
 import { Colors } from "../../lib/colors";
 import { Spacing } from "../../lib/spacing";
 import { BOTTOM_NAV_HEIGHT } from "../../lib/constants";
-import { useBottomNavScrollVisibility } from "../../hooks/use-bottom-nav-scroll-visibility";
 import { useAuth } from "../../hooks/use-auth";
 import { useRecipients } from "../../hooks/use-recipients";
 import { useOccasions } from "../../hooks/use-occasions";
@@ -19,7 +18,6 @@ export default function Dashboard() {
   const { data: recipients = [], isLoading: loadingRecipients } =
     useRecipients();
   const { data: occasions = [], isLoading: loadingOccasions } = useOccasions();
-  const { handleScroll } = useBottomNavScrollVisibility();
 
   const isLoading = loadingRecipients || loadingOccasions;
   const groups = groupHomeOccasions(occasions);
@@ -77,8 +75,6 @@ export default function Dashboard() {
         showsVerticalScrollIndicator={false}
         contentInsetAdjustmentBehavior="never"
         bounces={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
       >
         <View style={styles.content}>
           <View style={styles.heroBlock}>

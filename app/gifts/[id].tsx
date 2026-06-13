@@ -8,7 +8,6 @@ import { Typography, FontFamily } from "../../lib/typography";
 import { BOTTOM_NAV_HEIGHT, HEADER_HEIGHT } from "../../lib/constants";
 import { useRecipient } from "../../hooks/use-recipient";
 import { useGiftSuggestions } from "../../hooks/use-gift-suggestions";
-import { useBottomNavScrollVisibility } from "../../hooks/use-bottom-nav-scroll-visibility";
 import GiftSuggestionsList from "../../components/gifts/GiftSuggestionsList";
 
 const firstName = (name?: string) => {
@@ -52,7 +51,6 @@ export default function GiftIdeasPage() {
   const { data: recipient, isLoading: loadingRecipient } = useRecipient(id);
   const { data: suggestions = [], isLoading: loadingSuggestions } =
     useGiftSuggestions(id);
-  const { handleScroll } = useBottomNavScrollVisibility();
   const scrollRef = useRef<ScrollView>(null);
 
   const isLoading = loadingRecipient || loadingSuggestions;
@@ -76,8 +74,6 @@ export default function GiftIdeasPage() {
       style={styles.scroll}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
-      onScroll={handleScroll}
-      scrollEventThrottle={16}
     >
       <View style={styles.content}>
         <GiftIdeasHeader name={name} onAboutPress={handleAboutPress} />

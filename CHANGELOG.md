@@ -19,6 +19,9 @@ heading (e.g. `## 2026-06-15 — OTA`) and tag the release commit. Started
 
 ### App (ships next build / OTA)
 
+- The bottom menu bar and top header now stay pinned in place at all times —
+  they no longer slide away when you scroll down or reappear when you scroll up.
+  Page content scrolls beneath them while both stay fixed and tappable (DEV-173).
 - Home screen carousels (**Next Up** and **On the Horizon**) now show a
   consistent peek of the next card on every phone size — about 32pt of the
   following card is always visible, making it obvious you can swipe for more

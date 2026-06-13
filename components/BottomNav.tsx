@@ -1,10 +1,9 @@
-import { View, StyleSheet, TouchableOpacity, Animated } from "react-native";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
 import { Link, usePathname } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../lib/colors";
-import { useBottomNavVisibility } from "../hooks/use-bottom-nav-visibility";
 
 type NavItem = {
   key: "dashboard" | "people" | "moments";
@@ -37,7 +36,6 @@ const NAV_ITEMS: NavItem[] = [
 export default function BottomNav() {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const { animatedStyle } = useBottomNavVisibility();
 
   // Hide on admin, onboarding, and pre-auth intro routes
   if (
@@ -50,10 +48,9 @@ export default function BottomNav() {
 
   return (
     <View pointerEvents="box-none" style={styles.root}>
-      <Animated.View
+      <View
         style={[
           styles.container,
-          animatedStyle,
           { paddingBottom: Math.max(insets.bottom, 12) },
         ]}
       >
@@ -80,7 +77,7 @@ export default function BottomNav() {
             );
           })}
         </View>
-      </Animated.View>
+      </View>
     </View>
   );
 }
