@@ -94,6 +94,8 @@ const AddRecipientFlow = ({ seed, onAddAnother }: AddRecipientFlowProps) => {
     shouldShowNextStepButton,
     conversationContext,
     sendMessage,
+    canRetrySend,
+    retryLastSend,
     handleNavigateBack,
     handleFinishConversation,
     handleDataReviewContinue,
@@ -221,6 +223,8 @@ const AddRecipientFlow = ({ seed, onAddAnother }: AddRecipientFlowProps) => {
       onFinishConversation={handleFinishConversationWithFallback}
       shouldShowNextStepButton={shouldShowNextStepButton}
       conversationContext={conversationContext}
+      canRetry={canRetrySend}
+      onRetry={retryLastSend}
     />
   );
 };

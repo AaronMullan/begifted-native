@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/react-native";
 import { supabase } from "../lib/supabase";
 import { Alert, View } from "react-native";
 import { isBackgroundCancelledFetch } from "../lib/sentry-helpers";
+import { invokeWithRetry } from "../lib/edge-retry";
 import { normalizeBirthday } from "../utils/birthday";
 
 /**
@@ -109,6 +110,10 @@ interface UseConversationFlowReturn {
   conversationContext: string | null;
   messagesEndRef: React.RefObject<View | null>;
   sendMessage: (message: string) => Promise<void>;
+  /** True when the last send failed and a manual retry is available. */
+  canRetrySend: boolean;
+  /** Re-send the last failed turn (clears the error bubble first). */
+  retryLastSend: () => Promise<void>;
   handleFinishConversation: () => Promise<ExtractedData | null>;
   setMessages: (messages: Message[]) => void;
   setExtractedData: (data: ExtractedData | null) => void;
@@ -122,6 +127,16 @@ type ConversationRequestBody = {
   targetFields?: string[];
   existingData?: RecipientData;
 };
+
+type ConversationReply = {
+  reply?: string;
+  conversationContext?: string;
+  shouldShowNextStepButton?: boolean;
+};
+
+// The extract endpoint sometimes wraps the payload in `{ extractedData }` and
+// sometimes returns the fields at the top level, so accept both shapes.
+type ExtractResponse = ExtractedData & { extractedData?: ExtractedData };
 
 // Default welcome messages based on conversation type
 const getDefaultWelcomeMessage = (
@@ -172,6 +187,11 @@ export function useConversationFlow(
   );
   const [shouldShowNextStepButton, setShouldShowNextStepButton] =
     useState(false);
+  // When a send fails after the retry wrapper exhausts its attempts, we stash
+  // the conversation (up to and including the failed user turn) so the UI can
+  // offer a manual "Try again" CTA that re-sends without duplicating the turn
+  // (DEV-134).
+  const [pendingRetry, setPendingRetry] = useState<Message[] | null>(null);
 
   // Initialize conversation with welcome message
   useEffect(() => {
@@ -189,18 +209,11 @@ export function useConversationFlow(
     }
   }, []);
 
-  const sendMessage = useCallback(
-    async (message: string) => {
-      if (!message.trim() || isLoading) return;
-
-      const userMessage: Message = {
-        id: Date.now().toString(),
-        role: "user",
-        content: message.trim(),
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, userMessage]);
+  // Sends an already-assembled conversation (ending at the user's turn) to the
+  // edge function. Shared by sendMessage and retryLastSend so a manual retry
+  // doesn't re-append the user turn.
+  const sendConversationTurn = useCallback(
+    async (convo: Message[]) => {
       setIsLoading(true);
 
       try {
@@ -217,7 +230,7 @@ export function useConversationFlow(
         const requestBody: ConversationRequestBody = {
           action: "conversation",
           conversationType,
-          messages: [...messages, userMessage].map((m) => ({
+          messages: convo.map((m) => ({
             role: m.role,
             content: m.content,
           })),
@@ -231,8 +244,9 @@ export function useConversationFlow(
           requestBody.existingData = existingData;
         }
 
-        // Call Supabase Edge Function for conversation
-        const { data, error } = await supabase.functions.invoke(
+        // Call Supabase Edge Function for conversation (retries transient
+        // network/5xx failures with backoff before surfacing an error).
+        const { data, error } = await invokeWithRetry<ConversationReply>(
           "recipient-conversation",
           {
             body: requestBody,
@@ -248,13 +262,16 @@ export function useConversationFlow(
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
-          content: data.reply || "I understand. Tell me more.",
+          content: data?.reply || "I understand. Tell me more.",
           timestamp: new Date(),
         };
 
         setMessages((prev) => [...prev, assistantMessage]);
-        setConversationContext(data.conversationContext || conversationContext);
-        setShouldShowNextStepButton(data.shouldShowNextStepButton || false);
+        setConversationContext(
+          data?.conversationContext || conversationContext
+        );
+        setShouldShowNextStepButton(data?.shouldShowNextStepButton || false);
+        setPendingRetry(null);
       } catch (error) {
         console.error("Error sending message:", error);
         console.error("Error details:", JSON.stringify(error, null, 2));
@@ -271,30 +288,48 @@ export function useConversationFlow(
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
-          content:
-            "I'm sorry, I encountered an error. Could you please try again?",
+          content: "Sorry, I hit an error sending that.",
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, errorMessage]);
-        Alert.alert(
-          "Error",
-          error instanceof Error
-            ? error.message
-            : "Failed to send message. Please try again."
-        );
+        // Retries are already exhausted inside invokeWithRetry — surface a
+        // manual "Try again" CTA (DEV-134) instead of a dead-end Alert.
+        setPendingRetry(convo);
       } finally {
         setIsLoading(false);
       }
     },
-    [
-      messages,
-      isLoading,
-      conversationContext,
-      conversationType,
-      targetFields,
-      existingData,
-    ]
+    [conversationContext, conversationType, targetFields, existingData]
   );
+
+  const sendMessage = useCallback(
+    async (message: string) => {
+      if (!message.trim() || isLoading) return;
+
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        role: "user",
+        content: message.trim(),
+        timestamp: new Date(),
+      };
+
+      const convo = [...messages, userMessage];
+      setMessages(convo);
+      setPendingRetry(null);
+      await sendConversationTurn(convo);
+    },
+    [messages, isLoading, sendConversationTurn]
+  );
+
+  // Re-send the last failed turn. Resetting messages to the stashed
+  // conversation drops the error bubble that was appended after the failure.
+  const retryLastSend = useCallback(async () => {
+    if (!pendingRetry || isLoading) return;
+    const convo = pendingRetry;
+    setMessages(convo);
+    setPendingRetry(null);
+    await sendConversationTurn(convo);
+  }, [pendingRetry, isLoading, sendConversationTurn]);
 
   // When initialUserMessage is set, send it once after the welcome message is shown
   useEffect(() => {
@@ -339,8 +374,9 @@ export function useConversationFlow(
           requestBody.existingData = existingData;
         }
 
-        // Call Supabase Edge Function for data extraction
-        const { data, error } = await supabase.functions.invoke(
+        // Call Supabase Edge Function for data extraction (retries transient
+        // network/5xx failures with backoff before surfacing an error).
+        const { data, error } = await invokeWithRetry<ExtractResponse>(
           "recipient-conversation",
           {
             body: requestBody,
@@ -354,7 +390,7 @@ export function useConversationFlow(
         }
 
         // The Edge Function returns { extractedData }
-        const rawExtracted = data.extractedData || data;
+        const rawExtracted = data?.extractedData || data;
 
         if (rawExtracted) {
           const extracted = sanitizeExtractedBirthday(rawExtracted);
@@ -413,6 +449,7 @@ export function useConversationFlow(
     setConversationContext(null);
     setShouldShowNextStepButton(false);
     setIsLoading(false);
+    setPendingRetry(null);
   }, []);
 
   return {
@@ -423,6 +460,8 @@ export function useConversationFlow(
     conversationContext,
     messagesEndRef,
     sendMessage,
+    canRetrySend: pendingRetry !== null,
+    retryLastSend,
     handleFinishConversation,
     setMessages,
     setExtractedData,

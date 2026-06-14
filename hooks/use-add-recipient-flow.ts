@@ -110,6 +110,8 @@ interface UseAddRecipientFlowReturn {
   shouldShowNextStepButton: boolean;
   conversationContext: string;
   sendMessage: (message: string) => Promise<void>;
+  canRetrySend: boolean;
+  retryLastSend: () => Promise<void>;
   handleNavigateBack: () => void;
   handleFinishConversation: () => Promise<boolean>;
   handleDataReviewContinue: () => Promise<void>;
@@ -189,6 +191,8 @@ export function useAddRecipientFlow(
     conversationContext,
     messagesEndRef,
     sendMessage: genericSendMessage,
+    canRetrySend,
+    retryLastSend,
     handleFinishConversation: genericHandleFinishConversation,
     setExtractedData: genericSetExtractedData,
   } = useConversationFlow({
@@ -507,6 +511,8 @@ export function useAddRecipientFlow(
     shouldShowNextStepButton,
     conversationContext: conversationContext || "",
     sendMessage,
+    canRetrySend,
+    retryLastSend,
     handleNavigateBack,
     handleFinishConversation,
     handleDataReviewContinue,
