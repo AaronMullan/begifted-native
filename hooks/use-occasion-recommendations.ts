@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import * as Sentry from "@sentry/react-native";
-import { supabase } from "../lib/supabase";
+import { invokeWithRetry } from "../lib/edge-retry";
 import type { ExtractedData } from "./use-conversation-flow";
 import { getNextOccurrence, lookupOccasionDate } from "../utils/occasion-dates";
 import { parseBirthdayParts } from "../utils/birthday";
@@ -137,7 +137,11 @@ export function useOccasionRecommendations(
     const fetchRecommendations = async () => {
       setIsLoading(true);
       try {
-        const { data, error } = await supabase.functions.invoke(
+        // Retries transient network/5xx failures with backoff (DEV-134). A
+        // FunctionsFetchError here is usually a brief client network blip on a
+        // throttling device, not a server fault, so a retry typically yields
+        // real recommendations instead of the birthday+holidays fallback.
+        const { data, error } = await invokeWithRetry<OccasionRecommendations>(
           "recipient-conversation",
           {
             body: {
