@@ -33,6 +33,11 @@ heading (e.g. `## 2026-06-15 — OTA`) and tag the release commit. Started
   a small circle marker before each option. The product name at the top and the
   option labels now use the new teal type, and the grab handle is the beige
   pill. The eight actions and what they do are unchanged (DEV-175).
+- Tapping "Gift feedback" in that drawer now opens a cleaner single text box: a
+  large rounded field outlined in teal with a small round gold send button
+  tucked into its bottom-right corner. The old title, helper line, and
+  full-width "Send feedback" button are gone. The send button stays dimmed until
+  you type something. Your feedback is saved exactly as before (DEV-176).
 - On the **People** tab, the line under each person now shows their soonest
   upcoming moment as contextual status — e.g. "Birthday · June 26",
   "Anniversary · September 22", or "Mother's Day · May 10" — instead of always

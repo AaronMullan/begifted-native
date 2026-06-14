@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { Button, Snackbar, Text, TextInput } from "react-native-paper";
+import { Snackbar, Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
   BottomSheetBackdrop,
@@ -141,46 +141,33 @@ export default function GiftActionDrawer({
               </Pressable>
             </>
           ) : (
-            <>
-              <View style={styles.notesHeader}>
-                <Pressable
-                  onPress={() => setView("root")}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  accessibilityLabel="Back"
-                >
-                  <MaterialIcons
-                    name="arrow-back"
-                    size={22}
-                    color={Colors.blues.dark}
-                  />
-                </Pressable>
-                <Text style={styles.notesTitle}>Gift feedback</Text>
-              </View>
-              <Text style={styles.notesSubtitle}>
-                Tell us what works or doesn&apos;t — we&apos;ll learn from it.
-              </Text>
-              <TextInput
-                mode="outlined"
-                multiline
-                numberOfLines={4}
+            <View style={styles.notesInputWrap}>
+              <BottomSheetTextInput
                 value={note}
                 onChangeText={setNote}
-                placeholder="What did you think?"
-                style={styles.noteInput}
-                render={(props) => <BottomSheetTextInput {...props} />}
+                placeholder="Tell us about your gift feedback"
+                placeholderTextColor={Colors.brand.mediumTeal}
+                multiline
+                editable={!submit.isPending}
+                style={styles.notesField}
               />
-              <Button
-                mode="contained"
+              <Pressable
                 onPress={() =>
                   handleAction("gift_feedback", note.trim() || null)
                 }
                 disabled={submit.isPending || !note.trim()}
-                loading={submit.isPending}
+                style={({ pressed }) => [
+                  styles.sendButton,
+                  (submit.isPending || !note.trim()) &&
+                    styles.sendButtonDisabled,
+                  pressed && styles.sendButtonPressed,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Send feedback"
               >
-                Send feedback
-              </Button>
-            </>
+                <MaterialIcons name="send" size={16} color={Colors.white} />
+              </Pressable>
+            </View>
           )}
         </BottomSheetView>
       </BottomSheetModal>
@@ -243,26 +230,39 @@ const styles = StyleSheet.create({
     marginLeft: "auto",
     opacity: 0.6,
   },
-  notesHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 8,
+  notesInputWrap: {
+    position: "relative",
+    marginTop: 4,
   },
-  notesTitle: {
-    fontFamily: "Fraunces_600SemiBold",
-    color: Colors.blues.dark,
-    fontSize: 18,
-  },
-  notesSubtitle: {
-    fontFamily: "RobotoFlex_400Regular",
-    fontSize: 14,
-    color: Colors.blues.dark,
-    opacity: 0.75,
-    paddingBottom: 8,
-  },
-  noteInput: {
+  notesField: {
+    height: 144,
     backgroundColor: Colors.white,
-    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.brand.mediumTeal,
+    borderRadius: 12,
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 52,
+    fontFamily: FontFamily.sans.regular,
+    fontSize: 11,
+    color: Colors.brand.darkTeal,
+    textAlignVertical: "top",
+  },
+  sendButton: {
+    position: "absolute",
+    right: 11,
+    bottom: 16,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: Colors.brand.gold,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sendButtonDisabled: {
+    opacity: 0.4,
+  },
+  sendButtonPressed: {
+    opacity: 0.7,
   },
 });
