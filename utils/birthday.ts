@@ -13,6 +13,37 @@ const FULL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const MONTH_DAY_NO_YEAR = /^--(\d{2})-(\d{2})$/;
 const MONTH_DAY_LOOSE = /^(\d{1,2})-(\d{1,2})$/;
 
+// Customary "Month Day, Year" / "Month Day" forms — both full and 3-letter
+// month names. This is the shape formatBirthdayDisplay() emits, so seeding an
+// editable field with the friendly display still round-trips on save (DEV-178).
+const MONTH_NAMES: Record<string, number> = {
+  january: 1,
+  february: 2,
+  march: 3,
+  april: 4,
+  may: 5,
+  june: 6,
+  july: 7,
+  august: 8,
+  september: 9,
+  october: 10,
+  november: 11,
+  december: 12,
+  jan: 1,
+  feb: 2,
+  mar: 3,
+  apr: 4,
+  jun: 6,
+  jul: 7,
+  aug: 8,
+  sep: 9,
+  sept: 9,
+  oct: 10,
+  nov: 11,
+  dec: 12,
+};
+const MONTH_NAME_DATE = /^([A-Za-z]+)\.?\s+(\d{1,2})(?:\s*,?\s*(\d{4}))?$/;
+
 const MIN_YEAR = 1850;
 
 export interface BirthdayParts {
@@ -79,6 +110,28 @@ export function parseBirthdayParts(
     const day = Number(md[2]);
     if (!isRealMonthDay(month, day)) return null;
     return { year: null, month, day };
+  }
+
+  const named = MONTH_NAME_DATE.exec(trimmed);
+  if (named) {
+    const month = MONTH_NAMES[named[1].toLowerCase()];
+    const day = Number(named[2]);
+    if (month) {
+      if (named[3]) {
+        const year = Number(named[3]);
+        // Mirror the FULL_DATE branch's year rules.
+        if (year === 0) {
+          if (!isRealMonthDay(month, day)) return null;
+          return { year: null, month, day };
+        }
+        if (year < MIN_YEAR) return null;
+        if (year > new Date().getFullYear()) return null;
+        if (!isRealFullDate(year, month, day)) return null;
+        return { year, month, day };
+      }
+      if (!isRealMonthDay(month, day)) return null;
+      return { year: null, month, day };
+    }
   }
 
   return null;

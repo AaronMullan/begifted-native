@@ -19,6 +19,12 @@ heading (e.g. `## 2026-06-15 — OTA`) and tag the release commit. Started
 
 ### App (ships next build / OTA)
 
+- A recipient's birthday now reads in the everyday "Month Day, Year" style
+  (e.g. "November 13, 1946", or just "August 18" when the year is unknown)
+  everywhere you see or edit it — including the Information edit dialog and the
+  review-details step when adding someone. It no longer shows the raw
+  "1946-11-13" form. You can type the date back in the same friendly way (or as
+  numbers); it still saves correctly (DEV-178).
 - The AI chats for adding a person or an occasion now recover from hiccups on
   their own: if a message fails to reach the assistant because of a brief
   network drop or a server blip, the app quietly retries a couple of times
