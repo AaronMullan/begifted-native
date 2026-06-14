@@ -13,7 +13,9 @@ Entries are grouped by where they ship:
 
 At release time, move the relevant **Unreleased** entries under a new dated
 heading (e.g. `## 2026-06-15 — OTA`) and tag the release commit. Started
-2026-06-13; changes merged before then are not backfilled here.
+2026-06-13; the prior **Build 45** release (2026-06-12) was backfilled
+retroactively so testers have notes for what they're already running. Earlier
+builds (≤ 44) are not backfilled here.
 
 ## Unreleased
 
@@ -95,3 +97,54 @@ heading (e.g. `## 2026-06-15 — OTA`) and tag the release commit. Started
 - Adding a recipient without clearly stating your relationship to them no longer
   saves the literal word "null" as the relationship — the app now asks you to
   fill it in on the review screen instead (DEV-139).
+
+## 2026-06-12 — Build 45 (TestFlight)
+
+The release testers are currently running (iOS production build 45, cut at
+commit `93778bc`). These notes are backfilled — none of this was announced at
+the time.
+
+### App
+
+- The **Gift Ideas** list on a recipient was redesigned: it now leads with the
+  three newest suggestions and tucks everything older under a **Past Gifts**
+  section. Tapping an idea expands it in place (an accordion) rather than
+  navigating away, so you can scan and open ideas without losing your spot
+  (DEV-165).
+- Occasions can now be set to **repeat yearly** or be **one-time**. Editing an
+  occasion shows a "Repeats yearly / One-time" toggle: yearly occasions only
+  need a month and day (the app rolls them forward to the next occurrence),
+  while one-time occasions take a full date. The setting shows on the occasion
+  card (DEV-154).
+- **Settings** now has an **FAQ** entry with the approved beta FAQ copy, so you
+  can find answers to common questions without leaving the app (DEV-153).
+- The primary button on a gift card now reads **"Get this gift ›"** instead of
+  "View Product ›" (DEV-150).
+- Tapping a gift or retailer link opens it in your phone's **system browser**
+  again, not the in-app browser. The in-app browser (added in a prior change)
+  silently broke Shop Pay, Apple Pay / PayPal handoff, store logins and saved
+  cards because it couldn't open popups and kept its own cookie store. If a link
+  ever fails to open, you now get a "Copy link" option instead of nothing
+  happening (DEV-149).
+- On the home cards, the recipient's name and the occasion now sit on
+  **separate lines** for easier reading (DEV-163).
+- Home-screen vertical spacing was dialed in to better match the design
+  (DEV-161).
+
+### Backend (live on merge)
+
+- **Occasion suggestions got more reliable and more relevant.** They now appear
+  even for occasions that don't have a known date yet, and no longer quietly
+  fall back to generic holidays when the tailored pipeline hiccups. They also
+  draw on a richer recipient profile — cultural context and important dates
+  captured during the add-a-person chat — plus a normalized relationship, so the
+  recommended moments fit the person better (DEV-155, DEV-156, DEV-157, DEV-158,
+  DEV-159, DEV-160).
+- Gifting and generic holiday dates no longer leak into the synthesized
+  recipient profile, so the profile reflects the actual person rather than
+  calendar noise (DEV-152).
+- Removed a leftover hardcoded gift-prompt fallback that could surface canned,
+  off-target suggestions when the AI call failed (DEV-164).
+- New sign-ups no longer fail with "Database error saving new user" — the
+  account-creation trigger still referenced a database column that had been
+  removed (PR #171).
