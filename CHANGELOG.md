@@ -19,6 +19,9 @@ heading (e.g. `## 2026-06-15 — OTA`) and tag the release commit. Started
 
 ### App (ships next build / OTA)
 
+- The "Tell us how your recent moments went ›" link at the bottom of the
+  **People** tab is gone — it was a leftover prompt that isn't part of the beta
+  experience, and the list now ends cleanly with no empty gap (DEV-170).
 - The bottom menu bar now sits a touch tighter — its icon-and-label row is a
   clean fixed height, while the gap above the home indicator at the bottom of
   the screen is preserved (the indicator never overlaps the tappable icons)

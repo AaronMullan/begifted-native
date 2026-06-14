@@ -9,7 +9,6 @@ import ContactPicker from "../../../components/ContactPicker";
 import ContactsAccessIntro from "../../../components/ContactsAccessIntro";
 import PeopleCtaTiles from "../../../components/contacts/PeopleCtaTiles";
 import PeopleRecipientCard from "../../../components/contacts/PeopleRecipientCard";
-import RecentMomentsLink from "../../../components/home/RecentMomentsLink";
 import { useContactImportFlow } from "../../../hooks/use-contact-import-flow";
 import { useToast } from "../../../hooks/use-toast";
 import { useAuth } from "../../../hooks/use-auth";
@@ -92,10 +91,6 @@ export default function Contacts() {
               ))}
             </View>
           )}
-
-          <View style={styles.footer}>
-            <RecentMomentsLink />
-          </View>
         </View>
 
         <ContactsAccessIntro
@@ -170,8 +165,5 @@ const styles = StyleSheet.create({
   },
   list: {
     gap: 15,
-  },
-  footer: {
-    paddingTop: 16,
   },
 });
