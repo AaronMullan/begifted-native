@@ -25,6 +25,10 @@ heading (e.g. `## 2026-06-15 — OTA`) and tag the release commit. Started
   review-details step when adding someone. It no longer shows the raw
   "1946-11-13" form. You can type the date back in the same friendly way (or as
   numbers); it still saves correctly (DEV-178).
+- When you add a person with a photo (e.g. imported from a contact), the photo
+  upload now quietly retries once if a brief network drop interrupts it. Before,
+  a momentary blip could save the person with no photo and no warning. The photo
+  still saves the same way when the connection is fine (DEV-177).
 - The AI chats for adding a person or an occasion now recover from hiccups on
   their own: if a message fails to reach the assistant because of a brief
   network drop or a server blip, the app quietly retries a couple of times
