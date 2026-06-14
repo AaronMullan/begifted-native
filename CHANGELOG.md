@@ -19,6 +19,10 @@ heading (e.g. `## 2026-06-15 — OTA`) and tag the release commit. Started
 
 ### App (ships next build / OTA)
 
+- The account avatar at the top-right now shows two initials taken from your
+  name (e.g. "Caspian Michalowski" → "CM") instead of a single letter from your
+  email. Single-word names still show one initial, and it falls back gracefully
+  if no name is set (DEV-168).
 - The "Tell us how your recent moments went ›" link at the bottom of the
   **People** tab is gone — it was a leftover prompt that isn't part of the beta
   experience, and the list now ends cleanly with no empty gap (DEV-170).
