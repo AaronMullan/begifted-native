@@ -9,14 +9,20 @@ import { Typography, Radii } from "../../lib/typography";
 import { useAuth } from "../../hooks/use-auth";
 import { useDeleteRecipient } from "../../hooks/use-recipient-mutations";
 import type { Recipient } from "../../types/recipient";
-import { parseBirthdayParts } from "../../utils/birthday";
+import type { UpcomingOccasion } from "../../utils/upcoming-occasion";
+import {
+  formatOccasionType,
+  formatShortDate,
+} from "../../utils/home-occasions";
 
 type PeopleRecipientCardProps = {
   recipient: Recipient;
+  upcoming: UpcomingOccasion | null;
 };
 
 const PeopleRecipientCard: React.FC<PeopleRecipientCardProps> = ({
   recipient,
+  upcoming,
 }) => {
   const router = useRouter();
   const { user } = useAuth();
@@ -70,18 +76,22 @@ const PeopleRecipientCard: React.FC<PeopleRecipientCardProps> = ({
           <Text style={styles.name} numberOfLines={1}>
             {recipient.name}
           </Text>
-          {recipient.birthday && (
-            <View style={styles.birthdayRow}>
-              <Text style={styles.birthday}>
-                Birthday: {formatBirthday(recipient.birthday)}
-              </Text>
+          <View style={styles.statusRow}>
+            <Text style={styles.status} numberOfLines={1}>
+              {upcoming
+                ? `${formatOccasionType(
+                    upcoming.occasionType
+                  )} · ${formatShortDate(upcoming.date)}`
+                : "No upcoming moments yet"}
+            </Text>
+            {upcoming && (
               <MaterialIcons
                 name="chevron-right"
                 size={10}
                 color={Colors.brand.gold}
               />
-            </View>
-          )}
+            )}
+          </View>
         </View>
       </Pressable>
       <Menu
@@ -179,15 +189,9 @@ function getInitials(name: string): string {
   return `${first}${last}`.toUpperCase();
 }
 
-function formatBirthday(birthday: string): string {
-  const parts = parseBirthdayParts(birthday);
-  if (!parts) return "";
-  const date = new Date(parts.year ?? 2000, parts.month - 1, parts.day);
-  return date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
-}
-
 // Spec: Figma "People module" (359x45, radius 12, white bg).
-// 28px avatar at left, name + "Birthday: ... >" stacked, overflow dot at right.
+// 28px avatar at left, name + soonest upcoming occasion stacked, overflow dot
+// at right.
 const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
@@ -231,14 +235,15 @@ const styles = StyleSheet.create({
     ...Typography.h3,
     color: Colors.brand.darkTeal,
   },
-  birthdayRow: {
+  statusRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 2,
   },
-  birthday: {
+  status: {
     ...Typography.smallCta,
     color: Colors.brand.gold,
+    flexShrink: 1,
   },
   overflow: {
     paddingHorizontal: 6,

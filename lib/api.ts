@@ -219,6 +219,28 @@ export async function fetchRecipientOccasions(
 }
 
 /**
+ * Fetch every occasion for a user with no date filter. Unlike fetchOccasions
+ * (which drops anything before today), this keeps past-dated annual occasions
+ * so callers can roll them forward to their next occurrence client-side — the
+ * People screen needs each recipient's soonest upcoming moment, and annual
+ * occasions (birthdays, anniversaries) are often stored with a past date.
+ */
+export async function fetchAllOccasions(userId: string): Promise<Occasion[]> {
+  const { data, error } = await supabase
+    .from("occasions")
+    .select("id, date, occasion_type, recipient_id, is_annual")
+    .eq("user_id", userId)
+    .order("date", { ascending: true });
+
+  if (error) throw error;
+  return (data || []).map((o) => ({
+    ...o,
+    occasion_type: o.occasion_type || "birthday",
+    is_annual: o.is_annual ?? true,
+  }));
+}
+
+/**
  * Update an occasion's date and/or type
  */
 export async function updateOccasion(
