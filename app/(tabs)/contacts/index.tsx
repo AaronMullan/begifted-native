@@ -13,12 +13,24 @@ import { useContactImportFlow } from "../../../hooks/use-contact-import-flow";
 import { useToast } from "../../../hooks/use-toast";
 import { useAuth } from "../../../hooks/use-auth";
 import { useRecipients } from "../../../hooks/use-recipients";
+import { useAllOccasions } from "../../../hooks/use-occasions";
+import { getNextUpcomingOccasion } from "../../../utils/upcoming-occasion";
+import type { Occasion } from "../../../lib/api";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 
 export default function Contacts() {
   const router = useRouter();
   const { user } = useAuth();
   const { data: recipients = [], isLoading: loading } = useRecipients();
+  const { data: occasions = [] } = useAllOccasions();
+
+  // Group occasions by recipient so each card can show its soonest moment.
+  const occasionsByRecipient = new Map<string, Occasion[]>();
+  for (const occasion of occasions) {
+    const list = occasionsByRecipient.get(occasion.recipient_id) ?? [];
+    list.push(occasion);
+    occasionsByRecipient.set(occasion.recipient_id, list);
+  }
   const {
     contactsLoading,
     pickerVisible,
@@ -87,7 +99,14 @@ export default function Contacts() {
           ) : (
             <View style={styles.list}>
               {recipients.map((recipient) => (
-                <PeopleRecipientCard key={recipient.id} recipient={recipient} />
+                <PeopleRecipientCard
+                  key={recipient.id}
+                  recipient={recipient}
+                  upcoming={getNextUpcomingOccasion(
+                    recipient.birthday,
+                    occasionsByRecipient.get(recipient.id) ?? []
+                  )}
+                />
               ))}
             </View>
           )}

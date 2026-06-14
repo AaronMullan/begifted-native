@@ -17,6 +17,7 @@ export const queryKeys = {
 
   // Occasions
   occasions: (userId: string) => ["occasions", userId] as const,
+  allOccasions: (userId: string) => ["occasions", userId, "all"] as const,
   recipientOccasions: (recipientId: string) =>
     ["occasions", "recipient", recipientId] as const,
 

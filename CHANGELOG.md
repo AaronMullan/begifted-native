@@ -19,6 +19,12 @@ heading (e.g. `## 2026-06-15 — OTA`) and tag the release commit. Started
 
 ### App (ships next build / OTA)
 
+- On the **People** tab, the line under each person now shows their soonest
+  upcoming moment as contextual status — e.g. "Birthday · June 26",
+  "Anniversary · September 22", or "Mother's Day · May 10" — instead of always
+  showing a static birthday. If multiple occasions are coming up, the nearest
+  one wins; if there's nothing scheduled, it reads "No upcoming moments yet".
+  Tapping a person still opens their profile (DEV-171).
 - The account avatar at the top-right now shows two initials taken from your
   name (e.g. "Caspian Michalowski" → "CM") instead of a single letter from your
   email. Single-word names still show one initial, and it falls back gracefully
