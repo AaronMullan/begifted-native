@@ -27,6 +27,10 @@ interface ConversationViewProps {
   onFinishConversation: () => Promise<void>;
   shouldShowNextStepButton: boolean;
   conversationContext: string;
+  /** True when the last send failed and a manual retry is available. */
+  canRetry?: boolean;
+  /** Re-send the last failed turn. */
+  onRetry?: () => Promise<void> | void;
   title?: string;
   finishButtonLabel?: string;
 }
@@ -40,6 +44,8 @@ export function ConversationView({
   onFinishConversation,
   shouldShowNextStepButton,
   conversationContext: _conversationContext,
+  canRetry = false,
+  onRetry,
   title = "Add Recipient",
   finishButtonLabel = "Let's Move to the Next Step",
 }: ConversationViewProps) {
@@ -181,6 +187,18 @@ export function ConversationView({
       <View
         style={[styles.inputContainer, { paddingBottom: inputBottomPadding }]}
       >
+        {canRetry && onRetry && !isLoading && (
+          <Button
+            mode="outlined"
+            icon="refresh"
+            onPress={onRetry}
+            disabled={isSending}
+            style={styles.retryButton}
+          >
+            Try again
+          </Button>
+        )}
+
         {shouldShowNextStepButton && (
           <Button
             mode="contained"
@@ -305,6 +323,10 @@ const styles = StyleSheet.create({
   },
   nextStepButton: {
     marginBottom: 12,
+  },
+  retryButton: {
+    marginBottom: 12,
+    alignSelf: "flex-start",
   },
   inputRow: {
     flexDirection: "row",

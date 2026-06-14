@@ -590,6 +590,8 @@ export default function RecipientEditPage() {
           onFinishConversation={addOccasionFlow.handleFinishConversation}
           shouldShowNextStepButton={addOccasionFlow.shouldShowNextStepButton}
           conversationContext={addOccasionFlow.conversationContext}
+          canRetry={addOccasionFlow.canRetrySend}
+          onRetry={addOccasionFlow.retryLastSend}
           title="Add Occasion"
           finishButtonLabel="Save Occasion"
         />
@@ -609,6 +611,8 @@ export default function RecipientEditPage() {
           onFinishConversation={handleFinishUpdateChat}
           shouldShowNextStepButton={updateFlow.shouldShowNextStepButton}
           conversationContext={updateFlow.conversationContext ?? ""}
+          canRetry={updateFlow.canRetrySend}
+          onRetry={updateFlow.retryLastSend}
           title={`Update ${formatShortName(recipient.name)}`}
           finishButtonLabel="Save Updates"
         />

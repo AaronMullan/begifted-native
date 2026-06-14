@@ -19,6 +19,15 @@ heading (e.g. `## 2026-06-15 — OTA`) and tag the release commit. Started
 
 ### App (ships next build / OTA)
 
+- The AI chats for adding a person or an occasion now recover from hiccups on
+  their own: if a message fails to reach the assistant because of a brief
+  network drop or a server blip, the app quietly retries a couple of times
+  before giving up. If it still can't get through, you'll see a "Try again"
+  button right above the message box so one tap re-sends — no more dead-end
+  error pop-up that loses your place. The suggested-occasions step in the
+  add-a-person flow gets the same auto-retry, so a momentary blip is less
+  likely to fall back to generic birthday/holiday suggestions instead of the
+  tailored ones (DEV-134).
 - The gift-options drawer (the "…" menu on a gift idea) got a visual refresh:
   the colored icons next to each action are gone, replaced by a clean list with
   a small circle marker before each option. The product name at the top and the

@@ -17,6 +17,8 @@ interface UseAddOccasionFlowReturn {
   conversationContext: string;
   messagesEndRef: React.RefObject<View | null>;
   sendMessage: (message: string) => Promise<void>;
+  canRetrySend: boolean;
+  retryLastSend: () => Promise<void>;
   handleFinishConversation: () => Promise<void>;
   resetConversation: () => void;
 }
@@ -36,6 +38,8 @@ export function useAddOccasionFlow({
     conversationContext,
     messagesEndRef,
     sendMessage,
+    canRetrySend,
+    retryLastSend,
     handleFinishConversation: genericFinish,
     resetConversation,
   } = useConversationFlow({
@@ -98,6 +102,8 @@ export function useAddOccasionFlow({
     conversationContext: conversationContext || "",
     messagesEndRef,
     sendMessage,
+    canRetrySend,
+    retryLastSend,
     handleFinishConversation,
     resetConversation,
   };
