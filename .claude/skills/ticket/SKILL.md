@@ -9,7 +9,7 @@ Take a Jira ticket from investigation to merged-ready PR. The ticket ID is passe
 
 ## Steps
 
-1. **Read the ticket.** Fetch it with `jira_get_issue` (summary, description, acceptance criteria, linked designs/PRs). Identify which repo(s) are affected — this app (`begifted-native`) and/or the sibling `be-gifted` backend repo. If the ticket links a Figma/PDF design, confirm the interaction model and exact components/icons before coding (see CLAUDE.md → _Implementing from Designs_).
+1. **Read the ticket.** Fetch it with `jira_get_issue` (summary, description, acceptance criteria, linked designs/PRs). If the description cites prior-art/related tickets, glance at them for context. **Pull any attached screenshots** with `jira_get_issue_images` — the original reporter's screenshot (e.g. carried over from a Slack report) usually shows the concrete error/UI better than the text. Identify which repo(s) are affected — this app (`begifted-native`) and/or the sibling `be-gifted` backend repo. If the ticket links a Figma/PDF design, confirm the interaction model and exact components/icons before coding (see CLAUDE.md → _Implementing from Designs_).
 
 2. **Scope it first.** Before writing code, give a 3-line plan: root cause, the smallest change that fixes it, and which files. Start with the narrowest fix that satisfies the ticket — do not expand scope or refactor unless required. Pause for sign-off if scope is ambiguous or any change is destructive.
 

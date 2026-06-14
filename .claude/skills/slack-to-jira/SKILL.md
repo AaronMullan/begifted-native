@@ -14,7 +14,7 @@ Argument: a Slack message permalink (e.g. `https://<workspace>.slack.com/archive
 1. Parse the permalink into a **channel ID** (the `C…`/`G…` segment after `/archives/`) and a **thread timestamp** (the `p1700000000123456` → `1700000000.123456`).
 2. Read the full context with `slack_read_thread` (channel + thread_ts). If the link points at a standalone message with no thread, fall back to `slack_read_channel` around that ts.
 3. Resolve author display names with `slack_read_user_profile` where the messages only carry user IDs, so the ticket drafts and reply read in plain English.
-4. **Pull any attached images by default** — if a message carries an image/file (e.g. a screenshot), read it with `slack_read_file` and fold what it shows into the relevant ticket. Screenshots usually contain the concrete detail (the exact error, the bloated output, the bad UI) that sharpens a draft. Only skip if the attachment is plainly irrelevant (an emoji, a meme).
+4. **Pull any attached images by default** — if a message carries an image/file (e.g. a screenshot), read it with `slack_read_file` and fold what it shows into the relevant ticket. Screenshots usually contain the concrete detail (the exact error, the bloated output, the bad UI) that sharpens a draft. Only skip if the attachment is plainly irrelevant (an emoji, a meme). **Keep the file/permalink handle** so the actual image can be attached to the ticket in Step 4 — a transcription helps the draft, but whoever picks up the ticket (e.g. `/ticket`) needs to re-see the real UI/error, not just your paraphrase.
 
 Keep the permalink — every ticket links back to it, and the reply draft is attached to this thread.
 
@@ -36,6 +36,11 @@ Present the items as a table (Summary · Type · Priority · New/Duplicate→KEY
 ## Step 4 — File the approved tickets
 
 For each approved item, create the ticket with `jira_create_issue` (project `DEV` unless told otherwise). Create them **one at a time** — `jira_batch_create_issues` is unreliable here. For items that mapped to an existing key, link rather than refile. Collect the resulting issue keys + URLs.
+
+**Carry the research into the ticket — don't leave it in the review table.** The prior art and screenshots you dug up in Steps 1–2 must survive the handoff, or `/ticket` re-discovers (or loses) them:
+
+- **Related/declined tickets** — write the keys into the Description (or attach them as Jira issue links). The reviewer saw them in the Step 3 table; the ticket body did not. Cite each as prior art so whoever implements inherits the context for free.
+- **Screenshots** — attach the actual image to the ticket, not just the transcription. Save the Slack file to a local path, then pass that path via the `attachments` param on `jira_create_issue` (or `jira_update_issue` for an existing key). A paraphrase sharpens the draft but can't be re-examined when scoping the fix.
 
 ## Step 5 — Draft the Slack reply, wait for approval
 
