@@ -19,6 +19,11 @@ heading (e.g. `## 2026-06-15 — OTA`) and tag the release commit. Started
 
 ### App (ships next build / OTA)
 
+- The gift-options drawer (the "…" menu on a gift idea) got a visual refresh:
+  the colored icons next to each action are gone, replaced by a clean list with
+  a small circle marker before each option. The product name at the top and the
+  option labels now use the new teal type, and the grab handle is the beige
+  pill. The eight actions and what they do are unchanged (DEV-175).
 - On the **People** tab, the line under each person now shows their soonest
   upcoming moment as contextual status — e.g. "Birthday · June 26",
   "Anniversary · September 22", or "Mother's Day · May 10" — instead of always

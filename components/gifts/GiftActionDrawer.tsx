@@ -12,6 +12,7 @@ import type { GiftSuggestion } from "../../types/recipient";
 import type { GiftFeedbackAction } from "../../lib/api";
 import { useSubmitGiftFeedback } from "../../hooks/use-submit-gift-feedback";
 import { Colors } from "../../lib/colors";
+import { FontFamily } from "../../lib/typography";
 
 export type GiftActionDrawerState = {
   suggestion: GiftSuggestion;
@@ -26,48 +27,17 @@ type GiftActionDrawerProps = {
 
 type RowDef = {
   label: string;
-  icon: keyof typeof MaterialIcons.glyphMap;
   action: GiftFeedbackAction;
-  positive?: boolean;
 };
 
 const ROWS: RowDef[] = [
-  {
-    label: "Keep this in the mix",
-    icon: "bookmark-border",
-    action: "keep_in_mix",
-  },
-  {
-    label: "I chose this gift",
-    icon: "check-circle-outline",
-    action: "chose",
-    positive: true,
-  },
-  {
-    label: "They already have this",
-    icon: "redo",
-    action: "already_have",
-  },
-  {
-    label: "Not for them",
-    icon: "thumb-down-off-alt",
-    action: "not_for_them",
-  },
-  {
-    label: "Price feels off",
-    icon: "attach-money",
-    action: "price_off",
-  },
-  {
-    label: "Product problem",
-    icon: "report-gmailerrorred",
-    action: "product_problem",
-  },
-  {
-    label: "Remove this idea",
-    icon: "close",
-    action: "remove",
-  },
+  { label: "Keep this in the mix", action: "keep_in_mix" },
+  { label: "I chose this gift", action: "chose" },
+  { label: "They already have this", action: "already_have" },
+  { label: "Not for them", action: "not_for_them" },
+  { label: "Price feels off", action: "price_off" },
+  { label: "Product problem", action: "product_problem" },
+  { label: "Remove this idea", action: "remove" },
 ];
 
 export default function GiftActionDrawer({
@@ -146,19 +116,8 @@ export default function GiftActionDrawer({
                   accessibilityRole="button"
                   accessibilityLabel={row.label}
                 >
-                  <MaterialIcons
-                    name={row.icon}
-                    size={22}
-                    color={row.positive ? Colors.blues.teal : Colors.blues.dark}
-                  />
-                  <Text
-                    style={[
-                      styles.rowLabel,
-                      row.positive && styles.rowLabelPositive,
-                    ]}
-                  >
-                    {row.label}
-                  </Text>
+                  <View style={styles.bullet} />
+                  <Text style={styles.rowLabel}>{row.label}</Text>
                 </Pressable>
               ))}
               <Pressable
@@ -171,16 +130,12 @@ export default function GiftActionDrawer({
                 accessibilityRole="button"
                 accessibilityLabel="Gift feedback"
               >
-                <MaterialIcons
-                  name="chat-bubble-outline"
-                  size={22}
-                  color={Colors.blues.dark}
-                />
+                <View style={styles.bullet} />
                 <Text style={styles.rowLabel}>Gift feedback</Text>
                 <MaterialIcons
                   name="chevron-right"
                   size={20}
-                  color={Colors.blues.dark}
+                  color={Colors.brand.darkTeal}
                   style={styles.chevron}
                 />
               </Pressable>
@@ -242,44 +197,47 @@ export default function GiftActionDrawer({
 
 const styles = StyleSheet.create({
   content: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingTop: 8,
     paddingBottom: 32,
-    gap: 4,
   },
   handle: {
-    backgroundColor: Colors.blues.dark,
-    opacity: 0.4,
+    backgroundColor: Colors.brand.beige,
+    width: 58,
+    height: 5,
+    borderRadius: 4,
   },
   background: {
     backgroundColor: Colors.white,
   },
   title: {
-    fontFamily: "Fraunces_600SemiBold",
-    color: Colors.blues.dark,
-    fontSize: 18,
-    paddingBottom: 12,
-    paddingHorizontal: 4,
+    fontFamily: FontFamily.sans.medium,
+    color: Colors.brand.mediumTeal,
+    fontSize: 16,
+    paddingBottom: 8,
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 4,
+    gap: 12,
+    paddingVertical: 10,
   },
   rowPressed: {
     opacity: 0.6,
   },
+  bullet: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: Colors.brand.beige,
+  },
   rowLabel: {
     flex: 1,
-    fontFamily: "RobotoFlex_400Regular",
-    fontSize: 16,
-    color: Colors.blues.dark,
-  },
-  rowLabelPositive: {
-    fontWeight: "600",
-    color: Colors.blues.teal,
+    fontFamily: FontFamily.sans.regular,
+    fontSize: 12,
+    lineHeight: 24,
+    color: Colors.brand.darkTeal,
   },
   chevron: {
     marginLeft: "auto",
