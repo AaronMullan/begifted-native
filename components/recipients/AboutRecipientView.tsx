@@ -574,10 +574,11 @@ const InformationDialog: React.FC<InformationDialogProps> = ({
   onClose,
   onSave,
 }) => {
-  // Seed the editable birthday from canonical storage. Strip the vCard "--"
-  // prefix ("--08-18" → "08-18") so the year-unknown form reads naturally; both
-  // forms re-normalize on save.
-  const seedBirthday = (b?: string) => (b ? b.replace(/^--/, "") : "");
+  // Seed the editable birthday with the customary "Month Day, Year" display
+  // (e.g. "November 13, 1946", or "August 18" when the year is unknown) instead
+  // of the raw stored ISO/vCard string (DEV-178). The parser accepts this
+  // friendly form too, so it re-normalizes to canonical storage on save.
+  const seedBirthday = (b?: string) => formatBirthdayDisplay(b);
 
   const [name, setName] = useState(recipient.name);
   // Seed empty when the stored value is the placeholder "null" so Save can't
@@ -658,13 +659,12 @@ const InformationDialog: React.FC<InformationDialogProps> = ({
                 label="Birthday"
                 value={birthday}
                 onChangeText={setBirthday}
-                placeholder="1985-08-18 or 08-18"
-                autoCapitalize="none"
+                placeholder="August 18, 1985 or August 18"
                 style={styles.input}
               />
               <HelperText type={birthdayInvalid ? "error" : "info"}>
                 {birthdayInvalid
-                  ? "Use a date like 1985-08-18, or 08-18 if you don't know the year."
+                  ? "Use a date like August 18, 1985, or August 18 if you don't know the year."
                   : "Year optional — add it so we can show their age accurately."}
               </HelperText>
             </View>

@@ -16,7 +16,10 @@ import {
   TextInput,
 } from "react-native-paper";
 import { BOTTOM_NAV_HEIGHT } from "@/lib/constants";
-import { isInvalidBirthdayInput } from "@/utils/birthday";
+import {
+  formatBirthdayDisplay,
+  isInvalidBirthdayInput,
+} from "@/utils/birthday";
 
 interface DataReviewViewProps {
   extractedData: ExtractedData;
@@ -44,6 +47,22 @@ export function DataReviewView({
       extractedData.interests ? extractedData.interests.join(", ") : ""
     );
   }, [extractedData.interests]);
+
+  // Show the birthday in customary "Month Day, Year" form rather than raw ISO
+  // (DEV-178). Fall back to the raw value while it's mid-edit/unparseable so we
+  // never blank out what the user is typing; the save path normalizes it.
+  const [birthdayText, setBirthdayText] = useState(
+    formatBirthdayDisplay(extractedData.birthday) ||
+      extractedData.birthday ||
+      ""
+  );
+  useEffect(() => {
+    setBirthdayText(
+      formatBirthdayDisplay(extractedData.birthday) ||
+        extractedData.birthday ||
+        ""
+    );
+  }, [extractedData.birthday]);
 
   const updateField = (field: keyof ExtractedData, value: any) => {
     onDataChange({
@@ -130,16 +149,19 @@ export function DataReviewView({
             <TextInput
               mode="outlined"
               label="Birthday"
-              value={extractedData.birthday || ""}
-              onChangeText={(value) => updateField("birthday", value)}
-              placeholder="YYYY-MM-DD or MM-DD"
-              error={isInvalidBirthdayInput(extractedData.birthday)}
+              value={birthdayText}
+              onChangeText={(value) => {
+                setBirthdayText(value);
+                updateField("birthday", value);
+              }}
+              placeholder="December 7, 1990 or December 7"
+              error={isInvalidBirthdayInput(birthdayText)}
               style={styles.input}
             />
-            {isInvalidBirthdayInput(extractedData.birthday) && (
+            {isInvalidBirthdayInput(birthdayText) && (
               <HelperText type="error" visible>
-                Use YYYY-MM-DD (e.g. 1990-12-07) or MM-DD (e.g. 12-07) if the
-                year is unknown.
+                Use a date like December 7, 1990, or December 7 if the year is
+                unknown.
               </HelperText>
             )}
           </View>
