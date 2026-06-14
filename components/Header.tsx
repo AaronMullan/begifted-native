@@ -5,6 +5,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { Link, usePathname } from "expo-router";
 import { useAuth } from "../hooks/use-auth";
 import { useUnreadCount } from "../hooks/use-notifications";
+import { useProfile } from "../hooks/use-profile";
 import { Colors } from "../lib/colors";
 import BrandMark from "./BrandMark";
 import BrandWordmark from "./BrandWordmark";
@@ -17,23 +18,15 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const { user } = useAuth();
+  const { data: profile } = useProfile();
   const { data: unreadCount = 0 } = useUnreadCount();
 
   if (pathname.startsWith("/onboarding") || pathname.startsWith("/intro")) {
     return null;
   }
 
-  const email = user?.email ?? "";
-  const initials =
-    email && email.includes("@")
-      ? email
-          .split("@")[0]
-          .split(/[.\s_-]/)
-          .filter(Boolean)
-          .slice(0, 2)
-          .map((part) => part[0]?.toUpperCase() ?? "")
-          .join("") || "U"
-      : "U";
+  const fullName = profile?.full_name ?? profile?.name ?? "";
+  const initials = deriveInitials(fullName, user?.email ?? "");
 
   return (
     <View
@@ -98,6 +91,36 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
 }
 
 const BRAND_MARK_SIZE = 36;
+
+/**
+ * Build the avatar fallback initials. Prefers the user's name (profiles store a
+ * single `full_name`), taking the first letter of the first two tokens
+ * (e.g. "Caspian Michalowski" → "CM"). Single-token names yield one initial.
+ * Falls back to the email local part, then "U" when nothing is available.
+ */
+function deriveInitials(fullName: string, email: string): string {
+  const fromName = fullName
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+  if (fromName) return fromName;
+
+  if (email.includes("@")) {
+    const fromEmail = email
+      .split("@")[0]
+      .split(/[.\s_-]/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("");
+    if (fromEmail) return fromEmail;
+  }
+
+  return "U";
+}
 
 const styles = StyleSheet.create({
   headerBackground: {
