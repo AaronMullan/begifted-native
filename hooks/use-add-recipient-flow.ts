@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, View } from "react-native";
+import { invokeWithRetry } from "../lib/edge-retry";
 import { queryKeys } from "../lib/query-keys";
 import { supabase } from "../lib/supabase";
 import { formatBirthdayDisplay, normalizeBirthday } from "../utils/birthday";
@@ -72,12 +73,20 @@ async function uploadRecipientPhoto(photoUri: string): Promise<string | null> {
     const base64 = await FileSystem.readAsStringAsync(photoUri, {
       encoding: FileSystem.EncodingType.Base64,
     });
-    const { data, error } = await supabase.functions.invoke<{
+    // Cap at 2 attempts (one retry): a transient FetchError / 5xx gets a single
+    // jittered re-send, but the base64 image payload is large and the failing
+    // device is often thermally throttling with a saturated uplink — so we
+    // avoid the default 3-attempt hammering. Still falls back to null (DEV-177).
+    const { data, error } = await invokeWithRetry<{
       publicUrl?: string;
       error?: string;
-    }>("upload-recipient-photo", {
-      body: { base64, contentType: "image/jpeg" },
-    });
+    }>(
+      "upload-recipient-photo",
+      {
+        body: { base64, contentType: "image/jpeg" },
+      },
+      2
+    );
     if (error || !data?.publicUrl) {
       const message = error?.message ?? data?.error ?? "Upload failed";
       console.error("[photo] upload error:", message);
