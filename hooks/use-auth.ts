@@ -10,7 +10,21 @@ interface UseAuthReturn {
 
 function syncSentryUser(user: User | null) {
   if (user) {
-    Sentry.setUser({ id: user.id });
+    // Attach email/name so bug reports (DEV-96) are tied to a person without
+    // the tester having to type those fields — the feedback widget hides its
+    // name/email inputs and pulls identity from here instead.
+    const metadata = user.user_metadata ?? {};
+    const username =
+      typeof metadata.full_name === "string"
+        ? metadata.full_name
+        : typeof metadata.name === "string"
+        ? metadata.name
+        : undefined;
+    Sentry.setUser({
+      id: user.id,
+      email: user.email ?? undefined,
+      username,
+    });
   } else {
     Sentry.setUser(null);
   }
