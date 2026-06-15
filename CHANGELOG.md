@@ -94,6 +94,10 @@ builds (≤ 44) are not backfilled here.
 
 ### Backend (live on merge)
 
+- Groundwork for recording Terms & Privacy acceptance: the backend can now store
+  which legal-document versions each user agreed to, with a trustworthy
+  server-stamped time and IP. There's nothing for testers to see yet — the
+  sign-up screen that will use it ships in a later ticket (DEV-142).
 - Adding a recipient without clearly stating your relationship to them no longer
   saves the literal word "null" as the relationship — the app now asks you to
   fill it in on the review screen instead (DEV-139).
