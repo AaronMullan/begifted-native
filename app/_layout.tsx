@@ -45,10 +45,11 @@ Sentry.init({
       submitButtonLabel: "Send report",
       successMessageText: "Thanks! Your report is on its way to the team.",
       enableScreenshot: true,
-      showName: true,
-      showEmail: true,
-      isNameRequired: false,
-      isEmailRequired: false,
+      // Hide name/email inputs — testers are signed in, so identity is pulled
+      // from Sentry.setUser (see hooks/use-auth.ts). One less thing to type,
+      // and sidesteps the SDK email field's autocapitalize/no-autofill quirks.
+      showName: false,
+      showEmail: false,
     }),
   ],
 });
