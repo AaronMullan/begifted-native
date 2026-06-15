@@ -7,6 +7,7 @@ import {
   Provider as PaperProvider,
   MD3LightTheme,
   Text,
+  Button,
 } from "react-native-paper";
 import { View, StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -20,6 +21,7 @@ import { usePushNotifications } from "../hooks/use-push-notifications";
 import { defaultQueryOptions } from "../lib/query-defaults";
 import { persistOptions } from "../lib/query-persister";
 import { captureMutationError, captureQueryError } from "../lib/sentry-helpers";
+import { openBugReport } from "../lib/feedback";
 import * as Sentry from "@sentry/react-native";
 
 Sentry.init({
@@ -32,7 +34,22 @@ Sentry.init({
   replaysOnErrorSampleRate: 1,
   integrations: [
     Sentry.mobileReplayIntegration(),
-    Sentry.feedbackIntegration(),
+    // Beta bug-report widget (DEV-96). Friendly copy for non-technical
+    // testers; lets them attach a screenshot and prefills name/email from the
+    // signed-in Sentry user so there's one less thing to type.
+    Sentry.feedbackIntegration({
+      formTitle: "Report a Bug",
+      messageLabel: "What happened?",
+      messagePlaceholder:
+        "Tell us what you were doing and what went wrong. The more detail, the faster we can fix it.",
+      submitButtonLabel: "Send report",
+      successMessageText: "Thanks! Your report is on its way to the team.",
+      enableScreenshot: true,
+      showName: true,
+      showEmail: true,
+      isNameRequired: false,
+      isEmailRequired: false,
+    }),
   ],
 });
 
@@ -58,6 +75,14 @@ class ErrorBoundary extends React.Component<
           <Text variant="bodyMedium" style={styles.errorBody}>
             Please restart the app.
           </Text>
+          <Button
+            mode="contained"
+            icon="bug"
+            style={styles.errorReportButton}
+            onPress={() => openBugReport("crash")}
+          >
+            Tell us what happened
+          </Button>
         </View>
       );
     }
@@ -193,5 +218,8 @@ const styles = StyleSheet.create({
   errorBody: {
     marginTop: 8,
     color: "#666",
+  },
+  errorReportButton: {
+    marginTop: 24,
   },
 });

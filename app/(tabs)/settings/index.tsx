@@ -7,6 +7,7 @@ import type { Session } from "@supabase/supabase-js";
 import { Colors } from "../../../lib/colors";
 import MenuCard from "../../../components/MenuCard";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
+import { openBugReport } from "../../../lib/feedback";
 
 export default function Settings() {
   const [session, setSession] = useState<Session | null>(null);
@@ -144,6 +145,15 @@ export default function Settings() {
                 showChevron
               />
             ))}
+            {/* Beta bug-report entry (DEV-96). Opens Sentry's feedback widget
+                in-app rather than navigating, so testers can report straight
+                from Settings with a screenshot + crash context attached. */}
+            <MenuCard
+              icon="bug-report"
+              title="Report a Bug"
+              description="Something off? Tell us what happened and attach a screenshot"
+              onPress={() => openBugReport("settings")}
+            />
           </View>
 
           {/* Sign Out */}

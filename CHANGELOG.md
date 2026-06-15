@@ -21,6 +21,12 @@ builds (≤ 44) are not backfilled here.
 
 ### App (ships next build / OTA)
 
+- You can now report a bug from inside the app. There's a "Report a Bug" item
+  at the bottom of the Home screen and in Settings, and if the app ever hits an
+  error screen you'll get a "Tell us what happened" button right there. Each
+  opens a short form where you can describe the problem and attach a
+  screenshot — it sends straight to the team with the technical details already
+  attached, so there's no need to explain anything technical (DEV-96).
 - A recipient's birthday now reads in the everyday "Month Day, Year" style
   (e.g. "November 13, 1946", or just "August 18" when the year is unknown)
   everywhere you see or edit it — including the Information edit dialog and the
