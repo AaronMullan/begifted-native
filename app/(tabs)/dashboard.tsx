@@ -1,5 +1,5 @@
 import { View, StyleSheet, ScrollView } from "react-native";
-import { Text, ActivityIndicator } from "react-native-paper";
+import { Text, ActivityIndicator, Button } from "react-native-paper";
 import { Colors } from "../../lib/colors";
 import { Spacing } from "../../lib/spacing";
 import { BOTTOM_NAV_HEIGHT } from "../../lib/constants";
@@ -12,6 +12,7 @@ import NextUpCarousel from "../../components/home/NextUpCarousel";
 import OnTheHorizonGrid from "../../components/home/OnTheHorizonGrid";
 import AddPeopleTile from "../../components/home/AddPeopleTile";
 import GradientBackground from "../../components/GradientBackground";
+import { openBugReport } from "../../lib/feedback";
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -88,6 +89,18 @@ export default function Dashboard() {
               No upcoming occasions yet.
             </Text>
           )}
+          {/* Discreet beta bug-report entry (DEV-96). Lives at the foot of the
+              home feed so testers always have an obvious way to flag issues;
+              opens Sentry's feedback widget. Can be removed for GA. */}
+          <Button
+            mode="text"
+            icon="bug"
+            textColor={Colors.darks.black}
+            style={styles.reportBugButton}
+            onPress={() => openBugReport("home")}
+          >
+            Report a Bug
+          </Button>
         </View>
       </ScrollView>
     </View>
@@ -144,5 +157,9 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     textAlign: "center",
     paddingVertical: 40,
+  },
+  reportBugButton: {
+    alignSelf: "center",
+    opacity: 0.7,
   },
 });
