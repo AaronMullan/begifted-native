@@ -14,6 +14,7 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSContactsUsageDescription": "This app would like to access your contacts to help you import gift recipients.",
+        "NSPhotoLibraryUsageDescription": "BeGifted needs access to your photos so you can attach a screenshot to a bug report.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -42,6 +43,12 @@
       ],
       "expo-font",
       "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "BeGifted needs access to your photos so you can attach a screenshot to a bug report."
+        }
+      ],
       [
         "@sentry/react-native/expo",
         {
