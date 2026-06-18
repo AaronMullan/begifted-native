@@ -99,6 +99,16 @@ Before coding, confirm the intended interaction model and the exact components/i
 
 **Verify design intent before writing a line.** For any UI work driven by a Figma/PDF spec, first summarize the intent back and wait for confirmation: which control triggers each action, exact colors/icons, layout/placement, and whether the flow is single-shot or chat. Do not assume — wrong inferences here (chevron vs three-dots, textarea vs full chat, off-spec button colors) have repeatedly caused rework. When the spec is ambiguous, ask rather than guess.
 
+**The Figma MCP text tree is lossy — don't build from it alone.** Three classes of detail are missing or unreliable in `get_figma_data` and have repeatedly shipped wrong:
+
+- **Icon color and fill variant.** Icon/vector nodes report `fills: []` — the real color lives in the SVG path's `fill`. You only get it by `download_figma_images` on the node and reading the SVG. Filenames like `..._FILL0_...` mean **outlined** (hollow ring), `FILL1` **filled** (solid disc); `MaterialIcons` is filled-only, so an outlined design needs a `*-outline` glyph or an inlined SVG path (see `components/ExpandCircleIcon.tsx`, `components/BrandMark.tsx`).
+- **Image alignment & spacing rhythm.** Absolute x/y must be _derived_ into padding/gap, not guessed. "Centered", "even gap", and ad-hoc full-bleed offsets are plausible defaults that contradict the coordinates.
+- **Reused-component geometry.** A reused card/row carries its own old padding/gap/height/colors; reconcile each to the current frame.
+
+**Derive layout from one gutter — no magic numbers.** Full-bleed = `-Spacing.screenGutter`; insets = gutter ± a token. Don't hardcode offsets like `-16`/`36`/`16` that don't trace back to `Spacing.*`.
+
+**Confirm parity from a screenshot, not from code.** Before claiming a screen matches: render the Figma frame to PNG (`download_figma_images`), boot the sim to the route, `xcrun simctl io booted screenshot`, and compare element-by-element. typecheck/lint do not catch visual drift. The `/design-parity` skill runs this whole loop.
+
 ### TypeScript
 
 - Use `type` for props, `interface` only when extension is needed
