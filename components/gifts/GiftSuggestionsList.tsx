@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   pastZone: {
-    marginTop: 24,
+    marginTop: 48,
     marginHorizontal: -16,
     backgroundColor: Colors.brand.pastZone,
   },
