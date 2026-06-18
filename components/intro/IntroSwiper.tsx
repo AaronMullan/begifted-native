@@ -102,17 +102,19 @@ export default function IntroSwiper({ onSignUp }: IntroSwiperProps) {
           ))}
         </View>
 
-        <Button
-          mode="contained"
-          onPress={onSignUp}
-          buttonColor={Colors.brand.buttonTeal}
-          textColor={Colors.white}
-          style={styles.cta}
-          contentStyle={styles.ctaContent}
-          labelStyle={styles.ctaLabel}
-        >
-          SIGN ME UP!
-        </Button>
+        {index === SLIDES.length - 1 && (
+          <Button
+            mode="contained"
+            onPress={onSignUp}
+            buttonColor={Colors.brand.buttonTeal}
+            textColor={Colors.white}
+            style={styles.cta}
+            contentStyle={styles.ctaContent}
+            labelStyle={styles.ctaLabel}
+          >
+            SIGN ME UP!
+          </Button>
+        )}
       </View>
     </View>
   );
