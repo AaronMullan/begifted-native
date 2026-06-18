@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
+import ExpandCircleIcon from "../ExpandCircleIcon";
 
 type GiftCardExpandButtonProps = {
   /** Whether the card is currently expanded. Controls chevron direction. */
@@ -12,8 +12,6 @@ export default function GiftCardExpandButton({
   expanded,
   onPress,
 }: GiftCardExpandButtonProps) {
-  const color = expanded ? Colors.brand.mediumTeal : Colors.brand.gold;
-
   return (
     <Pressable
       onPress={onPress}
@@ -22,13 +20,12 @@ export default function GiftCardExpandButton({
       accessibilityLabel={expanded ? "Collapse gift" : "Expand gift"}
       style={styles.button}
     >
-      <MaterialIcons
-        name="expand-circle-down"
+      {/* Design uses gold for both states; the affordance flips via a distinct
+          up/down glyph, not a rotated icon. */}
+      <ExpandCircleIcon
+        direction={expanded ? "up" : "down"}
+        color={Colors.brand.gold}
         size={24}
-        color={color}
-        // The Figma asset is `expand_circle_down` for both states; rotate it to
-        // read as a collapse affordance when the card is open.
-        style={expanded ? styles.flipped : undefined}
       />
     </Pressable>
   );
@@ -38,8 +35,5 @@ const styles = StyleSheet.create({
   button: {
     alignItems: "center",
     justifyContent: "center",
-  },
-  flipped: {
-    transform: [{ rotate: "180deg" }],
   },
 });

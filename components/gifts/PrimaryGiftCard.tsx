@@ -80,20 +80,22 @@ export default function PrimaryGiftCard({
           </View>
         )}
 
-        <Text style={styles.title}>{suggestion.title}</Text>
-        <View style={styles.priceRow}>
-          <Text style={styles.price}>{formatPrice(suggestion.price)}</Text>
-          {suggestion.link && (
-            <Button
-              mode="text"
-              compact
-              textColor={Colors.brand.gold}
-              onPress={handleViewProduct}
-              labelStyle={styles.ctaLabel}
-            >
-              View Product ›
-            </Button>
-          )}
+        <View style={styles.titleBlock}>
+          <Text style={styles.title}>{suggestion.title}</Text>
+          <View style={styles.priceRow}>
+            <Text style={styles.price}>{formatPrice(suggestion.price)}</Text>
+            {suggestion.link && (
+              <Button
+                mode="text"
+                compact
+                textColor={Colors.brand.gold}
+                onPress={handleViewProduct}
+                labelStyle={styles.ctaLabel}
+              >
+                View Product ›
+              </Button>
+            )}
+          </View>
         </View>
 
         {suggestion.description && (
@@ -128,7 +130,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: Radii.md,
     padding: 20,
-    gap: 12,
+    // Block-level rhythm between image / title-block / why / actions.
+    gap: 16,
   },
   topRow: {
     flexDirection: "row",
@@ -138,9 +141,14 @@ const styles = StyleSheet.create({
   imageWrap: {
     width: IMAGE_SIZE,
     height: IMAGE_SIZE,
-    alignSelf: "center",
+    alignSelf: "flex-start",
     alignItems: "center",
     justifyContent: "center",
+  },
+  titleBlock: {
+    // Title sits tight above its price/CTA row (Figma: ~5pt), distinct from the
+    // larger block gap to the "Why this fits" section.
+    gap: 4,
   },
   image: {
     width: "100%",
@@ -169,11 +177,12 @@ const styles = StyleSheet.create({
   },
   whySection: {
     gap: 6,
-    paddingTop: 4,
+    // Extra separation from the title block (Figma: ~26pt total with card gap).
+    marginTop: 8,
   },
   whyHeading: {
     fontFamily: FontFamily.sans.semibold,
-    color: Colors.brand.darkTeal,
+    color: Colors.darks.black,
     fontSize: 11,
     textTransform: "uppercase",
     letterSpacing: 0.5,

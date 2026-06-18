@@ -29,7 +29,11 @@ export default function GiftCardActionButton({
       accessibilityLabel="Gift options"
       style={styles.button}
     >
-      <MaterialIcons name="more-horiz" size={22} color={Colors.blues.dark} />
+      <MaterialIcons
+        name="more-horiz"
+        size={22}
+        color={Colors.brand.mediumTeal}
+      />
     </Pressable>
   );
 }

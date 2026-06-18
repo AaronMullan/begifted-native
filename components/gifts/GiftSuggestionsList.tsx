@@ -4,13 +4,19 @@ import { ActivityIndicator, Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
 import { Typography } from "../../lib/typography";
+import { Spacing } from "../../lib/spacing";
 import type { GiftSuggestion } from "../../types/recipient";
 import PrimaryGiftCard from "./PrimaryGiftCard";
 import CollapsedGiftCard from "./CollapsedGiftCard";
+import ExpandCircleIcon from "../ExpandCircleIcon";
 
 /** How many of the newest suggestions show as active recommendation cards.
  * Anything older falls into the collapsed "Past Gifts" section (DEV-165). */
 const ACTIVE_COUNT = 3;
+
+/** Horizontal padding inside gift cards (CollapsedGiftCard/PrimaryGiftCard).
+ * Used to align the Past Gifts header with card content. */
+const CARD_INNER_PADDING = 20;
 
 type GiftSuggestionsListProps = {
   suggestions: GiftSuggestion[];
@@ -157,7 +163,16 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
         <View style={styles.pastZone}>
           <Pressable
             style={styles.pastHeaderRow}
-            onPress={() => setPastExpanded(!pastExpanded)}
+            onPress={() => {
+              if (
+                pastExpanded &&
+                typeof expandedId === "string" &&
+                pastSuggestions.some((s) => s.id === expandedId)
+              ) {
+                setExpandedId(null);
+              }
+              setPastExpanded(!pastExpanded);
+            }}
             accessibilityRole="button"
             accessibilityLabel={
               pastExpanded
@@ -166,11 +181,10 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
             }
           >
             <Text style={styles.pastHeader}>Past Gift Recommendations</Text>
-            <MaterialIcons
-              name="expand-circle-down"
+            <ExpandCircleIcon
+              direction={pastExpanded ? "up" : "down"}
+              color={Colors.brand.mediumTeal}
               size={24}
-              color={Colors.brand.darkTeal}
-              style={pastExpanded ? styles.chevronFlipped : undefined}
             />
           </Pressable>
           {pastExpanded && (
@@ -188,18 +202,21 @@ export default GiftSuggestionsList;
 
 const styles = StyleSheet.create({
   list: {
-    gap: 12,
+    gap: 16,
   },
   pastZone: {
     marginTop: 48,
-    marginHorizontal: -16,
+    // Full-bleed to the screen edge: cancel the host screen's gutter rather
+    // than guessing a magic offset. Host scroll padding is Spacing.screenGutter.
+    marginHorizontal: -Spacing.screenGutter,
     backgroundColor: Colors.brand.pastZone,
   },
   pastHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
+    // Align header text/chevron with card content: gutter + card inner padding.
+    paddingHorizontal: Spacing.screenGutter + CARD_INNER_PADDING,
     paddingVertical: 19,
   },
   pastHeader: {
@@ -207,13 +224,12 @@ const styles = StyleSheet.create({
     color: Colors.brand.darkTeal,
     flex: 1,
   },
-  chevronFlipped: {
-    transform: [{ rotate: "180deg" }],
-  },
   pastList: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-    gap: 12,
+    // Re-inset past cards to the screen gutter so they line up with active cards.
+    paddingHorizontal: Spacing.screenGutter,
+    paddingTop: 16,
+    paddingBottom: 24,
+    gap: 16,
   },
   loadingContainer: {
     alignItems: "center",
