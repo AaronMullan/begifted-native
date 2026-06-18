@@ -5,7 +5,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Colors } from "../../lib/colors";
 import { Typography, FontFamily } from "../../lib/typography";
-import { BOTTOM_NAV_HEIGHT, HEADER_HEIGHT } from "../../lib/constants";
+import { BOTTOM_NAV_HEIGHT } from "../../lib/constants";
 import { useRecipient } from "../../hooks/use-recipient";
 import { useGiftSuggestions } from "../../hooks/use-gift-suggestions";
 import GiftSuggestionsList from "../../components/gifts/GiftSuggestionsList";
@@ -90,7 +90,10 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingTop: HEADER_HEIGHT,
+    // The root Header is an in-flow sibling above this Stack, so content already
+    // begins below it — only a small gap is needed (Figma: title ~20pt below the
+    // header). Adding HEADER_HEIGHT here double-counted the header (~120pt).
+    paddingTop: 20,
     paddingBottom: BOTTOM_NAV_HEIGHT + 32,
   },
   content: {
