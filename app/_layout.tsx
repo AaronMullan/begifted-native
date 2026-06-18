@@ -23,6 +23,25 @@ import { persistOptions } from "../lib/query-persister";
 import { captureMutationError, captureQueryError } from "../lib/sentry-helpers";
 import { openBugReport } from "../lib/feedback";
 import * as Sentry from "@sentry/react-native";
+import * as ImagePicker from "expo-image-picker";
+
+// expo-image-picker types several asset fields as string | null | undefined
+// but Sentry's ImagePickerAsset expects string | undefined. Return only the
+// three fields Sentry needs, normalising null → undefined at the boundary.
+const sentryImagePicker = {
+  launchImageLibraryAsync: (options?: {
+    mediaTypes?: "images"[];
+    base64?: boolean;
+  }) =>
+    ImagePicker.launchImageLibraryAsync(options).then((result) => ({
+      ...result,
+      assets: result.assets?.map((a) => ({
+        fileName: a.fileName ?? undefined,
+        uri: a.uri,
+        base64: a.base64 ?? undefined,
+      })),
+    })),
+};
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
@@ -45,6 +64,9 @@ Sentry.init({
       submitButtonLabel: "Send report",
       successMessageText: "Thanks! Your report is on its way to the team.",
       enableScreenshot: true,
+      // Wires expo-image-picker so the "Add a screenshot" button opens the
+      // camera roll instead of silently doing nothing (DEV-184).
+      imagePicker: sentryImagePicker,
       // Hide name/email inputs — testers are signed in, so identity is pulled
       // from Sentry.setUser (see hooks/use-auth.ts). One less thing to type,
       // and sidesteps the SDK email field's autocapitalize/no-autofill quirks.
