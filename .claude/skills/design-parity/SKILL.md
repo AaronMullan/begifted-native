@@ -25,13 +25,15 @@ Most drift dies if you do both: **(A) download every icon/vector SVG** (Step 3) 
 
 5. **Implement to tokens.** Build with the spec from Step 2. Reuse existing components where behavior matches — but **reconcile their geometry** (padding, gap, height, colors) to _this_ frame; reused components carry their own old values and are a top source of drift. Full-bleed = `-Spacing.screenGutter`, not a guessed offset. The PostToolUse hook runs prettier + `tsc` on every edit; reach a typecheck-clean end state.
 
-6. **Boot the app and screenshot the real screen.** Use the `run` skill (or `npm run ios`) to launch the simulator, navigate to `<app-route>` (deep link or tap through), then:
+6. **Boot the app and screenshot the _whole_ screen.** Use the `run` skill (or `npm run ios`) to launch the simulator, navigate to `<app-route>` (deep link or tap through), then:
 
    ```bash
    xcrun simctl io booted screenshot .design-audit/app-<screen>.png
    ```
 
-7. **Compare — element by element.** `Read` both the Figma PNG (Step 4) and the app screenshot (Step 6) and check each row of the spec table: left-edge alignment, colors (esp. icons), vertical rhythm, icon fill variant, image alignment. Scales differ (frame 2× vs device 3×), so compare _visually_, not by pixel-diff. List every mismatch, fix, and re-screenshot. Loop until they match. **Do not claim parity from the code or the text tree — only from the screenshot.**
+   Capture status bar → bottom nav, not just the component you changed — the worst drift is often vertical placement (a title pushed too far down), which is invisible if you only look at the component in isolation. If you can't boot a sim, ask the user to paste a screenshot; the loop works the same.
+
+7. **Compare — element by element.** `Read` both the Figma PNG (Step 4) and the app screenshot (Step 6) and check each row of the spec table: **vertical placement from the top** (distance of the first element from the screen top), left-edge alignment, colors (esp. icons), vertical rhythm, icon fill variant, image alignment. Scales differ (frame 2× vs device 3×), so compare _visually_, not by pixel-diff. When something is misplaced, fix it where it actually lives — that is often the **host screen or layout** (`paddingTop`, safe-area insets, a `HEADER_HEIGHT` added on top of an already in-flow header), not the leaf component. List every mismatch, fix, and re-screenshot. Loop until they match. **Do not claim parity from the code or the text tree — only from the screenshot.**
 
 8. **Verify & clean up.** `npm run typecheck && npm run lint` (0 errors; pre-existing warnings OK). Remove the `.design-audit/` scratch files from the commit. Then follow the normal git workflow (feature branch, PR) — see CLAUDE.md.
 
@@ -39,4 +41,5 @@ Most drift dies if you do both: **(A) download every icon/vector SVG** (Step 3) 
 
 - Icon color invisible in the tree is the single most common miss — Step 3 is what surfaces it.
 - "Centered image", "even 12px gap", "−16 bleed" are plausible defaults that contradict the coordinates. Only Step 7 catches them.
+- **Vertical placement lives in the host, not the component.** A title sitting too low usually means the screen's `paddingTop` double-counts a header that is already an in-flow sibling (e.g. `paddingTop: HEADER_HEIGHT` when the root `<Header>` isn't absolute). Check what a working sibling screen uses before copying a top offset.
 - Keep `.design-audit/` in `.gitignore` so scratch renders never ride along in a PR.
