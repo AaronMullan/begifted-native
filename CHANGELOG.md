@@ -21,6 +21,7 @@ builds (≤ 44) are not backfilled here.
 
 ### App (ships next build / OTA)
 
+- The intro screens no longer show the "SIGN ME UP!" button until the final slide, so the app's value proposition plays out before you can jump straight to sign-up (DEV-181).
 - You can now report a bug from inside the app. There's a "Report a Bug" item
   at the bottom of the Home screen and in Settings, and if the app ever hits an
   error screen you'll get a "Tell us what happened" button right there. Each
