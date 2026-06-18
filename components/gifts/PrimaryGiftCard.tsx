@@ -66,7 +66,10 @@ export default function PrimaryGiftCard({
   return (
     <>
       <View style={styles.card}>
-        <View style={styles.topRow}>
+        {/* Figma floats the chevron in the top-right corner overlapping the
+            content, so the image/title start at the card's top padding rather
+            than being pushed down by a stacked row. */}
+        <View style={styles.expandButton}>
           <GiftCardExpandButton expanded onPress={onCollapse} />
         </View>
 
@@ -129,14 +132,18 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.white,
     borderRadius: Radii.md,
-    padding: 20,
+    // Figma content insets: 23 horizontal, 27 top, 20 bottom.
+    paddingHorizontal: 23,
+    paddingTop: 27,
+    paddingBottom: 20,
     // Block-level rhythm between image / title-block / why / actions.
     gap: 16,
   },
-  topRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    alignItems: "center",
+  expandButton: {
+    position: "absolute",
+    top: 10,
+    right: 13,
+    zIndex: 1,
   },
   imageWrap: {
     width: IMAGE_SIZE,

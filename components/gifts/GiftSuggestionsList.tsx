@@ -16,7 +16,7 @@ const ACTIVE_COUNT = 3;
 
 /** Horizontal padding inside gift cards (CollapsedGiftCard/PrimaryGiftCard).
  * Used to align the Past Gifts header with card content. */
-const CARD_INNER_PADDING = 20;
+const CARD_INNER_PADDING = 23;
 
 type GiftSuggestionsListProps = {
   suggestions: GiftSuggestion[];

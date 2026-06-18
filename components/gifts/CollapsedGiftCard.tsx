@@ -40,7 +40,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     // 19 + 18 (h2 line) + 19 ≈ 56pt row height (Figma).
     paddingVertical: 19,
-    paddingHorizontal: 20,
+    // Match PrimaryGiftCard content inset so titles line up across states.
+    paddingHorizontal: 23,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
