@@ -21,6 +21,7 @@ builds (≤ 44) are not backfilled here.
 
 ### App (ships next build / OTA)
 
+- The "Past Gift Recommendations" label at the bottom of a recipient's gift ideas screen is now a tappable header. Tap it to reveal past suggestions as full gift cards (with photo, price, "Why This Fits", and a "View Product" link) on a slate-blue background. Tap it again to collapse them. One gift card at a time can be open across both the current and past suggestions (DEV-182).
 - The "Add a screenshot" button in the bug report form now actually opens your photo library so you can attach a screenshot. Tapping it previously did nothing (DEV-184).
 - The intro screens no longer show the "SIGN ME UP!" button until the final slide, so the app's value proposition plays out before you can jump straight to sign-up (DEV-181).
 - You can now report a bug from inside the app. There's a "Report a Bug" item

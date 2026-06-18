@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { ActivityIndicator, Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
-import { FontFamily } from "../../lib/typography";
+import { Typography } from "../../lib/typography";
 import type { GiftSuggestion } from "../../types/recipient";
 import PrimaryGiftCard from "./PrimaryGiftCard";
 import CollapsedGiftCard from "./CollapsedGiftCard";
@@ -43,6 +43,7 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
   const [expandedId, setExpandedId] = useState<string | null | undefined>(
     undefined
   );
+  const [pastExpanded, setPastExpanded] = useState(false);
 
   const handleExpand = (id: string) => setExpandedId(id);
   const handleCollapse = () => setExpandedId(null);
@@ -153,11 +154,30 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
       </View>
 
       {pastSuggestions.length > 0 && (
-        <View style={styles.pastSection}>
-          <Text style={styles.pastHeader}>Past Gifts</Text>
-          <View style={styles.list}>
-            {pastSuggestions.map((s) => renderCard(s, true))}
-          </View>
+        <View style={styles.pastZone}>
+          <Pressable
+            style={styles.pastHeaderRow}
+            onPress={() => setPastExpanded(!pastExpanded)}
+            accessibilityRole="button"
+            accessibilityLabel={
+              pastExpanded
+                ? "Collapse past gift recommendations"
+                : "Expand past gift recommendations"
+            }
+          >
+            <Text style={styles.pastHeader}>Past Gift Recommendations</Text>
+            <MaterialIcons
+              name="expand-circle-down"
+              size={24}
+              color={Colors.brand.darkTeal}
+              style={pastExpanded ? styles.chevronFlipped : undefined}
+            />
+          </Pressable>
+          {pastExpanded && (
+            <View style={styles.pastList}>
+              {pastSuggestions.map((s) => renderCard(s, false))}
+            </View>
+          )}
         </View>
       )}
     </View>
@@ -170,16 +190,30 @@ const styles = StyleSheet.create({
   list: {
     gap: 12,
   },
-  pastSection: {
-    marginTop: 28,
-    gap: 12,
+  pastZone: {
+    marginTop: 24,
+    marginHorizontal: -16,
+    backgroundColor: Colors.brand.pastZone,
+  },
+  pastHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 19,
   },
   pastHeader: {
-    fontFamily: FontFamily.sans.semibold,
-    fontSize: 11,
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
+    ...Typography.h2,
     color: Colors.brand.darkTeal,
+    flex: 1,
+  },
+  chevronFlipped: {
+    transform: [{ rotate: "180deg" }],
+  },
+  pastList: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+    gap: 12,
   },
   loadingContainer: {
     alignItems: "center",
