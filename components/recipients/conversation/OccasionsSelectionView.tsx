@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { View, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Text, IconButton, Button, Chip } from "react-native-paper";
+import { Text, IconButton, Chip } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
-import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
+import { DualActionFooter } from "./DualActionFooter";
 import {
   useOccasionRecommendations,
   mapRecommendationsToOccasions,
@@ -32,8 +31,6 @@ export function OccasionsSelectionView({
   onContinue,
   onSkip,
 }: OccasionsSelectionViewProps) {
-  const insets = useSafeAreaInsets();
-  const footerBottomPadding = BOTTOM_NAV_HEIGHT + Math.max(insets.bottom, 0);
   const { recommendations, isLoading: isLoadingRecommendations } =
     useOccasionRecommendations(extractedData);
 
@@ -274,27 +271,14 @@ export function OccasionsSelectionView({
         )}
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: footerBottomPadding }]}>
-        <Button
-          mode="outlined"
-          onPress={onSkip}
-          disabled={isProcessing}
-          style={styles.skipButton}
-        >
-          Skip
-        </Button>
-
-        <Button
-          mode="contained"
-          buttonColor="#000000"
-          onPress={handleContinue}
-          disabled={isProcessing}
-          loading={isProcessing}
-          style={styles.continueButton}
-        >
-          Continue
-        </Button>
-      </View>
+      <DualActionFooter
+        secondaryLabel="Skip"
+        onSecondary={onSkip}
+        secondaryDisabled={isProcessing}
+        onPrimary={handleContinue}
+        primaryDisabled={isProcessing}
+        primaryLoading={isProcessing}
+      />
 
       {editingOccasionIndex !== null && (
         <OccasionEditor
@@ -386,16 +370,5 @@ const styles = StyleSheet.create({
   },
   suggestionChip: {
     backgroundColor: "transparent",
-  },
-  footer: {
-    flexDirection: "row",
-    padding: 16,
-    gap: 12,
-  },
-  skipButton: {
-    flex: 1,
-  },
-  continueButton: {
-    flex: 1,
   },
 });
