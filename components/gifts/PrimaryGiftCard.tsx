@@ -1,10 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import * as Clipboard from "expo-clipboard";
-import { Image, StyleSheet, View } from "react-native";
+import {
+  Image,
+  StyleSheet,
+  View,
+  type ImageErrorEventData,
+  type ImageLoadEventData,
+  type NativeSyntheticEvent,
+} from "react-native";
 import { Button, Snackbar, Text } from "react-native-paper";
 import { Colors } from "../../lib/colors";
 import { Typography, FontFamily, Radii } from "../../lib/typography";
 import { openLink } from "../../lib/open-link";
+import { logGiftImageOutcome } from "../../lib/gift-image-telemetry";
 import { useLogOutboundClick } from "../../hooks/use-log-outbound-click";
 import type { GiftSuggestion } from "../../types/recipient";
 import GiftCardActionButton from "./GiftCardActionButton";
@@ -19,7 +27,14 @@ type PrimaryGiftCardProps = {
   onExpandLayout?: (node: View | null) => void;
 };
 
-const IMAGE_SIZE = 200;
+// The reserved square the image renders into. Kept stable while the bitmap
+// loads so the card can't jump after open (DEV-185).
+const IMAGE_BOX = 200;
+
+// Usable-size floor. The old gate rejected anything under 200px, which silently
+// dropped plenty of legitimate product images; this only filters obvious
+// non-product assets (tracking pixels, favicons, tiny thumbs).
+const MIN_IMAGE_SIZE = 64;
 
 const formatPrice = (price?: number) => {
   if (!price) return "Price not available";
@@ -39,7 +54,11 @@ export default function PrimaryGiftCard({
   // Three-state so the image area is reserved the moment we know a product has
   // an image (`pending`), keeping the card height stable as the bitmap loads —
   // the card must not jump after open (DEV-185). It only collapses to `hidden`
-  // for missing / too-small / broken images.
+  // for missing / too-small / broken images. The transition out of `pending`
+  // is driven by the real <Image> onLoad/onError below, not a separate
+  // Image.getSize probe: the probe was a second network request that failed
+  // independently of the actual render (hotlink blocks, redirects), silently
+  // hiding images that would have displayed fine.
   const [imageState, setImageState] = useState<
     "pending" | "visible" | "hidden"
   >(suggestion.image_url ? "pending" : "hidden");
@@ -49,21 +68,50 @@ export default function PrimaryGiftCard({
   const cardRef = useRef<View>(null);
   const reportedLayout = useRef(false);
 
+  // Reset the image lifecycle when the card is reused for a different
+  // suggestion. A missing url is a terminal outcome we log here; present urls
+  // resolve via onLoad/onError.
   useEffect(() => {
     if (!suggestion.image_url) {
       setImageState("hidden");
+      logGiftImageOutcome({ suggestion, outcome: "no_image_url" });
       return;
     }
     setImageState("pending");
-    Image.getSize(
-      suggestion.image_url,
-      (w, h) =>
-        setImageState(
-          w >= IMAGE_SIZE && h >= IMAGE_SIZE ? "visible" : "hidden"
-        ),
-      () => setImageState("hidden")
-    );
-  }, [suggestion.image_url]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suggestion.id, suggestion.image_url]);
+
+  const handleImageLoad = (e: NativeSyntheticEvent<ImageLoadEventData>) => {
+    const source = e.nativeEvent?.source;
+    const width = source?.width;
+    const height = source?.height;
+    // Only reject on a confident measurement; if the platform doesn't report
+    // dimensions, show the image rather than hide it on a guess.
+    const tooSmall =
+      typeof width === "number" &&
+      typeof height === "number" &&
+      width > 0 &&
+      height > 0 &&
+      (width < MIN_IMAGE_SIZE || height < MIN_IMAGE_SIZE);
+    setImageState(tooSmall ? "hidden" : "visible");
+    logGiftImageOutcome({
+      suggestion,
+      outcome: tooSmall ? "too_small" : "loaded",
+      width,
+      height,
+    });
+  };
+
+  const handleImageError = (e: NativeSyntheticEvent<ImageErrorEventData>) => {
+    setImageState("hidden");
+    logGiftImageOutcome({
+      suggestion,
+      outcome: "load_error",
+      error: e.nativeEvent?.error
+        ? String(e.nativeEvent.error)
+        : "unknown error",
+    });
+  };
 
   // Report the card node once, after its first layout, so the parent can scroll
   // it to a predictable spot below the header. Once only: later image-load
@@ -104,13 +152,19 @@ export default function PrimaryGiftCard({
 
         {imageState !== "hidden" && suggestion.image_url && (
           <View style={styles.imageWrap}>
-            {imageState === "visible" && (
-              <Image
-                source={{ uri: suggestion.image_url }}
-                style={styles.image}
-                resizeMode="contain"
-              />
-            )}
+            {/* Mounted while `pending` so onLoad/onError can fire, but kept
+                invisible until validated so a too-small image never flashes
+                before it collapses. */}
+            <Image
+              source={{ uri: suggestion.image_url }}
+              style={[
+                styles.image,
+                imageState !== "visible" && styles.imageLoading,
+              ]}
+              resizeMode="contain"
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+            />
           </View>
         )}
 
@@ -179,8 +233,8 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   imageWrap: {
-    width: IMAGE_SIZE,
-    height: IMAGE_SIZE,
+    width: IMAGE_BOX,
+    height: IMAGE_BOX,
     alignSelf: "flex-start",
     alignItems: "center",
     justifyContent: "center",
@@ -193,6 +247,9 @@ const styles = StyleSheet.create({
   image: {
     width: "100%",
     height: "100%",
+  },
+  imageLoading: {
+    opacity: 0,
   },
   title: {
     ...Typography.h2,
