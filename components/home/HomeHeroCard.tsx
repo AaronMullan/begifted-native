@@ -26,7 +26,7 @@ export default function HomeHeroCard({ occasion }: HomeHeroCardProps) {
   const days = daysUntil(occasion.date);
   const dayLabel =
     days === 0 ? "Today" : days === 1 ? "Tomorrow" : `In ${days} days`;
-  const countdown = `${dayLabel} · ${formatShortDate(occasion.date)}`;
+  const countdown = `${dayLabel} • ${formatShortDate(occasion.date)}`;
 
   const handlePress = () => {
     // TODO(DEV-69): navigate to gift recommendation page for this occasion

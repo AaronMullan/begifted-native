@@ -96,7 +96,7 @@ function NextUpCard({
       />
       <View style={styles.body}>
         <Text style={styles.countdown}>
-          {dayLabel} · {formatShortDate(occasion.date)}
+          {dayLabel} • {formatShortDate(occasion.date)}
         </Text>
         <View style={styles.titleGroup}>
           <Text style={styles.title}>{possessive(name)}</Text>
@@ -133,7 +133,10 @@ const styles = StyleSheet.create({
   sectionLabel: {
     ...Typography.sectionHeadAc,
     color: Colors.brand.gold,
-    paddingHorizontal: 4,
+    // Section heads sit one extra inset past the screen gutter (Figma x=32 on a
+    // 402 frame; the cards/hero sit at the 20pt gutter). Derived from tokens so
+    // it tracks the gutter, not a magic 12.
+    paddingLeft: Spacing.sectionHeadInset - Spacing.screenGutter,
   },
   scroll: {
     // Bleed past the content column so cards run to the screen edges and the

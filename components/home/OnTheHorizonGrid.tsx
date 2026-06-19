@@ -110,7 +110,10 @@ const styles = StyleSheet.create({
   sectionLabel: {
     ...Typography.sectionHeadAc,
     color: Colors.brand.gold,
-    paddingHorizontal: 4,
+    // Section heads sit one extra inset past the screen gutter (Figma x=32 on a
+    // 402 frame; the cards sit at the 20pt gutter). Derived from tokens so it
+    // tracks the gutter, not a magic 12.
+    paddingLeft: Spacing.sectionHeadInset - Spacing.screenGutter,
   },
   scroll: {
     marginHorizontal: -HOME_EDGE_INSET,
