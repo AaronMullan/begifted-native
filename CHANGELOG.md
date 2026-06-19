@@ -124,6 +124,14 @@ builds (≤ 44) are not backfilled here.
   saves the literal word "null" as the relationship — the app now asks you to
   fill it in on the review screen instead (DEV-139).
 
+### Backend (live on merge)
+
+- Finishing an "add an occasion" chat now actually saves the occasion. The
+  assistant would confirm the occasion and show the save button, but the final
+  save silently failed every time and the occasion was dropped. It now goes
+  through and the new moment appears on the recipient and in your calendar
+  (DEV-194).
+
 ## 2026-06-12 — Build 45 (TestFlight)
 
 The release testers are currently running (iOS production build 45, cut at
