@@ -54,3 +54,6 @@ supabase/.temp/
 
 # Claude Code MCP server config — contains personal access tokens
 .mcp.json
+
+# Scratch dir for design-parity renders/screenshots (not committed)
+.design-audit/

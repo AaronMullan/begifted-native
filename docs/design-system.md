@@ -137,5 +137,5 @@ a `deviceWidth / 402` ratio if a responsive scale is added (DEV-162).
 ## Refresh procedure
 
 1. Open Figma file `SUQTk93YAXlLo7NxkXC7Br` ("BeGifted pages_FINAL_for-dev"), node `28:47`.
-2. Use Figma MCP `get_figma_data` to pull tokens (Dev Mode gives exact type/spacing/sizing).
+2. Use the official Figma MCP to pull tokens: `get_variable_defs` for the bound color/type tokens, `get_design_context` for exact type/spacing/sizing. (Not Framelink's `get_figma_data` — it omits applied icon color; see CLAUDE.md → _Implementing from Designs_.)
 3. Diff against `Colors.brand`, `Typography`, and `Spacing`; update all three, then update this doc.

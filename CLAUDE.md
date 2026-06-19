@@ -99,6 +99,19 @@ Before coding, confirm the intended interaction model and the exact components/i
 
 **Verify design intent before writing a line.** For any UI work driven by a Figma/PDF spec, first summarize the intent back and wait for confirmation: which control triggers each action, exact colors/icons, layout/placement, and whether the flow is single-shot or chat. Do not assume — wrong inferences here (chevron vs three-dots, textarea vs full chat, off-spec button colors) have repeatedly caused rework. When the spec is ambiguous, ask rather than guess.
 
+**Use the official Figma MCP (`mcp__figma-official__*`), not Framelink (`get_figma_data`).** `get_variable_defs` returns a node's applied color/type **tokens** directly, `get_design_context` returns measured layout + bound styles + an inline screenshot, and `get_metadata` gives the structure. Framelink reports icon nodes as `fills: []`, which forces an SVG download — and that download yields the wrong color (see below).
+
+**The text tree is still lossy — don't build from it alone.** Classes of detail that have repeatedly shipped wrong:
+
+- **Icon color.** Read the applied token from `get_variable_defs` / `get_design_context`. Do **not** recover color from a downloaded SVG's `fill`: Material icons bake the stock color into the filename _and_ the path (`..._1F1F1F_...` → `fill="#1F1F1F"`), so a glyph recolored to a brand token in Figma still ships black geometry. Trust the token, not the file.
+- **Icon fill variant.** Outlined-vs-filled is name-only on both servers: `..._FILL0_...` = **outlined** (hollow ring), `FILL1` = **filled** (solid disc). `MaterialIcons` is filled-only, so an outlined design needs a `*-outline` glyph or an inlined SVG path (see `components/ExpandCircleIcon.tsx`, `components/BrandMark.tsx`).
+- **Image alignment & spacing rhythm.** Absolute x/y must be _derived_ into padding/gap, not guessed. "Centered", "even gap", and ad-hoc full-bleed offsets are plausible defaults that contradict the coordinates.
+- **Reused-component geometry.** A reused card/row carries its own old padding/gap/height/colors; reconcile each to the current frame.
+
+**Derive layout from one gutter — no magic numbers.** Full-bleed = `-Spacing.screenGutter`; insets = gutter ± a token. Don't hardcode offsets like `-16`/`36`/`16` that don't trace back to `Spacing.*`.
+
+**Confirm parity from a screenshot, not from code.** Before claiming a screen matches: render the Figma frame to PNG (`get_screenshot`), boot the sim to the route, `xcrun simctl io booted screenshot`, and compare element-by-element. typecheck/lint do not catch visual drift. The `/design-parity` skill runs this whole loop.
+
 ### TypeScript
 
 - Use `type` for props, `interface` only when extension is needed
