@@ -28,10 +28,13 @@ type GiftActionDrawerProps = {
 type RowDef = {
   label: string;
   action: GiftFeedbackAction;
+  // Figma state 1 renders the default action ("Keep this in the mix") in a
+  // heavier weight than the rest of the list.
+  emphasized?: boolean;
 };
 
 const ROWS: RowDef[] = [
-  { label: "Keep this in the mix", action: "keep_in_mix" },
+  { label: "Keep this in the mix", action: "keep_in_mix", emphasized: true },
   { label: "I chose this gift", action: "chose" },
   { label: "They already have this", action: "already_have" },
   { label: "Not for them", action: "not_for_them" },
@@ -116,8 +119,14 @@ export default function GiftActionDrawer({
                   accessibilityRole="button"
                   accessibilityLabel={row.label}
                 >
-                  <View style={styles.bullet} />
-                  <Text style={styles.rowLabel}>{row.label}</Text>
+                  <Text
+                    style={[
+                      styles.rowLabel,
+                      row.emphasized && styles.rowLabelEmphasized,
+                    ]}
+                  >
+                    {row.label}
+                  </Text>
                 </Pressable>
               ))}
               <Pressable
@@ -130,11 +139,10 @@ export default function GiftActionDrawer({
                 accessibilityRole="button"
                 accessibilityLabel="Gift feedback"
               >
-                <View style={styles.bullet} />
                 <Text style={styles.rowLabel}>Gift feedback</Text>
                 <MaterialIcons
                   name="chevron-right"
-                  size={20}
+                  size={16}
                   color={Colors.brand.darkTeal}
                   style={styles.chevron}
                 />
@@ -165,7 +173,11 @@ export default function GiftActionDrawer({
                 accessibilityRole="button"
                 accessibilityLabel="Send feedback"
               >
-                <MaterialIcons name="send" size={16} color={Colors.white} />
+                <MaterialIcons
+                  name="arrow-upward"
+                  size={18}
+                  color={Colors.brand.gold}
+                />
               </Pressable>
             </View>
           )}
@@ -201,34 +213,28 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.sans.medium,
     color: Colors.brand.mediumTeal,
     fontSize: 16,
-    paddingBottom: 8,
+    paddingBottom: 16,
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingVertical: 10,
   },
   rowPressed: {
     opacity: 0.6,
   },
-  bullet: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: Colors.brand.beige,
-  },
   rowLabel: {
-    flex: 1,
     fontFamily: FontFamily.sans.regular,
     fontSize: 12,
+    // Figma lists the options on a tight 24pt rhythm; the line height alone
+    // sets the row spacing, so rows carry no extra vertical padding.
     lineHeight: 24,
     color: Colors.brand.darkTeal,
   },
+  rowLabelEmphasized: {
+    fontFamily: FontFamily.sans.semibold,
+  },
   chevron: {
-    marginLeft: "auto",
-    opacity: 0.6,
+    marginLeft: 2,
   },
   notesInputWrap: {
     position: "relative",
@@ -255,7 +261,9 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: Colors.brand.gold,
+    borderWidth: 1.5,
+    borderColor: Colors.brand.gold,
+    backgroundColor: Colors.transparent,
     alignItems: "center",
     justifyContent: "center",
   },
