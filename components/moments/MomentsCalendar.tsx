@@ -22,6 +22,8 @@ type MomentsCalendarProps = {
   selectedDate: Date | null;
   /** "month" = white card (default view); "day" = beige card (a day is open). */
   variant: "month" | "day";
+  /** Grow the card to fill remaining vertical space (rows spread to fit). */
+  fill?: boolean;
   onSelectDay: (date: Date) => void;
   onPrevMonth: () => void;
   onNextMonth: () => void;
@@ -44,6 +46,7 @@ export default function MomentsCalendar({
   today,
   selectedDate,
   variant,
+  fill,
   onSelectDay,
   onPrevMonth,
   onNextMonth,
@@ -56,6 +59,7 @@ export default function MomentsCalendar({
       style={[
         styles.card,
         variant === "month" ? styles.cardMonth : styles.cardDay,
+        fill && styles.cardFill,
       ]}
     >
       <View style={styles.header}>
@@ -108,22 +112,26 @@ export default function MomentsCalendar({
         ))}
       </View>
 
-      {weeks.map((week) => (
-        <View key={dayKey(week[0].date)} style={styles.week}>
-          {week.map((cell) => (
-            <DayCell
-              key={dayKey(cell.date)}
-              cell={cell}
-              markers={
-                cell.inMonth ? markersByDay.get(dayKey(cell.date)) : undefined
-              }
-              isToday={isSameDay(cell.date, today)}
-              isSelected={!!selectedDate && isSameDay(cell.date, selectedDate)}
-              onSelectDay={onSelectDay}
-            />
-          ))}
-        </View>
-      ))}
+      <View style={[styles.weeks, fill && styles.weeksFill]}>
+        {weeks.map((week) => (
+          <View key={dayKey(week[0].date)} style={styles.week}>
+            {week.map((cell) => (
+              <DayCell
+                key={dayKey(cell.date)}
+                cell={cell}
+                markers={
+                  cell.inMonth ? markersByDay.get(dayKey(cell.date)) : undefined
+                }
+                isToday={isSameDay(cell.date, today)}
+                isSelected={
+                  !!selectedDate && isSameDay(cell.date, selectedDate)
+                }
+                onSelectDay={onSelectDay}
+              />
+            ))}
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
@@ -208,6 +216,18 @@ const styles = StyleSheet.create({
   },
   cardDay: {
     backgroundColor: Colors.brand.beige,
+  },
+  cardFill: {
+    flex: 1,
+  },
+  weeks: {
+    // Default: rows stack at their natural height (used when not filling).
+  },
+  weeksFill: {
+    // Spread the week rows to fill a taller card so the grid doesn't leave a
+    // gap below the last row on devices taller than the 874pt design frame.
+    flex: 1,
+    justifyContent: "space-between",
   },
   header: {
     flexDirection: "row",

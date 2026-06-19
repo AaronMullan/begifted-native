@@ -278,6 +278,7 @@ export default function Calendar() {
             today={today}
             selectedDate={selectedDate}
             variant={selectedDate ? "day" : "month"}
+            fill
             onSelectDay={handleSelectDay}
             onPrevMonth={() => handleStepMonth(-1)}
             onNextMonth={() => handleStepMonth(1)}
@@ -389,6 +390,7 @@ const styles = StyleSheet.create({
     paddingBottom: BOTTOM_NAV_HEIGHT,
   },
   content: {
+    flex: 1,
     width: "100%",
     maxWidth: 800,
     alignSelf: "center",
