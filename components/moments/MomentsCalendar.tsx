@@ -25,16 +25,15 @@ type MomentsCalendarProps = {
   onSelectDay: (date: Date) => void;
   onPrevMonth: () => void;
   onNextMonth: () => void;
-  /** Tapping the month label jumps back to the current month. */
-  onPressMonthLabel: () => void;
+  /** The gold chevron expands the month into the 12-month year view. */
+  onExpandYear: () => void;
 };
 
 /**
  * Month calendar from the Figma "Moments" redesign: Monday-first grid, today as
  * a gold disc, and small per-recipient markers under any day that has an
  * occasion (a single bar for one occasion, a row of dots for several). The
- * month/year picker (the gold chevron's expanded state) is the deferred year
- * view; for now the chevron label resets to today and the side arrows step
+ * gold chevron expands into the 12-month year view; the side arrows step
  * months.
  */
 export default function MomentsCalendar({
@@ -47,7 +46,7 @@ export default function MomentsCalendar({
   onSelectDay,
   onPrevMonth,
   onNextMonth,
-  onPressMonthLabel,
+  onExpandYear,
 }: MomentsCalendarProps) {
   const weeks = buildMonthWeeks(monthDate);
 
@@ -61,9 +60,9 @@ export default function MomentsCalendar({
       <View style={styles.header}>
         <Pressable
           style={styles.monthLabelGroup}
-          onPress={onPressMonthLabel}
+          onPress={onExpandYear}
           accessibilityRole="button"
-          accessibilityLabel="Jump to current month"
+          accessibilityLabel="Show year view"
         >
           <ExpandCircleIcon
             direction="down"
