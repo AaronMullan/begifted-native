@@ -105,6 +105,12 @@ builds (≤ 44) are not backfilled here.
 
 ### Backend (live on merge)
 
+- A recipient's active Gift Ideas no longer show the same product twice. When two
+  rounds of suggestions land close together — for example after removing a couple
+  of gifts in quick succession, or when the daily refresh runs — the app now skips
+  any product that's already in the list instead of stacking a second copy. A fresh
+  round of suggestions only counts as ready when it has a full set of three unique
+  gifts (DEV-187).
 - Groundwork for recording Terms & Privacy acceptance: the backend can now store
   which legal-document versions each user agreed to, with a trustworthy
   server-stamped time and IP. There's nothing for testers to see yet — the
