@@ -11,12 +11,16 @@ type CollapsedGiftCardProps = {
   /** Past Gifts use an outlined (stroke, no fill) row to read as distinct from
    * the filled "new" recommendation cards. */
   outlined?: boolean;
+  /** Chevron color, forwarded to the expand affordance. Past Gift rows pass dark
+   * teal; active recommendations use the default gold. */
+  chevronColor?: string;
 };
 
 export default function CollapsedGiftCard({
   suggestion,
   onPress,
   outlined = false,
+  chevronColor,
 }: CollapsedGiftCardProps) {
   return (
     <Pressable
@@ -29,7 +33,11 @@ export default function CollapsedGiftCard({
         {suggestion.title}
       </Text>
       <View style={styles.actionWrap}>
-        <GiftCardExpandButton expanded={false} onPress={onPress} />
+        <GiftCardExpandButton
+          expanded={false}
+          onPress={onPress}
+          color={chevronColor}
+        />
       </View>
     </Pressable>
   );

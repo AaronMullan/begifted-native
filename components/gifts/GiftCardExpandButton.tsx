@@ -6,11 +6,15 @@ type GiftCardExpandButtonProps = {
   /** Whether the card is currently expanded. Controls chevron direction. */
   expanded: boolean;
   onPress: () => void;
+  /** Chevron color. Gold for active recommendations; Past Gift rows use dark
+   * teal to read as distinct from the active set (Figma V2). */
+  color?: string;
 };
 
 export default function GiftCardExpandButton({
   expanded,
   onPress,
+  color = Colors.brand.gold,
 }: GiftCardExpandButtonProps) {
   return (
     <Pressable
@@ -20,11 +24,10 @@ export default function GiftCardExpandButton({
       accessibilityLabel={expanded ? "Collapse gift" : "Expand gift"}
       style={styles.button}
     >
-      {/* Design uses gold for both states; the affordance flips via a distinct
-          up/down glyph, not a rotated icon. */}
+      {/* The affordance flips via a distinct up/down glyph, not a rotated icon. */}
       <ExpandCircleIcon
         direction={expanded ? "up" : "down"}
-        color={Colors.brand.gold}
+        color={color}
         size={24}
       />
     </Pressable>

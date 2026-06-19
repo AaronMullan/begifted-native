@@ -143,7 +143,10 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
     );
   }
 
-  const renderCard = (suggestion: GiftSuggestion, outlined: boolean) =>
+  // Past Gift rows carry a dark-teal chevron to read as distinct from the
+  // gold-chevron active recommendations (Figma V2). Active rows omit it and
+  // fall back to the default gold.
+  const renderCard = (suggestion: GiftSuggestion, chevronColor?: string) =>
     suggestion.id === activeId ? (
       <PrimaryGiftCard
         key={suggestion.id}
@@ -156,8 +159,8 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
       <CollapsedGiftCard
         key={suggestion.id}
         suggestion={suggestion}
-        outlined={outlined}
         onPress={() => handleExpand(suggestion.id)}
+        chevronColor={chevronColor}
       />
     );
 
@@ -174,7 +177,7 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
       )}
 
       <View style={styles.list}>
-        {activeSuggestions.map((s) => renderCard(s, false))}
+        {activeSuggestions.map((s) => renderCard(s))}
       </View>
 
       {pastSuggestions.length > 0 && (
@@ -207,7 +210,7 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
           </Pressable>
           {pastExpanded && (
             <View style={styles.pastList}>
-              {pastSuggestions.map((s) => renderCard(s, false))}
+              {pastSuggestions.map((s) => renderCard(s, Colors.brand.darkTeal))}
             </View>
           )}
         </View>
