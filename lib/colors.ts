@@ -19,6 +19,7 @@ export const Colors = {
     gold: "#AB8A3E",
     rose: "#AD4B5F",
     cream: "#F4E6DD",
+    pastZone: "#99ADB4",
   },
 
   // Linear gradient stops used by the "BeGifted light gradient" frame

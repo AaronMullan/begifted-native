@@ -38,8 +38,10 @@ export default function CollapsedGiftCard({
 const styles = StyleSheet.create({
   row: {
     borderRadius: Radii.md,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    // 19 + 18 (h2 line) + 19 ≈ 56pt row height (Figma).
+    paddingVertical: 19,
+    // Match PrimaryGiftCard content inset so titles line up across states.
+    paddingHorizontal: 23,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",

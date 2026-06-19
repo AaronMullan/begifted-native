@@ -66,7 +66,10 @@ export default function PrimaryGiftCard({
   return (
     <>
       <View style={styles.card}>
-        <View style={styles.topRow}>
+        {/* Figma floats the chevron in the top-right corner overlapping the
+            content, so the image/title start at the card's top padding rather
+            than being pushed down by a stacked row. */}
+        <View style={styles.expandButton}>
           <GiftCardExpandButton expanded onPress={onCollapse} />
         </View>
 
@@ -80,20 +83,22 @@ export default function PrimaryGiftCard({
           </View>
         )}
 
-        <Text style={styles.title}>{suggestion.title}</Text>
-        <View style={styles.priceRow}>
-          <Text style={styles.price}>{formatPrice(suggestion.price)}</Text>
-          {suggestion.link && (
-            <Button
-              mode="text"
-              compact
-              textColor={Colors.brand.gold}
-              onPress={handleViewProduct}
-              labelStyle={styles.ctaLabel}
-            >
-              View Product ›
-            </Button>
-          )}
+        <View style={styles.titleBlock}>
+          <Text style={styles.title}>{suggestion.title}</Text>
+          <View style={styles.priceRow}>
+            <Text style={styles.price}>{formatPrice(suggestion.price)}</Text>
+            {suggestion.link && (
+              <Button
+                mode="text"
+                compact
+                textColor={Colors.brand.gold}
+                onPress={handleViewProduct}
+                labelStyle={styles.ctaLabel}
+              >
+                View Product ›
+              </Button>
+            )}
+          </View>
         </View>
 
         {suggestion.description && (
@@ -127,20 +132,32 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.white,
     borderRadius: Radii.md,
-    padding: 20,
-    gap: 12,
+    // Figma content insets: 23 horizontal, 27 top. Bottom is small (~8) because
+    // the trailing "..." action sits ~17pt above the card edge in Figma and its
+    // icon box already contributes the rest of that gap.
+    paddingHorizontal: 23,
+    paddingTop: 27,
+    paddingBottom: 8,
+    // Block-level rhythm between image / title-block / why / actions.
+    gap: 16,
   },
-  topRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    alignItems: "center",
+  expandButton: {
+    position: "absolute",
+    top: 10,
+    right: 13,
+    zIndex: 1,
   },
   imageWrap: {
     width: IMAGE_SIZE,
     height: IMAGE_SIZE,
-    alignSelf: "center",
+    alignSelf: "flex-start",
     alignItems: "center",
     justifyContent: "center",
+  },
+  titleBlock: {
+    // Title sits tight above its price/CTA row (Figma: ~5pt), distinct from the
+    // larger block gap to the "Why this fits" section.
+    gap: 4,
   },
   image: {
     width: "100%",
@@ -169,11 +186,12 @@ const styles = StyleSheet.create({
   },
   whySection: {
     gap: 6,
-    paddingTop: 4,
+    // Extra separation from the title block (Figma: ~26pt total with card gap).
+    marginTop: 8,
   },
   whyHeading: {
     fontFamily: FontFamily.sans.semibold,
-    color: Colors.brand.darkTeal,
+    color: Colors.darks.black,
     fontSize: 11,
     textTransform: "uppercase",
     letterSpacing: 0.5,
@@ -188,6 +206,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "flex-end",
     alignItems: "center",
-    paddingTop: 4,
   },
 });
