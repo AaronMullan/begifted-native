@@ -1,11 +1,5 @@
 import { useRef } from "react";
-import {
-  findNodeHandle,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { ActivityIndicator, Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -80,10 +74,10 @@ export default function GiftIdeasPage() {
   const handleScrollCardIntoView = (node: View | null) => {
     const content = contentRef.current;
     if (!node || !content) return;
-    const contentHandle = findNodeHandle(content);
-    if (contentHandle == null) return;
+    // Pass the content view instance directly — the New Architecture's
+    // measureLayout requires a ref to a native component, not a node handle.
     node.measureLayout(
-      contentHandle,
+      content,
       (_x, y) => {
         scrollRef.current?.scrollTo({
           y: Math.max(0, y - CARD_SCROLL_TOP_GAP),
