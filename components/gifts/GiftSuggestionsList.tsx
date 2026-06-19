@@ -3,14 +3,20 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { ActivityIndicator, Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
-import { FontFamily } from "../../lib/typography";
+import { Typography } from "../../lib/typography";
+import { Spacing } from "../../lib/spacing";
 import type { GiftSuggestion } from "../../types/recipient";
 import PrimaryGiftCard from "./PrimaryGiftCard";
 import CollapsedGiftCard from "./CollapsedGiftCard";
+import ExpandCircleIcon from "../ExpandCircleIcon";
 
 /** How many of the newest suggestions show as active recommendation cards.
  * Anything older falls into the collapsed "Past Gifts" section (DEV-165). */
 const ACTIVE_COUNT = 3;
+
+/** Horizontal padding inside gift cards (CollapsedGiftCard/PrimaryGiftCard).
+ * Used to align the Past Gifts header with card content. */
+const CARD_INNER_PADDING = 23;
 
 type GiftSuggestionsListProps = {
   suggestions: GiftSuggestion[];
@@ -43,6 +49,7 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
   const [expandedId, setExpandedId] = useState<string | null | undefined>(
     undefined
   );
+  const [pastExpanded, setPastExpanded] = useState(false);
 
   const handleExpand = (id: string) => setExpandedId(id);
   const handleCollapse = () => setExpandedId(null);
@@ -153,11 +160,38 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
       </View>
 
       {pastSuggestions.length > 0 && (
-        <View style={styles.pastSection}>
-          <Text style={styles.pastHeader}>Past Gifts</Text>
-          <View style={styles.list}>
-            {pastSuggestions.map((s) => renderCard(s, true))}
-          </View>
+        <View style={styles.pastZone}>
+          <Pressable
+            style={styles.pastHeaderRow}
+            onPress={() => {
+              if (
+                pastExpanded &&
+                typeof expandedId === "string" &&
+                pastSuggestions.some((s) => s.id === expandedId)
+              ) {
+                setExpandedId(null);
+              }
+              setPastExpanded(!pastExpanded);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={
+              pastExpanded
+                ? "Collapse past gift recommendations"
+                : "Expand past gift recommendations"
+            }
+          >
+            <Text style={styles.pastHeader}>Past Gift Recommendations</Text>
+            <ExpandCircleIcon
+              direction={pastExpanded ? "up" : "down"}
+              color={Colors.brand.mediumTeal}
+              size={24}
+            />
+          </Pressable>
+          {pastExpanded && (
+            <View style={styles.pastList}>
+              {pastSuggestions.map((s) => renderCard(s, false))}
+            </View>
+          )}
         </View>
       )}
     </View>
@@ -168,18 +202,34 @@ export default GiftSuggestionsList;
 
 const styles = StyleSheet.create({
   list: {
-    gap: 12,
+    gap: 16,
   },
-  pastSection: {
-    marginTop: 28,
-    gap: 12,
+  pastZone: {
+    marginTop: 48,
+    // Full-bleed to the screen edge: cancel the host screen's gutter rather
+    // than guessing a magic offset. Host scroll padding is Spacing.screenGutter.
+    marginHorizontal: -Spacing.screenGutter,
+    backgroundColor: Colors.brand.pastZone,
+  },
+  pastHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    // Align header text/chevron with card content: gutter + card inner padding.
+    paddingHorizontal: Spacing.screenGutter + CARD_INNER_PADDING,
+    paddingVertical: 19,
   },
   pastHeader: {
-    fontFamily: FontFamily.sans.semibold,
-    fontSize: 11,
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
+    ...Typography.h2,
     color: Colors.brand.darkTeal,
+    flex: 1,
+  },
+  pastList: {
+    // Re-inset past cards to the screen gutter so they line up with active cards.
+    paddingHorizontal: Spacing.screenGutter,
+    paddingTop: 16,
+    paddingBottom: 24,
+    gap: 16,
   },
   loadingContainer: {
     alignItems: "center",

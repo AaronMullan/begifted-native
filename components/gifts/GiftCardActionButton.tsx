@@ -29,13 +29,19 @@ export default function GiftCardActionButton({
       accessibilityLabel="Gift options"
       style={styles.button}
     >
-      <MaterialIcons name="more-horiz" size={22} color={Colors.blues.dark} />
+      <MaterialIcons
+        name="more-horiz"
+        size={22}
+        color={Colors.brand.mediumTeal}
+      />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   button: {
-    padding: 4,
+    // No padding: the tiny dots glyph centered in a padded box inflated the
+    // card's top/bottom gaps around it. hitSlop preserves the tap target.
+    padding: 0,
   },
 });
