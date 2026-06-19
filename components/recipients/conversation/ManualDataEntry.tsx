@@ -8,10 +8,9 @@ import {
   Platform,
   Pressable,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Text, TextInput, Button, HelperText } from "react-native-paper";
+import { Text, TextInput, HelperText } from "react-native-paper";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
-import { BOTTOM_NAV_HEIGHT } from "@/lib/constants";
+import { DualActionFooter } from "./DualActionFooter";
 import { isInvalidBirthdayInput } from "@/utils/birthday";
 
 interface ManualDataEntryProps {
@@ -57,9 +56,6 @@ export function ManualDataEntry({
       setCountry(partialData.country || "US");
     }
   }, [partialData]);
-
-  const insets = useSafeAreaInsets();
-  const footerBottomPadding = BOTTOM_NAV_HEIGHT + Math.max(insets.bottom, 0);
 
   const handleSave = () => {
     if (!name.trim() || !relationshipType.trim()) {
@@ -287,25 +283,12 @@ export function ManualDataEntry({
         </ScrollView>
 
         {/* Footer Actions */}
-        <View style={[styles.footer, { paddingBottom: footerBottomPadding }]}>
-          <Button
-            mode="outlined"
-            onPress={onCancel}
-            style={styles.cancelButton}
-          >
-            Cancel
-          </Button>
-
-          <Button
-            mode="contained"
-            buttonColor="#000000"
-            onPress={handleSave}
-            disabled={!isValid}
-            style={styles.saveButton}
-          >
-            Continue
-          </Button>
-        </View>
+        <DualActionFooter
+          secondaryLabel="Cancel"
+          onSecondary={onCancel}
+          onPrimary={handleSave}
+          primaryDisabled={!isValid}
+        />
       </Pressable>
     </KeyboardAvoidingView>
   );
@@ -352,17 +335,6 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   halfWidth: {
-    flex: 1,
-  },
-  footer: {
-    flexDirection: "row",
-    padding: 16,
-    gap: 12,
-  },
-  cancelButton: {
-    flex: 1,
-  },
-  saveButton: {
     flex: 1,
   },
 });

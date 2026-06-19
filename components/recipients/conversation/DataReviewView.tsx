@@ -7,15 +7,8 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  Button,
-  HelperText,
-  IconButton,
-  Text,
-  TextInput,
-} from "react-native-paper";
-import { BOTTOM_NAV_HEIGHT } from "@/lib/constants";
+import { HelperText, IconButton, Text, TextInput } from "react-native-paper";
+import { DualActionFooter } from "./DualActionFooter";
 import {
   formatBirthdayDisplay,
   isInvalidBirthdayInput,
@@ -70,9 +63,6 @@ export function DataReviewView({
       [field]: value,
     });
   };
-
-  const insets = useSafeAreaInsets();
-  const footerBottomPadding = BOTTOM_NAV_HEIGHT + Math.max(insets.bottom, 0);
 
   const updateInterests = (value: string) => {
     // Store raw text value for smooth editing
@@ -308,29 +298,16 @@ export function DataReviewView({
       </ScrollView>
 
       {/* Footer Actions */}
-      <View style={[styles.footer, { paddingBottom: footerBottomPadding }]}>
-        <Button
-          mode="outlined"
-          onPress={onBack}
-          disabled={isSaving}
-          style={styles.backButtonFooter}
-        >
-          Back
-        </Button>
-
-        <Button
-          mode="contained"
-          buttonColor="#000000"
-          onPress={onSave}
-          disabled={
-            !extractedData.name || !extractedData.relationship_type || isSaving
-          }
-          loading={isSaving}
-          style={styles.saveButton}
-        >
-          Continue
-        </Button>
-      </View>
+      <DualActionFooter
+        secondaryLabel="Back"
+        onSecondary={onBack}
+        secondaryDisabled={isSaving}
+        onPrimary={onSave}
+        primaryDisabled={
+          !extractedData.name || !extractedData.relationship_type || isSaving
+        }
+        primaryLoading={isSaving}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -387,17 +364,6 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   halfWidth: {
-    flex: 1,
-  },
-  footer: {
-    flexDirection: "row",
-    padding: 16,
-    gap: 12,
-  },
-  backButtonFooter: {
-    flex: 1,
-  },
-  saveButton: {
     flex: 1,
   },
 });
