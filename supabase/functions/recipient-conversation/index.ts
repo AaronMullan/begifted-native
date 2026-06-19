@@ -9,7 +9,7 @@ import {
 } from "./data-extractor.ts";
 
 import { parseOpenAIJSON } from "./utils.ts";
-import { type AIOverride } from "../_shared/ai-config-loader.ts";
+import { loadAIConfig, type AIOverride } from "../_shared/ai-config-loader.ts";
 import {
   callAI,
   getApiKey,
