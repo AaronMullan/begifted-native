@@ -1,34 +1,42 @@
 import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
 import { Link, usePathname } from "expo-router";
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../lib/colors";
+import { FontFamily } from "../lib/typography";
 
+// Glyphs are matched to the "Footer Navigation" design frame: an outlined house
+// (only in MaterialCommunityIcons), a filled group, and a dotted month calendar.
 type NavItem = {
   key: "dashboard" | "people" | "moments";
   label: string;
-  icon: keyof typeof MaterialIcons.glyphMap;
   href: "/dashboard" | "/contacts" | "/calendar";
-};
+} & (
+  | { iconSet: "community"; icon: keyof typeof MaterialCommunityIcons.glyphMap }
+  | { iconSet: "material"; icon: keyof typeof MaterialIcons.glyphMap }
+);
 
 const NAV_ITEMS: NavItem[] = [
   {
     key: "dashboard",
     label: "Home",
-    icon: "home-filled",
+    iconSet: "community",
+    icon: "home-outline",
     href: "/dashboard",
   },
   {
     key: "people",
     label: "People",
-    icon: "people-outline",
+    iconSet: "material",
+    icon: "people",
     href: "/contacts",
   },
   {
     key: "moments",
     label: "Moments",
-    icon: "event-note",
+    iconSet: "material",
+    icon: "calendar-month",
     href: "/calendar",
   },
 ];
@@ -65,7 +73,15 @@ export default function BottomNav() {
                   accessibilityState={{ selected: isActive }}
                   style={styles.navItem}
                 >
-                  <MaterialIcons name={item.icon} size={24} color={tint} />
+                  {item.iconSet === "community" ? (
+                    <MaterialCommunityIcons
+                      name={item.icon}
+                      size={24}
+                      color={tint}
+                    />
+                  ) : (
+                    <MaterialIcons name={item.icon} size={24} color={tint} />
+                  )}
                   <Text
                     variant="labelSmall"
                     style={[styles.label, { color: tint }]}
@@ -129,6 +145,8 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   label: {
+    fontFamily: FontFamily.sans.semibold,
+    fontSize: 9.625,
     letterSpacing: 0.2,
   },
 });
