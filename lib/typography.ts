@@ -76,8 +76,12 @@ export const Typography = {
   sectionHeadAc: {
     fontFamily: FontFamily.sans.semibold,
     fontSize: 11,
-    // Figma defines lineHeight 2px here; in-app we use 28 for section spacing.
-    lineHeight: 28,
+    // Tight line box (≈ the glyph) so the label doesn't add phantom leading
+    // above/below itself. Section spacing is owned by the layout gaps
+    // (Spacing.sectionGap above, Spacing.sectionHeadToContent below); an
+    // inflated lineHeight here double-counted it and pushed the heads ~8pt too
+    // far from both the preceding module and the cards (DEV-188).
+    lineHeight: 14,
     textTransform: "uppercase",
   } satisfies TextStyle,
   // Title-case top copy (Figma "BG top copy": Poltawski Nowy 600 12/14)

@@ -21,7 +21,7 @@ builds (≤ 44) are not backfilled here.
 
 ### App (ships next build / OTA)
 
-- Small Home-screen polish to match the finalized design: the "NEXT UP" and "ON THE HORIZON" section labels are nudged in slightly, and the date line on the cards (e.g. "Tomorrow • June 19") now uses a rounder bullet separator (DEV-188).
+- Small Home-screen polish to match the finalized design: the "NEXT UP" and "ON THE HORIZON" section labels now sit tighter to their cards and the row above them (the extra empty space is gone), are nudged in slightly, and the date line on the cards (e.g. "Tomorrow • June 19") now uses a rounder bullet separator (DEV-188).
 - Tapping a gift idea now scrolls that card to a consistent spot just below the header so its title, price, and "View Product" link are immediately visible — no more hunting for where the opened card went. Cards with a product photo also no longer jump after the image loads, and cards without a photo behave the same way (DEV-185).
 - The bottom navigation icons now match the finalized design: Home shows an outlined house, People a filled pair, and Moments a calendar with date dots. The Home/People/Moments labels also use the app's new DM Sans font.
 - You can now report a bug from anywhere in the app. The header at the top of every screen now has a bug icon (where the notification bell used to be) that opens the bug-report form, so you no longer have to navigate back to Home to report something that goes wrong mid-flow. The notification bell has been removed from the header (DEV-183).
