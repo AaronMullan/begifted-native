@@ -127,6 +127,16 @@ Before coding, confirm the intended interaction model and the exact components/i
 - Use event handlers for user interactions, not `useEffect`
 - Use `useRef` for stable values, DOM refs, and avoiding stale closures
 
+### Comments
+
+Write comments for the next person to read the code — assume that's an LLM with no memory of how the code got here. Comment the **why**, never the **what** or the **when**.
+
+- **Why, only when it isn't visible in the code.** A non-obvious constraint, an ordering requirement, a deliberate trade-off, a footgun being sidestepped. If a comment just restates what the line does, delete it — the code is the source of truth for _what_.
+- **No history.** Don't narrate what the code used to do or what changed ("previously supplied none", "now fetches", "switched from X"). History lives in git, PRs, the changelog, and Jira. A comment describing the past is stale the moment it's written.
+- **No ticket numbers.** Drop `DEV-123:` tags from comments. git blame reaches the ticket; the comment must stand on its own for a reader who can't open it.
+- **State the constraint, not the war story.** Keep "re-read before persist so a concurrent run can't insert a duplicate." Cut "...because two backfills fired from rapid removals."
+- **Fewer, load-bearing comments.** If everything is commented, the one that matters is lost.
+
 ### Styling
 
 - Custom color palette in `lib/colors.ts`
