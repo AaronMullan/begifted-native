@@ -1,17 +1,34 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { FlatList, ScrollView, StyleSheet, View } from "react-native";
+import {
+  FlatList,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { Button, Dialog, Portal, Text } from "react-native-paper";
+import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
+import { Radii, Typography } from "../../lib/typography";
+import { BOTTOM_NAV_HEIGHT } from "../../lib/constants";
+import { recipientMarkerColor } from "../../lib/recipient-color";
 import { useAuth } from "../../hooks/use-auth";
 import { useOccasions } from "../../hooks/use-occasions";
 import { useRecipients } from "../../hooks/use-recipients";
 import { useDeleteOccasion } from "../../hooks/use-occasion-mutations";
 import { useToast } from "../../hooks/use-toast";
-import MenuCard from "../../components/MenuCard";
 import GradientBackground from "../../components/GradientBackground";
+import MomentsCalendar from "../../components/moments/MomentsCalendar";
+import MomentsPersonCard from "../../components/moments/MomentsPersonCard";
 import { formatShortName } from "../../lib/format-name";
 import { formatOccasionType } from "../../utils/home-occasions";
+import {
+  addMonths,
+  dayKey,
+  isSameDay,
+  occasionDayKey,
+} from "../../utils/moments-calendar";
 
 interface Occasion {
   id: string;
@@ -21,20 +38,25 @@ interface Occasion {
   recipient?: {
     name: string;
     relationship_type: string;
+    photo_url?: string | null;
   };
 }
 
-interface GroupedOccasions {
-  [key: string]: Occasion[];
+function startOfMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
 }
 
 export default function Calendar() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { data: occasions = [], isLoading: loading } = useOccasions();
+  const { data: occasions = [] } = useOccasions();
   const { data: recipients = [] } = useRecipients();
   const deleteOccasion = useDeleteOccasion();
   const { toast, showToast } = useToast();
+
+  const today = new Date();
+  const [viewMonth, setViewMonth] = useState(() => startOfMonth(new Date()));
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [occasionToDelete, setOccasionToDelete] = useState<Occasion | null>(
     null
   );
@@ -46,54 +68,71 @@ export default function Calendar() {
     }
   }, [authLoading, user, router]);
 
-  function groupOccasionsByMonth(occasions: Occasion[]): GroupedOccasions {
-    const grouped: GroupedOccasions = {};
+  // Group occasions by local calendar day, then resolve each to its recipient's
+  // stable marker color for the grid.
+  const occasionsByDay = new Map<string, Occasion[]>();
+  for (const occasion of occasions) {
+    const key = occasionDayKey(occasion.date);
+    const list = occasionsByDay.get(key);
+    if (list) list.push(occasion);
+    else occasionsByDay.set(key, [occasion]);
+  }
+  const markersByDay = new Map<string, string[]>();
+  for (const [key, list] of occasionsByDay) {
+    markersByDay.set(
+      key,
+      list.map((occasion) => recipientMarkerColor(occasion.recipient_id))
+    );
+  }
 
-    occasions.forEach((occasion) => {
-      const date = new Date(occasion.date);
-      const monthKey = date.toLocaleDateString("en-US", {
+  const selectedOccasions = selectedDate
+    ? occasionsByDay.get(dayKey(selectedDate)) ?? []
+    : [];
+
+  const monthLabel =
+    viewMonth.getFullYear() === today.getFullYear()
+      ? viewMonth.toLocaleDateString("en-US", { month: "long" })
+      : viewMonth.toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        });
+
+  const dayTitle = selectedDate
+    ? selectedDate.toLocaleDateString("en-US", {
         month: "long",
-        year: "numeric",
-      });
-
-      if (!grouped[monthKey]) {
-        grouped[monthKey] = [];
-      }
-      grouped[monthKey].push(occasion);
-    });
-
-    return grouped;
-  }
-
-  function formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  }
-
-  function calculateDaysUntil(dateString: string): number {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const occasionDate = new Date(dateString);
-    occasionDate.setHours(0, 0, 0, 0);
-    const diffTime = occasionDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  }
+        day: "numeric",
+      })
+    : "";
 
   function formatOccasionTitle(occasion: Occasion): string {
     const recipientName = occasion.recipient?.name || "Unknown";
     const shortName = formatShortName(recipientName);
     const occasionType = formatOccasionType(occasion.occasion_type);
-    // Handle possessive correctly
     const possessive = shortName.endsWith("s")
       ? `${shortName}'`
       : `${shortName}'s`;
     return `${possessive} ${occasionType}`;
+  }
+
+  function handleSelectDay(date: Date) {
+    // Re-tapping the open day collapses back to the month ("These are your
+    // moments.") view; there is no separate back affordance in the design.
+    if (selectedDate && isSameDay(date, selectedDate)) {
+      setSelectedDate(null);
+      return;
+    }
+    setViewMonth(startOfMonth(date));
+    setSelectedDate(date);
+  }
+
+  function handleStepMonth(delta: number) {
+    setViewMonth((current) => addMonths(current, delta));
+    setSelectedDate(null);
+  }
+
+  function handleResetToToday() {
+    setViewMonth(startOfMonth(new Date()));
+    setSelectedDate(null);
   }
 
   function handleAddOccasionForRecipient(recipientId: string) {
@@ -103,10 +142,6 @@ export default function Calendar() {
 
   function handleOccasionPress(occasion: Occasion) {
     router.push(`/contacts/${occasion.recipient_id}?tab=gifts`);
-  }
-
-  function handleOccasionLongPress(occasion: Occasion) {
-    setOccasionToDelete(occasion);
   }
 
   function handleConfirmDelete() {
@@ -129,20 +164,11 @@ export default function Calendar() {
     );
   }
 
-  const groupedOccasions = groupOccasionsByMonth(occasions);
-  const sortedMonths = Object.keys(groupedOccasions).sort((a, b) => {
-    return (
-      new Date(groupedOccasions[a][0].date).getTime() -
-      new Date(groupedOccasions[b][0].date).getTime()
-    );
-  });
-
   if (authLoading) {
     return (
       <View style={styles.container}>
         <GradientBackground />
-        <View style={styles.headerSpacer} />
-        <View style={styles.content}>
+        <View style={styles.centered}>
           <Text variant="bodyMedium" style={styles.loadingText}>
             Loading...
           </Text>
@@ -155,13 +181,10 @@ export default function Calendar() {
     return (
       <View style={styles.container}>
         <GradientBackground />
-        <View style={styles.headerSpacer} />
-        <View style={styles.content}>
-          <Text variant="headlineMedium" style={styles.title}>
-            Occasions Calendar
-          </Text>
-          <Text variant="bodyLarge" style={styles.subtitle}>
-            Please sign in to view your occasions.
+        <View style={styles.centered}>
+          <Text style={styles.title}>These are{"\n"}your moments.</Text>
+          <Text style={styles.subhead}>
+            Please sign in to view your moments.
           </Text>
         </View>
       </View>
@@ -171,97 +194,119 @@ export default function Calendar() {
   return (
     <View style={styles.container}>
       <GradientBackground />
-      <View style={styles.headerSpacer} />
-      <ScrollView style={styles.scrollView}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.content}>
-          {/* Header section */}
-          <View style={styles.header}>
-            <Text variant="headlineMedium" style={styles.title}>
-              Occasions Calendar
-            </Text>
-            <Text variant="bodyLarge" style={styles.subtitle}>
-              View all your upcoming occasions
-            </Text>
-          </View>
-
-          {/* Summary section */}
-          <View style={styles.summarySection}>
-            <View style={styles.summaryRow}>
-              <Text variant="titleMedium" style={styles.occasionsCount}>
-                {occasions.length} Occasion{occasions.length !== 1 ? "s" : ""}
-              </Text>
-              <Button
-                mode="contained"
-                icon="plus"
-                onPress={() => setShowRecipientPicker(true)}
-                compact
+          {selectedDate ? (
+            <View style={styles.dayHeader}>
+              {/* The Figma frames have no back affordance for the day view, so
+                  the eyebrow doubles as one: tapping it returns to the month
+                  ("These are your moments.") overview. */}
+              <Pressable
+                style={styles.backRow}
+                onPress={() => setSelectedDate(null)}
+                accessibilityRole="button"
+                accessibilityLabel="Back to all moments"
               >
-                Add Occasion
-              </Button>
-            </View>
-          </View>
-
-          {/* Occasions list */}
-          {loading ? (
-            <Text variant="bodyMedium" style={styles.loadingText}>
-              Loading...
-            </Text>
-          ) : occasions.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text variant="titleMedium" style={styles.emptyText}>
-                No upcoming occasions
-              </Text>
-              <Text variant="bodyMedium" style={styles.emptySubtext}>
-                Add recipients with birthdays to see occasions here
-              </Text>
+                <MaterialIcons
+                  name="chevron-left"
+                  size={18}
+                  color={Colors.brand.mediumTeal}
+                />
+                <Text style={styles.eyebrow}>MOMENTS</Text>
+              </Pressable>
+              <View style={styles.dayTitleRow}>
+                <Text style={styles.title}>{dayTitle}</Text>
+                <Pressable
+                  style={styles.addDayButton}
+                  onPress={() => setShowRecipientPicker(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add to this day"
+                >
+                  <MaterialIcons
+                    name="add"
+                    size={16}
+                    color={Colors.brand.darkTeal}
+                  />
+                  <Text style={styles.addDayLabel}>Add to this day</Text>
+                </Pressable>
+              </View>
             </View>
           ) : (
-            <View style={styles.occasionsList}>
-              {sortedMonths.map((monthKey) => (
-                <View key={monthKey} style={styles.monthSection}>
-                  <Text variant="titleMedium" style={styles.monthHeader}>
-                    {monthKey}
-                  </Text>
-                  {groupedOccasions[monthKey].map((occasion) => {
-                    const daysUntil = calculateDaysUntil(occasion.date);
-
-                    return (
-                      <View
-                        key={occasion.id}
-                        style={styles.occasionCardWrapper}
-                      >
-                        <MenuCard
-                          icon="card-giftcard"
-                          title={formatOccasionTitle(occasion)}
-                          description={formatDate(occasion.date)}
-                          onPress={() => handleOccasionPress(occasion)}
-                          onLongPress={() => handleOccasionLongPress(occasion)}
-                          rightContent={
-                            <View style={styles.daysContainer}>
-                              <Text
-                                variant="titleLarge"
-                                style={styles.daysNumber}
-                              >
-                                {daysUntil}
-                              </Text>
-                              <Text
-                                variant="bodySmall"
-                                style={styles.daysLabel}
-                              >
-                                {daysUntil === 1 ? "day" : "days"}
-                              </Text>
-                            </View>
-                          }
-                        />
-                      </View>
-                    );
-                  })}
-                </View>
-              ))}
+            <View style={styles.monthHeader}>
+              <Text style={styles.title}>These are{"\n"}your moments.</Text>
+              <Text style={styles.subhead}>
+                Add the moments that matter.{"\n"}We’ll keep track of them...
+              </Text>
             </View>
           )}
+
+          {selectedDate ? (
+            <View style={styles.peopleList}>
+              {selectedOccasions.length === 0 ? (
+                <Text style={styles.noPeople}>No moments on this day yet.</Text>
+              ) : (
+                selectedOccasions.map((occasion) => (
+                  <MomentsPersonCard
+                    key={occasion.id}
+                    name={occasion.recipient?.name || "Unknown"}
+                    photoUrl={occasion.recipient?.photo_url}
+                    onPress={() => handleOccasionPress(occasion)}
+                    onLongPress={() => setOccasionToDelete(occasion)}
+                    onOverflow={
+                      selectedOccasions.length > 1
+                        ? () => setOccasionToDelete(occasion)
+                        : undefined
+                    }
+                  />
+                ))
+              )}
+            </View>
+          ) : (
+            <Pressable
+              style={styles.addMomentsButton}
+              onPress={() => setShowRecipientPicker(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Add moments"
+            >
+              <MaterialIcons
+                name="add"
+                size={16}
+                color={Colors.brand.darkTeal}
+              />
+              <Text style={styles.addMomentsLabel}>Add Moments</Text>
+              <MaterialIcons
+                name="chevron-right"
+                size={14}
+                color={Colors.white}
+              />
+            </Pressable>
+          )}
+
+          {/* In the day view the design anchors the calendar low, with the
+              breathing room sitting above it (between the person cards and the
+              grid). This spacer reproduces that on devices taller than the
+              874pt design frame; the month view fills naturally like its frame. */}
+          {selectedDate && <View style={styles.daySpacer} />}
+
+          <MomentsCalendar
+            monthDate={viewMonth}
+            markersByDay={markersByDay}
+            monthLabel={monthLabel}
+            today={today}
+            selectedDate={selectedDate}
+            variant={selectedDate ? "day" : "month"}
+            onSelectDay={handleSelectDay}
+            onPrevMonth={() => handleStepMonth(-1)}
+            onNextMonth={() => handleStepMonth(1)}
+            onPressMonthLabel={handleResetToToday}
+          />
         </View>
       </ScrollView>
+
       <Portal>
         <Dialog
           visible={!!occasionToDelete}
@@ -356,84 +401,108 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "transparent",
   },
-  headerSpacer: {
-    height: 0,
-  },
   scrollView: {
     flex: 1,
     backgroundColor: "transparent",
   },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: BOTTOM_NAV_HEIGHT,
+  },
   content: {
     flex: 1,
+    width: "100%",
     maxWidth: 800,
     alignSelf: "center",
-    width: "100%",
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 12,
   },
-  header: {
-    marginBottom: 48,
-  },
-  title: {
-    marginBottom: 8,
-    color: Colors.darks.black,
-  },
-  subtitle: {
-    color: Colors.darks.black,
-    opacity: 0.9,
-  },
-  summarySection: {
-    marginBottom: 24,
-  },
-  summaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  centered: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
-  },
-  occasionsCount: {
-    color: Colors.darks.black,
-  },
-  loadingText: {
-    textAlign: "center",
-    color: Colors.darks.black,
-    opacity: 0.8,
-    fontSize: 16,
-    padding: 40,
-    position: "relative",
-    zIndex: 1,
-  },
-  emptyState: {
-    padding: 40,
-    alignItems: "center",
-  },
-  emptyText: {
-    color: Colors.darks.black,
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    color: Colors.darks.black,
-    opacity: 0.8,
-  },
-  occasionsList: {
-    gap: 24,
-  },
-  monthSection: {
-    marginBottom: 24,
+    paddingHorizontal: 20,
+    gap: 12,
   },
   monthHeader: {
-    color: Colors.darks.black,
-    marginBottom: 12,
+    gap: 12,
+    marginBottom: 28,
   },
-  occasionCardWrapper: {
-    marginBottom: 12,
+  dayHeader: {
+    marginBottom: 20,
   },
-  daysContainer: {
-    alignSelf: "center",
+  backRow: {
+    flexDirection: "row",
     alignItems: "center",
-    marginRight: 20,
+    alignSelf: "flex-start",
+    marginLeft: -4,
+    marginBottom: 4,
   },
-  daysNumber: {
+  eyebrow: {
+    ...Typography.sectionHeadAc,
+    color: Colors.brand.mediumTeal,
+  },
+  dayTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  title: {
+    ...Typography.h1,
+    color: Colors.brand.darkTeal,
+  },
+  subhead: {
+    ...Typography.subhead,
+    color: Colors.brand.darkTeal,
+  },
+  addMomentsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 40,
+    borderRadius: Radii.md,
+    backgroundColor: Colors.brand.gold,
+    paddingHorizontal: 16,
+    gap: 6,
+    marginBottom: 24,
+  },
+  addMomentsLabel: {
+    ...Typography.largeCta,
     color: Colors.white,
-    fontWeight: "700",
+  },
+  addDayButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 40,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    borderColor: Colors.brand.gold,
+    paddingHorizontal: 14,
+    gap: 6,
+  },
+  addDayLabel: {
+    ...Typography.largeCta,
+    color: Colors.brand.darkTeal,
+  },
+  peopleList: {
+    gap: 10,
+    marginBottom: 24,
+  },
+  daySpacer: {
+    flex: 1,
+    minHeight: 24,
+  },
+  noPeople: {
+    ...Typography.subhead,
+    color: Colors.brand.darkTeal,
+    opacity: 0.7,
+    paddingVertical: 12,
+  },
+  loadingText: {
+    color: Colors.darks.black,
+    opacity: 0.8,
   },
   dialog: {
     borderRadius: 16,
@@ -451,10 +520,6 @@ const styles = StyleSheet.create({
   },
   dialogButton: {
     minWidth: 100,
-  },
-  daysLabel: {
-    color: Colors.white,
-    opacity: 0.7,
   },
   pickerHeadline: {
     marginBottom: 12,
