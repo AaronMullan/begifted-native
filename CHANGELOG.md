@@ -21,6 +21,7 @@ builds (≤ 44) are not backfilled here.
 
 ### App (ships next build / OTA)
 
+- Tapping a gift idea now scrolls that card to a consistent spot just below the header so its title, price, and "View Product" link are immediately visible — no more hunting for where the opened card went. Cards with a product photo also no longer jump after the image loads, and cards without a photo behave the same way (DEV-185).
 - The bottom navigation icons now match the finalized design: Home shows an outlined house, People a filled pair, and Moments a calendar with date dots. The Home/People/Moments labels also use the app's new DM Sans font.
 - You can now report a bug from anywhere in the app. The header at the top of every screen now has a bug icon (where the notification bell used to be) that opens the bug-report form, so you no longer have to navigate back to Home to report something that goes wrong mid-flow. The notification bell has been removed from the header (DEV-183).
 - The "Past Gift Recommendations" label at the bottom of a recipient's gift ideas screen is now a tappable header. Tap it to reveal past suggestions as full gift cards (with photo, price, "Why This Fits", and a "View Product" link) on a slate-blue background. Tap it again to collapse them. One gift card at a time can be open across both the current and past suggestions (DEV-182).

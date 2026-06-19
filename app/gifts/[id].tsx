@@ -10,6 +10,10 @@ import { useRecipient } from "../../hooks/use-recipient";
 import { useGiftSuggestions } from "../../hooks/use-gift-suggestions";
 import GiftSuggestionsList from "../../components/gifts/GiftSuggestionsList";
 
+/** Gap left above an expanded card once it's scrolled to the top of the visible
+ * area, so it sits a touch below the sticky header rather than flush against it. */
+const CARD_SCROLL_TOP_GAP = 12;
+
 const firstName = (name?: string) => {
   if (!name) return "";
   return name.trim().split(/\s+/)[0];
@@ -52,12 +56,36 @@ export default function GiftIdeasPage() {
   const { data: suggestions = [], isLoading: loadingSuggestions } =
     useGiftSuggestions(id);
   const scrollRef = useRef<ScrollView>(null);
+  const contentRef = useRef<View>(null);
 
   const isLoading = loadingRecipient || loadingSuggestions;
   const name = firstName(recipient?.name);
 
   const handleAboutPress = () => {
     if (id) router.push(`/contacts/${id}?tab=details`);
+  };
+
+  // Scroll a freshly-expanded gift card so its top lands just below the header.
+  // Measuring against the content view (not the screen) yields the card's offset
+  // within the scroll content; the viewport already begins below the in-flow
+  // header, and content bottom padding keeps the card clear of the bottom nav.
+  // The card top is a stable anchor (it depends only on the fixed-height
+  // collapsed rows above it), so a late-loading image never moves it (DEV-185).
+  const handleScrollCardIntoView = (node: View | null) => {
+    const content = contentRef.current;
+    if (!node || !content) return;
+    // Pass the content view instance directly — the New Architecture's
+    // measureLayout requires a ref to a native component, not a node handle.
+    node.measureLayout(
+      content,
+      (_x, y) => {
+        scrollRef.current?.scrollTo({
+          y: Math.max(0, y - CARD_SCROLL_TOP_GAP),
+          animated: true,
+        });
+      },
+      () => {}
+    );
   };
 
   if (isLoading && suggestions.length === 0) {
@@ -75,9 +103,13 @@ export default function GiftIdeasPage() {
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.content}>
+      <View ref={contentRef} style={styles.content}>
         <GiftIdeasHeader name={name} onAboutPress={handleAboutPress} />
-        <GiftSuggestionsList suggestions={suggestions} recipientName={name} />
+        <GiftSuggestionsList
+          suggestions={suggestions}
+          recipientName={name}
+          onScrollCardIntoView={handleScrollCardIntoView}
+        />
       </View>
     </ScrollView>
   );
