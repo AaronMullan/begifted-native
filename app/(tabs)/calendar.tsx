@@ -20,6 +20,7 @@ import { useDeleteOccasion } from "../../hooks/use-occasion-mutations";
 import { useToast } from "../../hooks/use-toast";
 import GradientBackground from "../../components/GradientBackground";
 import MomentsCalendar from "../../components/moments/MomentsCalendar";
+import MomentsYearGrid from "../../components/moments/MomentsYearGrid";
 import MomentsPersonCard from "../../components/moments/MomentsPersonCard";
 import { formatShortName } from "../../lib/format-name";
 import { formatOccasionType } from "../../utils/home-occasions";
@@ -57,6 +58,7 @@ export default function Calendar() {
   const today = new Date();
   const [viewMonth, setViewMonth] = useState(() => startOfMonth(new Date()));
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showYear, setShowYear] = useState(false);
   const [occasionToDelete, setOccasionToDelete] = useState<Occasion | null>(
     null
   );
@@ -130,9 +132,10 @@ export default function Calendar() {
     setSelectedDate(null);
   }
 
-  function handleResetToToday() {
-    setViewMonth(startOfMonth(new Date()));
+  function handleSelectMonthFromYear(monthDate: Date) {
+    setViewMonth(startOfMonth(monthDate));
     setSelectedDate(null);
+    setShowYear(false);
   }
 
   function handleAddOccasionForRecipient(recipientId: string) {
@@ -200,110 +203,129 @@ export default function Calendar() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.content}>
-          {selectedDate ? (
-            <View style={styles.dayHeader}>
-              {/* The Figma frames have no back affordance for the day view, so
+          {showYear && !selectedDate ? (
+            <>
+              <View style={styles.yearHeader}>
+                <Text style={styles.title}>These are{"\n"}your moments.</Text>
+              </View>
+              <MomentsYearGrid
+                year={viewMonth.getFullYear()}
+                markersByDay={markersByDay}
+                onSelectMonth={handleSelectMonthFromYear}
+                onCollapse={() => setShowYear(false)}
+              />
+            </>
+          ) : (
+            <>
+              {selectedDate ? (
+                <View style={styles.dayHeader}>
+                  {/* The Figma frames have no back affordance for the day view, so
                   the eyebrow doubles as one: tapping it returns to the month
                   ("These are your moments.") overview. */}
-              <Pressable
-                style={styles.backRow}
-                onPress={() => setSelectedDate(null)}
-                accessibilityRole="button"
-                accessibilityLabel="Back to all moments"
-              >
-                <MaterialIcons
-                  name="chevron-left"
-                  size={18}
-                  color={Colors.brand.mediumTeal}
-                />
-                <Text style={styles.eyebrow}>MOMENTS</Text>
-              </Pressable>
-              <View style={styles.dayTitleRow}>
-                <Text style={styles.title}>{dayTitle}</Text>
+                  <Pressable
+                    style={styles.backRow}
+                    onPress={() => setSelectedDate(null)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Back to all moments"
+                  >
+                    <MaterialIcons
+                      name="chevron-left"
+                      size={18}
+                      color={Colors.brand.mediumTeal}
+                    />
+                    <Text style={styles.eyebrow}>MOMENTS</Text>
+                  </Pressable>
+                  <View style={styles.dayTitleRow}>
+                    <Text style={styles.title}>{dayTitle}</Text>
+                    <Pressable
+                      style={styles.addDayButton}
+                      onPress={() => setShowRecipientPicker(true)}
+                      accessibilityRole="button"
+                      accessibilityLabel="Add to this day"
+                    >
+                      <MaterialIcons
+                        name="add"
+                        size={16}
+                        color={Colors.brand.darkTeal}
+                      />
+                      <Text style={styles.addDayLabel}>Add to this day</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.monthHeader}>
+                  <Text style={styles.title}>These are{"\n"}your moments.</Text>
+                  <Text style={styles.subhead}>
+                    Add the moments that matter.{"\n"}We’ll keep track of
+                    them...
+                  </Text>
+                </View>
+              )}
+
+              {selectedDate ? (
+                <View style={styles.peopleList}>
+                  {selectedOccasions.length === 0 ? (
+                    <Text style={styles.noPeople}>
+                      No moments on this day yet.
+                    </Text>
+                  ) : (
+                    selectedOccasions.map((occasion) => (
+                      <MomentsPersonCard
+                        key={occasion.id}
+                        name={occasion.recipient?.name || "Unknown"}
+                        photoUrl={occasion.recipient?.photo_url}
+                        onPress={() => handleOccasionPress(occasion)}
+                        onLongPress={() => setOccasionToDelete(occasion)}
+                        onOverflow={
+                          selectedOccasions.length > 1
+                            ? () => setOccasionToDelete(occasion)
+                            : undefined
+                        }
+                      />
+                    ))
+                  )}
+                </View>
+              ) : (
                 <Pressable
-                  style={styles.addDayButton}
+                  style={styles.addMomentsButton}
                   onPress={() => setShowRecipientPicker(true)}
                   accessibilityRole="button"
-                  accessibilityLabel="Add to this day"
+                  accessibilityLabel="Add moments"
                 >
                   <MaterialIcons
                     name="add"
                     size={16}
                     color={Colors.brand.darkTeal}
                   />
-                  <Text style={styles.addDayLabel}>Add to this day</Text>
-                </Pressable>
-              </View>
-            </View>
-          ) : (
-            <View style={styles.monthHeader}>
-              <Text style={styles.title}>These are{"\n"}your moments.</Text>
-              <Text style={styles.subhead}>
-                Add the moments that matter.{"\n"}We’ll keep track of them...
-              </Text>
-            </View>
-          )}
-
-          {selectedDate ? (
-            <View style={styles.peopleList}>
-              {selectedOccasions.length === 0 ? (
-                <Text style={styles.noPeople}>No moments on this day yet.</Text>
-              ) : (
-                selectedOccasions.map((occasion) => (
-                  <MomentsPersonCard
-                    key={occasion.id}
-                    name={occasion.recipient?.name || "Unknown"}
-                    photoUrl={occasion.recipient?.photo_url}
-                    onPress={() => handleOccasionPress(occasion)}
-                    onLongPress={() => setOccasionToDelete(occasion)}
-                    onOverflow={
-                      selectedOccasions.length > 1
-                        ? () => setOccasionToDelete(occasion)
-                        : undefined
-                    }
+                  <Text style={styles.addMomentsLabel}>Add Moments</Text>
+                  <MaterialIcons
+                    name="chevron-right"
+                    size={14}
+                    color={Colors.white}
                   />
-                ))
+                </Pressable>
               )}
-            </View>
-          ) : (
-            <Pressable
-              style={styles.addMomentsButton}
-              onPress={() => setShowRecipientPicker(true)}
-              accessibilityRole="button"
-              accessibilityLabel="Add moments"
-            >
-              <MaterialIcons
-                name="add"
-                size={16}
-                color={Colors.brand.darkTeal}
-              />
-              <Text style={styles.addMomentsLabel}>Add Moments</Text>
-              <MaterialIcons
-                name="chevron-right"
-                size={14}
-                color={Colors.white}
-              />
-            </Pressable>
-          )}
 
-          {/* In the day view the design anchors the calendar low, with the
+              {/* In the day view the design anchors the calendar low, with the
               breathing room sitting above it (between the person cards and the
               grid). This spacer reproduces that on devices taller than the
               874pt design frame; the month view fills naturally like its frame. */}
-          {selectedDate && <View style={styles.daySpacer} />}
+              {selectedDate && <View style={styles.daySpacer} />}
 
-          <MomentsCalendar
-            monthDate={viewMonth}
-            markersByDay={markersByDay}
-            monthLabel={monthLabel}
-            today={today}
-            selectedDate={selectedDate}
-            variant={selectedDate ? "day" : "month"}
-            onSelectDay={handleSelectDay}
-            onPrevMonth={() => handleStepMonth(-1)}
-            onNextMonth={() => handleStepMonth(1)}
-            onPressMonthLabel={handleResetToToday}
-          />
+              <MomentsCalendar
+                monthDate={viewMonth}
+                markersByDay={markersByDay}
+                monthLabel={monthLabel}
+                today={today}
+                selectedDate={selectedDate}
+                variant={selectedDate ? "day" : "month"}
+                onSelectDay={handleSelectDay}
+                onPrevMonth={() => handleStepMonth(-1)}
+                onNextMonth={() => handleStepMonth(1)}
+                onExpandYear={() => setShowYear(true)}
+              />
+            </>
+          )}
         </View>
       </ScrollView>
 
@@ -426,6 +448,9 @@ const styles = StyleSheet.create({
   },
   monthHeader: {
     gap: 12,
+    marginBottom: 28,
+  },
+  yearHeader: {
     marginBottom: 28,
   },
   dayHeader: {
