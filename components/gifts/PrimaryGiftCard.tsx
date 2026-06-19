@@ -132,10 +132,12 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.white,
     borderRadius: Radii.md,
-    // Figma content insets: 23 horizontal, 27 top, 20 bottom.
+    // Figma content insets: 23 horizontal, 27 top. Bottom is small (~8) because
+    // the trailing "..." action sits ~17pt above the card edge in Figma and its
+    // icon box already contributes the rest of that gap.
     paddingHorizontal: 23,
     paddingTop: 27,
-    paddingBottom: 20,
+    paddingBottom: 8,
     // Block-level rhythm between image / title-block / why / actions.
     gap: 16,
   },
@@ -204,6 +206,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "flex-end",
     alignItems: "center",
-    paddingTop: 4,
   },
 });

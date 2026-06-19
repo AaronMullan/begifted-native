@@ -40,6 +40,8 @@ export default function GiftCardActionButton({
 
 const styles = StyleSheet.create({
   button: {
-    padding: 4,
+    // No padding: the tiny dots glyph centered in a padded box inflated the
+    // card's top/bottom gaps around it. hitSlop preserves the tap target.
+    padding: 0,
   },
 });
