@@ -202,7 +202,22 @@ export default function Calendar() {
         <View style={styles.content}>
           {selectedDate ? (
             <View style={styles.dayHeader}>
-              <Text style={styles.eyebrow}>MOMENTS</Text>
+              {/* The Figma frames have no back affordance for the day view, so
+                  the eyebrow doubles as one: tapping it returns to the month
+                  ("These are your moments.") overview. */}
+              <Pressable
+                style={styles.backRow}
+                onPress={() => setSelectedDate(null)}
+                accessibilityRole="button"
+                accessibilityLabel="Back to all moments"
+              >
+                <MaterialIcons
+                  name="chevron-left"
+                  size={18}
+                  color={Colors.brand.mediumTeal}
+                />
+                <Text style={styles.eyebrow}>MOMENTS</Text>
+              </Pressable>
               <View style={styles.dayTitleRow}>
                 <Text style={styles.title}>{dayTitle}</Text>
                 <Pressable
@@ -271,6 +286,12 @@ export default function Calendar() {
             </Pressable>
           )}
 
+          {/* In the day view the design anchors the calendar low, with the
+              breathing room sitting above it (between the person cards and the
+              grid). This spacer reproduces that on devices taller than the
+              874pt design frame; the month view fills naturally like its frame. */}
+          {selectedDate && <View style={styles.daySpacer} />}
+
           <MomentsCalendar
             monthDate={viewMonth}
             markersByDay={markersByDay}
@@ -278,7 +299,6 @@ export default function Calendar() {
             today={today}
             selectedDate={selectedDate}
             variant={selectedDate ? "day" : "month"}
-            fill
             onSelectDay={handleSelectDay}
             onPrevMonth={() => handleStepMonth(-1)}
             onNextMonth={() => handleStepMonth(1)}
@@ -411,10 +431,16 @@ const styles = StyleSheet.create({
   dayHeader: {
     marginBottom: 20,
   },
+  backRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    marginLeft: -4,
+    marginBottom: 4,
+  },
   eyebrow: {
     ...Typography.sectionHeadAc,
     color: Colors.brand.mediumTeal,
-    marginBottom: 4,
   },
   dayTitleRow: {
     flexDirection: "row",
@@ -463,6 +489,10 @@ const styles = StyleSheet.create({
   peopleList: {
     gap: 10,
     marginBottom: 24,
+  },
+  daySpacer: {
+    flex: 1,
+    minHeight: 24,
   },
   noPeople: {
     ...Typography.subhead,
