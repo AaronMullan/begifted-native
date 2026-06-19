@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { ActivityIndicator, Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -31,6 +31,9 @@ type GiftSuggestionsListProps = {
   occasionLabel?: string;
   /** Clears the occasion filter to reveal every suggestion. */
   onClearOccasionFilter?: () => void;
+  /** Scrolls a freshly-expanded card's root node to a predictable spot below
+   * the header. Wired up by the host screen that owns the ScrollView (DEV-185). */
+  onScrollCardIntoView?: (node: View | null) => void;
 };
 
 const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
@@ -41,6 +44,7 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
   occasionId = null,
   occasionLabel,
   onClearOccasionFilter,
+  onScrollCardIntoView,
 }) => {
   // `undefined` = default (feature the newest active suggestion); `null` = user
   // collapsed everything; a string = a specific featured suggestion. A single
@@ -51,8 +55,21 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
   );
   const [pastExpanded, setPastExpanded] = useState(false);
 
-  const handleExpand = (id: string) => setExpandedId(id);
+  // True only between a user tapping a card and that card reporting its layout,
+  // so we scroll on explicit taps but never on the default initial expansion.
+  const scrollOnNextExpand = useRef(false);
+
+  const handleExpand = (id: string) => {
+    scrollOnNextExpand.current = true;
+    setExpandedId(id);
+  };
   const handleCollapse = () => setExpandedId(null);
+
+  const handleExpandLayout = (node: View | null) => {
+    if (!scrollOnNextExpand.current) return;
+    scrollOnNextExpand.current = false;
+    onScrollCardIntoView?.(node);
+  };
 
   const visibleSuggestions = occasionId
     ? suggestions.filter((s) => s.occasion_id === occasionId)
@@ -133,6 +150,7 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
         suggestion={suggestion}
         occasionId={occasionId}
         onCollapse={handleCollapse}
+        onExpandLayout={handleExpandLayout}
       />
     ) : (
       <CollapsedGiftCard

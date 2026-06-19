@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as Clipboard from "expo-clipboard";
 import { Image, StyleSheet, View } from "react-native";
 import { Button, Snackbar, Text } from "react-native-paper";
@@ -14,6 +14,9 @@ type PrimaryGiftCardProps = {
   suggestion: GiftSuggestion;
   occasionId?: string | null;
   onCollapse: () => void;
+  /** Fired once, after the expanded card's first layout, with the card's root
+   * node. The parent uses it to scroll the freshly-opened card into view. */
+  onExpandLayout?: (node: View | null) => void;
 };
 
 const IMAGE_SIZE = 200;
@@ -31,19 +34,45 @@ export default function PrimaryGiftCard({
   suggestion,
   occasionId,
   onCollapse,
+  onExpandLayout,
 }: PrimaryGiftCardProps) {
-  const [showImage, setShowImage] = useState(false);
+  // Three-state so the image area is reserved the moment we know a product has
+  // an image (`pending`), keeping the card height stable as the bitmap loads —
+  // the card must not jump after open (DEV-185). It only collapses to `hidden`
+  // for missing / too-small / broken images.
+  const [imageState, setImageState] = useState<
+    "pending" | "visible" | "hidden"
+  >(suggestion.image_url ? "pending" : "hidden");
   const [openFailed, setOpenFailed] = useState(false);
   const logClick = useLogOutboundClick();
 
+  const cardRef = useRef<View>(null);
+  const reportedLayout = useRef(false);
+
   useEffect(() => {
-    if (!suggestion.image_url) return;
+    if (!suggestion.image_url) {
+      setImageState("hidden");
+      return;
+    }
+    setImageState("pending");
     Image.getSize(
       suggestion.image_url,
-      (w, h) => setShowImage(w >= IMAGE_SIZE && h >= IMAGE_SIZE),
-      () => setShowImage(false)
+      (w, h) =>
+        setImageState(
+          w >= IMAGE_SIZE && h >= IMAGE_SIZE ? "visible" : "hidden"
+        ),
+      () => setImageState("hidden")
     );
   }, [suggestion.image_url]);
+
+  // Report the card node once, after its first layout, so the parent can scroll
+  // it to a predictable spot below the header. Once only: later image-load
+  // relayouts must not re-trigger a scroll.
+  const handleLayout = () => {
+    if (reportedLayout.current) return;
+    reportedLayout.current = true;
+    onExpandLayout?.(cardRef.current);
+  };
 
   const handleViewProduct = async () => {
     if (!suggestion.link) return;
@@ -65,7 +94,7 @@ export default function PrimaryGiftCard({
 
   return (
     <>
-      <View style={styles.card}>
+      <View ref={cardRef} style={styles.card} onLayout={handleLayout}>
         {/* Figma floats the chevron in the top-right corner overlapping the
             content, so the image/title start at the card's top padding rather
             than being pushed down by a stacked row. */}
@@ -73,13 +102,15 @@ export default function PrimaryGiftCard({
           <GiftCardExpandButton expanded onPress={onCollapse} />
         </View>
 
-        {showImage && suggestion.image_url && (
+        {imageState !== "hidden" && suggestion.image_url && (
           <View style={styles.imageWrap}>
-            <Image
-              source={{ uri: suggestion.image_url }}
-              style={styles.image}
-              resizeMode="contain"
-            />
+            {imageState === "visible" && (
+              <Image
+                source={{ uri: suggestion.image_url }}
+                style={styles.image}
+                resizeMode="contain"
+              />
+            )}
           </View>
         )}
 
