@@ -1,12 +1,12 @@
-import { View, StyleSheet, Text, Pressable } from "react-native";
+import { View, StyleSheet, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Link, usePathname } from "expo-router";
 import { useAuth } from "../hooks/use-auth";
-import { useUnreadCount } from "../hooks/use-notifications";
 import { useProfile } from "../hooks/use-profile";
 import { Colors } from "../lib/colors";
+import { openBugReport } from "../lib/feedback";
 import BrandMark from "./BrandMark";
 import BrandWordmark from "./BrandWordmark";
 
@@ -19,7 +19,6 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
   const pathname = usePathname();
   const { user } = useAuth();
   const { data: profile } = useProfile();
-  const { data: unreadCount = 0 } = useUnreadCount();
 
   if (pathname.startsWith("/onboarding") || pathname.startsWith("/intro")) {
     return null;
@@ -47,28 +46,18 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
           </Pressable>
         </Link>
         <View style={styles.rightSection}>
-          <Link href="/notifications" asChild>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Notifications${
-                unreadCount > 0 ? `, ${unreadCount} unread` : ""
-              }`}
-              style={styles.bellButton}
-            >
-              <MaterialIcons
-                name="notifications"
-                size={24}
-                color={Colors.darks.black}
-              />
-              {unreadCount > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>
-                    {unreadCount > 99 ? "99+" : unreadCount}
-                  </Text>
-                </View>
-              )}
-            </Pressable>
-          </Link>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Report a bug"
+            style={styles.bugButton}
+            onPress={() => openBugReport("header")}
+          >
+            <MaterialIcons
+              name="bug-report"
+              size={24}
+              color={Colors.darks.black}
+            />
+          </Pressable>
           <Link href="/settings" asChild>
             <Pressable
               accessibilityRole="button"
@@ -145,27 +134,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  bellButton: {
-    position: "relative",
+  bugButton: {
     padding: 4,
-  },
-  badge: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    backgroundColor: Colors.pinks.dark,
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 3,
-  },
-  badgeText: {
-    color: Colors.white,
-    fontSize: 10,
-    fontWeight: "700",
-    lineHeight: 14,
   },
   avatarButton: {
     marginLeft: 12,
