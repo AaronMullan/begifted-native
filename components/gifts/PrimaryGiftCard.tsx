@@ -169,7 +169,9 @@ export default function PrimaryGiftCard({
         )}
 
         <View style={styles.titleBlock}>
-          <Text style={styles.title}>{suggestion.title}</Text>
+          <Text style={styles.title} numberOfLines={2}>
+            {suggestion.title}
+          </Text>
           <View style={styles.priceRow}>
             <Text style={styles.price}>{formatPrice(suggestion.price)}</Text>
             {suggestion.link && (
@@ -254,6 +256,11 @@ const styles = StyleSheet.create({
   title: {
     ...Typography.h2,
     color: Colors.brand.darkTeal,
+    // Reserve clearance for the expand chevron, which floats over the card's
+    // top-right (expandButton: right 13 + 24pt glyph = 37pt from the card edge,
+    // vs the 23pt content inset). Without it a long AI title's first line runs
+    // under the chevron. paddingRight = (37 - 23) + breathing room.
+    paddingRight: 24,
   },
   price: {
     fontFamily: FontFamily.sans.semibold,
