@@ -7,7 +7,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { Button, Dialog, Portal, Text } from "react-native-paper";
+import { Button, Dialog, Divider, Portal, Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
 import { Radii, Typography } from "../../lib/typography";
@@ -409,6 +409,9 @@ export default function Calendar() {
                 )}
               />
             )}
+            {/* Separate the create-new action from the recipient rows above so it
+            doesn't read as just another person in the list. */}
+            <Divider style={styles.pickerDivider} />
             <Button
               mode="text"
               onPress={handleAddNewPerson}
@@ -572,6 +575,10 @@ const styles = StyleSheet.create({
   },
   recipientList: {
     maxHeight: 300,
+  },
+  pickerDivider: {
+    marginTop: 4,
+    marginBottom: 4,
   },
   recipientItemContent: {
     justifyContent: "flex-start",
