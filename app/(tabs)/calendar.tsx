@@ -143,6 +143,14 @@ export default function Calendar() {
     router.push(`/contacts/${recipientId}?addOccasion=true`);
   }
 
+  // The day-add picker only listed existing recipients, dead-ending anyone whose
+  // person isn't in BeGifted yet. Route into the existing add-recipient flow,
+  // which captures the person and their occasions in one pass.
+  function handleAddNewPerson() {
+    setShowRecipientPicker(false);
+    router.push("/contacts/add");
+  }
+
   function handleOccasionPress(occasion: Occasion) {
     router.push(`/contacts/${occasion.recipient_id}?tab=gifts`);
   }
@@ -382,7 +390,7 @@ export default function Calendar() {
             </Text>
             {recipients.length === 0 ? (
               <Text variant="bodyMedium" style={styles.pickerEmpty}>
-                No recipients yet. Add a recipient first.
+                No one in BeGifted yet — add your first person below.
               </Text>
             ) : (
               <FlatList
@@ -401,6 +409,14 @@ export default function Calendar() {
                 )}
               />
             )}
+            <Button
+              mode="text"
+              onPress={handleAddNewPerson}
+              contentStyle={styles.recipientItemContent}
+              icon="account-plus"
+            >
+              Add a new person
+            </Button>
           </Dialog.Content>
           <View style={styles.dialogActions}>
             <Button
