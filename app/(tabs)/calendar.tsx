@@ -7,7 +7,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { Button, Dialog, Portal, Text } from "react-native-paper";
+import { Button, Dialog, Divider, Portal, Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
 import { Radii, Typography } from "../../lib/typography";
@@ -141,6 +141,14 @@ export default function Calendar() {
   function handleAddOccasionForRecipient(recipientId: string) {
     setShowRecipientPicker(false);
     router.push(`/contacts/${recipientId}?addOccasion=true`);
+  }
+
+  // The day-add picker only listed existing recipients, dead-ending anyone whose
+  // person isn't in BeGifted yet. Route into the existing add-recipient flow,
+  // which captures the person and their occasions in one pass.
+  function handleAddNewPerson() {
+    setShowRecipientPicker(false);
+    router.push("/contacts/add");
   }
 
   function handleOccasionPress(occasion: Occasion) {
@@ -382,7 +390,7 @@ export default function Calendar() {
             </Text>
             {recipients.length === 0 ? (
               <Text variant="bodyMedium" style={styles.pickerEmpty}>
-                No recipients yet. Add a recipient first.
+                No one in BeGifted yet — add your first person below.
               </Text>
             ) : (
               <FlatList
@@ -401,6 +409,17 @@ export default function Calendar() {
                 )}
               />
             )}
+            {/* Separate the create-new action from the recipient rows above so it
+            doesn't read as just another person in the list. */}
+            <Divider style={styles.pickerDivider} />
+            <Button
+              mode="text"
+              onPress={handleAddNewPerson}
+              contentStyle={styles.recipientItemContent}
+              icon="account-plus"
+            >
+              Add a new person
+            </Button>
           </Dialog.Content>
           <View style={styles.dialogActions}>
             <Button
@@ -556,6 +575,10 @@ const styles = StyleSheet.create({
   },
   recipientList: {
     maxHeight: 300,
+  },
+  pickerDivider: {
+    marginTop: 4,
+    marginBottom: 4,
   },
   recipientItemContent: {
     justifyContent: "flex-start",
