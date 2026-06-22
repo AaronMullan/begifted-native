@@ -19,7 +19,7 @@ export default function GiftCardExpandButton({
   return (
     <Pressable
       onPress={onPress}
-      hitSlop={8}
+      hitSlop={12}
       accessibilityRole="button"
       accessibilityLabel={expanded ? "Collapse gift" : "Expand gift"}
       style={styles.button}
