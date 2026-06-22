@@ -292,8 +292,11 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
   },
+  // 44pt min tap target (HIG); transparent container, 24pt icon unchanged.
   closeButton: {
     margin: 0,
+    width: 44,
+    height: 44,
   },
   content: {
     paddingHorizontal: 16,

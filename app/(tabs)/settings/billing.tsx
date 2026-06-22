@@ -137,8 +137,11 @@ const styles = StyleSheet.create({
   subtitle: {
     color: "#666",
   },
+  // 44pt min tap target (HIG); transparent container, 20pt icon unchanged.
   backButton: {
     margin: 0,
+    width: 44,
+    height: 44,
   },
   placeholderContainer: {
     paddingVertical: 40,

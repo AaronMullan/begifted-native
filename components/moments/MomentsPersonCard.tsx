@@ -50,7 +50,7 @@ export default function MomentsPersonCard({
       {onOverflow && (
         <Pressable
           onPress={onOverflow}
-          hitSlop={10}
+          hitSlop={12}
           accessibilityRole="button"
           accessibilityLabel={`Options for ${name}`}
         >

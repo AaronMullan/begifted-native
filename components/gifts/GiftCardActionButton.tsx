@@ -24,7 +24,7 @@ export default function GiftCardActionButton({
   return (
     <Pressable
       onPress={handlePress}
-      hitSlop={8}
+      hitSlop={12}
       accessibilityRole="button"
       accessibilityLabel="Gift options"
       style={styles.button}
