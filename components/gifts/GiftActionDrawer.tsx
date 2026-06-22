@@ -312,9 +312,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingBottom: 16,
   },
+  // 44pt min tap target (HIG) so adjacent options are unambiguous to tap; the
+  // label keeps its 24pt line-height and sits centered in the taller row.
   row: {
     flexDirection: "row",
     alignItems: "center",
+    minHeight: 44,
   },
   rowPressed: {
     opacity: 0.6,
@@ -322,8 +325,6 @@ const styles = StyleSheet.create({
   rowLabel: {
     fontFamily: FontFamily.sans.regular,
     fontSize: 12,
-    // Figma lists the options on a tight 24pt rhythm; the line height alone
-    // sets the row spacing, so rows carry no extra vertical padding.
     lineHeight: 24,
     color: Colors.brand.darkTeal,
   },
