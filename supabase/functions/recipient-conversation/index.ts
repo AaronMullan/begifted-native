@@ -88,24 +88,30 @@ async function handleAddOccasionExtract(
 Conversation:
 ${conversationHistory}`;
 
-  const { provider: p2, model: m2 } = await loadAIConfig(
-    supabaseUrl,
-    supabaseServiceKey,
-    aiOverride
-  );
-  const key2 = getApiKey(p2);
-  const extractRaw = await callAI(p2, m2, key2, {
-    messages: [{ role: "user", content: prompt }],
-    maxTokens: 100,
-    temperature: 0.2,
-    jsonMode: true,
-  });
-
-  let parsed;
+  // Any failure here — empty LLM content, non-2xx, timeout, or unparseable
+  // JSON — must NOT propagate to the top-level 500 catch: that dead-ends the
+  // add-occasion flow with no way forward. Fall back to a usable "custom"
+  // occasion so the client saves it with a placeholder date instead.
+  let parsed: { occasion_type?: unknown; date?: unknown } = {
+    occasion_type: "custom",
+    date: null,
+  };
   try {
+    const { provider: p2, model: m2 } = await loadAIConfig(
+      supabaseUrl,
+      supabaseServiceKey,
+      aiOverride
+    );
+    const key2 = getApiKey(p2);
+    const extractRaw = await callAI(p2, m2, key2, {
+      messages: [{ role: "user", content: prompt }],
+      maxTokens: 100,
+      temperature: 0.2,
+      jsonMode: true,
+    });
     parsed = parseOpenAIJSON(extractRaw);
-  } catch {
-    parsed = { occasion_type: "custom", date: null };
+  } catch (err) {
+    console.error("add_occasion extract failed, falling back to custom:", err);
   }
 
   return {

@@ -113,6 +113,11 @@ builds (≤ 44) are not backfilled here.
 
 ### Backend (live on merge)
 
+- Finishing the "add an occasion" chat no longer dead-ends with an "Error" alert
+  when the occasion can't be auto-detected. If the behind-the-scenes step that
+  reads the occasion type and date hiccups, the occasion now still saves (as a
+  generic occasion with a placeholder date you can adjust) instead of failing
+  silently and losing what you typed (DEV-198).
 - A recipient's active Gift Ideas no longer show the same product twice. When two
   rounds of suggestions land close together — for example after removing a couple
   of gifts in quick succession, or when the daily refresh runs — the app now skips
