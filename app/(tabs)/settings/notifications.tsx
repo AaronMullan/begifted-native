@@ -362,6 +362,8 @@ export default function Notifications() {
                     setLeadDays(preferences.notification_lead_days - 1)
                   }
                   disabled={preferences.notification_lead_days <= LEAD_DAYS_MIN}
+                  accessibilityRole="button"
+                  accessibilityLabel="Decrease lead days"
                 >
                   <MaterialIcons name="remove" size={22} color="#000000" />
                 </TouchableOpacity>
@@ -383,6 +385,8 @@ export default function Notifications() {
                     setLeadDays(preferences.notification_lead_days + 1)
                   }
                   disabled={preferences.notification_lead_days >= LEAD_DAYS_MAX}
+                  accessibilityRole="button"
+                  accessibilityLabel="Increase lead days"
                 >
                   <MaterialIcons name="add" size={22} color="#000000" />
                 </TouchableOpacity>
@@ -451,7 +455,12 @@ export default function Notifications() {
                         {tz.label}
                       </Text>
                       {preferences.timezone === tz.value && (
-                        <MaterialIcons name="check" size={20} color="#000000" />
+                        <MaterialIcons
+                          name="check"
+                          size={20}
+                          color="#000000"
+                          accessibilityLabel="Selected"
+                        />
                       )}
                     </TouchableOpacity>
                   ))}
