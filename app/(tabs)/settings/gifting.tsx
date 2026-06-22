@@ -356,8 +356,11 @@ const styles = StyleSheet.create({
     color: Colors.darks.black,
     opacity: 0.8,
   },
+  // 44pt min tap target (HIG); transparent container, 20pt icon unchanged.
   backButton: {
     margin: 0,
+    width: 44,
+    height: 44,
   },
   section: {
     marginBottom: 24,

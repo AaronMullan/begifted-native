@@ -134,11 +134,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
+  // 44x44 transparent hit area meets Apple's HIG minimum without resizing the
+  // 24pt icon. hitSlop can't be used here: RN clips a touch area to the parent
+  // row, which is only as tall as the icon, so the target must own real size.
   bugButton: {
-    padding: 4,
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   avatarButton: {
     marginLeft: 12,
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   avatar: {
     backgroundColor: Colors.white,

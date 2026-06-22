@@ -305,12 +305,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
+  // 44pt min tap target (HIG); transparent container, 24pt icon unchanged.
   backButton: {
     margin: 0,
+    width: 44,
+    height: 44,
   },
   headerTitle: {},
+  // Matches backButton width so the title stays centered.
   headerSpacer: {
-    width: 40,
+    width: 44,
   },
   scrollView: {
     flex: 1,

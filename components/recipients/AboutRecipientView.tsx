@@ -180,7 +180,7 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
               anchor={
                 <Pressable
                   onPress={() => setOpenMenuId(occasion.id)}
-                  hitSlop={8}
+                  hitSlop={12}
                   accessibilityRole="button"
                   accessibilityLabel="Occasion options"
                   style={styles.overflowButton}
@@ -469,7 +469,12 @@ const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
               <Text variant="titleLarge" style={styles.modalTitle}>
                 Gift Preferences
               </Text>
-              <IconButton icon="close" size={24} onPress={onClose} />
+              <IconButton
+                icon="close"
+                size={24}
+                onPress={onClose}
+                style={styles.modalClose}
+              />
             </View>
             <View style={styles.modalBody}>
               <TextInput
@@ -637,7 +642,12 @@ const InformationDialog: React.FC<InformationDialogProps> = ({
               <Text variant="titleLarge" style={styles.modalTitle}>
                 Information
               </Text>
-              <IconButton icon="close" size={24} onPress={onClose} />
+              <IconButton
+                icon="close"
+                size={24}
+                onPress={onClose}
+                style={styles.modalClose}
+              />
             </View>
             <View style={styles.modalBody}>
               <TextInput
@@ -861,6 +871,12 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
     borderBottomWidth: 1,
     borderBottomColor: "#e0d6c4",
+  },
+  // 44pt min tap target (HIG); transparent container, 24pt icon unchanged.
+  modalClose: {
+    margin: 0,
+    width: 44,
+    height: 44,
   },
   modalTitle: {
     flex: 1,
