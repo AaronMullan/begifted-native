@@ -21,15 +21,45 @@ builds (≤ 44) are not backfilled here.
 
 ### App (ships next build / OTA)
 
+_Nothing yet._
+
+### Backend (live on merge)
+
+_Nothing yet._
+
+## 2026-06-21 — Build 52 (TestFlight)
+
+### App
+
 - The small icon buttons that were fiddly to tap now have a larger touch area meeting Apple's recommended minimum, so they're easier to hit accurately: the bug-report icon and avatar in the top header, the back arrows on the Settings sub-screens (Support, Gifting, Notifications, Profile, Billing) and FAQ, the back/close buttons in the Add-a-person conversation and recipient detail dialogs, the "…" options buttons on Moments, gift, and occasion cards, and the expand/collapse chevron on gift cards. The icons look exactly the same — only the tappable region grew (DEV-204).
 - VoiceOver now reads the −/+ lead-day buttons in Settings → Notifications (the control that sets how many days ahead you get gift ideas). It announces them as "Decrease lead days" / "Increase lead days" buttons instead of staying silent, and the checkmark on the currently selected timezone now reads as "Selected" — so the screen is usable with a screen reader (DEV-202).
-- The gift feedback sheet (the options that slide up when you tap a gift idea) now matches the agreed design: six tappable options instead of eight. "Remove this idea" and the separate "Gift feedback >" note row are gone. Tapping an option records it right away — nothing extra is required. Most options then offer an optional note you can fill in or Skip ("I chose this gift", "They already have this", "Not for them", "Product problem"), "Price feels off" adds quick-pick chips (Too expensive / Too cheap / Not worth the price / Budget changed) plus an optional note, and "Keep this in the mix" needs no follow-up. Removing a gift via "Not for them" / "Price feels off" / "They already have this" / "Product problem" still refreshes your list with a new idea as before (DEV-196).
+- The gift feedback sheet (the options that slide up when you tap a gift idea) now matches the agreed design: six tappable options instead of eight. "Remove this idea" and the separate "Gift feedback >" note row are gone. Tapping an option records it right away — nothing extra is required. Most options then offer an optional note you can fill in or Skip ("I chose this gift", "They already have this", "Not for them", "Product problem"), "Price feels off" adds quick-pick chips (Too expensive / Too cheap / Not worth the price / Budget changed) plus an optional note, and "Keep this in the mix" needs no follow-up. Removing a gift via "Not for them" / "Price feels off" / "They already have this" / "Product problem" still refreshes your list with a new idea as before. The feedback rows are also larger and easier to tap (DEV-196, DEV-195).
 - From the Moments calendar, the "Add to this day" / "Add Moments" picker now has an "Add a new person" option, so you can create someone who isn't in BeGifted yet right from the calendar — no more bailing out to the People tab first. (Previously the picker only listed existing recipients, and the empty state was a dead-end telling you to add a recipient elsewhere.) (DEV-200).
 - A very long gift title on an opened gift card no longer runs into the expand chevron in the top-right corner. Long titles now wrap and trim cleanly within the card instead of colliding with the arrow (DEV-201).
-- More gift ideas now show their product photo. Previously a card could come back image-less even when a photo was available — a too-strict size check and a separate, flaky image probe were quietly dropping valid photos (e.g. ones a retailer served slowly or that were a touch under the old size cutoff). Cards still stay the same height while a photo loads and cleanly show no image when there genuinely isn't one. Behind the scenes we now record why each card did or didn't show a photo, so we can tell "the gift had no photo" apart from "the photo failed to load" and catch any future drop quickly (DEV-186). (the sheet that slides up when you tap a gift idea's options) now matches the finalized design: the feedback options are a clean text list with "Keep this in the mix" emphasized at the top (the placeholder dot in front of each option is gone), the rows sit on a tighter line spacing, and the "Send" control on the "Gift feedback" note screen is now a gold outlined up-arrow instead of a solid paper-plane button (DEV-190).
+- More gift ideas now show their product photo. Previously a card could come back image-less even when a photo was available — a too-strict size check and a separate, flaky image probe were quietly dropping valid photos (e.g. ones a retailer served slowly or that were a touch under the old size cutoff). Cards still stay the same height while a photo loads and cleanly show no image when there genuinely isn't one. Behind the scenes we now record why each card did or didn't show a photo, so we can tell "the gift had no photo" apart from "the photo failed to load" and catch any future drop quickly (DEV-186).
+
+### Backend (live on merge)
+
+- Finishing the "add an occasion" chat no longer dead-ends with an "Error" alert
+  when the occasion can't be auto-detected. If the behind-the-scenes step that
+  reads the occasion type and date hiccups, the occasion now still saves (as a
+  generic occasion with a placeholder date you can adjust) instead of failing
+  silently and losing what you typed (DEV-198).
+- Finishing an "add an occasion" chat now actually saves the occasion. The
+  assistant would confirm the occasion and show the save button, but the final
+  save silently failed every time and the occasion was dropped. It now goes
+  through and the new moment appears on the recipient and in your calendar
+  (DEV-194).
+
+## 2026-06-19 — Build 51 (TestFlight)
+
+### App
+
+- The gift-options drawer (the sheet that slides up when you tap a gift idea's options) now matches the finalized design: the feedback options are a clean text list with "Keep this in the mix" emphasized at the top (the placeholder dot in front of each option is gone), the rows sit on a tighter line spacing, and the "Send" control on the "Gift feedback" note screen is now a gold outlined up-arrow instead of a solid paper-plane button (DEV-190).
 - On a recipient's gift ideas screen, the expand chevrons inside the "Past Gift Recommendations" section are now dark teal instead of gold, so past suggestions read as visually distinct from the current gold-chevron recommendations above them (DEV-189).
 - The Moments calendar now has a year view. Tap the gold chevron next to the month name to zoom out to all 12 months at once, each as a tiny calendar showing where your moments fall across the year (with the same per-person colored dots). Tap any month to drop straight into it, or tap the gold chevron next to the year to collapse back (DEV-193).
-- The Moments tab is now an actual calendar instead of a long list. It opens on the current month with a Monday-first grid: today is circled in gold, and any day with a moment shows a small colored marker beneath it (each person keeps the same color, so you can tell at a glance whose occasion it is — one bar for a single moment, a row of dots for several). Tap a day to open it: the screen shows that date with a card for each person who has a moment then (tap their card to jump to gift ideas), plus an "Add to this day" button. Use the ‹ › arrows to move between months, or tap the gold chevron next to the month name to zoom out to the year (DEV-192). the "NEXT UP" and "ON THE HORIZON" section labels now sit tighter to their cards and the row above them (the extra empty space is gone), are nudged in slightly, and the date line on the cards (e.g. "Tomorrow • June 19") now uses a rounder bullet separator (DEV-188).
+- The Moments tab is now an actual calendar instead of a long list. It opens on the current month with a Monday-first grid: today is circled in gold, and any day with a moment shows a small colored marker beneath it (each person keeps the same color, so you can tell at a glance whose occasion it is — one bar for a single moment, a row of dots for several). Tap a day to open it: the screen shows that date with a card for each person who has a moment then (tap their card to jump to gift ideas), plus an "Add to this day" button. Use the ‹ › arrows to move between months, or tap the gold chevron next to the month name to zoom out to the year (DEV-192).
+- On the Home screen, the "NEXT UP" and "ON THE HORIZON" section labels now sit tighter to their cards and the row above them (the extra empty space is gone), are nudged in slightly, and the date line on the cards (e.g. "Tomorrow • June 19") now uses a rounder bullet separator (DEV-188).
 - Tapping a gift idea now scrolls that card to a consistent spot just below the header so its title, price, and "View Product" link are immediately visible — no more hunting for where the opened card went. Cards with a product photo also no longer jump after the image loads, and cards without a photo behave the same way (DEV-185).
 - The bottom navigation icons now match the finalized design: Home shows an outlined house, People a filled pair, and Moments a calendar with date dots. The Home/People/Moments labels also use the app's new DM Sans font.
 - You can now report a bug from anywhere in the app. The header at the top of every screen now has a bug icon (where the notification bell used to be) that opens the bug-report form, so you no longer have to navigate back to Home to report something that goes wrong mid-flow. The notification bell has been removed from the header (DEV-183).
@@ -115,11 +145,6 @@ builds (≤ 44) are not backfilled here.
 
 ### Backend (live on merge)
 
-- Finishing the "add an occasion" chat no longer dead-ends with an "Error" alert
-  when the occasion can't be auto-detected. If the behind-the-scenes step that
-  reads the occasion type and date hiccups, the occasion now still saves (as a
-  generic occasion with a placeholder date you can adjust) instead of failing
-  silently and losing what you typed (DEV-198).
 - A recipient's active Gift Ideas no longer show the same product twice. When two
   rounds of suggestions land close together — for example after removing a couple
   of gifts in quick succession, or when the daily refresh runs — the app now skips
@@ -133,14 +158,6 @@ builds (≤ 44) are not backfilled here.
 - Adding a recipient without clearly stating your relationship to them no longer
   saves the literal word "null" as the relationship — the app now asks you to
   fill it in on the review screen instead (DEV-139).
-
-### Backend (live on merge)
-
-- Finishing an "add an occasion" chat now actually saves the occasion. The
-  assistant would confirm the occasion and show the save button, but the final
-  save silently failed every time and the occasion was dropped. It now goes
-  through and the new moment appears on the recipient and in your calendar
-  (DEV-194).
 
 ## 2026-06-12 — Build 45 (TestFlight)
 
@@ -192,3 +209,5 @@ the time.
 - New sign-ups no longer fail with "Database error saving new user" — the
   account-creation trigger still referenced a database column that had been
   removed (PR #171).
+  </content>
+  </invoke>
