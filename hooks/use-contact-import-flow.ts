@@ -83,7 +83,9 @@ export function useContactImportFlow() {
         ...(birthdayStr && { birthday: birthdayStr }),
         ...(addr?.street && { address: addr.street }),
         ...(addr?.city && { city: addr.city }),
-        ...(addr?.region && { state: addr.region }),
+        // Not `state`: react-navigation reserves params.state for a serialized
+        // nested navigator state, so a string here crashes StackRouter rehydrate.
+        ...(addr?.region && { region: addr.region }),
         ...(addr?.postalCode && { zip_code: addr.postalCode }),
         ...(addr?.country && { country: addr.country }),
         ...(stablePhotoUri && { photo_url: stablePhotoUri }),
