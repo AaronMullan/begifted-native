@@ -27,6 +27,7 @@ import { formatOccasionType } from "../../utils/home-occasions";
 import {
   addMonths,
   dayKey,
+  isLeapYear,
   isSameDay,
   occasionDayKey,
 } from "../../utils/moments-calendar";
@@ -81,9 +82,15 @@ export default function Calendar() {
   const occasionsByDay = new Map<string, Occasion[]>();
   for (const occasion of occasions) {
     const canonical = occasionDayKey(occasion.date);
-    const key = occasion.is_annual
-      ? `${viewYear}${canonical.slice(4)}`
-      : canonical;
+    let key = canonical;
+    if (occasion.is_annual) {
+      const monthDay = canonical.slice(5); // "MM-DD"
+      // A common year has no Feb 29 cell, so clamp leap-day occasions to Feb 28
+      // rather than dropping their marker for three years out of four.
+      const clamped =
+        monthDay === "02-29" && !isLeapYear(viewYear) ? "02-28" : monthDay;
+      key = `${viewYear}-${clamped}`;
+    }
     const list = occasionsByDay.get(key);
     if (list) list.push(occasion);
     else occasionsByDay.set(key, [occasion]);
