@@ -22,6 +22,7 @@ builds (≤ 44) are not backfilled here.
 ### App (ships next build / OTA)
 
 - Tapping a notification now takes you straight to the latest gift ideas for that person. Previously a "new gift" alert could drop you on the older, cached list, so you had to back out and go in again before the fresh suggestions appeared. Now the tap refreshes the list on arrival — for any alert, not just new-gift ones (DEV-208).
+- Some gift cards that were missing their product photo now show it. Photos hosted on insecure `http://` links were being blocked by iOS and silently hidden; the app now loads them over a secure connection instead, so those images appear (DEV-214).
 
 ### Backend (live on merge)
 
