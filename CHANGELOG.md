@@ -25,6 +25,7 @@ builds (≤ 44) are not backfilled here.
 - Some gift cards that were missing their product photo now show it. Photos hosted on insecure `http://` links were being blocked by iOS and silently hidden; the app now loads them over a secure connection instead, so those images appear (DEV-214).
 - Product links now open consistently: tapping "View Product" always opens the link in your phone's system browser, and if you have the retailer's own app installed (e.g. Amazon) iOS may hand off to that app — that handoff is expected, not a glitch. A leftover in-app-browser code path was removed so nothing can pop a product page open inside BeGifted itself (DEV-210).
 - When someone's occasion is actually today, the Home hero card no longer says it "is coming up" while the date reads "Today." It now says "Today is {Occasion} for {Name}." (e.g. "Today is Father's Day for Michael.") — future occasions still show the upcoming wording (DEV-207).
+- Adding a person via "Add from contacts" no longer crashes to the "Something went wrong" screen when the picked contact has a state/region saved in their address. That person now imports normally with their address prefilled (DEV-206).
 
 ### Backend (live on merge)
 

@@ -25,7 +25,7 @@ const AddRecipient = () => {
     birthday?: string;
     address?: string;
     city?: string;
-    state?: string;
+    region?: string;
     zip_code?: string;
     country?: string;
     photo_url?: string;
@@ -42,7 +42,7 @@ const AddRecipient = () => {
     address: {
       ...(typeof params.address === "string" && { address: params.address }),
       ...(typeof params.city === "string" && { city: params.city }),
-      ...(typeof params.state === "string" && { state: params.state }),
+      ...(typeof params.region === "string" && { state: params.region }),
       ...(typeof params.zip_code === "string" && { zip_code: params.zip_code }),
       ...(typeof params.country === "string" && { country: params.country }),
     },
