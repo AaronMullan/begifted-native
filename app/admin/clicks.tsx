@@ -6,10 +6,11 @@ import {
   type OutboundClickRow,
 } from "@/lib/api";
 import { Colors } from "@/lib/colors";
+import { openLink } from "@/lib/open-link";
 import { queryKeys } from "@/lib/query-keys";
 import { useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
-import { Linking, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import { ActivityIndicator, Button, Card, Text } from "react-native-paper";
 
 const PAGE_SIZE = 50;
@@ -157,7 +158,9 @@ const ClickCard: React.FC<{ click: OutboundClickRow }> = ({ click }) => {
         <Text variant="bodyMedium" style={styles.giftTitle}>
           <Text
             style={styles.giftLink}
-            onPress={() => Linking.openURL(click.product_url)}
+            onPress={() => {
+              void openLink(click.product_url);
+            }}
           >
             {giftTitle}
           </Text>
