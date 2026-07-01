@@ -27,6 +27,7 @@ builds (≤ 44) are not backfilled here.
 - When someone's occasion is actually today, the Home hero card no longer says it "is coming up" while the date reads "Today." It now says "Today is {Occasion} for {Name}." (e.g. "Today is Father's Day for Michael.") — future occasions still show the upcoming wording (DEV-207).
 - Adding a person via "Add from contacts" no longer crashes to the "Something went wrong" screen when the picked contact has a state/region saved in their address. That person now imports normally with their address prefilled (DEV-206).
 - The Moments calendar now keeps a day's occasion marker after the date has passed. Previously a birthday or anniversary dot disappeared the day after the occasion; now the dot (and the person card when you tap that day) stays put, so a past occasion is still shown on its day. Recurring birthdays and anniversaries also now show their marker on the upcoming date each year, not just the originally saved one (DEV-209).
+- Text holds together better when you turn iOS system text size all the way up (Settings → Accessibility → Display & Text Size → Larger Text). Headlines, buttons, section labels, the bottom-nav labels, and the Moments year-grid day numbers previously got clipped inside their line at very large sizes; they now grow to fit. Everything looks the same at the default text size (DEV-203).
 
 ### Backend (live on merge)
 

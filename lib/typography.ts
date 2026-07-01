@@ -1,3 +1,4 @@
+import { PixelRatio } from "react-native";
 import type { TextStyle } from "react-native";
 
 /**
@@ -40,21 +41,33 @@ export const FontFamily = {
   },
 } as const;
 
+/**
+ * A numeric lineHeight does not track the OS accessibility text size the way
+ * fontSize does, so at large Dynamic Type a tight line box clips the scaled
+ * glyph. Multiplying the pin by the font scale keeps the box proportional to the
+ * glyph. Read once at module load, so a live text-size change reflows on the next
+ * launch; at the default scale it returns the design value, leaving normal-size
+ * layouts unchanged. Apply only to tight glyph-height pins — not line-heights
+ * used to vertically center text inside a fixed-height container.
+ */
+export const scaleLineHeight = (lineHeight: number): number =>
+  lineHeight * PixelRatio.getFontScale();
+
 export const Typography = {
   h1: {
     fontFamily: FontFamily.serif.semibold,
     fontSize: 32,
-    lineHeight: 33,
+    lineHeight: scaleLineHeight(33),
   } satisfies TextStyle,
   h2: {
     fontFamily: FontFamily.serif.bold,
     fontSize: 16,
-    lineHeight: 18,
+    lineHeight: scaleLineHeight(18),
   } satisfies TextStyle,
   h3: {
     fontFamily: FontFamily.serif.bold,
     fontSize: 12,
-    lineHeight: 14,
+    lineHeight: scaleLineHeight(14),
   } satisfies TextStyle,
   subhead: {
     fontFamily: FontFamily.sans.medium,
@@ -67,7 +80,7 @@ export const Typography = {
   largeCta: {
     fontFamily: FontFamily.sans.semibold,
     fontSize: 11,
-    lineHeight: 12,
+    lineHeight: scaleLineHeight(12),
   } satisfies TextStyle,
   smallCta: {
     fontFamily: FontFamily.sans.semibold,
@@ -80,22 +93,22 @@ export const Typography = {
     // above/below itself. Section spacing is owned by the layout gaps
     // (Spacing.sectionGap above, Spacing.sectionHeadToContent below); an
     // inflated lineHeight here double-counted it and pushed the heads ~8pt too
-    // far from both the preceding module and the cards (DEV-188).
-    lineHeight: 14,
+    // far from both the preceding module and the cards.
+    lineHeight: scaleLineHeight(14),
     textTransform: "uppercase",
   } satisfies TextStyle,
   // Title-case top copy (Figma "BG top copy": Poltawski Nowy 600 12/14)
   topCopy: {
     fontFamily: FontFamily.serif.semibold,
     fontSize: 12,
-    lineHeight: 14,
+    lineHeight: scaleLineHeight(14),
     textTransform: "capitalize",
   } satisfies TextStyle,
   // Primary module headline (Figma "module: primary")
   moduleHeadline: {
     fontFamily: FontFamily.serif.medium,
     fontSize: 32,
-    lineHeight: 33,
+    lineHeight: scaleLineHeight(33),
   } satisfies TextStyle,
   // Avatar initials in user pill (DM Sans 14 / 50)
   avatarInitials: {
