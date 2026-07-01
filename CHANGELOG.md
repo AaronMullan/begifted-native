@@ -27,6 +27,7 @@ builds (≤ 44) are not backfilled here.
 - When someone's occasion is actually today, the Home hero card no longer says it "is coming up" while the date reads "Today." It now says "Today is {Occasion} for {Name}." (e.g. "Today is Father's Day for Michael.") — future occasions still show the upcoming wording (DEV-207).
 - Adding a person via "Add from contacts" no longer crashes to the "Something went wrong" screen when the picked contact has a state/region saved in their address. That person now imports normally with their address prefilled (DEV-206).
 - The Moments calendar now keeps a day's occasion marker after the date has passed. Previously a birthday or anniversary dot disappeared the day after the occasion; now the dot (and the person card when you tap that day) stays put, so a past occasion is still shown on its day. Recurring birthdays and anniversaries also now show their marker on the upcoming date each year, not just the originally saved one (DEV-209).
+- Adding an occasion to a specific day on the Moments calendar now stays on that day. Tap a date, choose "Add to this day," and pick a person — instead of jumping to that person's profile (and losing the date you picked), a small form opens already set to the chosen day. You just name the occasion (with quick picks like Birthday or Anniversary) and choose whether it repeats yearly, and it's saved onto that date (DEV-205).
 
 ### Backend (live on merge)
 
