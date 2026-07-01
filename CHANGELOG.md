@@ -21,7 +21,7 @@ builds (≤ 44) are not backfilled here.
 
 ### App (ships next build / OTA)
 
-_Nothing yet._
+- Tapping a notification now takes you straight to the latest gift ideas for that person. Previously a "new gift" alert could drop you on the older, cached list, so you had to back out and go in again before the fresh suggestions appeared. Now the tap refreshes the list on arrival — for any alert, not just new-gift ones (DEV-208).
 
 ### Backend (live on merge)
 
