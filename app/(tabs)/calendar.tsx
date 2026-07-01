@@ -7,7 +7,16 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { Button, Dialog, Divider, Portal, Text } from "react-native-paper";
+import {
+  Button,
+  Chip,
+  Dialog,
+  Divider,
+  Portal,
+  SegmentedButtons,
+  Text,
+  TextInput,
+} from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
 import { Radii, Typography } from "../../lib/typography";
@@ -16,7 +25,10 @@ import { recipientMarkerColor } from "../../lib/recipient-color";
 import { useAuth } from "../../hooks/use-auth";
 import { useAllOccasions } from "../../hooks/use-occasions";
 import { useRecipients } from "../../hooks/use-recipients";
-import { useDeleteOccasion } from "../../hooks/use-occasion-mutations";
+import {
+  useCreateOccasion,
+  useDeleteOccasion,
+} from "../../hooks/use-occasion-mutations";
 import { useToast } from "../../hooks/use-toast";
 import GradientBackground from "../../components/GradientBackground";
 import MomentsCalendar from "../../components/moments/MomentsCalendar";
@@ -48,12 +60,27 @@ function startOfMonth(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1);
 }
 
+// Quick-pick occasion types for the inline day-add entry. Stored lowercased to
+// match the occasion_type convention; formatOccasionType title-cases on display.
+const COMMON_OCCASION_TYPES = [
+  "birthday",
+  "anniversary",
+  "graduation",
+  "wedding",
+  "holiday",
+];
+
+function formatEntryDate(date: Date): string {
+  return date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+}
+
 export default function Calendar() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { data: occasions = [] } = useAllOccasions();
   const { data: recipients = [] } = useRecipients();
   const deleteOccasion = useDeleteOccasion();
+  const createOccasion = useCreateOccasion();
   const { toast, showToast } = useToast();
 
   const today = new Date();
@@ -64,6 +91,16 @@ export default function Calendar() {
     null
   );
   const [showRecipientPicker, setShowRecipientPicker] = useState(false);
+  // When a recipient is picked for a selected calendar day, we capture the
+  // occasion inline (seeded with that day) instead of routing to their profile,
+  // so the chosen date is never lost.
+  const [occasionEntryRecipient, setOccasionEntryRecipient] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [occasionEntryDate, setOccasionEntryDate] = useState<Date | null>(null);
+  const [occasionTypeInput, setOccasionTypeInput] = useState("");
+  const [occasionIsAnnual, setOccasionIsAnnual] = useState(true);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -154,9 +191,49 @@ export default function Calendar() {
     setShowYear(false);
   }
 
-  function handleAddOccasionForRecipient(recipientId: string) {
+  function handleAddOccasionForRecipient(recipient: {
+    id: string;
+    name: string;
+  }) {
     setShowRecipientPicker(false);
-    router.push(`/contacts/${recipientId}?addOccasion=true`);
+    // With a day chosen, capture the occasion inline on that date. Routing to
+    // the profile's add-occasion chat here would discard the picked date and
+    // force the user to re-enter it. Without a chosen date (month-view
+    // "Add Moments"), fall back to that chat — it derives the date itself.
+    if (selectedDate) {
+      setOccasionEntryRecipient(recipient);
+      setOccasionEntryDate(selectedDate);
+      setOccasionTypeInput("");
+      setOccasionIsAnnual(true);
+      return;
+    }
+    router.push(`/contacts/${recipient.id}?addOccasion=true`);
+  }
+
+  function handleDismissOccasionEntry() {
+    setOccasionEntryRecipient(null);
+    setOccasionEntryDate(null);
+  }
+
+  function handleSaveInlineOccasion() {
+    if (!occasionEntryRecipient || !occasionEntryDate) return;
+    const occasionType = occasionTypeInput.trim().toLowerCase();
+    if (!occasionType) return;
+    createOccasion.mutate(
+      {
+        recipientId: occasionEntryRecipient.id,
+        date: dayKey(occasionEntryDate),
+        occasionType,
+        isAnnual: occasionIsAnnual,
+      },
+      {
+        onSuccess: () => {
+          showToast("Occasion added");
+          handleDismissOccasionEntry();
+        },
+        onError: () => showToast("Failed to add occasion"),
+      }
+    );
   }
 
   // The day-add picker only listed existing recipients, dead-ending anyone whose
@@ -416,7 +493,12 @@ export default function Calendar() {
                 renderItem={({ item }) => (
                   <Button
                     mode="text"
-                    onPress={() => handleAddOccasionForRecipient(item.id)}
+                    onPress={() =>
+                      handleAddOccasionForRecipient({
+                        id: item.id,
+                        name: item.name,
+                      })
+                    }
                     contentStyle={styles.recipientItemContent}
                     icon="account"
                   >
@@ -444,6 +526,73 @@ export default function Calendar() {
               style={styles.dialogButton}
             >
               Cancel
+            </Button>
+          </View>
+        </Dialog>
+        <Dialog
+          visible={!!occasionEntryRecipient}
+          onDismiss={handleDismissOccasionEntry}
+          style={styles.dialog}
+        >
+          <Dialog.Title>
+            <Text variant="bodySmall" style={styles.dialogLabel}>
+              Add Occasion
+            </Text>
+          </Dialog.Title>
+          <Dialog.Content>
+            <Text variant="headlineSmall" style={styles.pickerHeadline}>
+              {occasionEntryRecipient?.name}
+              {occasionEntryDate
+                ? ` · ${formatEntryDate(occasionEntryDate)}`
+                : ""}
+            </Text>
+            <View style={styles.occasionChips}>
+              {COMMON_OCCASION_TYPES.map((type) => (
+                <Chip
+                  key={type}
+                  mode="outlined"
+                  selected={occasionTypeInput.trim().toLowerCase() === type}
+                  onPress={() => setOccasionTypeInput(formatOccasionType(type))}
+                >
+                  {formatOccasionType(type)}
+                </Chip>
+              ))}
+            </View>
+            <TextInput
+              mode="outlined"
+              label="Occasion"
+              placeholder="e.g. Birthday"
+              value={occasionTypeInput}
+              onChangeText={setOccasionTypeInput}
+              autoCapitalize="words"
+              style={styles.occasionInput}
+            />
+            <SegmentedButtons
+              value={occasionIsAnnual ? "annual" : "oneTime"}
+              onValueChange={(value) => setOccasionIsAnnual(value === "annual")}
+              buttons={[
+                { value: "annual", label: "Repeats yearly" },
+                { value: "oneTime", label: "One-time" },
+              ]}
+              style={styles.occasionRecurrence}
+            />
+          </Dialog.Content>
+          <View style={styles.dialogActions}>
+            <Button
+              mode="outlined"
+              onPress={handleDismissOccasionEntry}
+              style={styles.dialogButton}
+            >
+              Cancel
+            </Button>
+            <Button
+              mode="contained"
+              onPress={handleSaveInlineOccasion}
+              loading={createOccasion.isPending}
+              disabled={!occasionTypeInput.trim() || createOccasion.isPending}
+              style={styles.dialogButton}
+            >
+              Save
             </Button>
           </View>
         </Dialog>
@@ -583,6 +732,18 @@ const styles = StyleSheet.create({
   },
   pickerHeadline: {
     marginBottom: 12,
+  },
+  occasionChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 16,
+  },
+  occasionInput: {
+    marginBottom: 16,
+  },
+  occasionRecurrence: {
+    marginBottom: 4,
   },
   pickerEmpty: {
     color: "#888",
