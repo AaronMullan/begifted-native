@@ -14,7 +14,7 @@ import { Radii, Typography } from "../../lib/typography";
 import { BOTTOM_NAV_HEIGHT } from "../../lib/constants";
 import { recipientMarkerColor } from "../../lib/recipient-color";
 import { useAuth } from "../../hooks/use-auth";
-import { useOccasions } from "../../hooks/use-occasions";
+import { useAllOccasions } from "../../hooks/use-occasions";
 import { useRecipients } from "../../hooks/use-recipients";
 import { useDeleteOccasion } from "../../hooks/use-occasion-mutations";
 import { useToast } from "../../hooks/use-toast";
@@ -50,7 +50,7 @@ function startOfMonth(date: Date): Date {
 export default function Calendar() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { data: occasions = [] } = useOccasions();
+  const { data: occasions = [] } = useAllOccasions();
   const { data: recipients = [] } = useRecipients();
   const deleteOccasion = useDeleteOccasion();
   const { toast, showToast } = useToast();

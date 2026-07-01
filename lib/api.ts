@@ -123,37 +123,24 @@ export async function fetchRecipient(
   return data;
 }
 
+type OccasionRow = {
+  id: string;
+  date: string;
+  occasion_type: string | null;
+  recipient_id: string;
+  is_annual: boolean | null;
+};
+
 /**
- * Fetch occasions for a user (upcoming, within 90 days)
+ * Attach each occasion's recipient (name/relationship/photo) so callers can
+ * render person cards without a second query. A recipient lookup failure is
+ * non-fatal — the occasion still returns, just without hydrated recipient info.
  */
-export async function fetchOccasions(userId: string): Promise<Occasion[]> {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+async function hydrateOccasionRecipients(
+  occasionsData: OccasionRow[]
+): Promise<Occasion[]> {
+  if (occasionsData.length === 0) return [];
 
-  // Fetch occasions
-  const { data: occasionsData, error: occasionsError } = await supabase
-    .from("occasions")
-    .select("id, date, occasion_type, recipient_id, is_annual")
-    .eq("user_id", userId)
-    .gte("date", today.toISOString().split("T")[0])
-    .order("date", { ascending: true });
-
-  if (occasionsError) {
-    const msg =
-      occasionsError instanceof Error
-        ? occasionsError.message
-        : String(occasionsError);
-    if (msg.includes("Network request failed") || msg.includes("timed out")) {
-      return [];
-    }
-    throw occasionsError;
-  }
-
-  if (!occasionsData || occasionsData.length === 0) {
-    return [];
-  }
-
-  // Fetch recipients for the occasions
   const recipientIds = [...new Set(occasionsData.map((o) => o.recipient_id))];
   const { data: recipientsData, error: recipientsError } = await supabase
     .from("recipients")
@@ -173,11 +160,9 @@ export async function fetchOccasions(userId: string): Promise<Occasion[]> {
     }
   }
 
-  // Create a map of recipients for quick lookup
   const recipientsMap = new Map((recipientsData || []).map((r) => [r.id, r]));
 
-  // Transform the data to include recipient info
-  const transformedOccasions: Occasion[] = occasionsData.map((occasion) => {
+  return occasionsData.map((occasion) => {
     const recipient = recipientsMap.get(occasion.recipient_id);
     return {
       id: occasion.id,
@@ -194,8 +179,34 @@ export async function fetchOccasions(userId: string): Promise<Occasion[]> {
         : undefined,
     };
   });
+}
 
-  return transformedOccasions;
+/**
+ * Fetch occasions for a user (upcoming, within 90 days)
+ */
+export async function fetchOccasions(userId: string): Promise<Occasion[]> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const { data: occasionsData, error: occasionsError } = await supabase
+    .from("occasions")
+    .select("id, date, occasion_type, recipient_id, is_annual")
+    .eq("user_id", userId)
+    .gte("date", today.toISOString().split("T")[0])
+    .order("date", { ascending: true });
+
+  if (occasionsError) {
+    const msg =
+      occasionsError instanceof Error
+        ? occasionsError.message
+        : String(occasionsError);
+    if (msg.includes("Network request failed") || msg.includes("timed out")) {
+      return [];
+    }
+    throw occasionsError;
+  }
+
+  return hydrateOccasionRecipients(occasionsData || []);
 }
 
 /**
@@ -223,7 +234,9 @@ export async function fetchRecipientOccasions(
  * (which drops anything before today), this keeps past-dated annual occasions
  * so callers can roll them forward to their next occurrence client-side — the
  * People screen needs each recipient's soonest upcoming moment, and annual
- * occasions (birthdays, anniversaries) are often stored with a past date.
+ * occasions (birthdays, anniversaries) are often stored with a past date. The
+ * calendar also relies on this to keep markers (and their person cards) on days
+ * whose occasion has already passed.
  */
 export async function fetchAllOccasions(userId: string): Promise<Occasion[]> {
   const { data, error } = await supabase
@@ -233,11 +246,7 @@ export async function fetchAllOccasions(userId: string): Promise<Occasion[]> {
     .order("date", { ascending: true });
 
   if (error) throw error;
-  return (data || []).map((o) => ({
-    ...o,
-    occasion_type: o.occasion_type || "birthday",
-    is_annual: o.is_annual ?? true,
-  }));
+  return hydrateOccasionRecipients(data || []);
 }
 
 /**
