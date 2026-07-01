@@ -36,6 +36,14 @@ const IMAGE_BOX = 200;
 // non-product assets (tracking pixels, favicons, tiny thumbs).
 const MIN_IMAGE_SIZE = 64;
 
+// iOS App Transport Security refuses to load plaintext `http://` images, so a
+// product image served insecurely fires onError and the card hides it. Upgrade
+// the scheme to `https` so the ATS-blocked subset renders. Only rewrites the
+// bare `http://` prefix; anything else (already https, data:, relative) passes
+// through untouched.
+const toSecureImageUrl = (url: string) =>
+  url.startsWith("http://") ? `https://${url.slice("http://".length)}` : url;
+
 const formatPrice = (price?: number) => {
   if (!price) return "Price not available";
   return new Intl.NumberFormat("en-US", {
@@ -156,7 +164,7 @@ export default function PrimaryGiftCard({
                 invisible until validated so a too-small image never flashes
                 before it collapses. */}
             <Image
-              source={{ uri: suggestion.image_url }}
+              source={{ uri: toSecureImageUrl(suggestion.image_url) }}
               style={[
                 styles.image,
                 imageState !== "visible" && styles.imageLoading,

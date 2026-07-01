@@ -21,7 +21,7 @@ builds (≤ 44) are not backfilled here.
 
 ### App (ships next build / OTA)
 
-_Nothing yet._
+- Some gift cards that were missing their product photo now show it. Photos hosted on insecure `http://` links were being blocked by iOS and silently hidden; the app now loads them over a secure connection instead, so those images appear (DEV-214).
 
 ### Backend (live on merge)
 
