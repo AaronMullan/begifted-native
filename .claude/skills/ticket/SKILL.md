@@ -1,6 +1,6 @@
 ---
 name: ticket
-description: Take a Jira ticket end-to-end — read it, branch, implement the narrowest fix, typecheck/lint, open a PR, transition to Done, and draft a Slack summary. Use when the user hands off a Jira ticket ID (e.g. "/ticket DEV-110").
+description: Take a Jira ticket end-to-end — read it, branch, implement the narrowest fix, typecheck/lint, open a PR, resolve any merge conflicts with main, transition to Done, and draft a Slack summary. Use when the user hands off a Jira ticket ID (e.g. "/ticket DEV-110").
 ---
 
 # Implement Jira Ticket
@@ -39,13 +39,25 @@ Take a Jira ticket from investigation to merged-ready PR. The ticket ID is passe
 
    The PR body should state root cause, the change, and how it was verified. If the work spans both repos, open a PR in each and cross-link them.
 
-8. **Transition the ticket to Done** with `jira_transition_issue` (do NOT pass a `comment` argument — it requires ADF, not plain text; add any note separately via `jira_add_comment`).
+8. **Check for merge conflicts with `main`.** Other tickets land on `main` while you work, and every ticket appends to the same `## Unreleased` block in `CHANGELOG.md` — so a changelog conflict is the common case, not the exception. Fetch and check before considering the PR done:
 
-9. **Draft a Slack summary.** Write a clipboard-ready, plain-English summary of what changed and why for the team. **Don't mention the PR or code review** — nobody reviews the PRs. Do say whether it's **live now** (backend changes deploy on merge) or **waiting for the next build/OTA** (app changes), and tell testers **what to look for** once it's live. Offer to send it via the Slack MCP as a _draft_ (always `slack_send_message_draft`, never send) — in the original report thread when the ticket links one — or print it for the user to copy.
+   ```bash
+   git fetch origin main && git merge origin/main --no-edit
+   ```
+
+   If it merges cleanly, you're done. If it conflicts, resolve and push:
+
+   - **`CHANGELOG.md`** (the usual culprit): keep **both** sides' entries under `## Unreleased` — this is an append conflict, never drop the other ticket's line.
+   - **Any code file**: reconcile by hand, then re-run `npm run typecheck && npm run lint` before committing the merge (the incoming `main` changes may touch files you edited).
+   - Commit the merge (`git commit --no-edit`) and `git push`, then confirm the PR is conflict-free.
+
+9. **Transition the ticket to Done** with `jira_transition_issue` (do NOT pass a `comment` argument — it requires ADF, not plain text; add any note separately via `jira_add_comment`).
+
+10. **Draft a Slack summary.** Write a clipboard-ready, plain-English summary of what changed and why for the team. **Don't mention the PR or code review** — nobody reviews the PRs. Do say whether it's **live now** (backend changes deploy on merge) or **waiting for the next build/OTA** (app changes), and tell testers **what to look for** once it's live. Offer to send it via the Slack MCP as a _draft_ (always `slack_send_message_draft`, never send) — in the original report thread when the ticket links one — or print it for the user to copy.
 
 ## Autonomous mode
 
-Run the whole pipeline end-to-end without stopping between steps. The done-state is: a PR open in each affected repo (with the changelog updated), the Jira ticket transitioned to Done, and a Slack summary drafted. **Pause only when:**
+Run the whole pipeline end-to-end without stopping between steps. The done-state is: a PR open in each affected repo (with the changelog updated) that is **conflict-free against `main`**, the Jira ticket transitioned to Done, and a Slack summary drafted. **Pause only when:**
 
 - Scope is ambiguous or the ticket is underspecified (ask a focused question, don't guess).
 - A change is destructive or hard to reverse (schema drop, prod data mutation, edge-function deploy) — surface it for sign-off first.
