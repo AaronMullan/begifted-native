@@ -128,9 +128,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.blues.medium,
   },
   navContent: {
-    // Fixed 55px content row; the safe-area inset is applied separately as
+    // 55px content row that can grow taller so a label scaled up at large
+    // Dynamic Type isn't clipped; the safe-area inset is applied separately as
     // additive paddingBottom on the container so it never crushes this row.
-    height: 55,
+    minHeight: 55,
     maxWidth: 800,
     width: "100%",
     alignSelf: "center",

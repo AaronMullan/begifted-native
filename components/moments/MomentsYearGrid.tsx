@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 import { Colors } from "../../lib/colors";
-import { Radii } from "../../lib/typography";
+import { Radii, scaleLineHeight } from "../../lib/typography";
 import ExpandCircleIcon from "../ExpandCircleIcon";
 import { buildMonthWeeks, dayKey } from "../../utils/moments-calendar";
 
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   dayNumber: {
     fontFamily: "DMSans_500Medium",
     fontSize: 10,
-    lineHeight: 12,
+    lineHeight: scaleLineHeight(12),
     textAlign: "center",
     color: Colors.darks.black,
   },
