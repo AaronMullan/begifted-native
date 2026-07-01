@@ -70,11 +70,20 @@ export default function Calendar() {
     }
   }, [authLoading, user, router]);
 
-  // Group occasions by local calendar day, then resolve each to its recipient's
-  // stable marker color for the grid.
+  // Group occasions onto the calendar day they mark, then resolve each to its
+  // recipient's stable marker color for the grid. Recurring occasions
+  // (birthdays, anniversaries) are projected onto the viewed year so a
+  // past-dated annual keeps marking its day every year, not just the year it was
+  // saved; one-time occasions mark their exact stored day, past or future. Both
+  // grids only paint in-month cells, so projecting to the viewed year alone
+  // covers everything on screen.
+  const viewYear = viewMonth.getFullYear();
   const occasionsByDay = new Map<string, Occasion[]>();
   for (const occasion of occasions) {
-    const key = occasionDayKey(occasion.date);
+    const canonical = occasionDayKey(occasion.date);
+    const key = occasion.is_annual
+      ? `${viewYear}${canonical.slice(4)}`
+      : canonical;
     const list = occasionsByDay.get(key);
     if (list) list.push(occasion);
     else occasionsByDay.set(key, [occasion]);
