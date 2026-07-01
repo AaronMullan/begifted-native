@@ -7,6 +7,7 @@ import { Typography, Radii } from "../../lib/typography";
 import type { Occasion } from "../../lib/api";
 import {
   daysUntil,
+  formatOccasionType,
   formatOccasionTypeLower,
   formatShortDate,
   possessive,
@@ -20,10 +21,17 @@ type HomeHeroCardProps = {
 export default function HomeHeroCard({ occasion }: HomeHeroCardProps) {
   const router = useRouter();
   const recipientName = occasion.recipient?.name ?? "Someone";
-  const headline = `${possessive(recipientName)} ${formatOccasionTypeLower(
-    occasion.occasion_type
-  )} is coming up.`;
   const days = daysUntil(occasion.date);
+  // Day-of must not claim the occasion "is coming up" while the countdown
+  // simultaneously reads "Today" — switch to day-of copy when days === 0.
+  const headline =
+    days === 0
+      ? `Today is ${formatOccasionType(
+          occasion.occasion_type
+        )} for ${recipientName}.`
+      : `${possessive(recipientName)} ${formatOccasionTypeLower(
+          occasion.occasion_type
+        )} is coming up.`;
   const dayLabel =
     days === 0 ? "Today" : days === 1 ? "Tomorrow" : `In ${days} days`;
   const countdown = `${dayLabel} • ${formatShortDate(occasion.date)}`;
