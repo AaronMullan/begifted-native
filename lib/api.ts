@@ -147,18 +147,14 @@ async function hydrateOccasionRecipients(
     .select("id, name, relationship_type, photo_url")
     .in("id", recipientIds);
 
-  if (recipientsError) {
-    const msg =
-      recipientsError instanceof Error
-        ? recipientsError.message
-        : String(recipientsError);
-    if (!msg.includes("Network request failed") && !msg.includes("timed out")) {
-      console.error(
-        "Error fetching recipient names for occasions:",
-        recipientsError
-      );
-    }
-  }
+  // A failed recipients fetch must fail the whole occasions query rather than
+  // resolve to name-less occasions. Swallowing it caches occasions whose
+  // `recipient` is undefined, and the Home/Moments cards then render every
+  // event as "Someone"/"Unknown" — the name looks lost on cold open. Throwing
+  // lets the query retry and keep the last good (named) data instead. A
+  // recipient that is genuinely absent (no error, id not returned) still falls
+  // back to the placeholder below, which is correct.
+  if (recipientsError) throw recipientsError;
 
   const recipientsMap = new Map((recipientsData || []).map((r) => [r.id, r]));
 
