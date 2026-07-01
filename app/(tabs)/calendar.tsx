@@ -14,7 +14,7 @@ import { Radii, Typography } from "../../lib/typography";
 import { BOTTOM_NAV_HEIGHT } from "../../lib/constants";
 import { recipientMarkerColor } from "../../lib/recipient-color";
 import { useAuth } from "../../hooks/use-auth";
-import { useOccasions } from "../../hooks/use-occasions";
+import { useAllOccasions } from "../../hooks/use-occasions";
 import { useRecipients } from "../../hooks/use-recipients";
 import { useDeleteOccasion } from "../../hooks/use-occasion-mutations";
 import { useToast } from "../../hooks/use-toast";
@@ -27,6 +27,7 @@ import { formatOccasionType } from "../../utils/home-occasions";
 import {
   addMonths,
   dayKey,
+  isLeapYear,
   isSameDay,
   occasionDayKey,
 } from "../../utils/moments-calendar";
@@ -50,7 +51,7 @@ function startOfMonth(date: Date): Date {
 export default function Calendar() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { data: occasions = [] } = useOccasions();
+  const { data: occasions = [] } = useAllOccasions();
   const { data: recipients = [] } = useRecipients();
   const deleteOccasion = useDeleteOccasion();
   const { toast, showToast } = useToast();
@@ -70,11 +71,26 @@ export default function Calendar() {
     }
   }, [authLoading, user, router]);
 
-  // Group occasions by local calendar day, then resolve each to its recipient's
-  // stable marker color for the grid.
+  // Group occasions onto the calendar day they mark, then resolve each to its
+  // recipient's stable marker color for the grid. Recurring occasions
+  // (birthdays, anniversaries) are projected onto the viewed year so a
+  // past-dated annual keeps marking its day every year, not just the year it was
+  // saved; one-time occasions mark their exact stored day, past or future. Both
+  // grids only paint in-month cells, so projecting to the viewed year alone
+  // covers everything on screen.
+  const viewYear = viewMonth.getFullYear();
   const occasionsByDay = new Map<string, Occasion[]>();
   for (const occasion of occasions) {
-    const key = occasionDayKey(occasion.date);
+    const canonical = occasionDayKey(occasion.date);
+    let key = canonical;
+    if (occasion.is_annual) {
+      const monthDay = canonical.slice(5); // "MM-DD"
+      // A common year has no Feb 29 cell, so clamp leap-day occasions to Feb 28
+      // rather than dropping their marker for three years out of four.
+      const clamped =
+        monthDay === "02-29" && !isLeapYear(viewYear) ? "02-28" : monthDay;
+      key = `${viewYear}-${clamped}`;
+    }
     const list = occasionsByDay.get(key);
     if (list) list.push(occasion);
     else occasionsByDay.set(key, [occasion]);
