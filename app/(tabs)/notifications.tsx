@@ -5,7 +5,9 @@ import { FlatList, StyleSheet, View, Pressable } from "react-native";
 import { Text, Button } from "react-native-paper";
 import { BlurView } from "expo-blur";
 import * as Notifications from "expo-notifications";
+import { useQueryClient } from "@tanstack/react-query";
 import { Colors } from "../../lib/colors";
+import { queryKeys } from "../../lib/query-keys";
 import { useAuth } from "../../hooks/use-auth";
 import {
   useNotifications,
@@ -43,6 +45,7 @@ function getNotificationIcon(
 
 export default function NotificationsScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
   const { data: notifications = [], isLoading } = useNotifications();
   const { data: unreadCount = 0 } = useUnreadCount();
@@ -72,6 +75,13 @@ export default function NotificationsScreen() {
     }
     const recipientId = notification.data?.recipientId;
     if (recipientId) {
+      // Invalidate the target's cached suggestions before navigating so the
+      // gifts screen refetches on mount instead of showing the previously
+      // cached (old) list. Without this, the still-fresh query is served and
+      // the tap "lands on old gifts" until the cache goes stale (DEV-208).
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.giftSuggestions(recipientId),
+      });
       const occasionId = notification.data?.occasionId;
       const query = occasionId
         ? `?tab=gifts&occasionId=${occasionId}`

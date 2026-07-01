@@ -71,17 +71,25 @@ export function usePushNotifications(): void {
       (response) => {
         const data = response.notification.request.content.data;
         if (data?.recipientId) {
+          const recipientId = data.recipientId as string;
+          // Invalidate the target's cached suggestions before navigating so the
+          // gifts screen refetches on mount instead of showing the previously
+          // cached (old) list. Without this, the still-fresh query is served and
+          // the tap "lands on old gifts" until the cache goes stale (DEV-208).
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.giftSuggestions(recipientId),
+          });
           const occasionId = data.occasionId as string | undefined;
           const query = occasionId
             ? `?tab=gifts&occasionId=${occasionId}`
             : `?tab=gifts`;
-          router.push(`/contacts/${data.recipientId}${query}`);
+          router.push(`/contacts/${recipientId}${query}`);
         }
       }
     );
 
     return () => subscription.remove();
-  }, []);
+  }, [queryClient]);
 
   // Clear badge when app comes to foreground
   useEffect(() => {
