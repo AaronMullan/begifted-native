@@ -10,11 +10,11 @@ import {
   type RunSummary,
 } from "@/lib/api";
 import { Colors } from "@/lib/colors";
+import { openLink } from "@/lib/open-link";
 import { queryKeys } from "@/lib/query-keys";
 import { useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
 import {
-  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -447,7 +447,9 @@ const RunCard: React.FC<{
                 {p.link ? (
                   <Text
                     style={styles.pickLink}
-                    onPress={() => Linking.openURL(p.link!)}
+                    onPress={() => {
+                      void openLink(p.link!);
+                    }}
                   >
                     {p.title}
                   </Text>

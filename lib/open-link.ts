@@ -10,6 +10,10 @@ import { Linking } from "react-native";
  * Pay / PayPal handoff silently fail — and has an isolated cookie store, so
  * logins and saved cards aren't shared. See DEV-149 (reverses DEV-128).
  *
+ * This is the single sanctioned open path for product/retailer links — route
+ * every one through here (not a bare `Linking.openURL`) so behaviour stays
+ * uniform and every open is telemetry-logged with a copy-link fallback.
+ *
  * Returns `true` if the link opened, `false` otherwise. Open failures are
  * reported to Sentry rather than swallowed; callers should surface a fallback
  * (e.g. offer to copy the link) when this returns `false`.

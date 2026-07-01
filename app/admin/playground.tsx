@@ -7,6 +7,7 @@ import { PROVIDER_MODELS } from "@/lib/ai-models";
 import type { Profile } from "@/lib/api";
 import { fetchIsAdmin } from "@/lib/api";
 import { Colors } from "@/lib/colors";
+import { openLink } from "@/lib/open-link";
 import type { PromptDefinition } from "@/lib/prompt-registry";
 import type { Recipient } from "@/types/recipient";
 import { formatOccasionType } from "@/utils/home-occasions";
@@ -15,7 +16,6 @@ import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
-  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -1363,7 +1363,9 @@ const GenerationResultView: React.FC<GenerationResultViewProps> = ({
               <IconButton
                 icon="open-in-new"
                 size={16}
-                onPress={() => Linking.openURL(suggestion.url)}
+                onPress={() => {
+                  void openLink(suggestion.url);
+                }}
                 style={styles.suggestionLink}
               />
             )}
