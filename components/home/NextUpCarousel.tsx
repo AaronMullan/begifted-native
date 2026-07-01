@@ -17,6 +17,7 @@ import {
   formatOccasionType,
   formatShortDate,
   possessive,
+  stripRecipientName,
 } from "../../utils/home-occasions";
 import OccasionAvatar from "./OccasionAvatar";
 import { homeCardWidth, HOME_EDGE_INSET } from "./home-layout";
@@ -101,7 +102,9 @@ function NextUpCard({
         <View style={styles.titleGroup}>
           <Text style={styles.title}>{possessive(name)}</Text>
           <Text style={styles.title}>
-            {formatOccasionType(occasion.occasion_type)}
+            {formatOccasionType(
+              stripRecipientName(occasion.occasion_type, name)
+            )}
           </Text>
         </View>
       </View>

@@ -11,6 +11,7 @@ import {
   formatOccasionTypeLower,
   formatShortDate,
   possessive,
+  stripRecipientName,
 } from "../../utils/home-occasions";
 import OccasionAvatar from "./OccasionAvatar";
 
@@ -24,13 +25,15 @@ export default function HomeHeroCard({ occasion }: HomeHeroCardProps) {
   const days = daysUntil(occasion.date);
   // Day-of must not claim the occasion "is coming up" while the countdown
   // simultaneously reads "Today" — switch to day-of copy when days === 0.
+  const occasionType = stripRecipientName(
+    occasion.occasion_type,
+    recipientName
+  );
   const headline =
     days === 0
-      ? `Today is ${formatOccasionType(
-          occasion.occasion_type
-        )} for ${recipientName}.`
+      ? `Today is ${formatOccasionType(occasionType)} for ${recipientName}.`
       : `${possessive(recipientName)} ${formatOccasionTypeLower(
-          occasion.occasion_type
+          occasionType
         )} is coming up.`;
   const dayLabel =
     days === 0 ? "Today" : days === 1 ? "Tomorrow" : `In ${days} days`;

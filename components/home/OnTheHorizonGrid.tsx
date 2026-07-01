@@ -16,6 +16,7 @@ import {
   formatOccasionType,
   formatShortDate,
   possessive,
+  stripRecipientName,
 } from "../../utils/home-occasions";
 import { homeCardWidth, HOME_EDGE_INSET } from "./home-layout";
 
@@ -62,6 +63,9 @@ function HorizonCard({
 }) {
   const router = useRouter();
   const name = occasion.recipient?.name ?? "Someone";
+  const occasionType = formatOccasionType(
+    stripRecipientName(occasion.occasion_type, name)
+  );
 
   const handlePress = () => {
     router.push(`/gifts/${occasion.recipient_id}`);
@@ -71,16 +75,12 @@ function HorizonCard({
     <Pressable
       onPress={handlePress}
       accessibilityRole="button"
-      accessibilityLabel={`View ${possessive(name)} ${formatOccasionType(
-        occasion.occasion_type
-      )}`}
+      accessibilityLabel={`View ${possessive(name)} ${occasionType}`}
       style={[styles.card, { width }]}
     >
       <View style={styles.titleGroup}>
         <Text style={styles.title}>{possessive(name)}</Text>
-        <Text style={styles.title}>
-          {formatOccasionType(occasion.occasion_type)}
-        </Text>
+        <Text style={styles.title}>{occasionType}</Text>
       </View>
       <View style={styles.footer}>
         <View style={styles.dateRow}>

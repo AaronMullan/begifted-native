@@ -21,6 +21,7 @@ builds (≤ 44) are not backfilled here.
 
 ### App (ships next build / OTA)
 
+- Occasion titles no longer double up the person's name. An occasion whose type accidentally had the name baked in (e.g. it showed as "Lizzy's Lizzy Birthday" on Home and Moments) now reads cleanly as "Lizzy's Birthday" (DEV-213).
 - Your events no longer lose their names when you open the app. On a shaky connection the Home and Moments screens could show your occasions with the person's name replaced by "Someone"/"Unknown" (and a "?" photo); the app now keeps the real names on screen and quietly retries in the background instead of showing a name-less version (DEV-212).
 - Tapping a notification now takes you straight to the latest gift ideas for that person. Previously a "new gift" alert could drop you on the older, cached list, so you had to back out and go in again before the fresh suggestions appeared. Now the tap refreshes the list on arrival — for any alert, not just new-gift ones (DEV-208).
 - Some gift cards that were missing their product photo now show it. Photos hosted on insecure `http://` links were being blocked by iOS and silently hidden; the app now loads them over a secure connection instead, so those images appear (DEV-214).

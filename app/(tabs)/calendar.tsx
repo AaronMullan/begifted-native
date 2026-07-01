@@ -35,7 +35,10 @@ import MomentsCalendar from "../../components/moments/MomentsCalendar";
 import MomentsYearGrid from "../../components/moments/MomentsYearGrid";
 import MomentsPersonCard from "../../components/moments/MomentsPersonCard";
 import { formatShortName } from "../../lib/format-name";
-import { formatOccasionType } from "../../utils/home-occasions";
+import {
+  formatOccasionType,
+  stripRecipientName,
+} from "../../utils/home-occasions";
 import {
   addMonths,
   dayKey,
@@ -162,7 +165,9 @@ export default function Calendar() {
   function formatOccasionTitle(occasion: Occasion): string {
     const recipientName = occasion.recipient?.name || "Unknown";
     const shortName = formatShortName(recipientName);
-    const occasionType = formatOccasionType(occasion.occasion_type);
+    const occasionType = formatOccasionType(
+      stripRecipientName(occasion.occasion_type, recipientName)
+    );
     const possessive = shortName.endsWith("s")
       ? `${shortName}'`
       : `${shortName}'s`;
