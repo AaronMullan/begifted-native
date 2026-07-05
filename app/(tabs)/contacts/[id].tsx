@@ -12,6 +12,10 @@ import { Colors } from "../../../lib/colors";
 import type { Recipient } from "../../../types/recipient";
 import { AboutRecipientView } from "../../../components/recipients/AboutRecipientView";
 import GiftSuggestionsList from "../../../components/gifts/GiftSuggestionsList";
+import PastGiftsDrawer, {
+  COLLAPSED_DRAWER_HEIGHT,
+} from "../../../components/gifts/PastGiftsDrawer";
+import { partitionSuggestions } from "../../../components/gifts/partition";
 import { useGiftSuggestions } from "../../../hooks/use-gift-suggestions";
 import { ConversationView } from "../../../components/recipients/conversation/ConversationView";
 import { useAddOccasionFlow } from "../../../hooks/use-add-occasion-flow";
@@ -624,6 +628,12 @@ export default function RecipientEditPage() {
   const shortName = formatShortName(recipient.name);
   const upperShortName = shortName.toUpperCase();
 
+  // Pinned Past Gifts drawer lives only on the gifts tab; its collapsed bar
+  // needs extra scroll clearance so active cards don't hide behind it.
+  const hasPastGifts =
+    partitionSuggestions(suggestions, occasionFilter).past.length > 0;
+  const showPastDrawer = activeTab === "gifts" && hasPastGifts;
+
   return (
     <View style={styles.container}>
       {activeTab === "gifts" ? (
@@ -668,7 +678,10 @@ export default function RecipientEditPage() {
         ref={scrollRef}
         style={styles.content}
         contentContainerStyle={{
-          paddingBottom: BOTTOM_NAV_HEIGHT + Math.max(insets.bottom, 0),
+          paddingBottom:
+            BOTTOM_NAV_HEIGHT +
+            Math.max(insets.bottom, 0) +
+            (showPastDrawer ? COLLAPSED_DRAWER_HEIGHT : 0),
         }}
         keyboardShouldPersistTaps="handled"
       >
@@ -699,6 +712,12 @@ export default function RecipientEditPage() {
           </View>
         )}
       </ScrollView>
+      {showPastDrawer && (
+        <PastGiftsDrawer
+          suggestions={suggestions}
+          occasionId={occasionFilter}
+        />
+      )}
       {toast}
     </View>
   );
