@@ -51,8 +51,9 @@ export default function OnboardingRecipient() {
           Add your first person
         </Text>
         <Text variant="bodyLarge" style={styles.body}>
-          Who do you want to find gifts for? You can describe them in your own
-          words or import from your contacts.
+          Who do you want to find gifts for? It can be anyone you care about —
+          including yourself. Describe them in your own words or import from
+          your contacts.
         </Text>
       </View>
 

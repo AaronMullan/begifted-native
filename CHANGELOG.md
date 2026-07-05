@@ -33,6 +33,7 @@ builds (≤ 44) are not backfilled here.
 - Text holds together better when you turn iOS system text size all the way up (Settings → Accessibility → Display & Text Size → Larger Text). Headlines, buttons, section labels, the bottom-nav labels, and the Moments year-grid day numbers previously got clipped inside their line at very large sizes; they now grow to fit. Everything looks the same at the default text size (DEV-203).
 - Tapping a "new gift suggestions" notification no longer lands you on an empty gifts screen. If you'd previously opened a person filtered to one occasion, a later notification could leave that stale filter in place and show "No gift suggestions" even though the gifts existed under a different occasion; opening a person now always shows their gifts unless the notification points at a specific occasion (DEV-220).
 - On a person's Gift Ideas screen, "Past Gift Recommendations" is now a bar pinned just above the bottom nav instead of sitting at the end of the scroll. It stays put while you scroll the newer gifts, and tapping it slides the older recommendations up over the screen (tap again to close). Look for it on any person who has more than three gift ideas (DEV-216).
+- The onboarding "Add your first person" step now spells out that you can add yourself, not just other people — the prompt reads "It can be anyone you care about — including yourself." Nothing about the flow changed; adding yourself already worked, it's just a visible option now (DEV-217).
 
 ### Backend (live on merge)
 
