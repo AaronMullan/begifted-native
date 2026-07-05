@@ -57,3 +57,25 @@ export function possessive(name: string): string {
   if (!name) return "";
   return name.endsWith("s") ? `${name}'` : `${name}'s`;
 }
+
+/**
+ * Drop a leading copy of the recipient's name from a raw occasion_type.
+ *
+ * AI occasion extraction occasionally bakes the recipient's name into the
+ * stored type (e.g. "lizzy_birthday" for a recipient named Lizzy). Titles are
+ * composed as `${possessive(name)} ${formatOccasionType(type)}`, so the raw
+ * name doubles into "Lizzy's Lizzy Birthday". Strip a leading name (with an
+ * optional possessive "s") only when a separator follows, so real holidays
+ * that merely start with the same letters — "samhain", "christmas" — are left
+ * intact.
+ */
+export function stripRecipientName(occasionType: string, name: string): string {
+  const first = name?.trim().split(/\s+/)[0] ?? "";
+  if (!first) return occasionType;
+  const escaped = first.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const stripped = occasionType.replace(
+    new RegExp(`^${escaped}s?['’]?s?[\\s_]+`, "i"),
+    ""
+  );
+  return stripped || occasionType;
+}
