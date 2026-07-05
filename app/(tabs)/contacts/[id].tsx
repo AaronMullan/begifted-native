@@ -387,11 +387,12 @@ export default function RecipientEditPage() {
     }
   }, [params.tab]);
 
-  // Sync the occasion filter when navigated with a new occasionId param
+  // Sync the occasion filter to the navigation param. Clearing it when no
+  // occasionId is passed is essential: a notification tap that omits the
+  // occasion (e.g. on-demand gift generation) must not strand the user on a
+  // stale filter pointing at an empty occasion.
   useEffect(() => {
-    if (params.occasionId) {
-      setOccasionFilter(params.occasionId);
-    }
+    setOccasionFilter(params.occasionId ?? null);
   }, [params.occasionId]);
 
   // Resolve a human-readable label ("Christmas · Dec 25") for the filtered
