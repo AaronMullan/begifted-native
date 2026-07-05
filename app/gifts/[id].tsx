@@ -9,6 +9,10 @@ import { BOTTOM_NAV_HEIGHT } from "../../lib/constants";
 import { useRecipient } from "../../hooks/use-recipient";
 import { useGiftSuggestions } from "../../hooks/use-gift-suggestions";
 import GiftSuggestionsList from "../../components/gifts/GiftSuggestionsList";
+import PastGiftsDrawer, {
+  COLLAPSED_DRAWER_HEIGHT,
+} from "../../components/gifts/PastGiftsDrawer";
+import { partitionSuggestions } from "../../components/gifts/partition";
 
 /** Gap left above an expanded card once it's scrolled to the top of the visible
  * area, so it sits a touch below the sticky header rather than flush against it. */
@@ -96,26 +100,41 @@ export default function GiftIdeasPage() {
     );
   }
 
+  // Reserve extra bottom space for the pinned drawer's collapsed bar so active
+  // cards can scroll clear of it — only when there are past gifts to show.
+  const hasPastGifts = partitionSuggestions(suggestions).past.length > 0;
+
   return (
-    <ScrollView
-      ref={scrollRef}
-      style={styles.scroll}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-    >
-      <View ref={contentRef} style={styles.content}>
-        <GiftIdeasHeader name={name} onAboutPress={handleAboutPress} />
-        <GiftSuggestionsList
-          suggestions={suggestions}
-          recipientName={name}
-          onScrollCardIntoView={handleScrollCardIntoView}
-        />
-      </View>
-    </ScrollView>
+    <View style={styles.root}>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.scrollContent,
+          hasPastGifts && {
+            paddingBottom: BOTTOM_NAV_HEIGHT + 32 + COLLAPSED_DRAWER_HEIGHT,
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View ref={contentRef} style={styles.content}>
+          <GiftIdeasHeader name={name} onAboutPress={handleAboutPress} />
+          <GiftSuggestionsList
+            suggestions={suggestions}
+            recipientName={name}
+            onScrollCardIntoView={handleScrollCardIntoView}
+          />
+        </View>
+      </ScrollView>
+      <PastGiftsDrawer suggestions={suggestions} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   scroll: {
     flex: 1,
     backgroundColor: "transparent",

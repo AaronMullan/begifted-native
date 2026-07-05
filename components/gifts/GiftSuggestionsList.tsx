@@ -3,20 +3,10 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { ActivityIndicator, Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
-import { Typography } from "../../lib/typography";
-import { Spacing } from "../../lib/spacing";
 import type { GiftSuggestion } from "../../types/recipient";
 import PrimaryGiftCard from "./PrimaryGiftCard";
 import CollapsedGiftCard from "./CollapsedGiftCard";
-import ExpandCircleIcon from "../ExpandCircleIcon";
-
-/** How many of the newest suggestions show as active recommendation cards.
- * Anything older falls into the collapsed "Past Gifts" section (DEV-165). */
-const ACTIVE_COUNT = 3;
-
-/** Horizontal padding inside gift cards (CollapsedGiftCard/PrimaryGiftCard).
- * Used to align the Past Gifts header with card content. */
-const CARD_INNER_PADDING = 23;
+import { partitionSuggestions } from "./partition";
 
 type GiftSuggestionsListProps = {
   suggestions: GiftSuggestion[];
@@ -53,7 +43,6 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
   const [expandedId, setExpandedId] = useState<string | null | undefined>(
     undefined
   );
-  const [pastExpanded, setPastExpanded] = useState(false);
 
   // True only between a user tapping a card and that card reporting its layout,
   // so we scroll on explicit taps but never on the default initial expansion.
@@ -71,14 +60,10 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
     onScrollCardIntoView?.(node);
   };
 
-  const visibleSuggestions = occasionId
-    ? suggestions.filter((s) => s.occasion_id === occasionId)
-    : suggestions;
-
-  // Suggestions arrive newest-first (api orders by generated_at desc). The newest
-  // three are the active recommendations; the remainder are "Past Gifts".
-  const activeSuggestions = visibleSuggestions.slice(0, ACTIVE_COUNT);
-  const pastSuggestions = visibleSuggestions.slice(ACTIVE_COUNT);
+  // The active recommendation cards; the "Past Gifts" remainder is rendered
+  // separately by PastGiftsDrawer, pinned above the bottom nav by the host.
+  const { visible: visibleSuggestions, active: activeSuggestions } =
+    partitionSuggestions(suggestions, occasionId);
 
   // If the currently open gift was just removed (or filtered out of view), the
   // stale `expandedId` would match no card and collapse the page to a list-only
@@ -143,10 +128,7 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
     );
   }
 
-  // Past Gift rows carry a dark-teal chevron to read as distinct from the
-  // gold-chevron active recommendations (Figma V2). Active rows omit it and
-  // fall back to the default gold.
-  const renderCard = (suggestion: GiftSuggestion, chevronColor?: string) =>
+  const renderCard = (suggestion: GiftSuggestion) =>
     suggestion.id === activeId ? (
       <PrimaryGiftCard
         key={suggestion.id}
@@ -160,7 +142,6 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
         key={suggestion.id}
         suggestion={suggestion}
         onPress={() => handleExpand(suggestion.id)}
-        chevronColor={chevronColor}
       />
     );
 
@@ -179,42 +160,6 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
       <View style={styles.list}>
         {activeSuggestions.map((s) => renderCard(s))}
       </View>
-
-      {pastSuggestions.length > 0 && (
-        <View style={styles.pastZone}>
-          <Pressable
-            style={styles.pastHeaderRow}
-            onPress={() => {
-              if (
-                pastExpanded &&
-                typeof expandedId === "string" &&
-                pastSuggestions.some((s) => s.id === expandedId)
-              ) {
-                setExpandedId(null);
-              }
-              setPastExpanded(!pastExpanded);
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={
-              pastExpanded
-                ? "Collapse past gift recommendations"
-                : "Expand past gift recommendations"
-            }
-          >
-            <Text style={styles.pastHeader}>Past Gift Recommendations</Text>
-            <ExpandCircleIcon
-              direction={pastExpanded ? "up" : "down"}
-              color={Colors.brand.mediumTeal}
-              size={24}
-            />
-          </Pressable>
-          {pastExpanded && (
-            <View style={styles.pastList}>
-              {pastSuggestions.map((s) => renderCard(s, Colors.brand.darkTeal))}
-            </View>
-          )}
-        </View>
-      )}
     </View>
   );
 };
@@ -223,33 +168,6 @@ export default GiftSuggestionsList;
 
 const styles = StyleSheet.create({
   list: {
-    gap: 16,
-  },
-  pastZone: {
-    marginTop: 48,
-    // Full-bleed to the screen edge: cancel the host screen's gutter rather
-    // than guessing a magic offset. Host scroll padding is Spacing.screenGutter.
-    marginHorizontal: -Spacing.screenGutter,
-    backgroundColor: Colors.brand.pastZone,
-  },
-  pastHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    // Align header text/chevron with card content: gutter + card inner padding.
-    paddingHorizontal: Spacing.screenGutter + CARD_INNER_PADDING,
-    paddingVertical: 19,
-  },
-  pastHeader: {
-    ...Typography.h2,
-    color: Colors.brand.darkTeal,
-    flex: 1,
-  },
-  pastList: {
-    // Re-inset past cards to the screen gutter so they line up with active cards.
-    paddingHorizontal: Spacing.screenGutter,
-    paddingTop: 16,
-    paddingBottom: 24,
     gap: 16,
   },
   loadingContainer: {
