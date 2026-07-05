@@ -31,10 +31,11 @@ builds (≤ 44) are not backfilled here.
 - The Moments calendar now keeps a day's occasion marker after the date has passed. Previously a birthday or anniversary dot disappeared the day after the occasion; now the dot (and the person card when you tap that day) stays put, so a past occasion is still shown on its day. Recurring birthdays and anniversaries also now show their marker on the upcoming date each year, not just the originally saved one (DEV-209).
 - Adding an occasion to a specific day on the Moments calendar now stays on that day. Tap a date, choose "Add to this day," and pick a person — instead of jumping to that person's profile (and losing the date you picked), a small form opens already set to the chosen day. You just name the occasion (with quick picks like Birthday or Anniversary) and choose whether it repeats yearly, and it's saved onto that date (DEV-205).
 - Text holds together better when you turn iOS system text size all the way up (Settings → Accessibility → Display & Text Size → Larger Text). Headlines, buttons, section labels, the bottom-nav labels, and the Moments year-grid day numbers previously got clipped inside their line at very large sizes; they now grow to fit. Everything looks the same at the default text size (DEV-203).
+- Tapping a "new gift suggestions" notification no longer lands you on an empty gifts screen. If you'd previously opened a person filtered to one occasion, a later notification could leave that stale filter in place and show "No gift suggestions" even though the gifts existed under a different occasion; opening a person now always shows their gifts unless the notification points at a specific occasion (DEV-220).
 
 ### Backend (live on merge)
 
-_Nothing yet._
+- New "gift suggestions ready" notifications triggered on demand (right after you add an occasion) now deep-link to that specific occasion's gifts, matching the scheduled daily notifications — so the tap lands on the right list instead of the person's default view (DEV-220).
 
 ## 2026-06-21 — Build 52 (TestFlight)
 
