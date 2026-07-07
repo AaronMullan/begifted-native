@@ -147,6 +147,16 @@ export default function Calendar() {
     ? occasionsByDay.get(dayKey(selectedDate)) ?? []
     : [];
 
+  // Someone already on the picked day can't be added to it again, so hide them
+  // from the picker. Month-view "Add Moments" has no chosen date and keeps the
+  // full list.
+  const attachedRecipientIds = new Set(
+    selectedOccasions.map((occasion) => occasion.recipient_id)
+  );
+  const pickerRecipients = selectedDate
+    ? recipients.filter((recipient) => !attachedRecipientIds.has(recipient.id))
+    : recipients;
+
   const monthLabel =
     viewMonth.getFullYear() === today.getFullYear()
       ? viewMonth.toLocaleDateString("en-US", { month: "long" })
@@ -486,13 +496,15 @@ export default function Calendar() {
             <Text variant="headlineSmall" style={styles.pickerHeadline}>
               Choose a recipient
             </Text>
-            {recipients.length === 0 ? (
+            {pickerRecipients.length === 0 ? (
               <Text variant="bodyMedium" style={styles.pickerEmpty}>
-                No one in BeGifted yet — add your first person below.
+                {recipients.length === 0
+                  ? "No one in BeGifted yet — add your first person below."
+                  : "Everyone you know is already on this day — add someone new below."}
               </Text>
             ) : (
               <FlatList
-                data={recipients}
+                data={pickerRecipients}
                 keyExtractor={(item) => item.id}
                 style={styles.recipientList}
                 renderItem={({ item }) => (
