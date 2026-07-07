@@ -41,3 +41,31 @@ export function homeCardWidth(windowWidth: number): number {
     (windowWidth - HOME_EDGE_INSET - 2 * HOME_CARD_GAP - HOME_CARD_PEEK) / 2
   );
 }
+
+/**
+ * Width of the neighbor-card sliver visible on EACH side of the centered
+ * Next Up card. From the approved larger-card home frame (4305:1504): the
+ * 230pt card is horizontally centered on the 402pt frame, so each neighbor
+ * shows (402 − 230)/2 − gap = 76pt.
+ */
+export const NEXT_UP_PEEK = 76;
+
+/**
+ * Next Up card width for the center-snapped single-card carousel
+ * (frame 4305:1504). One card is centered with {@link NEXT_UP_PEEK} of each
+ * neighbor visible past a {@link HOME_CARD_GAP}:
+ *   peek · gap · W · gap · peek = windowWidth
+ *   → W = windowWidth − 2·(peek + gap)
+ * At the 402pt design frame this returns the spec 230.
+ */
+export function nextUpCardWidth(windowWidth: number): number {
+  return windowWidth - 2 * (NEXT_UP_PEEK + HOME_CARD_GAP);
+}
+
+/**
+ * Horizontal content padding that centers the first/last Next Up card:
+ * the space outside a centered card on each side.
+ */
+export function nextUpSideInset(windowWidth: number): number {
+  return (windowWidth - nextUpCardWidth(windowWidth)) / 2;
+}

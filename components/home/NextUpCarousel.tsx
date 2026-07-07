@@ -20,7 +20,12 @@ import {
   stripRecipientName,
 } from "../../utils/home-occasions";
 import OccasionAvatar from "./OccasionAvatar";
-import { homeCardWidth, HOME_EDGE_INSET } from "./home-layout";
+import {
+  HOME_CARD_GAP,
+  HOME_EDGE_INSET,
+  nextUpCardWidth,
+  nextUpSideInset,
+} from "./home-layout";
 
 type NextUpCarouselProps = {
   occasions: Occasion[];
@@ -31,9 +36,10 @@ export default function NextUpCarousel({ occasions }: NextUpCarouselProps) {
 
   if (occasions.length === 0) return null;
 
-  // Size cards to the viewport so two full cards + a fixed peek always fit,
-  // regardless of phone width (DEV-162).
-  const cardWidth = homeCardWidth(windowWidth);
+  // One large card centered per the approved option-2 frame, with a fixed
+  // sliver of each neighbor visible so the section still reads as scrollable.
+  const cardWidth = nextUpCardWidth(windowWidth);
+  const sideInset = nextUpSideInset(windowWidth);
 
   return (
     <View style={styles.section}>
@@ -42,7 +48,12 @@ export default function NextUpCarousel({ occasions }: NextUpCarouselProps) {
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingHorizontal: sideInset },
+        ]}
+        snapToInterval={cardWidth + HOME_CARD_GAP}
+        decelerationRate="fast"
       >
         {occasions.map((occasion, index) => (
           <NextUpCard
@@ -111,23 +122,18 @@ function NextUpCard({
       <View style={styles.footer}>
         <View style={styles.cta}>
           <Text style={styles.ctaText}>View Gift Ideas</Text>
-          <MaterialIcons
-            name="chevron-right"
-            size={14}
-            color={Colors.brand.darkTeal}
-          />
+          <MaterialIcons name="chevron-right" size={16} color={Colors.white} />
         </View>
       </View>
     </Pressable>
   );
 }
 
-// Spec: Figma frame 2182:2182 NEXT UP cards (175x150 at the 402pt frame, radius
-// 12). Cards alternate medium-teal / gold; 30px avatar top-left, dark-teal
-// eyebrow, white H2 title, dark-teal large CTA. Width is now derived per device
-// (see `homeCardWidth`) so two cards + a peek fit on any width; only the height
-// is fixed here. Carousel keeps horizontal scrolling while the first two tiles
-// line up like the static 2-up design.
+// Spec: Figma frame 4305:1504 NEXT UP card (230x160 at the 402pt frame, radius
+// 12, insets 12 horizontal / 14 top / 19 bottom). One card is centered and the
+// carousel snaps card-to-card, with a fixed sliver of each neighbor visible
+// (see `nextUpCardWidth`). Cards alternate medium-teal / gold; 30px avatar
+// top-left, dark-teal eyebrow, white H2 title, white large CTA.
 const styles = StyleSheet.create({
   section: {
     // Section head → cards (Figma Dev Mode, DEV-161): 17pt.
@@ -147,14 +153,14 @@ const styles = StyleSheet.create({
     marginHorizontal: -HOME_EDGE_INSET,
   },
   scrollContent: {
-    gap: 10,
-    paddingHorizontal: HOME_EDGE_INSET,
+    gap: HOME_CARD_GAP,
   },
   card: {
     borderRadius: Radii.md,
-    paddingHorizontal: 13,
-    paddingVertical: 15,
-    minHeight: 150,
+    paddingHorizontal: 12,
+    paddingTop: 14,
+    paddingBottom: 19,
+    minHeight: 160,
     justifyContent: "space-between",
     gap: 10,
   },
@@ -186,6 +192,6 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     ...Typography.largeCta,
-    color: Colors.brand.darkTeal,
+    color: Colors.white,
   },
 });

@@ -61,13 +61,13 @@ export const Typography = {
   } satisfies TextStyle,
   h2: {
     fontFamily: FontFamily.serif.bold,
-    fontSize: 16,
-    lineHeight: scaleLineHeight(18),
+    fontSize: 22,
+    lineHeight: scaleLineHeight(23),
   } satisfies TextStyle,
   h3: {
     fontFamily: FontFamily.serif.bold,
-    fontSize: 12,
-    lineHeight: scaleLineHeight(14),
+    fontSize: 16,
+    lineHeight: scaleLineHeight(17),
   } satisfies TextStyle,
   subhead: {
     fontFamily: FontFamily.sans.medium,
@@ -79,8 +79,10 @@ export const Typography = {
   } satisfies TextStyle,
   largeCta: {
     fontFamily: FontFamily.sans.semibold,
-    fontSize: 11,
-    lineHeight: scaleLineHeight(12),
+    // The published Figma token is 14/18, not the 16/20 in DEV-243's table —
+    // both redesign frames (4305:1504, 4170:15802) report largeCta 14/18.
+    fontSize: 14,
+    lineHeight: scaleLineHeight(18),
   } satisfies TextStyle,
   smallCta: {
     fontFamily: FontFamily.sans.semibold,
@@ -88,13 +90,14 @@ export const Typography = {
   } satisfies TextStyle,
   sectionHeadAc: {
     fontFamily: FontFamily.sans.semibold,
-    fontSize: 11,
-    // Tight line box (≈ the glyph) so the label doesn't add phantom leading
-    // above/below itself. Section spacing is owned by the layout gaps
-    // (Spacing.sectionGap above, Spacing.sectionHeadToContent below); an
-    // inflated lineHeight here double-counted it and pushed the heads ~8pt too
-    // far from both the preceding module and the cards.
-    lineHeight: scaleLineHeight(14),
+    fontSize: 12,
+    // Tight line box (= the glyph; Figma publishes 100% line height) so the
+    // label doesn't add phantom leading above/below itself. Section spacing is
+    // owned by the layout gaps (Spacing.sectionGap above,
+    // Spacing.sectionHeadToContent below); an inflated lineHeight here
+    // double-counted it and pushed the heads ~8pt too far from both the
+    // preceding module and the cards.
+    lineHeight: scaleLineHeight(12),
     textTransform: "uppercase",
   } satisfies TextStyle,
   // Title-case top copy (Figma "BG top copy": Poltawski Nowy 600 12/14)

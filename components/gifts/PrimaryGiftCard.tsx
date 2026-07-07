@@ -271,10 +271,8 @@ const styles = StyleSheet.create({
     paddingRight: 24,
   },
   price: {
-    fontFamily: FontFamily.sans.semibold,
+    ...Typography.largeCta,
     color: Colors.brand.gold,
-    fontSize: 11,
-    lineHeight: 12,
   },
   priceRow: {
     flexDirection: "row",
@@ -282,9 +280,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   ctaLabel: {
-    fontFamily: FontFamily.sans.semibold,
-    fontSize: 11,
-    lineHeight: 12,
+    ...Typography.largeCta,
     marginVertical: 0,
   },
   whySection: {
@@ -295,15 +291,18 @@ const styles = StyleSheet.create({
   whyHeading: {
     fontFamily: FontFamily.sans.semibold,
     color: Colors.darks.black,
-    fontSize: 11,
+    fontSize: 12,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   whyBody: {
     fontFamily: FontFamily.sans.regular,
     color: Colors.darks.black,
-    fontSize: 10,
-    lineHeight: 12,
+    // Figma (4170:15802) sets the body at 14 with a 12px leading, which would
+    // overlap 14px glyphs in RN; 18 matches the frame's rendered spacing and
+    // the largeCta leading.
+    fontSize: 14,
+    lineHeight: 18,
   },
   bottomRow: {
     flexDirection: "row",
