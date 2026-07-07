@@ -1,6 +1,6 @@
 ---
 name: ticket
-description: Take a Jira ticket end-to-end — read it, branch, implement the narrowest fix, typecheck/lint, open a PR, resolve any merge conflicts with main, transition to Done, and draft a Slack summary. Use when the user hands off a Jira ticket ID (e.g. "/ticket DEV-110").
+description: Take a Jira ticket end-to-end — read it, branch, implement the narrowest fix, typecheck/lint, open a PR, resolve any merge conflicts with main, transition to Done, and draft a Slack summary. Use when the user hands off one or more Jira ticket IDs (e.g. "/ticket DEV-110" or "/ticket DEV-110 DEV-112").
 ---
 
 # Implement Jira Ticket
@@ -64,6 +64,16 @@ Run the whole pipeline end-to-end without stopping between steps. The done-state
 - Typecheck/lint can't be made clean with a narrow fix (report what's blocking instead of expanding scope).
 
 Otherwise keep going. Do not stop at "wrote the code" — commit, PR, transition, and draft the summary.
+
+## Multiple tickets
+
+If given several ticket IDs (space- or comma-separated), run them **sequentially** — each run branches off `main` and shares the working tree, so never interleave. Adjust the pipeline as follows:
+
+- **Triage first.** Fetch all tickets before implementing any. Flag duplicates, already-Done tickets, and overlap (two tickets wanting the same change → propose one PR). Order: dependencies first, then the order given. Print the planned order with a one-line scope note per ticket before starting.
+- **Run each ticket in autonomous mode**, starting from a clean, freshly pulled `main`.
+- **Skip, don't stall.** If a ticket hits a pause condition (ambiguous scope, destructive change), record the blocking question, leave that ticket untouched, and move to the next — never guess to keep the batch moving. Surface all deferred questions in the final report.
+- **One combined Slack draft** at the end instead of per-ticket drafts, plus a status table: ticket → PR link / skipped+why → live-on-merge vs next-build.
+- Sibling PRs from one batch will conflict with each other on `CHANGELOG.md` as they merge — expected. If the user starts merging, offer to re-run step 8 on the remaining open branches after each merge.
 
 ## Notes
 
