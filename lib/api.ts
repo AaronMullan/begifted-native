@@ -559,9 +559,19 @@ export async function triggerGiftBackfill(
   occasionId?: string | null
 ): Promise<void> {
   try {
+    // The backend verifies this JWT and recipient ownership; without a
+    // session the request would 401, so skip the doomed call entirely.
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) return;
+
     await fetch(`${BEGIFTED_BACKEND_URL}/api/generate-gifts`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
       body: JSON.stringify({
         recipientId,
         mode: "backfill",
