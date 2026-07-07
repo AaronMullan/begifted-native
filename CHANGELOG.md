@@ -34,6 +34,7 @@ builds (≤ 44) are not backfilled here.
 - Tapping a "new gift suggestions" notification no longer lands you on an empty gifts screen. If you'd previously opened a person filtered to one occasion, a later notification could leave that stale filter in place and show "No gift suggestions" even though the gifts existed under a different occasion; opening a person now always shows their gifts unless the notification points at a specific occasion (DEV-220).
 - On a person's Gift Ideas screen, "Past Gift Recommendations" is now a bar pinned just above the bottom nav instead of sitting at the end of the scroll. It stays put while you scroll the newer gifts, and tapping it slides the older recommendations up over the screen (tap again to close). Look for it on any person who has more than three gift ideas (DEV-216).
 - The onboarding "Add your first person" step now spells out that you can add yourself, not just other people — the prompt reads "It can be anyone you care about — including yourself." Nothing about the flow changed; adding yourself already worked, it's just a visible option now (DEV-217).
+- On the Moments calendar, "Add to this day" no longer offers people who already have an occasion on that date. If Michelle is already on June 26, she won't appear in the picker for June 26 — she still shows up for every other day, and if everyone you know is already on that day the picker says so and offers "Add a new person" instead (DEV-247).
 
 ### Backend (live on merge)
 
