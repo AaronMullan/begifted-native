@@ -21,6 +21,7 @@ builds (≤ 44) are not backfilled here.
 
 ### App (ships next build / OTA)
 
+- Internal restructuring of the admin Prompt Playground — no visible changes; the screen should look and behave exactly as before (DEV-229).
 - Admin-only screens now check access once at the door instead of on every screen. Non-admins who somehow land on any admin page see a single clean "Access Denied" message; admins see no difference (DEV-228).
 - Internal cleanup only — nothing visible changes. Dead code and an unused dependency were removed, slightly shrinking the app (DEV-227).
 
