@@ -25,7 +25,7 @@ _Nothing yet._
 
 ### Backend (live on merge)
 
-_Nothing yet._
+- Locked down two database read policies: profile rows (which include addresses) and the AI prompt library are no longer readable by anyone with the app's public API key — each user can now only read their own profile. Testers shouldn't notice anything; all screens keep working (DEV-232).
 
 ## 2026-07-07 — Build 53 (TestFlight)
 
