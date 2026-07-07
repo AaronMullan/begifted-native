@@ -4,6 +4,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAI, getApiKey, CONVERSATION_MODEL } from "../_shared/ai-client.ts";
 import { internalErrorResponse } from "../_shared/error-response.ts";
+import { requireUser } from "../_shared/require-user.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,6 +40,9 @@ serve(async (req) => {
   }
 
   try {
+    const { user, errorResponse } = await requireUser(req, corsHeaders);
+    if (errorResponse) return errorResponse;
+
     const { userId } = await req.json();
 
     if (!userId || typeof userId !== "string") {
@@ -49,6 +53,16 @@ serve(async (req) => {
           status: 400,
         }
       );
+    }
+
+    // This function overwrites synthesized_giver_profile with the service
+    // role, so the target must be the verified caller — not whatever userId
+    // the body claims.
+    if (userId !== user.id) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403,
+      });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);

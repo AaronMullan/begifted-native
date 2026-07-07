@@ -11,6 +11,7 @@ import {
 import { parseOpenAIJSON } from "./utils.ts";
 import { loadAIConfig, type AIOverride } from "../_shared/ai-config-loader.ts";
 import { internalErrorResponse } from "../_shared/error-response.ts";
+import { requireUser } from "../_shared/require-user.ts";
 import {
   callAI,
   getApiKey,
@@ -136,6 +137,9 @@ serve(async (req) => {
     });
   }
   try {
+    const { errorResponse } = await requireUser(req, corsHeaders);
+    if (errorResponse) return errorResponse;
+
     // Parse request body
     const requestBody = await req.json();
     const {

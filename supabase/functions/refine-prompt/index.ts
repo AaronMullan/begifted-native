@@ -4,6 +4,7 @@ import { loadAIConfig } from "../_shared/ai-config-loader.ts";
 import { callAI, getApiKey } from "../_shared/ai-client.ts";
 import type { AIMessage } from "../_shared/ai-client.ts";
 import { internalErrorResponse } from "../_shared/error-response.ts";
+import { requireUser } from "../_shared/require-user.ts";
 
 // @ts-ignore - Deno environment variables are resolved at runtime
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -59,6 +60,9 @@ serve(async (req) => {
   }
 
   try {
+    const { errorResponse } = await requireUser(req, corsHeaders);
+    if (errorResponse) return errorResponse;
+
     const {
       currentPrompt,
       userInstruction,

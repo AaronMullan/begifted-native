@@ -4,6 +4,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAI, getApiKey, CONVERSATION_MODEL } from "../_shared/ai-client.ts";
 import { internalErrorResponse } from "../_shared/error-response.ts";
+import { requireUser } from "../_shared/require-user.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -54,6 +55,9 @@ serve(async (req) => {
   }
 
   try {
+    const { user, errorResponse } = await requireUser(req, corsHeaders);
+    if (errorResponse) return errorResponse;
+
     const { recipientId } = await req.json();
 
     if (!recipientId || typeof recipientId !== "string") {
@@ -76,7 +80,12 @@ serve(async (req) => {
       .eq("id", recipientId)
       .maybeSingle();
 
-    if (recipientError || !recipient) {
+    // Authorize the body's recipientId against the verified caller: this
+    // function overwrites the recipient with the service role, so without the
+    // ownership gate any signed-in user could rewrite anyone's profile by
+    // iterating IDs. 404 (not 403) so foreign IDs are indistinguishable from
+    // nonexistent ones.
+    if (recipientError || !recipient || recipient.user_id !== user.id) {
       return new Response(JSON.stringify({ error: "Recipient not found" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 404,
