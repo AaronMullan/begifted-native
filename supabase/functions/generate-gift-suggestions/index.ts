@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { loadAIConfig } from "../_shared/ai-config-loader.ts";
 import { callAIWithWebSearch, getApiKey } from "../_shared/ai-client.ts";
 import type { Provider } from "../_shared/ai-client.ts";
+import { internalErrorResponse } from "../_shared/error-response.ts";
 
 interface CIS {
   giver: {
@@ -244,15 +245,6 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("[generate-gift-suggestions] Error:", err);
-    return new Response(
-      JSON.stringify({
-        error: err instanceof Error ? err.message : "Unknown error",
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return internalErrorResponse("generate-gift-suggestions", err, corsHeaders);
   }
 });

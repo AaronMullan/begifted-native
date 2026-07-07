@@ -4,6 +4,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // @ts-ignore - Deno base64 decoder
 import { decode as decodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { internalErrorResponse } from "../_shared/error-response.ts";
 
 // Workaround for a project-specific storage RLS misconfiguration where direct
 // client uploads to recipient-photos get rejected even with a permissive policy.
@@ -129,8 +130,7 @@ serve(async (req) => {
       path: uploadData.path,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return jsonResponse({ error: message }, 500);
+    return internalErrorResponse("upload-recipient-photo", err, corsHeaders);
   }
 });
 

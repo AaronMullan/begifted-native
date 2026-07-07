@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { loadAIConfig } from "../_shared/ai-config-loader.ts";
 import { callAI, getApiKey } from "../_shared/ai-client.ts";
 import type { AIMessage } from "../_shared/ai-client.ts";
+import { internalErrorResponse } from "../_shared/error-response.ts";
 
 // @ts-ignore - Deno environment variables are resolved at runtime
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -134,15 +135,6 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Error in refine-prompt function:", error);
-    return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : "Unknown error",
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return internalErrorResponse("refine-prompt", error, corsHeaders);
   }
 });
