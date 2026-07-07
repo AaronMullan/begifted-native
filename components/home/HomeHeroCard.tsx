@@ -9,10 +9,10 @@ import {
   daysUntil,
   formatOccasionType,
   formatOccasionTypeLower,
-  formatShortDate,
   possessive,
   stripRecipientName,
 } from "../../utils/home-occasions";
+import { formatOccasionDate } from "../../utils/occasion-dates";
 import OccasionAvatar from "./OccasionAvatar";
 
 type HomeHeroCardProps = {
@@ -37,7 +37,7 @@ export default function HomeHeroCard({ occasion }: HomeHeroCardProps) {
         )} is coming up.`;
   const dayLabel =
     days === 0 ? "Today" : days === 1 ? "Tomorrow" : `In ${days} days`;
-  const countdown = `${dayLabel} • ${formatShortDate(occasion.date)}`;
+  const countdown = `${dayLabel} • ${formatOccasionDate(occasion.date)}`;
 
   const handlePress = () => {
     // TODO(DEV-69): navigate to gift recommendation page for this occasion

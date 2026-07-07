@@ -10,45 +10,12 @@ import {
   Divider,
 } from "react-native-paper";
 import * as Sentry from "@sentry/react-native";
-import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
-import { fetchIsAdmin } from "@/lib/api";
 import { useAppConfig, useUpdateAppConfig } from "@/hooks/use-app-config";
 import { AdminNavbar } from "@/components/admin/AdminNavbar";
 import { Colors } from "@/lib/colors";
 
+// Admin gating (loading / Access Denied) lives in app/admin/_layout.tsx.
 const KillSwitchScreen: React.FC = () => {
-  const { user, loading: authLoading } = useAuth();
-
-  const adminQuery = useQuery({
-    queryKey: ["isAdmin", user?.id],
-    queryFn: () => fetchIsAdmin(user!.id),
-    enabled: !!user?.id,
-  });
-
-  if (authLoading || adminQuery.isLoading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
-  if (!user || !adminQuery.data) {
-    return (
-      <View style={styles.center}>
-        <Text variant="headlineMedium">Access Denied</Text>
-        <Text variant="bodyLarge" style={styles.accessDeniedBody}>
-          You do not have admin access to the kill switch.
-        </Text>
-      </View>
-    );
-  }
-
-  return <KillSwitchContent />;
-};
-
-const KillSwitchContent: React.FC = () => {
   const router = useRouter();
   const configQuery = useAppConfig();
   const updateConfig = useUpdateAppConfig();
@@ -218,10 +185,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 24,
     backgroundColor: Colors.white,
-  },
-  accessDeniedBody: {
-    marginTop: 8,
-    color: Colors.darks.brown,
   },
   subtitle: {
     color: Colors.darks.brown,

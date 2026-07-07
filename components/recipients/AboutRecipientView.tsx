@@ -36,6 +36,7 @@ import {
   normalizeBirthday,
 } from "../../utils/birthday";
 import { formatOccasionType } from "../../utils/home-occasions";
+import { formatOccasionDate } from "../../utils/occasion-dates";
 import { cleanRelationship } from "../../lib/format-name";
 
 type AboutRecipientViewProps = {
@@ -53,13 +54,6 @@ type AboutRecipientViewProps = {
   onOpenUpdateChat: () => void;
   onDelete: () => void;
 };
-
-function formatOccasionDate(dateString: string): string {
-  const [year, month, day] = dateString.split("-").map(Number);
-  if (!year || !month || !day) return dateString;
-  const date = new Date(year, month - 1, day);
-  return date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
-}
 
 function formatAddress(r: Recipient): string {
   const line1 = [r.address, r.address_line_2].filter(Boolean).join(" ");

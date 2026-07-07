@@ -31,13 +31,6 @@ export function daysUntil(isoDate: string): number {
   return Math.round((target.getTime() - today.getTime()) / 86400000);
 }
 
-/** "May 5" style short month + day. */
-export function formatShortDate(isoDate: string): string {
-  const [y, m, d] = isoDate.split("-").map(Number);
-  const date = new Date(y, m - 1, d);
-  return date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
-}
-
 /** Title-case an occasion_type for display. "birthday" → "Birthday" */
 export function formatOccasionType(occasionType: string): string {
   return occasionType

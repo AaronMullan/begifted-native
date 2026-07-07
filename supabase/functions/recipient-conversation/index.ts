@@ -1,12 +1,12 @@
 // @ts-ignore - Deno HTTP imports are resolved at runtime
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { handleConversation } from "./data-extractor.ts";
 import {
-  handleConversation,
   extractFullRecipient,
   extractFields,
   extractField,
-  recommendOccasions,
-} from "./data-extractor.ts";
+} from "./extractors.ts";
+import { recommendOccasions } from "./occasions.ts";
 
 import { parseOpenAIJSON } from "./utils.ts";
 import { loadAIConfig, type AIOverride } from "../_shared/ai-config-loader.ts";

@@ -46,6 +46,7 @@ import {
   isSameDay,
   occasionDayKey,
 } from "../../utils/moments-calendar";
+import { formatOccasionDate } from "../../utils/occasion-dates";
 
 interface Occasion {
   id: string;
@@ -72,10 +73,6 @@ const COMMON_OCCASION_TYPES = [
   "wedding",
   "holiday",
 ];
-
-function formatEntryDate(date: Date): string {
-  return date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
-}
 
 export default function Calendar() {
   const router = useRouter();
@@ -560,7 +557,7 @@ export default function Calendar() {
             <Text variant="headlineSmall" style={styles.pickerHeadline}>
               {occasionEntryRecipient?.name}
               {occasionEntryDate
-                ? ` · ${formatEntryDate(occasionEntryDate)}`
+                ? ` · ${formatOccasionDate(occasionEntryDate)}`
                 : ""}
             </Text>
             <View style={styles.occasionChips}>
