@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // @ts-ignore - Deno-style ESM import
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { internalErrorResponse } from "../_shared/error-response.ts";
 
 // Records a user's acceptance of specific Terms + Privacy versions with a
 // trustworthy paper trail (DEV-142). The client supplies only the version IDs
@@ -143,8 +144,7 @@ serve(async (req: Request) => {
       201
     );
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return jsonResponse({ error: message }, 500);
+    return internalErrorResponse("record-legal-acceptance", err, corsHeaders);
   }
 });
 

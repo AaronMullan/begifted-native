@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { loadAIConfig } from "../_shared/ai-config-loader.ts";
 import { callAI, getApiKey } from "../_shared/ai-client.ts";
+import { internalErrorResponse } from "../_shared/error-response.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -136,15 +137,10 @@ Return ONLY valid JSON:
       status: 200,
     });
   } catch (error) {
-    console.error("Edge Function Error:", error);
-    return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : "Unknown error",
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      }
+    return internalErrorResponse(
+      "extract-user-preferences",
+      error,
+      corsHeaders
     );
   }
 });

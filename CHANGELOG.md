@@ -38,6 +38,7 @@ builds (≤ 44) are not backfilled here.
 ### Backend (live on merge)
 
 - New "gift suggestions ready" notifications triggered on demand (right after you add an occasion) now deep-link to that specific occasion's gifts, matching the scheduled daily notifications — so the tap lands on the right list instead of the person's default view (DEV-220).
+- Server errors (e.g. during gift generation or the recipient chat) no longer send raw technical details to the app — the app now gets a plain "Internal server error" plus a reference code we can look up in the server logs. Testers shouldn't notice any day-to-day difference; error moments look the same, they're just no longer leaking internals (DEV-224).
 
 ## 2026-06-21 — Build 52 (TestFlight)
 

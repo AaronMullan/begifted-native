@@ -10,6 +10,7 @@ import {
 
 import { parseOpenAIJSON } from "./utils.ts";
 import { loadAIConfig, type AIOverride } from "../_shared/ai-config-loader.ts";
+import { internalErrorResponse } from "../_shared/error-response.ts";
 import {
   callAI,
   getApiKey,
@@ -331,19 +332,6 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Edge Function Error:", error);
-    return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : "Unknown error",
-        details: error instanceof Error ? error.stack : undefined,
-      }),
-      {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-        status: 500,
-      }
-    );
+    return internalErrorResponse("recipient-conversation", error, corsHeaders);
   }
 });
