@@ -584,22 +584,6 @@ export async function triggerGiftBackfill(
 }
 
 /**
- * Fetch all gift feedback rows for a recipient, newest first.
- */
-export async function fetchGiftFeedbackForRecipient(
-  recipientId: string
-): Promise<GiftFeedback[]> {
-  const { data, error } = await supabase
-    .from("gift_feedback")
-    .select("*")
-    .eq("recipient_id", recipientId)
-    .order("created_at", { ascending: false });
-
-  if (error) throw error;
-  return data || [];
-}
-
-/**
  * Fetch notifications for a user (most recent 50)
  */
 export async function fetchNotifications(

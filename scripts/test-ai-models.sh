@@ -3,7 +3,9 @@
 # A 200 with a "refinedPrompt" key = pass. Anything else = fail.
 
 SUPABASE_URL="https://qgcyndtymegkobgfcpdh.supabase.co"
-ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnY3luZHR5bWVna29iZ2ZjcGRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1Mjc4NDIsImV4cCI6MjA2ODEwMzg0Mn0.etBsIv3ZRtMD2KyCG9xBR4SrCmXiG0JQQ8mgqOZAHyY"
+# Set SUPABASE_ANON_KEY in your environment (e.g. from .env.local) — not committed here
+# so a key rotation doesn't require editing tracked scripts.
+ANON_KEY="${SUPABASE_ANON_KEY:?Set SUPABASE_ANON_KEY to the project anon key}"
 ENDPOINT="${SUPABASE_URL}/functions/v1/refine-prompt"
 
 PAYLOAD_TEMPLATE='{"currentPrompt":"You are a gift advisor.","userInstruction":"Make it friendlier.","overrideProvider":"%s","overrideModel":"%s"}'
