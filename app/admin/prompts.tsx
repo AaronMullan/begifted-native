@@ -10,10 +10,8 @@ import {
   Menu,
 } from "react-native-paper";
 import { AdminNavbar } from "@/components/admin/AdminNavbar";
-import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  fetchIsAdmin,
   fetchPromptVersionHistory,
   fetchActiveSystemPrompt,
   rollbackToVersion,
@@ -24,38 +22,8 @@ import { PROMPT_REGISTRY } from "@/lib/prompt-registry";
 import type { SystemPromptVersion } from "@/lib/api";
 import type { PromptDefinition } from "@/lib/prompt-registry";
 
+// Admin gating (loading / Access Denied) lives in app/admin/_layout.tsx.
 const PromptsScreen: React.FC = () => {
-  const { user, loading: authLoading } = useAuth();
-
-  const adminQuery = useQuery({
-    queryKey: ["isAdmin", user?.id],
-    queryFn: () => fetchIsAdmin(user!.id),
-    enabled: !!user?.id,
-  });
-
-  if (authLoading || adminQuery.isLoading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
-  if (!user || !adminQuery.data) {
-    return (
-      <View style={styles.center}>
-        <Text variant="headlineMedium">Access Denied</Text>
-        <Text variant="bodyLarge" style={styles.accessDeniedBody}>
-          You do not have admin access to prompt management.
-        </Text>
-      </View>
-    );
-  }
-
-  return <PromptsContent />;
-};
-
-const PromptsContent: React.FC = () => {
   const queryClient = useQueryClient();
   const [selectedPromptKey, setSelectedPromptKey] = useState(
     "gift_generation_system"
@@ -295,17 +263,6 @@ const styles = StyleSheet.create({
     maxWidth: 800,
     width: "100%",
     alignSelf: "center",
-  },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-    backgroundColor: Colors.white,
-  },
-  accessDeniedBody: {
-    marginTop: 8,
-    color: Colors.darks.brown,
   },
   promptMenuContent: {
     maxHeight: 300,

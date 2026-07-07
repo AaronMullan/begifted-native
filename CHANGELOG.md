@@ -21,7 +21,7 @@ builds (≤ 44) are not backfilled here.
 
 ### App (ships next build / OTA)
 
-_Nothing yet._
+- Admin-only screens now check access once at the door instead of on every screen. Non-admins who somehow land on any admin page see a single clean "Access Denied" message; admins see no difference (DEV-228).
 
 ### Backend (live on merge)
 
