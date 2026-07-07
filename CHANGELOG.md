@@ -21,7 +21,7 @@ builds (≤ 44) are not backfilled here.
 
 ### App (ships next build / OTA)
 
-_Nothing yet._
+- Internal cleanup only — nothing visible changes. Dead code and an unused dependency were removed, slightly shrinking the app (DEV-227).
 
 ### Backend (live on merge)
 
