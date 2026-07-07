@@ -21,7 +21,7 @@ builds (≤ 44) are not backfilled here.
 
 ### App (ships next build / OTA)
 
-_Nothing yet._
+- Internal restructuring of the admin Prompt Playground — no visible changes; the screen should look and behave exactly as before (DEV-229).
 
 ### Backend (live on merge)
 
