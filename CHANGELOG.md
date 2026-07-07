@@ -37,6 +37,7 @@ builds (≤ 44) are not backfilled here.
 
 ### Backend (live on merge)
 
+- The gift-generation backend now requires you to be signed in (and only lets you act on your own people). Testers shouldn't notice anything day-to-day — gift refills after removing a suggestion and the admin prompt playground keep working once the app update lands, but anonymous callers on the internet can no longer trigger gift generation, read profiles, or overwrite people's data. Until this app update is installed, removing a gift won't auto-refill the list (it self-heals with the next daily generation) (DEV-236).
 - New "gift suggestions ready" notifications triggered on demand (right after you add an occasion) now deep-link to that specific occasion's gifts, matching the scheduled daily notifications — so the tap lands on the right list instead of the person's default view (DEV-220).
 - Server errors (e.g. during gift generation or the recipient chat) no longer send raw technical details to the app — the app now gets a plain "Internal server error" plus a reference code we can look up in the server logs. Testers shouldn't notice any day-to-day difference; error moments look the same, they're just no longer leaking internals (DEV-224).
 

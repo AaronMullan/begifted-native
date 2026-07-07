@@ -21,6 +21,17 @@ import {
 
 const VERCEL_BACKEND_URL = "https://be-gifted.vercel.app";
 
+// The Vercel admin routes verify this JWT against an is_admin profile.
+async function backendAuthHeaders(): Promise<Record<string, string>> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  return {
+    "Content-Type": "application/json",
+    ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}),
+  };
+}
+
 async function extractInvokeError(error: unknown): Promise<string> {
   if (!(error instanceof Error)) return String(error);
   const ctx = (error as unknown as Record<string, unknown>).context;
@@ -236,7 +247,7 @@ export function usePromptPlayground(userId: string) {
         `${VERCEL_BACKEND_URL}/api/admin/preview-cis`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: await backendAuthHeaders(),
           body: JSON.stringify({ recipientId: selectedRecipientId }),
         }
       );
@@ -382,7 +393,7 @@ export function usePromptPlayground(userId: string) {
           `${VERCEL_BACKEND_URL}/api/admin/test-generate`,
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: await backendAuthHeaders(),
             body: JSON.stringify({
               recipientId: selectedRecipientId,
               cisOverride: hasCisEdits ? cisEdits : undefined,
