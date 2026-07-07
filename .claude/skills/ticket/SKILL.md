@@ -21,7 +21,7 @@ Take a Jira ticket from investigation to merged-ready PR. The ticket ID is passe
 
 4. **Implement** the narrowest fix across the affected files. Follow the conventions in CLAUDE.md (Paper-only UI, no `useCallback`/`useMemo`, `import type`, etc.). For edge-function or parser changes, read the active prompt from `system_prompt_versions` first — the prompt is the source of truth.
 
-5. **Update the changelog.** Add one user-facing line to the `## Unreleased` section of `CHANGELOG.md` (repo root) describing what a tester will _notice_ — not the technical change. Group it under `### App (ships next build / OTA)` for RN/JS changes or `### Backend (live on merge)` for edge-function/migration changes. Commit it with the fix. (Backend changes in the sibling `be-gifted` repo: note them in this app's changelog only if a tester would see the effect in the app.)
+5. **Add a changelog fragment.** Create `changelog.d/DEV-<number>.<app|backend>.md` (repo root; `.app.md` for RN/JS changes, `.backend.md` for edge-function/migration changes) containing one user-facing bullet line describing what a tester will _notice_ — not the technical change — ending with the ticket ID. Do **not** edit `CHANGELOG.md` itself; it only holds released, dated headings (see `changelog.d/README.md`). Commit the fragment with the fix. (Backend changes in the sibling `be-gifted` repo: add a fragment in this app's repo only if a tester would see the effect in the app.)
 
 6. **Verify.** Run typecheck and lint until clean:
 
@@ -39,17 +39,13 @@ Take a Jira ticket from investigation to merged-ready PR. The ticket ID is passe
 
    The PR body should state root cause, the change, and how it was verified. If the work spans both repos, open a PR in each and cross-link them.
 
-8. **Check for merge conflicts with `main`.** Other tickets land on `main` while you work, and every ticket appends to the same `## Unreleased` block in `CHANGELOG.md` — so a changelog conflict is the common case, not the exception. Fetch and check before considering the PR done:
+8. **Check for merge conflicts with `main`.** Other tickets land on `main` while you work. Fetch and check before considering the PR done:
 
    ```bash
    git fetch origin main && git merge origin/main --no-edit
    ```
 
-   If it merges cleanly, you're done. If it conflicts, resolve and push:
-
-   - **`CHANGELOG.md`** (the usual culprit): keep **both** sides' entries under `## Unreleased` — this is an append conflict, never drop the other ticket's line.
-   - **Any code file**: reconcile by hand, then re-run `npm run typecheck && npm run lint` before committing the merge (the incoming `main` changes may touch files you edited).
-   - Commit the merge (`git commit --no-edit`) and `git push`, then confirm the PR is conflict-free.
+   If it merges cleanly, you're done. If it conflicts, resolve by hand, re-run `npm run typecheck && npm run lint` (the incoming `main` changes may touch files you edited), commit the merge (`git commit --no-edit`), `git push`, then confirm the PR is conflict-free. (Changelog fragments are one file per ticket, so they never conflict — a conflict means real code overlap.)
 
 9. **Transition the ticket to Done** with `jira_transition_issue` (do NOT pass a `comment` argument — it requires ADF, not plain text; add any note separately via `jira_add_comment`).
 
@@ -73,7 +69,7 @@ If given several ticket IDs (space- or comma-separated), run them **sequentially
 - **Run each ticket in autonomous mode**, starting from a clean, freshly pulled `main`.
 - **Skip, don't stall.** If a ticket hits a pause condition (ambiguous scope, destructive change), record the blocking question, leave that ticket untouched, and move to the next — never guess to keep the batch moving. Surface all deferred questions in the final report.
 - **One combined Slack draft** at the end instead of per-ticket drafts, plus a status table: ticket → PR link / skipped+why → live-on-merge vs next-build.
-- Sibling PRs from one batch will conflict with each other on `CHANGELOG.md` as they merge — expected. If the user starts merging, offer to re-run step 8 on the remaining open branches after each merge.
+- Changelog fragments keep sibling PRs from conflicting on release notes, but batch PRs can still conflict on shared code files as they merge. If the user starts merging, offer to re-run step 8 on the remaining open branches after each merge.
 
 ## Notes
 
