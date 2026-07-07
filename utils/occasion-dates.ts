@@ -19,6 +19,36 @@ function toISO(date: Date): string {
 }
 
 /**
+ * Parse a YYYY-MM-DD string as a local date. Constructing via
+ * `new Date(y, m - 1, d)` (never `new Date(isoString)`) keeps the calendar
+ * day intact — the ISO-string constructor parses as UTC and shifts the day
+ * for timezones west of Greenwich. Returns null for anything but a full date.
+ */
+export function parseISODateLocal(isoDate: string): Date | null {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+}
+
+/**
+ * Display formatting for occasion dates: "July 7" (default) or "Jul 7".
+ * Accepts a YYYY-MM-DD string or an already-parsed Date. An unparseable
+ * string is returned as-is so a malformed value stays visible instead of
+ * rendering "Invalid Date".
+ */
+export function formatOccasionDate(
+  date: string | Date,
+  options: { month?: "long" | "short" } = {}
+): string {
+  const parsed = typeof date === "string" ? parseISODateLocal(date) : date;
+  if (!parsed) return typeof date === "string" ? date : "";
+  return parsed.toLocaleDateString("en-US", {
+    month: options.month ?? "long",
+    day: "numeric",
+  });
+}
+
+/**
  * Return the next occurrence of a calendar date (month/day). If the input
  * carries a year and falls today or in the future, return it unchanged;
  * otherwise (or when the year is unknown) return the next future YYYY-MM-DD

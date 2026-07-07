@@ -21,7 +21,7 @@ builds (≤ 44) are not backfilled here.
 
 ### App (ships next build / OTA)
 
-_Nothing yet._
+- Internal cleanup of how dates like "July 7" are formatted across Home, Moments, People, and person pages — every date should look exactly the same as before (DEV-231).
 
 ### Backend (live on merge)
 

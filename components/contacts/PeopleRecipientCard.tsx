@@ -10,10 +10,8 @@ import { useAuth } from "../../hooks/use-auth";
 import { useDeleteRecipient } from "../../hooks/use-recipient-mutations";
 import type { Recipient } from "../../types/recipient";
 import type { UpcomingOccasion } from "../../utils/upcoming-occasion";
-import {
-  formatOccasionType,
-  formatShortDate,
-} from "../../utils/home-occasions";
+import { formatOccasionType } from "../../utils/home-occasions";
+import { formatOccasionDate } from "../../utils/occasion-dates";
 
 type PeopleRecipientCardProps = {
   recipient: Recipient;
@@ -81,7 +79,7 @@ const PeopleRecipientCard: React.FC<PeopleRecipientCardProps> = ({
               {upcoming
                 ? `${formatOccasionType(
                     upcoming.occasionType
-                  )} · ${formatShortDate(upcoming.date)}`
+                  )} · ${formatOccasionDate(upcoming.date)}`
                 : "No upcoming moments yet"}
             </Text>
             {upcoming && (
