@@ -1,52 +1,17 @@
 import { AdminNavbar } from "@/components/admin/AdminNavbar";
-import { useAuth } from "@/hooks/use-auth";
-import {
-  fetchIsAdmin,
-  fetchOutboundClicks,
-  type OutboundClickRow,
-} from "@/lib/api";
+import { fetchOutboundClicks, type OutboundClickRow } from "@/lib/api";
 import { Colors } from "@/lib/colors";
 import { openLink } from "@/lib/open-link";
 import { queryKeys } from "@/lib/query-keys";
 import { useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
 import { Platform, ScrollView, StyleSheet, View } from "react-native";
-import { ActivityIndicator, Button, Card, Text } from "react-native-paper";
+import { Button, Card, Text } from "react-native-paper";
 
 const PAGE_SIZE = 50;
 
+// Admin gating (loading / Access Denied) lives in app/admin/_layout.tsx.
 const ClicksScreen: React.FC = () => {
-  const { user, loading: authLoading } = useAuth();
-
-  const adminQuery = useQuery({
-    queryKey: ["isAdmin", user?.id],
-    queryFn: () => fetchIsAdmin(user!.id),
-    enabled: !!user?.id,
-  });
-
-  if (authLoading || adminQuery.isLoading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
-  if (!user || !adminQuery.data) {
-    return (
-      <View style={styles.center}>
-        <Text variant="headlineMedium">Access Denied</Text>
-        <Text variant="bodyLarge" style={styles.accessDeniedBody}>
-          You do not have admin access to the engagement viewer.
-        </Text>
-      </View>
-    );
-  }
-
-  return <ClicksContent />;
-};
-
-const ClicksContent: React.FC = () => {
   const [page, setPage] = useState(1);
   const offset = (page - 1) * PAGE_SIZE;
 
@@ -191,17 +156,6 @@ const styles = StyleSheet.create({
     maxWidth: 900,
     width: "100%",
     alignSelf: "center",
-  },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-    backgroundColor: Colors.white,
-  },
-  accessDeniedBody: {
-    marginTop: 8,
-    color: Colors.darks.brown,
   },
   summary: {
     marginBottom: 12,

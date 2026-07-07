@@ -12,11 +12,9 @@ import { usePromptPlayground } from "@/hooks/use-prompt-playground";
 import type { Provider } from "@/lib/ai-models";
 import { PROVIDER_MODELS } from "@/lib/ai-models";
 import type { Profile } from "@/lib/api";
-import { fetchIsAdmin } from "@/lib/api";
 import { Colors } from "@/lib/colors";
 import type { PromptDefinition } from "@/lib/prompt-registry";
 import type { Recipient } from "@/types/recipient";
-import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
@@ -44,35 +42,14 @@ import {
 
 const DESKTOP_BREAKPOINT = 900;
 
+// Admin gating (loading / Access Denied) lives in app/admin/_layout.tsx; the
+// layout only renders this screen for a signed-in admin.
 const PlaygroundScreen: React.FC = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const { width } = useWindowDimensions();
   const isDesktop = width >= DESKTOP_BREAKPOINT;
 
-  const adminQuery = useQuery({
-    queryKey: ["isAdmin", user?.id],
-    queryFn: () => fetchIsAdmin(user!.id),
-    enabled: !!user?.id,
-  });
-
-  if (authLoading || adminQuery.isLoading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
-  if (!user || !adminQuery.data) {
-    return (
-      <View style={styles.center}>
-        <Text variant="headlineMedium">Access Denied</Text>
-        <Text variant="bodyLarge" style={styles.accessDeniedBody}>
-          You do not have admin access to the Prompt Playground.
-        </Text>
-      </View>
-    );
-  }
+  if (!user) return null;
 
   return <PlaygroundContent userId={user.id} isDesktop={isDesktop} />;
 };
@@ -1309,18 +1286,6 @@ const styles = StyleSheet.create({
     width: "100%",
     alignSelf: "center",
   },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-    backgroundColor: Colors.white,
-  },
-  accessDeniedBody: {
-    marginTop: 8,
-    color: Colors.darks.brown,
-  },
-
   // Header
   promptSelector: {
     borderRadius: 8,

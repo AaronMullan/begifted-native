@@ -1,8 +1,6 @@
 import { AdminNavbar } from "@/components/admin/AdminNavbar";
-import { useAuth } from "@/hooks/use-auth";
 import {
   fetchGiverSynthesizedProfile,
-  fetchIsAdmin,
   fetchRecentRuns,
   fetchRecipientSynthesizedProfile,
   fetchSystemPromptById,
@@ -33,37 +31,7 @@ import {
 
 const PAGE_SIZE = 50;
 
-const SearchesScreen: React.FC = () => {
-  const { user, loading: authLoading } = useAuth();
-
-  const adminQuery = useQuery({
-    queryKey: ["isAdmin", user?.id],
-    queryFn: () => fetchIsAdmin(user!.id),
-    enabled: !!user?.id,
-  });
-
-  if (authLoading || adminQuery.isLoading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
-  if (!user || !adminQuery.data) {
-    return (
-      <View style={styles.center}>
-        <Text variant="headlineMedium">Access Denied</Text>
-        <Text variant="bodyLarge" style={styles.accessDeniedBody}>
-          You do not have admin access to the searches viewer.
-        </Text>
-      </View>
-    );
-  }
-
-  return <SearchesContent />;
-};
-
+// Admin gating (loading / Access Denied) lives in app/admin/_layout.tsx.
 type DetailModal =
   | { kind: "protocol"; id: string; version: number | null }
   | { kind: "wrapper"; hash: string }
@@ -71,7 +39,7 @@ type DetailModal =
   | { kind: "giver"; id: string; name: string | null }
   | null;
 
-const SearchesContent: React.FC = () => {
+const SearchesScreen: React.FC = () => {
   const [page, setPage] = useState(1);
   const [modal, setModal] = useState<DetailModal>(null);
   const offset = (page - 1) * PAGE_SIZE;
@@ -479,17 +447,6 @@ const styles = StyleSheet.create({
     maxWidth: 900,
     width: "100%",
     alignSelf: "center",
-  },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-    backgroundColor: Colors.white,
-  },
-  accessDeniedBody: {
-    marginTop: 8,
-    color: Colors.darks.brown,
   },
   summary: {
     marginBottom: 12,
