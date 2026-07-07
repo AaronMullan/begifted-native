@@ -21,6 +21,16 @@ builds (≤ 44) are not backfilled here.
 
 ### App (ships next build / OTA)
 
+_Nothing yet._
+
+### Backend (live on merge)
+
+_Nothing yet._
+
+## 2026-07-07 — Build 53 (TestFlight)
+
+### App
+
 - Text across the app is noticeably bigger and easier to read — the design team's new type scale. Card titles (gift ideas, people names, calendar cards) went from small to prominent, buttons and links like "View Product" and "View Gift Ideas" are larger, and section labels like NEXT UP grew a touch. The Home screen also changed shape: the "Next Up" row now shows one big card at a time (swipe to snap between them, with a sliver of the next card visible on each side), the featured card at the top is a bit taller, and gift descriptions ("Why This Fits") are much easier to read (DEV-243).
 - Occasion titles no longer double up the person's name. An occasion whose type accidentally had the name baked in (e.g. it showed as "Lizzy's Lizzy Birthday" on Home and Moments) now reads cleanly as "Lizzy's Birthday" (DEV-213).
 - Your events no longer lose their names when you open the app. On a shaky connection the Home and Moments screens could show your occasions with the person's name replaced by "Someone"/"Unknown" (and a "?" photo); the app now keeps the real names on screen and quietly retries in the background instead of showing a name-less version (DEV-212).
