@@ -11,25 +11,13 @@ Entries are grouped by where they ship:
 - **Backend** changes (edge functions, migrations) go **live on merge** to
   `main` via the auto-deploy workflows.
 
-At release time, move the relevant **Unreleased** entries under a new dated
-heading (e.g. `## 2026-06-15 — OTA`) and tag the release commit. Started
-2026-06-13; the prior **Build 45** release (2026-06-12) was backfilled
-retroactively so testers have notes for what they're already running. Earlier
-builds (≤ 44) are not backfilled here.
-
-## Unreleased
-
-### App (ships next build / OTA)
-
-- Internal cleanup of how dates like "July 7" are formatted across Home, Moments, People, and person pages — every date should look exactly the same as before (DEV-231).
-- Internal restructuring of the admin Prompt Playground — no visible changes; the screen should look and behave exactly as before (DEV-229).
-- Admin-only screens now check access once at the door instead of on every screen. Non-admins who somehow land on any admin page see a single clean "Access Denied" message; admins see no difference (DEV-228).
-- Internal cleanup only — nothing visible changes. Dead code and an unused dependency were removed, slightly shrinking the app (DEV-227).
-
-### Backend (live on merge)
-
-- Locked down two database read policies: profile rows (which include addresses) and the AI prompt library are no longer readable by anyone with the app's public API key — each user can now only read their own profile. Testers shouldn't notice anything; all screens keep working (DEV-232).
-- Internal restructuring of the recipient-chat backend — no visible changes; adding a person via chat should behave exactly as before (DEV-230).
+**Unreleased entries live in `changelog.d/`**, one file per ticket
+(`DEV-<n>.<app|backend>.md`), so parallel PRs never conflict here — see
+`changelog.d/README.md`. At release time, compile those fragments under a new
+dated heading (e.g. `## 2026-06-15 — OTA`), delete them, and tag the release
+commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
+backfilled retroactively so testers have notes for what they're already
+running. Earlier builds (≤ 44) are not backfilled here.
 
 ## 2026-07-07 — Build 53 (TestFlight)
 
