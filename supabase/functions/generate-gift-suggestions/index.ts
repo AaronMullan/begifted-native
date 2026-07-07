@@ -4,6 +4,7 @@ import { loadAIConfig } from "../_shared/ai-config-loader.ts";
 import { callAIWithWebSearch, getApiKey } from "../_shared/ai-client.ts";
 import type { Provider } from "../_shared/ai-client.ts";
 import { internalErrorResponse } from "../_shared/error-response.ts";
+import { requireUser } from "../_shared/require-user.ts";
 
 interface CIS {
   giver: {
@@ -105,6 +106,9 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     // @ts-ignore - Deno env
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+    const { errorResponse } = await requireUser(req, corsHeaders);
+    if (errorResponse) return errorResponse;
 
     const body = (await req.json()) as RequestBody;
     const {

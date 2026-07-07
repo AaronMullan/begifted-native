@@ -4,6 +4,7 @@ import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { loadAIConfig } from "../_shared/ai-config-loader.ts";
 import { callAI, getApiKey } from "../_shared/ai-client.ts";
 import { internalErrorResponse } from "../_shared/error-response.ts";
+import { requireUser } from "../_shared/require-user.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,6 +36,9 @@ serve(async (req) => {
   }
 
   try {
+    const { errorResponse } = await requireUser(req, corsHeaders);
+    if (errorResponse) return errorResponse;
+
     const { text, customSystemPrompt, overrideProvider, overrideModel } =
       await req.json();
 
