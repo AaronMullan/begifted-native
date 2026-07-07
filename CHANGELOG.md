@@ -28,6 +28,7 @@ builds (≤ 44) are not backfilled here.
 
 ### Backend (live on merge)
 
+- Locked down two database read policies: profile rows (which include addresses) and the AI prompt library are no longer readable by anyone with the app's public API key — each user can now only read their own profile. Testers shouldn't notice anything; all screens keep working (DEV-232).
 - Internal restructuring of the recipient-chat backend — no visible changes; adding a person via chat should behave exactly as before (DEV-230).
 
 ## 2026-07-07 — Build 53 (TestFlight)
