@@ -16,6 +16,7 @@ import {
 } from "../../hooks/use-notifications";
 import type { AppNotification } from "../../lib/api";
 import GradientBackground from "../../components/GradientBackground";
+import { formatOccasionDate } from "../../utils/occasion-dates";
 
 function formatRelativeTime(dateString: string): string {
   const now = new Date();
@@ -29,7 +30,7 @@ function formatRelativeTime(dateString: string): string {
   if (diffMin < 60) return `${diffMin}m ago`;
   if (diffHr < 24) return `${diffHr}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return formatOccasionDate(date, { month: "short" });
 }
 
 function getNotificationIcon(

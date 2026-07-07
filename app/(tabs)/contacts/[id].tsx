@@ -28,6 +28,7 @@ import {
   normalizeBirthday,
 } from "../../../utils/birthday";
 import { formatOccasionType } from "../../../utils/home-occasions";
+import { formatOccasionDate } from "../../../utils/occasion-dates";
 
 // Apply an interests delta from an update conversation to the current list:
 // keep what's there, drop the removed ones, append the newly-liked ones —
@@ -111,13 +112,6 @@ async function persistUpdateChatOccasions(
     console.error("Failed to persist occasions from update chat:", error);
     return 0;
   }
-}
-
-function formatOccasionDate(dateString: string): string {
-  const [year, month, day] = dateString.split("-").map(Number);
-  if (!year || !month || !day) return dateString;
-  const date = new Date(year, month - 1, day);
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 export default function RecipientEditPage() {
@@ -417,7 +411,7 @@ export default function RecipientEditPage() {
       setOccasionLabel(
         `${formatOccasionType(
           data.occasion_type || "birthday"
-        )} · ${formatOccasionDate(data.date)}`
+        )} · ${formatOccasionDate(data.date, { month: "short" })}`
       );
     };
     fetchOccasionLabel();

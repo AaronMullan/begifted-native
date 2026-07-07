@@ -14,10 +14,10 @@ import { Spacing } from "../../lib/spacing";
 import type { Occasion } from "../../lib/api";
 import {
   formatOccasionType,
-  formatShortDate,
   possessive,
   stripRecipientName,
 } from "../../utils/home-occasions";
+import { formatOccasionDate } from "../../utils/occasion-dates";
 import { homeCardWidth, HOME_EDGE_INSET } from "./home-layout";
 
 type OnTheHorizonGridProps = {
@@ -84,7 +84,9 @@ function HorizonCard({
       </View>
       <View style={styles.footer}>
         <View style={styles.dateRow}>
-          <Text style={styles.dateText}>{formatShortDate(occasion.date)}</Text>
+          <Text style={styles.dateText}>
+            {formatOccasionDate(occasion.date)}
+          </Text>
           <MaterialIcons
             name="chevron-right"
             size={12}

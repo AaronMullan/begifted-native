@@ -15,10 +15,10 @@ import type { Occasion } from "../../lib/api";
 import {
   daysUntil,
   formatOccasionType,
-  formatShortDate,
   possessive,
   stripRecipientName,
 } from "../../utils/home-occasions";
+import { formatOccasionDate } from "../../utils/occasion-dates";
 import OccasionAvatar from "./OccasionAvatar";
 import {
   HOME_CARD_GAP,
@@ -108,7 +108,7 @@ function NextUpCard({
       />
       <View style={styles.body}>
         <Text style={styles.countdown}>
-          {dayLabel} • {formatShortDate(occasion.date)}
+          {dayLabel} • {formatOccasionDate(occasion.date)}
         </Text>
         <View style={styles.titleGroup}>
           <Text style={styles.title}>{possessive(name)}</Text>
