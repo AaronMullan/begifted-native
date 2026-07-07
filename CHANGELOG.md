@@ -25,7 +25,7 @@ _Nothing yet._
 
 ### Backend (live on merge)
 
-_Nothing yet._
+- Internal restructuring of the recipient-chat backend — no visible changes; adding a person via chat should behave exactly as before (DEV-230).
 
 ## 2026-07-07 — Build 53 (TestFlight)
 
