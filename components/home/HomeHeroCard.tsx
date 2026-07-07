@@ -72,7 +72,7 @@ export default function HomeHeroCard({ occasion }: HomeHeroCardProps) {
   );
 }
 
-// Spec: Figma frame 2182:2182 "module: primary" (360x205, dark teal, radius 12).
+// Spec: Figma frame 4305:1504 "Event container" (360x230, dark teal, radius 12).
 // 45px avatar top-left, eyebrow + H1 headline, large CTA pinned to the bottom.
 const styles = StyleSheet.create({
   card: {
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     paddingHorizontal: 16,
     paddingVertical: 16,
-    minHeight: 205,
+    minHeight: 230,
     justifyContent: "space-between",
     gap: 16,
   },

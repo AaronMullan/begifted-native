@@ -96,7 +96,7 @@ function HorizonCard({
   );
 }
 
-// Spec: Figma frame 2182:2182 "On the horizon" carousel (175x70 cards at the
+// Spec: Figma frame 4305:1504 "On the horizon" carousel (175x80 cards at the
 // 402pt frame, radius 12, transparent fill, 2px medium-teal stroke). Dark-teal
 // H3 title, gold large-CTA date + overflow on the bottom row. Width is derived
 // per device (see `homeCardWidth`) so two cards + a peek fit on any width and
@@ -127,11 +127,11 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.brand.mediumTeal,
     borderRadius: Radii.md,
-    paddingHorizontal: 13,
+    paddingHorizontal: 12,
     paddingVertical: 11,
-    minHeight: 70,
+    minHeight: 80,
     justifyContent: "space-between",
-    gap: 8,
+    gap: 6,
   },
   titleGroup: {
     // Name and occasion stack on separate lines (DEV-163) to free up layout
