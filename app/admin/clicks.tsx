@@ -37,8 +37,8 @@ const ClicksScreen: React.FC = () => {
         {clicksQuery.isLoading
           ? "Loading…"
           : total === 0
-          ? "No outbound clicks recorded yet."
-          : `Showing ${startNum}-${endNum} of ${total} clicks`}
+            ? "No outbound clicks recorded yet."
+            : `Showing ${startNum}-${endNum} of ${total} clicks`}
       </Text>
 
       {clicksQuery.error && (

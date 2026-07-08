@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   fullBleed: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     width: undefined,
     height: undefined,
   },

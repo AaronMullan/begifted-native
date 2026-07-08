@@ -66,8 +66,8 @@ const SearchesScreen: React.FC = () => {
         {runsQuery.isLoading
           ? "Loading…"
           : total === 0
-          ? "No runs recorded yet."
-          : `Showing ${startNum}-${endNum} of ${total} runs`}
+            ? "No runs recorded yet."
+            : `Showing ${startNum}-${endNum} of ${total} runs`}
       </Text>
 
       {runsQuery.error && (

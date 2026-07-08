@@ -116,8 +116,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
   const displayModel = activeRun?.ai_model;
 
   const productionCtx = playground.generationResult?.productionContext as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
   const wrapperMessage = productionCtx?.wrapperMessage as string | undefined;
   const cisNamesFromResult = (() => {
     if (!wrapperMessage) return {};
@@ -140,12 +139,12 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
     playground.isGiftGeneration ||
     playground.selectedPromptKey === "occasion_recommendations";
   const displayGiverName = promptUsesRecipient
-    ? cisNamesFromResult.giverName ??
+    ? (cisNamesFromResult.giverName ??
       selectedGiver?.full_name ??
-      selectedGiver?.username
+      selectedGiver?.username)
     : undefined;
   const displayRecipientName = promptUsesRecipient
-    ? cisNamesFromResult.recipientName ?? selectedRecipient?.name
+    ? (cisNamesFromResult.recipientName ?? selectedRecipient?.name)
     : undefined;
 
   // --- Header with title + prompt selector + actions ---

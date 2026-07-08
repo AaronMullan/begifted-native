@@ -21,9 +21,7 @@ type IntroSignUpProps = {
 };
 
 type SignUpResult =
-  | { error: string }
-  | { needsVerification: true }
-  | { ok: true };
+  { error: string } | { needsVerification: true } | { ok: true };
 
 async function performSignUp(
   name: string,

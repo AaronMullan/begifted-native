@@ -75,6 +75,28 @@ function isRealFullDate(year: number, month: number, day: number): boolean {
 }
 
 /**
+ * Validate a (year?, month, day) triple into BirthdayParts. Year 0000 is the
+ * LLM's tell for "I know the month/day but not the year" — repair it to the
+ * canonical year-unknown form rather than rejecting, so the user doesn't have
+ * to re-enter a known date just because the model couldn't represent a
+ * missing field.
+ */
+function partsFromNumbers(
+  year: number | null,
+  month: number,
+  day: number
+): BirthdayParts | null {
+  if (year === null || year === 0) {
+    if (!isRealMonthDay(month, day)) return null;
+    return { year: null, month, day };
+  }
+  if (year < MIN_YEAR) return null;
+  if (year > new Date().getFullYear()) return null;
+  if (!isRealFullDate(year, month, day)) return null;
+  return { year, month, day };
+}
+
+/**
  * Parse a stored or user-supplied birthday string into its components.
  * Returns null if the input isn't a recognizable birthday in any form.
  */
@@ -87,51 +109,23 @@ export function parseBirthdayParts(
 
   const full = FULL_DATE.exec(trimmed);
   if (full) {
-    const year = Number(full[1]);
-    const month = Number(full[2]);
-    const day = Number(full[3]);
-    // Year 0000 is the LLM's tell for "I know the month/day but not the
-    // year." Repair to the canonical year-unknown form rather than
-    // rejecting — the user shouldn't have to re-enter a known date just
-    // because the model couldn't represent a missing field.
-    if (year === 0) {
-      if (!isRealMonthDay(month, day)) return null;
-      return { year: null, month, day };
-    }
-    if (year < MIN_YEAR) return null;
-    if (year > new Date().getFullYear()) return null;
-    if (!isRealFullDate(year, month, day)) return null;
-    return { year, month, day };
+    return partsFromNumbers(Number(full[1]), Number(full[2]), Number(full[3]));
   }
 
   const md = MONTH_DAY_NO_YEAR.exec(trimmed) ?? MONTH_DAY_LOOSE.exec(trimmed);
   if (md) {
-    const month = Number(md[1]);
-    const day = Number(md[2]);
-    if (!isRealMonthDay(month, day)) return null;
-    return { year: null, month, day };
+    return partsFromNumbers(null, Number(md[1]), Number(md[2]));
   }
 
   const named = MONTH_NAME_DATE.exec(trimmed);
   if (named) {
     const month = MONTH_NAMES[named[1].toLowerCase()];
-    const day = Number(named[2]);
-    if (month) {
-      if (named[3]) {
-        const year = Number(named[3]);
-        // Mirror the FULL_DATE branch's year rules.
-        if (year === 0) {
-          if (!isRealMonthDay(month, day)) return null;
-          return { year: null, month, day };
-        }
-        if (year < MIN_YEAR) return null;
-        if (year > new Date().getFullYear()) return null;
-        if (!isRealFullDate(year, month, day)) return null;
-        return { year, month, day };
-      }
-      if (!isRealMonthDay(month, day)) return null;
-      return { year: null, month, day };
-    }
+    if (!month) return null;
+    return partsFromNumbers(
+      named[3] ? Number(named[3]) : null,
+      month,
+      Number(named[2])
+    );
   }
 
   return null;

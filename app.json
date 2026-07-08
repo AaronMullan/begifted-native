@@ -56,7 +56,10 @@
           "project": "react-native",
           "organization": "begifted"
         }
-      ]
+      ],
+      "@sentry/react-native",
+      "expo-image",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -103,8 +103,8 @@ serve(async (req) => {
       resolvedContentType === "image/png"
         ? "png"
         : resolvedContentType === "image/webp"
-        ? "webp"
-        : "jpg";
+          ? "webp"
+          : "jpg";
     const path = `${user.id}/${Date.now()}.${ext}`;
 
     const { data: uploadData, error: uploadError } = await admin.storage

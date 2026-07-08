@@ -212,11 +212,11 @@ export async function fetchOutboundClicks(
   const clicks: OutboundClickRow[] = (data ?? []).map((r) => {
     const rawRecipient = (r.recipients ?? null) as unknown;
     const recipient = (
-      Array.isArray(rawRecipient) ? rawRecipient[0] ?? null : rawRecipient
+      Array.isArray(rawRecipient) ? (rawRecipient[0] ?? null) : rawRecipient
     ) as OutboundClickRow["recipient"];
     const rawGift = (r.gift_suggestions ?? null) as unknown;
     const giftSuggestion = (
-      Array.isArray(rawGift) ? rawGift[0] ?? null : rawGift
+      Array.isArray(rawGift) ? (rawGift[0] ?? null) : rawGift
     ) as OutboundClickRow["gift_suggestion"];
     return {
       id: r.id,

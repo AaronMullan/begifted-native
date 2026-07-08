@@ -169,7 +169,7 @@ export default function RecipientEditPage() {
     string | undefined,
     "details" | "gifts"
   >(params.tab, (tab, previous) =>
-    tab === "details" || tab === "gifts" ? tab : previous ?? "gifts"
+    tab === "details" || tab === "gifts" ? tab : (previous ?? "gifts")
   );
 
   // A navigation that omits occasionId must clear the filter: a notification
@@ -184,7 +184,7 @@ export default function RecipientEditPage() {
     string | undefined,
     boolean
   >(params.addOccasion, (flag, previous) =>
-    flag === "true" ? true : previous ?? false
+    flag === "true" ? true : (previous ?? false)
   );
 
   const [showUpdateChat, setShowUpdateChat] = useState(false);

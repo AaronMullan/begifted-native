@@ -518,8 +518,8 @@ export default function Notifications() {
               {saving
                 ? "Saving..."
                 : hasChanges
-                ? "Save Changes"
-                : "No Changes"}
+                  ? "Save Changes"
+                  : "No Changes"}
             </Button>
           </View>
         </View>

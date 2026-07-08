@@ -58,7 +58,7 @@ export function OccasionEditor({
   useEffect(() => {
     if (visible && occasion) {
       setErrorMessage("");
-      const annual = showRecurrence ? occasion.is_annual ?? true : false;
+      const annual = showRecurrence ? (occasion.is_annual ?? true) : false;
       setIsAnnual(annual);
 
       const hasRealDate =

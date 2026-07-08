@@ -121,7 +121,7 @@ const AnimatedSplash: React.FC<AnimatedSplashProps> = ({ ready, onFinish }) => {
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 999,
     justifyContent: "center",
     alignItems: "center",
