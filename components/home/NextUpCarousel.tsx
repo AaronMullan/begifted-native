@@ -55,26 +55,51 @@ export default function NextUpCarousel({ occasions }: NextUpCarouselProps) {
         snapToInterval={cardWidth + HOME_CARD_GAP}
         decelerationRate="fast"
       >
-        {occasions.map((occasion, index) => (
-          <NextUpCard
-            key={occasion.id}
-            occasion={occasion}
-            index={index}
-            width={cardWidth}
-          />
+        {occasions.map((occasion) => (
+          <NextUpCard key={occasion.id} occasion={occasion} width={cardWidth} />
         ))}
       </ScrollView>
     </View>
   );
 }
 
+// Card backgrounds are assigned pseudo-randomly among the three brand colors,
+// stable per occasion: the color is a pure function of the occasion id, so a
+// card never changes color across re-renders, refetches, or app sessions.
+// Each scheme defines its own avatar counterpart (always a contrasting brand
+// color) and eyebrow color — dark teal reads fine on gold/teal but drops to
+// ~2:1 contrast on rose, so rose uses cream.
+const CARD_SCHEMES = [
+  {
+    card: Colors.brand.gold,
+    avatar: Colors.brand.mediumTeal,
+    eyebrow: Colors.brand.darkTeal,
+  },
+  {
+    card: Colors.brand.rose,
+    avatar: Colors.brand.mediumTeal,
+    eyebrow: Colors.brand.cream,
+  },
+  {
+    card: Colors.brand.mediumTeal,
+    avatar: Colors.brand.gold,
+    eyebrow: Colors.brand.darkTeal,
+  },
+] as const;
+
+function occasionScheme(id: string) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  }
+  return CARD_SCHEMES[Math.abs(hash) % CARD_SCHEMES.length];
+}
+
 function NextUpCard({
   occasion,
-  index,
   width,
 }: {
   occasion: Occasion;
-  index: number;
   width: number;
 }) {
   const router = useRouter();
@@ -82,11 +107,7 @@ function NextUpCard({
   const days = daysUntil(occasion.date);
   const dayLabel =
     days === 0 ? "Today" : days === 1 ? "Tomorrow" : `In ${days} days`;
-  // Figma alternates the two visible cards: left medium-teal, right gold.
-  const isGold = index % 2 === 1;
-  const cardColor = isGold ? Colors.brand.gold : Colors.brand.mediumTeal;
-  // Avatar circle is the opposite card color so it always contrasts.
-  const avatarColor = isGold ? Colors.brand.mediumTeal : Colors.brand.gold;
+  const scheme = occasionScheme(occasion.id);
 
   const handlePress = () => {
     router.push(`/gifts/${occasion.recipient_id}`);
@@ -97,17 +118,17 @@ function NextUpCard({
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={`View ${possessive(name)} gift ideas`}
-      style={[styles.card, { width, backgroundColor: cardColor }]}
+      style={[styles.card, { width, backgroundColor: scheme.card }]}
     >
       <OccasionAvatar
         name={name}
         size={30}
         photoUrl={occasion.recipient?.photo_url}
-        circleColor={avatarColor}
+        circleColor={scheme.avatar}
         initialsColor={Colors.white}
       />
       <View style={styles.body}>
-        <Text style={styles.countdown}>
+        <Text style={[styles.countdown, { color: scheme.eyebrow }]}>
           {dayLabel} • {formatOccasionDate(occasion.date)}
         </Text>
         <View style={styles.titleGroup}>
@@ -132,8 +153,8 @@ function NextUpCard({
 // Spec: Figma frame 4305:1504 NEXT UP card (230x160 at the 402pt frame, radius
 // 12, insets 12 horizontal / 14 top / 19 bottom). One card is centered and the
 // carousel snaps card-to-card, with a fixed sliver of each neighbor visible
-// (see `nextUpCardWidth`). Cards alternate medium-teal / gold; 30px avatar
-// top-left, dark-teal eyebrow, white H2 title, white large CTA.
+// (see `nextUpCardWidth`). Card color comes from `occasionScheme`; 30px avatar
+// top-left, scheme eyebrow, white H2 title, white large CTA.
 const styles = StyleSheet.create({
   section: {
     // Section head → cards (Figma Dev Mode, DEV-161): 17pt.
@@ -179,7 +200,6 @@ const styles = StyleSheet.create({
   },
   countdown: {
     ...Typography.eyebrow,
-    color: Colors.brand.darkTeal,
   },
   title: {
     ...Typography.h2,
