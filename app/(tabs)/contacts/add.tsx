@@ -2,6 +2,7 @@ import { useState } from "react";
 import { View, ActivityIndicator, StyleSheet, Text } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "../../../hooks/use-auth";
+import { Typography } from "../../../lib/typography";
 import { useAddRecipientFlow } from "../../../hooks/use-add-recipient-flow";
 import { ConversationView } from "../../../components/recipients/conversation/ConversationView";
 import { DataReviewView } from "../../../components/recipients/conversation/DataReviewView";
@@ -238,7 +239,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 16,
+    ...Typography.subhead,
     color: "#666",
   },
   container: {

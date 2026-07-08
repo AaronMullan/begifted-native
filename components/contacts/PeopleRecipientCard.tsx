@@ -220,9 +220,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarInitials: {
-    fontFamily: "DMSans_600SemiBold",
+    ...Typography.smallCta,
     color: Colors.brand.darkTeal,
-    fontSize: 11,
   },
   textColumn: {
     flex: 1,

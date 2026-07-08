@@ -20,6 +20,7 @@ import {
 } from "react-native-paper";
 import { useAuth } from "../../../hooks/use-auth";
 import { Colors } from "../../../lib/colors";
+import { Typography } from "../../../lib/typography";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { supabase } from "../../../lib/supabase";
 
@@ -410,8 +411,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   floatingSaveLabel: {
-    fontSize: 16,
-    fontWeight: "600",
+    ...Typography.largeCta,
   },
   loadingText: {
     textAlign: "center",

@@ -21,6 +21,7 @@ import {
 } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
+import { Typography } from "../../lib/typography";
 import { supabase } from "../../lib/supabase";
 import type { Occasion } from "../../lib/api";
 import type { Recipient } from "../../types/recipient";
@@ -703,28 +704,23 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   heroAbout: {
-    fontFamily: "Fraunces_600SemiBold",
-    fontSize: 36,
-    lineHeight: 42,
+    ...Typography.h1,
     color: Colors.blues.dark,
   },
   heroName: {
-    fontFamily: "Fraunces_600SemiBold",
-    fontSize: 36,
-    lineHeight: 42,
+    ...Typography.h1,
     color: Colors.blues.dark,
     marginBottom: 24,
   },
   sectionLabel: {
-    fontSize: 12,
-    fontWeight: "700",
+    ...Typography.sectionHeadAc,
     letterSpacing: 0.8,
     color: Colors.blues.dark,
     marginTop: 16,
     marginBottom: 10,
   },
   narrative: {
-    fontSize: 15,
+    ...Typography.subhead,
     lineHeight: 22,
     color: Colors.darks.black,
   },
@@ -738,7 +734,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   refreshingText: {
-    fontSize: 13,
+    ...Typography.eyebrow,
     fontStyle: "italic",
     color: Colors.blues.medium,
   },
@@ -748,8 +744,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   updateLinkText: {
-    fontSize: 14,
-    fontWeight: "600",
+    ...Typography.largeCta,
     color: Colors.darks.black,
   },
   card: {
@@ -768,17 +763,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   occasionTitle: {
-    fontSize: 17,
-    fontWeight: "700",
+    ...Typography.h3,
     color: Colors.blues.dark,
   },
   occasionDate: {
-    fontSize: 14,
+    ...Typography.subhead,
     color: Colors.yellows.orange,
     marginTop: 2,
   },
   occasionRecurrence: {
-    fontSize: 12,
+    ...Typography.eyebrow,
     color: Colors.blues.medium,
     marginTop: 2,
   },
@@ -786,21 +780,19 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   fieldLabel: {
-    fontSize: 11,
-    fontWeight: "700",
+    ...Typography.sectionHeadAc,
     letterSpacing: 0.6,
     color: Colors.blues.medium,
     marginTop: 10,
     marginBottom: 4,
   },
   fieldValue: {
-    fontSize: 15,
+    ...Typography.subhead,
     lineHeight: 22,
     color: Colors.blues.dark,
-    fontWeight: "600",
   },
   fieldHint: {
-    fontSize: 12,
+    ...Typography.eyebrow,
     fontStyle: "italic",
     color: Colors.blues.medium,
     marginTop: 2,
@@ -813,7 +805,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   emptyText: {
-    fontSize: 14,
+    ...Typography.subhead,
     color: Colors.darks.black,
     fontStyle: "italic",
     marginBottom: 6,

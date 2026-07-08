@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import { supabase } from "../../../lib/supabase";
 import { HEADER_HEIGHT, BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { Colors } from "../../../lib/colors";
+import { Typography } from "../../../lib/typography";
 import { Session } from "@supabase/supabase-js";
 import { IconButton } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -559,13 +560,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
+    ...Typography.h1,
     color: "#000000",
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
+    ...Typography.subhead,
     color: Colors.darks.black,
     opacity: 0.9,
   },
@@ -579,13 +579,12 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
+    ...Typography.h2,
     color: "#000000",
     marginBottom: 8,
   },
   sectionSubtitle: {
-    fontSize: 14,
+    ...Typography.subhead,
     color: Colors.darks.black,
     opacity: 0.85,
     marginBottom: 20,
@@ -603,13 +602,12 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   settingLabel: {
-    fontSize: 16,
-    fontWeight: "600",
+    ...Typography.subhead,
     color: "#000000",
     marginBottom: 4,
   },
   settingDescription: {
-    fontSize: 14,
+    ...Typography.subhead,
     color: Colors.darks.black,
     opacity: 0.9,
     lineHeight: 20,
@@ -626,7 +624,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   timezoneValue: {
-    fontSize: 16,
+    ...Typography.subhead,
     color: "#000000",
     marginTop: 4,
   },
@@ -650,7 +648,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   timezoneOptionText: {
-    fontSize: 16,
+    ...Typography.subhead,
     color: "#000000",
   },
   timezoneOptionTextSelected: {
@@ -682,12 +680,11 @@ const styles = StyleSheet.create({
     minWidth: 120,
   },
   leadStepperNumber: {
-    fontSize: 32,
-    fontWeight: "bold",
+    ...Typography.h1,
     color: "#000000",
   },
   leadStepperUnit: {
-    fontSize: 16,
+    ...Typography.subhead,
     color: Colors.darks.black,
     opacity: 0.7,
     marginLeft: 6,
@@ -710,7 +707,7 @@ const styles = StyleSheet.create({
     borderColor: "#000000",
   },
   leadPresetChipText: {
-    fontSize: 14,
+    ...Typography.smallCta,
     color: "#000000",
   },
   leadPresetChipTextSelected: {
@@ -733,8 +730,7 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: "white",
-    fontSize: 16,
-    fontWeight: "600",
+    ...Typography.largeCta,
   },
   saveButtonTextDisabled: {
     color: "#666",
@@ -743,6 +739,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: Colors.darks.black,
     opacity: 0.9,
-    fontSize: 16,
+    ...Typography.subhead,
   },
 });

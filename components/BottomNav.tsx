@@ -4,7 +4,7 @@ import { Link, usePathname } from "expo-router";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../lib/colors";
-import { FontFamily } from "../lib/typography";
+import { Typography } from "../lib/typography";
 
 // Glyphs are matched to the "Footer Navigation" design frame: an outlined house
 // (only in MaterialCommunityIcons), a filled group, and a dotted month calendar.
@@ -151,8 +151,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   label: {
-    fontFamily: FontFamily.sans.semibold,
-    fontSize: 9.625,
+    ...Typography.navLabel,
     letterSpacing: 0.2,
   },
 });

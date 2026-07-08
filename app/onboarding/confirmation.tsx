@@ -3,6 +3,7 @@ import { Text, Button } from "react-native-paper";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../lib/colors";
+import { Typography } from "../../lib/typography";
 
 export default function OnboardingConfirmation() {
   const router = useRouter();
@@ -67,6 +68,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   buttonLabel: {
-    fontSize: 16,
+    ...Typography.largeCta,
   },
 });

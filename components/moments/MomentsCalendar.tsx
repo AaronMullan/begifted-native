@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
-import { Radii } from "../../lib/typography";
+import { Radii, Typography } from "../../lib/typography";
 import ExpandCircleIcon from "../ExpandCircleIcon";
 import type { CalendarCell } from "../../utils/moments-calendar";
 import {
@@ -220,8 +220,7 @@ const styles = StyleSheet.create({
     gap: 9,
   },
   monthLabel: {
-    fontFamily: "DMSans_500Medium",
-    fontSize: 16,
+    ...Typography.subhead,
     color: Colors.darks.black,
   },
   monthNav: {
@@ -234,10 +233,9 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   weekday: {
+    ...Typography.subhead,
     flex: 1,
     textAlign: "center",
-    fontFamily: "DMSans_500Medium",
-    fontSize: 16,
     color: Colors.darks.black,
   },
   week: {
@@ -263,8 +261,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.brand.gold,
   },
   dayNumber: {
-    fontFamily: "DMSans_500Medium",
-    fontSize: 16,
+    ...Typography.subhead,
     color: Colors.darks.black,
   },
   dayNumberMuted: {

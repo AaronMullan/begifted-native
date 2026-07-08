@@ -172,13 +172,11 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   emptyText: {
-    fontFamily: "Fraunces_600SemiBold",
-    fontSize: 18,
+    ...Typography.h3,
     color: Colors.blues.dark,
   },
   emptySubtext: {
-    fontFamily: "RobotoFlex_400Regular",
-    fontSize: 14,
+    ...Typography.subhead,
     color: Colors.darks.black,
     opacity: 0.7,
   },

@@ -9,6 +9,7 @@ import { supabase } from "../../../lib/supabase";
 import { queryKeys } from "../../../lib/query-keys";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { Colors } from "../../../lib/colors";
+import { Typography } from "../../../lib/typography";
 import type { Recipient } from "../../../types/recipient";
 import { AboutRecipientView } from "../../../components/recipients/AboutRecipientView";
 import GiftSuggestionsList from "../../../components/gifts/GiftSuggestionsList";
@@ -739,9 +740,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   heroTitle: {
-    fontFamily: "Fraunces_600SemiBold",
-    fontSize: 36,
-    lineHeight: 42,
+    ...Typography.h1,
     color: Colors.blues.dark,
     marginBottom: 6,
   },
@@ -749,8 +748,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   aboutLinkText: {
-    fontSize: 12,
-    fontWeight: "700",
+    ...Typography.sectionHeadAc,
     letterSpacing: 0.8,
     color: Colors.blues.dark,
   },

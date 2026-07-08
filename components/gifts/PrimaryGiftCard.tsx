@@ -289,9 +289,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   whyHeading: {
-    fontFamily: FontFamily.sans.semibold,
+    ...Typography.sectionHeadAc,
     color: Colors.darks.black,
-    fontSize: 12,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
@@ -301,6 +300,7 @@ const styles = StyleSheet.create({
     // Figma (4170:15802) sets the body at 14 with a 12px leading, which would
     // overlap 14px glyphs in RN; 18 matches the frame's rendered spacing and
     // the largeCta leading.
+    // eslint-disable-next-line no-restricted-syntax -- DM Sans size the type scale doesn't define
     fontSize: 14,
     lineHeight: 18,
   },

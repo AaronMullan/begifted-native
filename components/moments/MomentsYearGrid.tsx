@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 import { Colors } from "../../lib/colors";
-import { Radii, scaleLineHeight } from "../../lib/typography";
+import { Radii, scaleLineHeight, Typography } from "../../lib/typography";
 import ExpandCircleIcon from "../ExpandCircleIcon";
 import { buildMonthWeeks, dayKey } from "../../utils/moments-calendar";
 
@@ -142,8 +142,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   yearLabel: {
-    fontFamily: "DMSans_500Medium",
-    fontSize: 16,
+    ...Typography.subhead,
     color: Colors.darks.black,
   },
   grid: {
@@ -156,8 +155,7 @@ const styles = StyleSheet.create({
     width: "30%",
   },
   monthLabel: {
-    fontFamily: "DMSans_500Medium",
-    fontSize: 15,
+    ...Typography.subhead,
     color: Colors.darks.black,
     marginBottom: 6,
   },
@@ -170,6 +168,7 @@ const styles = StyleSheet.create({
   },
   dayNumber: {
     fontFamily: "DMSans_500Medium",
+    // eslint-disable-next-line no-restricted-syntax -- 10pt mini-month digits; Figma's matching copy-block token is still provisional
     fontSize: 10,
     lineHeight: scaleLineHeight(12),
     textAlign: "center",

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
+import { Typography } from "../../lib/typography";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../hooks/use-auth";
 import { useQueryClient } from "@tanstack/react-query";
@@ -122,10 +123,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   buttonLabel: {
-    fontSize: 16,
+    ...Typography.largeCta,
   },
   buttonLabelOutlined: {
-    fontSize: 16,
+    ...Typography.largeCta,
     color: Colors.darks.black,
   },
 });

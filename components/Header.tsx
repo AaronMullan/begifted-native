@@ -6,6 +6,7 @@ import { Link, usePathname } from "expo-router";
 import { useAuth } from "../hooks/use-auth";
 import { useProfile } from "../hooks/use-profile";
 import { Colors } from "../lib/colors";
+import { Typography } from "../lib/typography";
 import { openBugReport } from "../lib/feedback";
 import BrandMark from "./BrandMark";
 import BrandWordmark from "./BrandWordmark";
@@ -156,7 +157,6 @@ const styles = StyleSheet.create({
     borderColor: "rgba(0,0,0,0.12)",
   },
   avatarLabel: {
-    fontWeight: "600",
-    fontSize: 13,
+    ...Typography.avatarInitials,
   },
 });

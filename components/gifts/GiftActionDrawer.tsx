@@ -11,7 +11,7 @@ import type { GiftSuggestion } from "../../types/recipient";
 import type { GiftFeedbackAction } from "../../lib/api";
 import { useSubmitGiftFeedback } from "../../hooks/use-submit-gift-feedback";
 import { Colors } from "../../lib/colors";
-import { FontFamily } from "../../lib/typography";
+import { FontFamily, Typography } from "../../lib/typography";
 
 export type GiftActionDrawerState = {
   suggestion: GiftSuggestion;
@@ -307,9 +307,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   title: {
-    fontFamily: FontFamily.sans.medium,
+    ...Typography.subhead,
     color: Colors.brand.mediumTeal,
-    fontSize: 16,
     paddingBottom: 16,
   },
   // 44pt min tap target (HIG) so adjacent options are unambiguous to tap; the
@@ -323,8 +322,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   rowLabel: {
-    fontFamily: FontFamily.sans.regular,
-    fontSize: 12,
+    ...Typography.eyebrow,
     lineHeight: 24,
     color: Colors.brand.darkTeal,
   },
@@ -336,8 +334,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   prompt: {
-    fontFamily: FontFamily.sans.medium,
-    fontSize: 15,
+    ...Typography.subhead,
     color: Colors.brand.darkTeal,
   },
   chips: {
@@ -354,8 +351,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.brand.darkTeal,
   },
   chipText: {
-    fontFamily: FontFamily.sans.regular,
-    fontSize: 12,
+    ...Typography.eyebrow,
     color: Colors.brand.darkTeal,
   },
   chipTextSelected: {
@@ -370,8 +366,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 16,
     paddingBottom: 16,
-    fontFamily: FontFamily.sans.regular,
-    fontSize: 11,
+    ...Typography.eyebrow,
     color: Colors.brand.darkTeal,
     textAlignVertical: "top",
   },

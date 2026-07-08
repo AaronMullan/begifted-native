@@ -538,6 +538,7 @@ const styles = StyleSheet.create({
   },
   cisInput: {
     marginBottom: 8,
+    // eslint-disable-next-line no-restricted-syntax -- dense admin tooling is off the design type scale
     fontSize: 13,
   },
   cisInputOutline: {
@@ -578,6 +579,7 @@ const styles = StyleSheet.create({
   inlineAddInput: {
     width: 100,
     height: 32,
+    // eslint-disable-next-line no-restricted-syntax -- dense admin tooling is off the design type scale
     fontSize: 12,
   },
   cisDivider: {

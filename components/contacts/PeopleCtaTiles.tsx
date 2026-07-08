@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
+import { Typography } from "../../lib/typography";
 
 type PeopleCtaTilesProps = {
   onImportPress: () => void;
@@ -75,10 +76,8 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   label: {
-    fontFamily: "RobotoFlex_400Regular",
+    ...Typography.smallCta,
     color: Colors.blues.dark,
-    fontSize: 13,
-    fontWeight: "500",
     textAlign: "center",
   },
 });

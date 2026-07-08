@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { supabase } from "../../../lib/supabase";
 import type { Session } from "@supabase/supabase-js";
 import { Colors } from "../../../lib/colors";
+import { Typography } from "../../../lib/typography";
 import MenuCard from "../../../components/MenuCard";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { openBugReport } from "../../../lib/feedback";
@@ -221,6 +222,6 @@ const styles = StyleSheet.create({
   loadingText: {
     textAlign: "center",
     color: "#666",
-    fontSize: 16,
+    ...Typography.subhead,
   },
 });
