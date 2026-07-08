@@ -193,21 +193,30 @@ export function useConversationFlow(
   // (DEV-134).
   const [pendingRetry, setPendingRetry] = useState<Message[] | null>(null);
 
-  // Initialize conversation with welcome message
+  // Seed the welcome message whenever the conversation is empty (first mount
+  // and after resetConversation). While the chat is still pristine — just the
+  // welcome, no user turn — keep it in sync with initialMessage, so a greeting
+  // seeded before async data arrived (e.g. the recipient's name) gets the real
+  // value instead of a blank.
   useEffect(() => {
-    if (messages.length === 0) {
-      const welcomeMessage =
-        initialMessage || getDefaultWelcomeMessage(conversationType);
-      setMessages([
-        {
-          id: "1",
-          role: "assistant",
-          content: welcomeMessage,
-          timestamp: new Date(),
-        },
-      ]);
-    }
-  }, []);
+    const pristine =
+      messages.length === 0 ||
+      (messages.length === 1 &&
+        messages[0].role === "assistant" &&
+        messages[0].id === "1");
+    if (!pristine) return;
+    const welcomeMessage =
+      initialMessage || getDefaultWelcomeMessage(conversationType);
+    if (messages.length === 1 && messages[0].content === welcomeMessage) return;
+    setMessages([
+      {
+        id: "1",
+        role: "assistant",
+        content: welcomeMessage,
+        timestamp: new Date(),
+      },
+    ]);
+  }, [messages, initialMessage, conversationType]);
 
   // Sends an already-assembled conversation (ending at the user's turn) to the
   // edge function. Shared by sendMessage and retryLastSend so a manual retry

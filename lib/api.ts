@@ -226,6 +226,28 @@ export async function fetchRecipientOccasions(
 }
 
 /**
+ * Fetch a single occasion by ID. Returns null when the row no longer exists
+ * (e.g. a stale occasion filter from a notification tap).
+ */
+export async function fetchOccasion(
+  occasionId: string
+): Promise<Occasion | null> {
+  const { data, error } = await supabase
+    .from("occasions")
+    .select("id, date, occasion_type, recipient_id, is_annual")
+    .eq("id", occasionId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    ...data,
+    occasion_type: data.occasion_type || "birthday",
+    is_annual: data.is_annual ?? true,
+  };
+}
+
+/**
  * Fetch every occasion for a user with no date filter. Unlike fetchOccasions
  * (which drops anything before today), this keeps past-dated annual occasions
  * so callers can roll them forward to their next occurrence client-side — the

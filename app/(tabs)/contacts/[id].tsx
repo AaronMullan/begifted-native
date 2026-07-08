@@ -1,23 +1,27 @@
-import { useEffect, useRef, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useRef, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Text, IconButton } from "react-native-paper";
+import { Text, Button, Dialog, IconButton, Portal } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { Redirect, useRouter, useLocalSearchParams } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../../lib/supabase";
 import { queryKeys } from "../../../lib/query-keys";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { Colors } from "../../../lib/colors";
 import { Typography } from "../../../lib/typography";
-import type { Recipient } from "../../../types/recipient";
+import type { Recipient, GiftSuggestion } from "../../../types/recipient";
 import { AboutRecipientView } from "../../../components/recipients/AboutRecipientView";
 import GiftSuggestionsList from "../../../components/gifts/GiftSuggestionsList";
 import PastGiftsDrawer, {
   COLLAPSED_DRAWER_HEIGHT,
 } from "../../../components/gifts/PastGiftsDrawer";
 import { partitionSuggestions } from "../../../components/gifts/partition";
+import { useAuth } from "../../../hooks/use-auth";
+import { useRecipient } from "../../../hooks/use-recipient";
+import { useOccasion } from "../../../hooks/use-occasion";
 import { useGiftSuggestions } from "../../../hooks/use-gift-suggestions";
+import { useDeleteRecipient } from "../../../hooks/use-recipient-mutations";
 import { ConversationView } from "../../../components/recipients/conversation/ConversationView";
 import { useAddOccasionFlow } from "../../../hooks/use-add-occasion-flow";
 import { useConversationFlow } from "../../../hooks/use-conversation-flow";
@@ -115,6 +119,36 @@ async function persistUpdateChatOccasions(
   }
 }
 
+const GIFT_POLL_INTERVAL_MS = 10000;
+const GIFT_POLL_MAX_MS = 300000; // 5 minutes
+const RESYNC_POLL_INTERVAL_MS = 4000;
+const RESYNC_POLL_MAX_MS = 90000;
+
+const newestTimestamp = (list: GiftSuggestion[]) =>
+  list[0] ? new Date(list[0].generated_at).getTime() : 0;
+
+// Nav-param-driven state: the param supplies the value until the user
+// overrides it on-screen, and a fresh navigation (param change) takes over
+// again. Implemented as a render-time adjustment rather than a param-mirroring
+// effect. `derive` maps a changed param onto the value, with the previous
+// value available for params whose absence means "keep what's shown".
+function useParamDrivenState<P, T>(
+  param: P,
+  derive: (param: P, previous: T) => T
+): [T, (value: T) => void] {
+  const [cell, setCell] = useState(() => ({
+    param,
+    value: derive(param, undefined as T),
+  }));
+  let value = cell.value;
+  if (cell.param !== param) {
+    value = derive(param, cell.value);
+    setCell({ param, value });
+  }
+  const setValue = (next: T) => setCell({ param, value: next });
+  return [value, setValue];
+}
+
 export default function RecipientEditPage() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -126,73 +160,131 @@ export default function RecipientEditPage() {
     occasionId?: string;
   }>();
   const recipientId = params.id;
-  const initialTab = (params.tab as "details" | "gifts") || "gifts";
-  const shouldAddOccasion = params.addOccasion === "true";
-
-  const [recipient, setRecipient] = useState<Recipient | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"details" | "gifts">(initialTab);
-  const [occasionFilter, setOccasionFilter] = useState<string | null>(
-    params.occasionId ?? null
-  );
-  const [occasionLabel, setOccasionLabel] = useState<string>("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [showAddOccasionChat, setShowAddOccasionChat] = useState(false);
-  const [showUpdateChat, setShowUpdateChat] = useState(false);
-  const [isResynthesizing, setIsResynthesizing] = useState(false);
-  // Snapshot of the synopsis taken when a resynthesis is kicked off, so the
-  // poller can detect when the edge function has written a fresh one.
-  const resyncBaselineRef = useRef<string>("");
-  const scrollRef = useRef<ScrollView>(null);
+  const { user, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
-  // Canonical suggestions source: shares the TanStack Query cache with the
-  // feedback drawer's mutation (optimistic removal + backfill) and applies the
-  // GIFT_REMOVAL_ACTIONS filter, so dismissed gifts disappear and stay gone
-  // here too — not only on the standalone Gift Ideas screen (DEV-137).
-  const {
-    data: suggestions = [],
-    isLoading: loadingSuggestions,
-    refetch: refetchSuggestions,
-  } = useGiftSuggestions(recipientId);
+  const scrollRef = useRef<ScrollView>(null);
   const { showToast, toast } = useToast();
   const { data: userPreferences } = useUserPreferences();
   const defaultEmotionalTone =
     userPreferences?.user_summary?.default_emotional_tone;
 
-  // Fetch recipient data
-  useEffect(() => {
-    if (!recipientId) return;
+  const [activeTab, setActiveTab] = useParamDrivenState<
+    string | undefined,
+    "details" | "gifts"
+  >(params.tab, (tab, previous) =>
+    tab === "details" || tab === "gifts" ? tab : previous ?? "gifts"
+  );
 
-    const fetchRecipient = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (!session?.user) {
-          router.replace("/");
-          return;
+  // A navigation that omits occasionId must clear the filter: a notification
+  // tap without an occasion (e.g. on-demand gift generation) must not strand
+  // the user on a stale filter pointing at an empty occasion.
+  const [occasionFilter, setOccasionFilter] = useParamDrivenState<
+    string | undefined,
+    string | null
+  >(params.occasionId, (id) => id ?? null);
+
+  const [showAddOccasionChat, setShowAddOccasionChat] = useParamDrivenState<
+    string | undefined,
+    boolean
+  >(params.addOccasion, (flag, previous) =>
+    flag === "true" ? true : previous ?? false
+  );
+
+  const [showUpdateChat, setShowUpdateChat] = useState(false);
+  const [confirmDeleteVisible, setConfirmDeleteVisible] = useState(false);
+
+  // Baseline snapshot taken when a resynthesis kicks off; the recipient query
+  // polls until synthesized_profile differs from it (or the poll times out).
+  const [resyncBaseline, setResyncBaseline] = useState<{
+    synopsis: string;
+    startedAt: number;
+  } | null>(null);
+
+  // Baseline snapshot taken when gift generation kicks off; the suggestions
+  // query polls until a newly generated idea shows up (a longer list, or a
+  // newer newest timestamp) or the poll times out.
+  const [genBaseline, setGenBaseline] = useState<{
+    count: number;
+    newest: number;
+    startedAt: number;
+  } | null>(null);
+
+  const {
+    data: recipient,
+    isPending: recipientPending,
+    isError: recipientError,
+  } = useRecipient(recipientId, {
+    refetchInterval: resyncBaseline
+      ? () => {
+          if (Date.now() - resyncBaseline.startedAt >= RESYNC_POLL_MAX_MS) {
+            setResyncBaseline(null);
+            return false;
+          }
+          return RESYNC_POLL_INTERVAL_MS;
         }
+      : false,
+  });
 
-        const { data, error } = await supabase
-          .from("recipients")
-          .select("*")
-          .eq("id", recipientId)
-          .eq("user_id", session.user.id)
-          .single();
+  // Canonical suggestions source: shares the TanStack Query cache with the
+  // feedback drawer's mutation (optimistic removal + backfill) and applies the
+  // GIFT_REMOVAL_ACTIONS filter, so dismissed gifts disappear and stay gone
+  // here too — not only on the standalone Gift Ideas screen (DEV-137).
+  const { data: suggestions = [], isLoading: loadingSuggestions } =
+    useGiftSuggestions(recipientId, {
+      refetchInterval: genBaseline
+        ? () => {
+            if (Date.now() - genBaseline.startedAt >= GIFT_POLL_MAX_MS) {
+              setGenBaseline(null);
+              return false;
+            }
+            return GIFT_POLL_INTERVAL_MS;
+          }
+        : false,
+    });
 
-        if (error) throw error;
-        setRecipient(data);
-      } catch (error) {
-        console.error("Error fetching recipient:", error);
-        Alert.alert("Error", "Failed to load recipient");
-        router.back();
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Completion latches, adjusted during render: once the watched value moves
+  // past its baseline, the poll is over.
+  if (
+    resyncBaseline &&
+    recipient &&
+    (recipient.synthesized_profile ?? "") !== resyncBaseline.synopsis
+  ) {
+    setResyncBaseline(null);
+  }
+  const isResynthesizing = resyncBaseline !== null;
 
-    fetchRecipient();
-  }, [recipientId, router]);
+  if (
+    genBaseline &&
+    (suggestions.length > genBaseline.count ||
+      newestTimestamp(suggestions) > genBaseline.newest)
+  ) {
+    setGenBaseline(null);
+  }
+  const isGenerating = genBaseline !== null;
+
+  // Start generation tracking when navigated from the add flow with
+  // generating=true (only when there is nothing to show yet).
+  const [seenGeneratingParam, setSeenGeneratingParam] = useState<
+    string | undefined
+  >(undefined);
+  if (params.generating !== seenGeneratingParam) {
+    setSeenGeneratingParam(params.generating);
+    if (params.generating === "true" && suggestions.length === 0) {
+      setGenBaseline({ count: 0, newest: 0, startedAt: Date.now() });
+    }
+  }
+
+  // Human-readable label ("Christmas · Dec 25") for the filtered occasion so
+  // the gifts header can name it without a second screen.
+  const { data: filteredOccasion } = useOccasion(occasionFilter);
+  const occasionLabel =
+    occasionFilter && filteredOccasion
+      ? `${formatOccasionType(
+          filteredOccasion.occasion_type
+        )} · ${formatOccasionDate(filteredOccasion.date, { month: "short" })}`
+      : "";
+
+  const deleteRecipient = useDeleteRecipient();
 
   // Add-occasion chat flow
   const addOccasionFlow = useAddOccasionFlow({
@@ -231,15 +323,15 @@ export default function RecipientEditPage() {
   });
 
   // Kick off a profile resynthesis and surface a "refreshing" state until the
-  // edge function writes a new synopsis. `baseline` is the synopsis we expect
-  // to change; the poller below watches for it to differ. Fire-and-forget on
-  // the network call — the server still completes even if the app backgrounds,
-  // and the poller (with its max-wait timeout) is the source of truth.
+  // edge function writes a new synopsis. Fire-and-forget on the network call —
+  // the server still completes even if the app backgrounds, and the polling
+  // recipient query (with its max-wait timeout) is the source of truth.
   const resynthesizeProfile = (baseline?: string) => {
     if (!recipientId) return;
-    resyncBaselineRef.current =
-      baseline ?? recipient?.synthesized_profile ?? "";
-    setIsResynthesizing(true);
+    setResyncBaseline({
+      synopsis: baseline ?? recipient?.synthesized_profile ?? "",
+      startedAt: Date.now(),
+    });
     supabase.functions
       .invoke("synthesize-recipient-profile", {
         body: { recipientId },
@@ -250,17 +342,9 @@ export default function RecipientEditPage() {
   };
 
   const handleFinishUpdateChat = async () => {
-    if (!recipient) return;
+    if (!recipient || !user) return;
     const extracted = await updateFlow.handleFinishConversation();
     if (!extracted) {
-      setShowUpdateChat(false);
-      return;
-    }
-
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session?.user) {
       setShowUpdateChat(false);
       return;
     }
@@ -339,11 +423,17 @@ export default function RecipientEditPage() {
         .from("recipients")
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq("id", recipient.id)
-        .eq("user_id", session.user.id);
+        .eq("user_id", user.id);
       if (error) {
         console.error("Failed to apply update from chat:", error);
       } else {
-        setRecipient((prev) => (prev ? { ...prev, ...updates } : null));
+        queryClient.setQueryData<Recipient>(
+          queryKeys.recipient(user.id, recipient.id),
+          (prev) => (prev ? { ...prev, ...updates } : prev)
+        );
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.recipients(user.id),
+        });
       }
     }
 
@@ -351,214 +441,51 @@ export default function RecipientEditPage() {
     // does this; the general update chat previously dropped them on the floor
     // (DEV-125). Non-fatal: a failure here never breaks the profile update.
     const insertedOccasions = await persistUpdateChatOccasions(
-      session.user.id,
+      user.id,
       recipient.id,
       Array.isArray(extracted.occasions) ? extracted.occasions : []
     );
     if (insertedOccasions > 0) {
       await queryClient.invalidateQueries({
-        queryKey: queryKeys.occasions(session.user.id),
+        queryKey: queryKeys.occasions(user.id),
       });
       await queryClient.invalidateQueries({
         queryKey: queryKeys.recipientOccasions(recipient.id),
       });
     }
 
-    setIsGenerating(true);
+    setGenBaseline({
+      count: suggestions.length,
+      newest: newestTimestamp(suggestions),
+      startedAt: Date.now(),
+    });
     resynthesizeProfile(recipient.synthesized_profile ?? "");
 
     showToast(`Updated ${recipient.name}'s profile.`);
     setShowUpdateChat(false);
   };
 
-  // Auto-open add-occasion flow when navigated with addOccasion param
-  useEffect(() => {
-    if (shouldAddOccasion && recipient) {
-      addOccasionFlow.resetConversation();
-      setShowAddOccasionChat(true);
-    }
-  }, [shouldAddOccasion, recipient]);
-
-  // Reset active tab when tab param changes
-  useEffect(() => {
-    if (params.tab) {
-      setActiveTab(params.tab as "details" | "gifts");
-    }
-  }, [params.tab]);
-
-  // Sync the occasion filter to the navigation param. Clearing it when no
-  // occasionId is passed is essential: a notification tap that omits the
-  // occasion (e.g. on-demand gift generation) must not strand the user on a
-  // stale filter pointing at an empty occasion.
-  useEffect(() => {
-    setOccasionFilter(params.occasionId ?? null);
-  }, [params.occasionId]);
-
-  // Resolve a human-readable label ("Christmas · Dec 25") for the filtered
-  // occasion so the gifts header can name it without a second screen.
-  useEffect(() => {
-    if (!occasionFilter) {
-      setOccasionLabel("");
-      return;
-    }
-    let cancelled = false;
-    const fetchOccasionLabel = async () => {
-      const { data, error } = await supabase
-        .from("occasions")
-        .select("occasion_type, date")
-        .eq("id", occasionFilter)
-        .maybeSingle();
-      if (cancelled || error || !data) return;
-      setOccasionLabel(
-        `${formatOccasionType(
-          data.occasion_type || "birthday"
-        )} · ${formatOccasionDate(data.date, { month: "short" })}`
-      );
-    };
-    fetchOccasionLabel();
-    return () => {
-      cancelled = true;
-    };
-  }, [occasionFilter]);
-
-  // Auto-start polling when navigated from the add flow with generating=true
-  useEffect(() => {
-    if (recipient && params.generating === "true" && suggestions.length === 0) {
-      setIsGenerating(true);
-    }
-  }, [recipient, params.generating]);
-
-  // Polling logic for gift generation. The suggestions list itself comes from
-  // useGiftSuggestions; here we just refetch on an interval and watch for a
-  // newly generated idea (a longer list, or a newer newest timestamp than the
-  // baseline captured when generation started) to clear the spinner.
-  useEffect(() => {
-    if (!isGenerating || !recipient) return;
-
-    const newestTimestamp = (list: typeof suggestions) =>
-      list[0] ? new Date(list[0].generated_at).getTime() : 0;
-    const baseline = {
-      count: suggestions.length,
-      newest: newestTimestamp(suggestions),
-    };
-
-    const POLL_INTERVAL = 10000; // 10 seconds
-    const MAX_POLL_TIME = 300000; // 5 minutes
-    const startTime = Date.now();
-
-    const pollInterval = setInterval(async () => {
-      // Check if we've exceeded max poll time
-      if (Date.now() - startTime >= MAX_POLL_TIME) {
-        console.log("Polling timeout reached, stopping generation tracking");
-        setIsGenerating(false);
-        clearInterval(pollInterval);
-        return;
-      }
-
-      const { data } = await refetchSuggestions();
-      const next = data ?? [];
-      if (
-        next.length > baseline.count ||
-        newestTimestamp(next) > baseline.newest
-      ) {
-        setIsGenerating(false);
-      }
-    }, POLL_INTERVAL);
-
-    // Cleanup on unmount or when isGenerating becomes false
-    return () => {
-      clearInterval(pollInterval);
-    };
-  }, [isGenerating, recipient, refetchSuggestions]);
-
-  // Poll the recipient row for a freshly synthesized profile after an update.
-  // The synthesize edge function regenerates synthesized_profile (plus
-  // known_roles / household_context) server-side; we watch for it to change
-  // from the baseline snapshot taken when the resync was triggered.
-  useEffect(() => {
-    if (!isResynthesizing || !recipientId) return;
-
-    const POLL_INTERVAL = 4000; // 4 seconds
-    const MAX_POLL_TIME = 90000; // 90 seconds
-    const startTime = Date.now();
-
-    const pollInterval = setInterval(async () => {
-      if (Date.now() - startTime >= MAX_POLL_TIME) {
-        setIsResynthesizing(false);
-        clearInterval(pollInterval);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("recipients")
-        .select(
-          "synthesized_profile, known_roles, household_context, updated_at"
-        )
-        .eq("id", recipientId)
-        .maybeSingle();
-
-      if (error || !data) return;
-
-      if ((data.synthesized_profile ?? "") !== resyncBaselineRef.current) {
-        setRecipient((prev) =>
-          prev
-            ? {
-                ...prev,
-                synthesized_profile:
-                  data.synthesized_profile ?? prev.synthesized_profile,
-                known_roles: data.known_roles ?? prev.known_roles,
-                household_context:
-                  data.household_context ?? prev.household_context,
-                updated_at: data.updated_at ?? prev.updated_at,
-              }
-            : prev
-        );
-        setIsResynthesizing(false);
-        clearInterval(pollInterval);
-      }
-    }, POLL_INTERVAL);
-
-    return () => clearInterval(pollInterval);
-  }, [isResynthesizing, recipientId]);
-
-  const handleDelete = async () => {
-    if (!recipient) return;
-
-    Alert.alert(
-      "Delete Recipient",
-      `Are you sure you want to delete ${recipient.name}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const {
-                data: { session },
-              } = await supabase.auth.getSession();
-              if (!session?.user) return;
-
-              const { error } = await supabase
-                .from("recipients")
-                .delete()
-                .eq("id", recipient.id)
-                .eq("user_id", session.user.id);
-
-              if (error) throw error;
-
-              router.back();
-            } catch (error) {
-              console.error("Error deleting recipient:", error);
-              Alert.alert("Error", "Failed to delete recipient");
-            }
-          },
+  const handleConfirmDelete = () => {
+    if (!recipient || !user) return;
+    deleteRecipient.mutate(
+      { userId: user.id, recipientId: recipient.id },
+      {
+        onSuccess: () => {
+          router.back();
         },
-      ]
+        onError: () => {
+          setConfirmDeleteVisible(false);
+          showToast("Failed to delete recipient.");
+        },
+      }
     );
   };
 
-  if (loading) {
+  if (!authLoading && !user) {
+    return <Redirect href="/" />;
+  }
+
+  if (recipientPending && !recipientError) {
     return (
       <View style={styles.container}>
         <View style={styles.loadingPlaceholder}>
@@ -573,6 +500,9 @@ export default function RecipientEditPage() {
       <View style={styles.container}>
         <View style={styles.loadingPlaceholder}>
           <Text>Recipient not found</Text>
+          <Button mode="text" onPress={() => router.back()}>
+            Go Back
+          </Button>
         </View>
       </View>
     );
@@ -585,7 +515,10 @@ export default function RecipientEditPage() {
           messages={addOccasionFlow.messages}
           isLoading={addOccasionFlow.isLoading}
           messagesEndRef={addOccasionFlow.messagesEndRef}
-          onNavigateBack={() => setShowAddOccasionChat(false)}
+          onNavigateBack={() => {
+            setShowAddOccasionChat(false);
+            addOccasionFlow.resetConversation();
+          }}
           onSendMessage={addOccasionFlow.sendMessage}
           onFinishConversation={addOccasionFlow.handleFinishConversation}
           shouldShowNextStepButton={addOccasionFlow.shouldShowNextStepButton}
@@ -686,12 +619,21 @@ export default function RecipientEditPage() {
             defaultEmotionalTone={defaultEmotionalTone}
             isResynthesizing={isResynthesizing}
             onResynthesize={() => resynthesizeProfile()}
-            onRecipientUpdated={(updated) => setRecipient(updated)}
+            onRecipientUpdated={(updated) => {
+              if (!user) return;
+              queryClient.setQueryData<Recipient>(
+                queryKeys.recipient(user.id, updated.id),
+                updated
+              );
+              queryClient.invalidateQueries({
+                queryKey: queryKeys.recipients(user.id),
+              });
+            }}
             onOpenUpdateChat={() => {
               updateFlow.resetConversation();
               setShowUpdateChat(true);
             }}
-            onDelete={handleDelete}
+            onDelete={() => setConfirmDeleteVisible(true)}
           />
         ) : (
           <View style={styles.giftsContainer}>
@@ -713,6 +655,33 @@ export default function RecipientEditPage() {
           occasionId={occasionFilter}
         />
       )}
+      <Portal>
+        <Dialog
+          visible={confirmDeleteVisible}
+          onDismiss={() => setConfirmDeleteVisible(false)}
+          style={styles.dialog}
+        >
+          <Dialog.Title>Delete {recipient.name}?</Dialog.Title>
+          <Dialog.Content>
+            <Text>
+              This will permanently remove {recipient.name} and their gift
+              ideas. This cannot be undone.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setConfirmDeleteVisible(false)}>
+              Cancel
+            </Button>
+            <Button
+              onPress={handleConfirmDelete}
+              loading={deleteRecipient.isPending}
+              disabled={deleteRecipient.isPending}
+            >
+              Delete
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
       {toast}
     </View>
   );
@@ -764,5 +733,8 @@ const styles = StyleSheet.create({
   giftsContainer: {
     paddingHorizontal: 16,
     paddingTop: 8,
+  },
+  dialog: {
+    borderRadius: 18,
   },
 });
