@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   blurBackground: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 18,
     overflow: "hidden",
   },
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.neutrals.light + "60",
   },
   cardBlur: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 18,
     overflow: "hidden",
   },

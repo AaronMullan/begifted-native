@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   blurBackground: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 18,
     overflow: "hidden",
   },

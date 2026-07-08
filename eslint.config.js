@@ -27,6 +27,13 @@ module.exports = defineConfig([
       ],
       "max-depth": ["error", 3],
       complexity: ["warn", 10],
+      // React Compiler-powered checks that arrived with eslint-config-expo 57.
+      // Every current hit predates the Expo 57 upgrade; keep them visible as
+      // warnings until each is fixed case-by-case rather than blocking CI.
+      "react-hooks/refs": "warn",
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/purity": "warn",
+      "react-hooks/immutability": "warn",
       "no-restricted-syntax": [
         "error",
         {
