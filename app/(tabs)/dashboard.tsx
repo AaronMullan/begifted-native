@@ -11,6 +11,7 @@ import HomeHeroCard from "../../components/home/HomeHeroCard";
 import NextUpCarousel from "../../components/home/NextUpCarousel";
 import OnTheHorizonGrid from "../../components/home/OnTheHorizonGrid";
 import AddPeopleTile from "../../components/home/AddPeopleTile";
+import HomeEmptyState from "../../components/home/HomeEmptyState";
 import GradientBackground from "../../components/GradientBackground";
 
 export default function Dashboard() {
@@ -66,6 +67,17 @@ export default function Dashboard() {
     );
   }
 
+  // Post-onboarding users with nobody added yet get the welcome empty state
+  // instead of a bare dashboard.
+  if (recipients.length === 0) {
+    return (
+      <View style={styles.container}>
+        <GradientBackground />
+        <HomeEmptyState />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <GradientBackground />
@@ -117,12 +129,13 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     backgroundColor: "transparent",
     alignSelf: "stretch",
-    // Between-section rhythm from Figma Dev Mode (DEV-161): module/add-people
-    // → section head ≈ 48–52pt.
-    gap: Spacing.sectionGap,
+    // Hero/add-people stack → "NEXT UP" head (frame 4302:1538: 31pt). The
+    // horizon section tops this up to the larger card-group → section-head
+    // gap itself.
+    gap: Spacing.heroToSectionGap,
   },
   heroBlock: {
-    // Hero module → "Add More People" row (Figma: 23pt).
+    // Hero module → "Add More People" row.
     gap: Spacing.moduleStackGap,
   },
   loadingContainer: {

@@ -188,7 +188,7 @@ export default function GiftingPreferences() {
         <View style={styles.headerSpacer} />
         <View style={styles.content}>
           <Text variant="headlineSmall" style={styles.title}>
-            Gifting Preferences
+            Your Gifting Style
           </Text>
           <Text variant="bodyLarge" style={styles.subtitle}>
             Please sign in to manage your preferences.
@@ -222,7 +222,7 @@ export default function GiftingPreferences() {
                 <View style={styles.header}>
                   <View style={styles.headerLeft}>
                     <Text variant="headlineSmall" style={styles.title}>
-                      Gifting Preferences
+                      Your Gifting Style
                     </Text>
                     <Text variant="bodyMedium" style={styles.subtitle}>
                       Describe your gifting style in your own words. We&apos;ll

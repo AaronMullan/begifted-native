@@ -47,7 +47,7 @@ export default function SupportSettings() {
       <View style={styles.container}>
         <View style={styles.content}>
           <Text variant="headlineMedium" style={styles.title}>
-            Support & Help
+            Contact Us
           </Text>
           <Text variant="bodyLarge" style={styles.subtitle}>
             Please sign in to access support.
@@ -66,7 +66,7 @@ export default function SupportSettings() {
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <Text variant="headlineMedium" style={styles.title}>
-                Support & Help
+                Contact Us
               </Text>
               <Text variant="bodyLarge" style={styles.subtitle}>
                 Get help, contact support or report issues
