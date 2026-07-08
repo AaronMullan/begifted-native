@@ -58,7 +58,7 @@ serve(async (req) => {
     const { user, errorResponse } = await requireUser(req, corsHeaders);
     if (errorResponse) return errorResponse;
 
-    const { recipientId } = await req.json();
+    const { recipientId } = (await req.json()) as { recipientId?: unknown };
 
     if (!recipientId || typeof recipientId !== "string") {
       return new Response(
@@ -177,7 +177,7 @@ serve(async (req) => {
         new Set(
           occasions
             .slice(0, 5)
-            .map((o: any) => o.occasion_type)
+            .map((o: { occasion_type: string | null }) => o.occasion_type)
             .filter(
               (t: unknown): t is string =>
                 typeof t === "string" && t.trim().length > 0
@@ -215,7 +215,11 @@ serve(async (req) => {
       cleanContent = cleanContent.replace(/^```\s*/, "").replace(/\s*```$/, "");
     }
 
-    const parsed = JSON.parse(cleanContent);
+    const parsed = JSON.parse(cleanContent) as {
+      synthesized_profile?: unknown;
+      knownRoles?: unknown;
+      householdContext?: unknown;
+    };
     const profile =
       typeof parsed.synthesized_profile === "string"
         ? parsed.synthesized_profile

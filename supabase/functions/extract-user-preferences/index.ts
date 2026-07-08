@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { loadAIConfig } from "../_shared/ai-config-loader.ts";
+import type { Provider } from "../_shared/ai-config-loader.ts";
 import { callAI, getApiKey } from "../_shared/ai-client.ts";
 import { internalErrorResponse } from "../_shared/error-response.ts";
 import { requireUser } from "../_shared/require-user.ts";
@@ -18,7 +19,7 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 // @ts-ignore - Deno environment variables are resolved at runtime
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
-function parseOpenAIJSON(content: string): any {
+function parseOpenAIJSON(content: string): Record<string, unknown> {
   let cleanContent = content.trim();
   if (cleanContent.startsWith("```json")) {
     cleanContent = cleanContent
@@ -30,6 +31,37 @@ function parseOpenAIJSON(content: string): any {
   return JSON.parse(cleanContent);
 }
 
+type ExtractUserPreferencesRequest = {
+  text?: unknown;
+  customSystemPrompt?: string;
+  overrideProvider?: Provider;
+  overrideModel?: string;
+};
+
+/**
+ * Validated shape stored in user_preferences.user_summary. The field set is
+ * defined by the active `user_preferences_extraction` prompt in
+ * system_prompt_versions (mirrored by the hardcoded fallback below).
+ */
+type UserSummaryPayload = {
+  user_summary: string;
+  taste_and_world: string[];
+  care_and_relationship_style: string[];
+  giver_style_implications: string[];
+  things_to_avoid: string[];
+  default_emotional_tone: string;
+  confidence: string;
+};
+
+type ExtractUserPreferencesResponse = {
+  user_summary: UserSummaryPayload;
+  // Playground-only debug fields, present when customSystemPrompt was sent.
+  resolvedSystemPrompt?: string;
+  userInput?: string;
+  rawResponse?: string;
+  modelUsed?: { provider: string; model: string };
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -40,7 +72,7 @@ serve(async (req) => {
     if (errorResponse) return errorResponse;
 
     const { text, customSystemPrompt, overrideProvider, overrideModel } =
-      await req.json();
+      (await req.json()) as ExtractUserPreferencesRequest;
 
     if (!text || typeof text !== "string") {
       return new Response(
@@ -99,10 +131,12 @@ Return ONLY valid JSON:
 
     const extracted = parseOpenAIJSON(rawContent);
 
-    const toStringArray = (v: any): string[] =>
-      Array.isArray(v) ? v.filter((s: any) => typeof s === "string") : [];
+    const toStringArray = (v: unknown): string[] =>
+      Array.isArray(v)
+        ? v.filter((s): s is string => typeof s === "string")
+        : [];
 
-    const result: Record<string, unknown> = {
+    const result: ExtractUserPreferencesResponse = {
       user_summary: {
         user_summary:
           typeof extracted.user_summary === "string"
