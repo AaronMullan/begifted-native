@@ -47,17 +47,20 @@ export default function NextUpCarousel({ occasions }: NextUpCarouselProps) {
         snapToInterval={cardWidth + HOME_CARD_GAP}
         decelerationRate="fast"
       >
-        {occasions.map((occasion) => (
-          <NextUpCard key={occasion.id} occasion={occasion} width={cardWidth} />
+        {assignSchemes(occasions).map(({ occasion, scheme }) => (
+          <NextUpCard
+            key={occasion.id}
+            occasion={occasion}
+            scheme={scheme}
+            width={cardWidth}
+          />
         ))}
       </ScrollView>
     </View>
   );
 }
 
-// Card backgrounds are assigned pseudo-randomly among the three brand colors,
-// stable per occasion: the color is a pure function of the occasion id, so a
-// card never changes color across re-renders, refetches, or app sessions.
+// Card backgrounds are assigned pseudo-randomly among the three brand colors.
 // Each scheme defines its own avatar counterpart (always a contrasting brand
 // color) and eyebrow color — dark teal reads fine on gold/teal but drops to
 // ~2:1 contrast on rose, so rose uses cream.
@@ -79,19 +82,39 @@ const CARD_SCHEMES = [
   },
 ] as const;
 
-function occasionScheme(id: string) {
+type CardScheme = (typeof CARD_SCHEMES)[number];
+
+function schemeIndex(id: string) {
   let hash = 0;
   for (let i = 0; i < id.length; i++) {
     hash = (hash * 31 + id.charCodeAt(i)) | 0;
   }
-  return CARD_SCHEMES[Math.abs(hash) % CARD_SCHEMES.length];
+  return Math.abs(hash) % CARD_SCHEMES.length;
+}
+
+// Each card prefers the scheme hashed from its occasion id, but a card that
+// would repeat its left neighbor's scheme is bumped to the next one. The hash
+// alone is uniform yet allows monochrome runs (a real account hashed 5 of 6
+// occasions to gold); the bump guarantees adjacent variety. Colors remain
+// stable across re-renders, refetches, and sessions because the list is
+// date-sorted, so the inputs only change when an occasion is added or passes.
+function assignSchemes(occasions: Occasion[]) {
+  let prevIndex = -1;
+  return occasions.map((occasion) => {
+    let index = schemeIndex(occasion.id);
+    if (index === prevIndex) index = (index + 1) % CARD_SCHEMES.length;
+    prevIndex = index;
+    return { occasion, scheme: CARD_SCHEMES[index] };
+  });
 }
 
 function NextUpCard({
   occasion,
+  scheme,
   width,
 }: {
   occasion: Occasion;
+  scheme: CardScheme;
   width: number;
 }) {
   const router = useRouter();
@@ -99,7 +122,6 @@ function NextUpCard({
   const days = daysUntil(occasion.date);
   const dayLabel =
     days === 0 ? "Today" : days === 1 ? "Tomorrow" : `In ${days} days`;
-  const scheme = occasionScheme(occasion.id);
 
   const handlePress = () => {
     router.push(`/gifts/${occasion.recipient_id}`);
