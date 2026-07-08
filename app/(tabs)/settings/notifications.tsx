@@ -3,7 +3,7 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   Switch,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -14,8 +14,9 @@ import { HEADER_HEIGHT, BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { Colors } from "../../../lib/colors";
 import { Typography } from "../../../lib/typography";
 import { Session } from "@supabase/supabase-js";
-import { IconButton } from "react-native-paper";
+import { Button, Chip, IconButton, TouchableRipple } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
+import { showSnackbar } from "../../../components/GlobalSnackbar";
 
 interface NotificationPreferences {
   push_notifications_enabled: boolean;
@@ -154,9 +155,9 @@ export default function Notifications() {
       setOriginalPreferences(preferences);
     } catch (error) {
       console.error("Error saving preferences:", error);
-      if (error instanceof Error) {
-        alert(`Failed to save preferences: ${error.message}`);
-      }
+      showSnackbar(
+        "Couldn't save your notification settings. Please try again."
+      );
     } finally {
       setSaving(false);
     }
@@ -237,7 +238,7 @@ export default function Notifications() {
               <IconButton
                 icon="arrow-left"
                 size={20}
-                iconColor="#000000"
+                iconColor={Colors.black}
                 onPress={() => router.back()}
                 style={styles.backButton}
               />
@@ -262,8 +263,11 @@ export default function Notifications() {
                   onValueChange={() =>
                     togglePreference("push_notifications_enabled")
                   }
-                  trackColor={{ false: "#E0E0E0", true: "#333333" }}
-                  thumbColor="#fff"
+                  trackColor={{
+                    false: Colors.grays.border,
+                    true: Colors.grays.dark,
+                  }}
+                  thumbColor={Colors.white}
                 />
               </View>
 
@@ -279,8 +283,11 @@ export default function Notifications() {
                   onValueChange={() =>
                     togglePreference("email_notifications_enabled")
                   }
-                  trackColor={{ false: "#E0E0E0", true: "#333333" }}
-                  thumbColor="#fff"
+                  trackColor={{
+                    false: Colors.grays.border,
+                    true: Colors.grays.dark,
+                  }}
+                  thumbColor={Colors.white}
                 />
               </View>
             </View>
@@ -304,8 +311,11 @@ export default function Notifications() {
                   onValueChange={() =>
                     togglePreference("feedback_requests_enabled")
                   }
-                  trackColor={{ false: "#E0E0E0", true: "#333333" }}
-                  thumbColor="#fff"
+                  trackColor={{
+                    false: Colors.grays.border,
+                    true: Colors.grays.dark,
+                  }}
+                  thumbColor={Colors.white}
                 />
               </View>
 
@@ -321,8 +331,11 @@ export default function Notifications() {
                   onValueChange={() =>
                     togglePreference("system_updates_enabled")
                   }
-                  trackColor={{ false: "#E0E0E0", true: "#333333" }}
-                  thumbColor="#fff"
+                  trackColor={{
+                    false: Colors.grays.border,
+                    true: Colors.grays.dark,
+                  }}
+                  thumbColor={Colors.white}
                 />
               </View>
 
@@ -338,8 +351,11 @@ export default function Notifications() {
                   onValueChange={() =>
                     togglePreference("promotional_emails_enabled")
                   }
-                  trackColor={{ false: "#E0E0E0", true: "#333333" }}
-                  thumbColor="#fff"
+                  trackColor={{
+                    false: Colors.grays.border,
+                    true: Colors.grays.dark,
+                  }}
+                  thumbColor={Colors.white}
                 />
               </View>
             </View>
@@ -353,7 +369,7 @@ export default function Notifications() {
               </Text>
 
               <View style={styles.leadStepperRow}>
-                <TouchableOpacity
+                <Pressable
                   style={[
                     styles.leadStepperButton,
                     preferences.notification_lead_days <= LEAD_DAYS_MIN &&
@@ -366,8 +382,8 @@ export default function Notifications() {
                   accessibilityRole="button"
                   accessibilityLabel="Decrease lead days"
                 >
-                  <MaterialIcons name="remove" size={22} color="#000000" />
-                </TouchableOpacity>
+                  <MaterialIcons name="remove" size={22} color={Colors.black} />
+                </Pressable>
 
                 <View style={styles.leadStepperValue}>
                   <Text style={styles.leadStepperNumber}>
@@ -376,7 +392,7 @@ export default function Notifications() {
                   <Text style={styles.leadStepperUnit}>days</Text>
                 </View>
 
-                <TouchableOpacity
+                <Pressable
                   style={[
                     styles.leadStepperButton,
                     preferences.notification_lead_days >= LEAD_DAYS_MAX &&
@@ -389,8 +405,8 @@ export default function Notifications() {
                   accessibilityRole="button"
                   accessibilityLabel="Increase lead days"
                 >
-                  <MaterialIcons name="add" size={22} color="#000000" />
-                </TouchableOpacity>
+                  <MaterialIcons name="add" size={22} color={Colors.black} />
+                </Pressable>
               </View>
 
               <View style={styles.leadPresetRow}>
@@ -398,23 +414,21 @@ export default function Notifications() {
                   const selected =
                     preferences.notification_lead_days === preset;
                   return (
-                    <TouchableOpacity
+                    <Chip
                       key={preset}
+                      mode="outlined"
+                      onPress={() => setLeadDays(preset)}
                       style={[
                         styles.leadPresetChip,
                         selected && styles.leadPresetChipSelected,
                       ]}
-                      onPress={() => setLeadDays(preset)}
+                      textStyle={[
+                        styles.leadPresetChipText,
+                        selected && styles.leadPresetChipTextSelected,
+                      ]}
                     >
-                      <Text
-                        style={[
-                          styles.leadPresetChipText,
-                          selected && styles.leadPresetChipTextSelected,
-                        ]}
-                      >
-                        {preset / 7} weeks
-                      </Text>
-                    </TouchableOpacity>
+                      {preset / 7} weeks
+                    </Chip>
                   );
                 })}
               </View>
@@ -434,81 +448,79 @@ export default function Notifications() {
                   keyboardShouldPersistTaps="handled"
                 >
                   {TIMEZONES.map((tz) => (
-                    <TouchableOpacity
+                    <TouchableRipple
                       key={tz.value}
-                      style={[
-                        styles.timezoneOption,
-                        preferences.timezone === tz.value &&
-                          styles.timezoneOptionSelected,
-                      ]}
                       onPress={() => {
                         setTimezone(tz.value);
                         setShowTimezonePicker(false);
                       }}
                     >
-                      <Text
+                      <View
                         style={[
-                          styles.timezoneOptionText,
+                          styles.timezoneOption,
                           preferences.timezone === tz.value &&
-                            styles.timezoneOptionTextSelected,
+                            styles.timezoneOptionSelected,
                         ]}
                       >
-                        {tz.label}
-                      </Text>
-                      {preferences.timezone === tz.value && (
-                        <MaterialIcons
-                          name="check"
-                          size={20}
-                          color="#000000"
-                          accessibilityLabel="Selected"
-                        />
-                      )}
-                    </TouchableOpacity>
+                        <Text
+                          style={[
+                            styles.timezoneOptionText,
+                            preferences.timezone === tz.value &&
+                              styles.timezoneOptionTextSelected,
+                          ]}
+                        >
+                          {tz.label}
+                        </Text>
+                        {preferences.timezone === tz.value && (
+                          <MaterialIcons
+                            name="check"
+                            size={20}
+                            color={Colors.black}
+                            accessibilityLabel="Selected"
+                          />
+                        )}
+                      </View>
+                    </TouchableRipple>
                   ))}
                 </ScrollView>
               )}
 
-              <TouchableOpacity
-                style={styles.timezoneSelector}
+              <TouchableRipple
                 onPress={() => setShowTimezonePicker(!showTimezonePicker)}
               >
-                <View style={styles.timezoneInfo}>
-                  <Text style={styles.settingLabel}>Timezone</Text>
-                  <Text style={styles.timezoneValue}>
-                    {currentTimezoneLabel}
-                  </Text>
+                <View style={styles.timezoneSelector}>
+                  <View style={styles.timezoneInfo}>
+                    <Text style={styles.settingLabel}>Timezone</Text>
+                    <Text style={styles.timezoneValue}>
+                      {currentTimezoneLabel}
+                    </Text>
+                  </View>
+                  <MaterialIcons
+                    name={showTimezonePicker ? "expand-less" : "expand-more"}
+                    size={20}
+                    color={Colors.grays.text}
+                  />
                 </View>
-                <MaterialIcons
-                  name={showTimezonePicker ? "expand-less" : "expand-more"}
-                  size={20}
-                  color="#666"
-                />
-              </TouchableOpacity>
+              </TouchableRipple>
             </View>
 
             {/* Save Button */}
-            <TouchableOpacity
-              style={[
-                styles.saveButton,
-                !hasChanges && styles.saveButtonDisabled,
-                saving && styles.saveButtonSaving,
-              ]}
+            <Button
+              mode="contained"
+              buttonColor={Colors.black}
+              textColor={Colors.white}
               onPress={handleSave}
               disabled={saving || !hasChanges}
+              loading={saving}
+              style={styles.saveButton}
+              labelStyle={styles.saveButtonText}
             >
-              <Text
-                style={[
-                  styles.saveButtonText,
-                  !hasChanges && styles.saveButtonTextDisabled,
-                ]}
-              >
-                {saving
-                  ? "Saving..."
-                  : hasChanges
-                  ? "Save Changes"
-                  : "No Changes"}
-              </Text>
-            </TouchableOpacity>
+              {saving
+                ? "Saving..."
+                : hasChanges
+                ? "Save Changes"
+                : "No Changes"}
+            </Button>
           </View>
         </View>
       </ScrollView>
@@ -544,7 +556,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
     marginTop: 20,
-    shadowColor: "#000",
+    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -561,7 +573,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.h1,
-    color: "#000000",
+    color: Colors.black,
     marginBottom: 8,
   },
   subtitle: {
@@ -580,7 +592,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...Typography.h2,
-    color: "#000000",
+    color: Colors.black,
     marginBottom: 8,
   },
   sectionSubtitle: {
@@ -595,7 +607,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: Colors.grays.hairline,
   },
   settingInfo: {
     flex: 1,
@@ -603,7 +615,7 @@ const styles = StyleSheet.create({
   },
   settingLabel: {
     ...Typography.subhead,
-    color: "#000000",
+    color: Colors.black,
     marginBottom: 4,
   },
   settingDescription: {
@@ -618,20 +630,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: Colors.grays.hairline,
   },
   timezoneInfo: {
     flex: 1,
   },
   timezoneValue: {
     ...Typography.subhead,
-    color: "#000000",
+    color: Colors.black,
     marginTop: 4,
   },
   timezonePicker: {
     marginBottom: 8,
     maxHeight: 220,
-    backgroundColor: "#f8f8f8",
+    backgroundColor: Colors.grays.surface,
     borderRadius: 8,
     overflow: "hidden",
   },
@@ -642,18 +654,18 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    borderBottomColor: Colors.grays.border,
   },
   timezoneOptionSelected: {
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
   },
   timezoneOptionText: {
     ...Typography.subhead,
-    color: "#000000",
+    color: Colors.black,
   },
   timezoneOptionTextSelected: {
     fontWeight: "600",
-    color: "#000000",
+    color: Colors.black,
   },
   leadStepperRow: {
     flexDirection: "row",
@@ -666,7 +678,7 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: "#E0E0E0",
+    borderColor: Colors.grays.border,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -681,7 +693,7 @@ const styles = StyleSheet.create({
   },
   leadStepperNumber: {
     ...Typography.h1,
-    color: "#000000",
+    color: Colors.black,
   },
   leadStepperUnit: {
     ...Typography.subhead,
@@ -695,45 +707,29 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   leadPresetChip: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    backgroundColor: "#f8f8f8",
+    borderColor: Colors.grays.border,
+    backgroundColor: Colors.grays.surface,
   },
   leadPresetChipSelected: {
-    backgroundColor: "#000000",
-    borderColor: "#000000",
+    backgroundColor: Colors.black,
+    borderColor: Colors.black,
   },
   leadPresetChipText: {
     ...Typography.smallCta,
-    color: "#000000",
+    color: Colors.black,
   },
   leadPresetChipTextSelected: {
-    color: "#ffffff",
+    color: Colors.white,
     fontWeight: "600",
   },
   saveButton: {
-    backgroundColor: "#000000",
-    paddingVertical: 16,
     borderRadius: 8,
-    alignItems: "center",
     marginTop: 8,
   },
-  saveButtonDisabled: {
-    backgroundColor: "#E0E0E0",
-    opacity: 0.6,
-  },
-  saveButtonSaving: {
-    opacity: 0.7,
-  },
   saveButtonText: {
-    color: "white",
     ...Typography.largeCta,
-  },
-  saveButtonTextDisabled: {
-    color: "#666",
+    paddingVertical: 6,
   },
   loadingText: {
     textAlign: "center",

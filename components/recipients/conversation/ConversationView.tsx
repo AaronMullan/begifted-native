@@ -6,16 +6,17 @@ import {
   Keyboard,
   Platform,
   Animated,
-  TextInput as RNTextInput,
 } from "react-native";
 import {
   Text,
+  TextInput,
   IconButton,
   Button,
   ActivityIndicator,
 } from "react-native-paper";
 import { Message } from "@/hooks/use-add-recipient-flow";
 import { BOTTOM_NAV_HEIGHT } from "@/lib/constants";
+import { Colors } from "@/lib/colors";
 import { Typography } from "@/lib/typography";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -122,7 +123,7 @@ export function ConversationView({
         <IconButton
           icon="arrow-left"
           size={24}
-          iconColor="#000000"
+          iconColor={Colors.black}
           onPress={onNavigateBack}
           style={styles.backButton}
         />
@@ -203,7 +204,7 @@ export function ConversationView({
         {shouldShowNextStepButton && (
           <Button
             mode="contained"
-            buttonColor="#000000"
+            buttonColor={Colors.black}
             onPress={onFinishConversation}
             disabled={isLoading || isSending}
             style={styles.nextStepButton}
@@ -213,7 +214,8 @@ export function ConversationView({
         )}
 
         <View style={styles.inputRow}>
-          <RNTextInput
+          <TextInput
+            mode="flat"
             value={inputMessage}
             onChangeText={setInputMessage}
             placeholder="Type your message..."
@@ -225,13 +227,17 @@ export function ConversationView({
             autoComplete="off"
             textContentType="none"
             importantForAutofill="no"
-            placeholderTextColor="#999"
+            placeholderTextColor={Colors.grays.placeholder}
+            underlineColor={Colors.transparent}
+            activeUnderlineColor={Colors.transparent}
+            dense
             style={styles.textInput}
+            contentStyle={styles.textInputContent}
           />
           <IconButton
             icon="send"
             size={24}
-            iconColor="#000000"
+            iconColor={Colors.black}
             style={[
               styles.sendButton,
               (!inputMessage.trim() || isLoading || isSending) &&
@@ -239,7 +245,7 @@ export function ConversationView({
             ]}
             onPress={handleSend}
             disabled={!inputMessage.trim() || isLoading || isSending}
-            containerColor="#FFFFFF"
+            containerColor={Colors.white}
             loading={isSending}
           />
         </View>
@@ -296,21 +302,21 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   userMessageBubble: {
-    backgroundColor: "#333333",
+    backgroundColor: Colors.grays.dark,
     borderBottomRightRadius: 4,
   },
   assistantMessageBubble: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: Colors.grays.hairline,
     borderBottomLeftRadius: 4,
   },
   messageText: {
     lineHeight: 22,
   },
   userMessageText: {
-    color: "#FFFFFF",
+    color: Colors.white,
   },
   assistantMessageText: {
-    color: "#000000",
+    color: Colors.black,
   },
   loadingContainer: {
     flexDirection: "row",
@@ -320,7 +326,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginLeft: 8,
-    color: "#666",
+    color: Colors.grays.text,
   },
   inputContainer: {
     paddingHorizontal: 16,
@@ -340,17 +346,22 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: Colors.grays.field,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
     ...Typography.subhead,
     maxHeight: 120,
+  },
+  textInputContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   sendButton: {
     margin: 0,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderColor: Colors.grays.border,
   },
   sendButtonDisabled: {
     opacity: 0.6,

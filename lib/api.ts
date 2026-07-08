@@ -48,6 +48,25 @@ export async function fetchUserPreferences(
   return data;
 }
 
+/**
+ * Upsert a partial set of user-preference fields (keyed on user_id).
+ */
+export async function upsertUserPreferences(
+  userId: string,
+  fields: Partial<Omit<UserPreferences, "user_id">>
+): Promise<void> {
+  const { error } = await supabase.from("user_preferences").upsert(
+    {
+      user_id: userId,
+      ...fields,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" }
+  );
+
+  if (error) throw error;
+}
+
 export interface AppNotification {
   id: string;
   user_id: string;
@@ -310,6 +329,40 @@ export async function createOccasion(
     occasion_type: data.occasion_type || occasionType,
     is_annual: data.is_annual ?? isAnnual,
   };
+}
+
+/**
+ * Fetch just the (date, occasion_type) pairs of a recipient's occasions —
+ * enough for callers to de-duplicate before a batch insert.
+ */
+export async function fetchOccasionDateTypePairs(
+  userId: string,
+  recipientId: string
+): Promise<{ date: string; occasion_type: string | null }[]> {
+  const { data, error } = await supabase
+    .from("occasions")
+    .select("date, occasion_type")
+    .eq("recipient_id", recipientId)
+    .eq("user_id", userId);
+
+  if (error) throw error;
+  return data || [];
+}
+
+/**
+ * Batch-insert occasions.
+ */
+export async function insertOccasions(
+  rows: {
+    user_id: string;
+    recipient_id: string;
+    date: string;
+    occasion_type: string;
+  }[]
+): Promise<void> {
+  const { error } = await supabase.from("occasions").insert(rows);
+
+  if (error) throw error;
 }
 
 /**
@@ -666,6 +719,38 @@ export async function markAllNotificationsRead(userId: string): Promise<void> {
 // ============================================================================
 // Admin — Prompt Playground
 // ============================================================================
+
+/**
+ * Store (or refresh) this device's Expo push token, keyed on the token so a
+ * device switching accounts re-homes its token.
+ */
+export async function upsertPushToken(input: {
+  user_id: string;
+  token: string;
+  platform: "ios" | "android";
+}): Promise<void> {
+  const { error } = await supabase.from("user_push_tokens").upsert(
+    {
+      ...input,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "token" }
+  );
+
+  if (error) throw error;
+}
+
+/**
+ * Delete a device push token (called on sign-out).
+ */
+export async function deletePushToken(token: string): Promise<void> {
+  const { error } = await supabase
+    .from("user_push_tokens")
+    .delete()
+    .eq("token", token);
+
+  if (error) throw error;
+}
 
 export interface PromptTestRun {
   id: string;

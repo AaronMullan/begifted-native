@@ -21,7 +21,7 @@ import {
 } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
-import { Typography } from "../../lib/typography";
+import { FontFamily, Typography } from "../../lib/typography";
 import { supabase } from "../../lib/supabase";
 import type { Occasion } from "../../lib/api";
 import type { Recipient } from "../../types/recipient";
@@ -866,7 +866,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     flex: 1,
-    fontFamily: "Fraunces_600SemiBold",
+    fontFamily: FontFamily.fraunces.semibold,
     color: Colors.blues.dark,
   },
   modalBody: {
