@@ -5,7 +5,8 @@
  *
  * The app screens in Figma are absolutely positioned on 402×874 frames (no
  * auto-layout), so these values were derived from child x/y/height deltas on
- * the dev-ready "* Home_existing user" screen. They are the canonical
+ * the dev-ready "* Home_existing user NEW option 1" screen (4302:1538). They
+ * are the canonical
  * reference for closing the vertical-spacing parity gap Erik raised in
  * #design — apply them when a screen is reconciled against the design.
  */
@@ -18,11 +19,13 @@ export const Spacing = {
   /** Horizontal gap between side-by-side cards in a row. */
   cardGap: 10,
   /** Gap between a section head and the row of cards beneath it. */
-  sectionHeadToContent: 17,
+  sectionHeadToContent: 7,
   /** Gap between a module's bottom and the next stacked element. */
-  moduleStackGap: 23,
+  moduleStackGap: 18,
   /** Gap between a stacked card group and the next section head. */
-  sectionGap: 52,
+  sectionGap: 41,
+  /** Gap between the hero/add-people stack and the first section head. */
+  heroToSectionGap: 31,
   /** Bottom-nav bar height (full-bleed, flush to the bottom edge). */
   bottomNavHeight: 55,
 } as const;

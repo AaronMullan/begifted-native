@@ -18,6 +18,7 @@ import {
   stripRecipientName,
 } from "../../utils/home-occasions";
 import { formatOccasionDate } from "../../utils/occasion-dates";
+import OccasionOverflowMenu from "./OccasionOverflowMenu";
 import { homeCardWidth, HOME_EDGE_INSET } from "./home-layout";
 
 type OnTheHorizonGridProps = {
@@ -93,6 +94,10 @@ function HorizonCard({
             color={Colors.brand.gold}
           />
         </View>
+        <OccasionOverflowMenu
+          occasion={occasion}
+          dotColor={Colors.brand.mediumTeal}
+        />
       </View>
     </Pressable>
   );
@@ -106,8 +111,11 @@ function HorizonCard({
 // fixed here. Bleeds to the screen edges so the next card peeks.
 const styles = StyleSheet.create({
   section: {
-    // Section head → cards (Figma Dev Mode, DEV-161): 17pt.
     gap: Spacing.sectionHeadToContent,
+    // The dashboard column's gap is the smaller hero → section-head value;
+    // top it up to the card-group → section-head gap the frame gives this
+    // section (4302:1538: 41pt).
+    marginTop: Spacing.sectionGap - Spacing.heroToSectionGap,
   },
   sectionLabel: {
     ...Typography.sectionHeadAc,
