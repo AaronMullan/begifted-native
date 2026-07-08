@@ -139,7 +139,7 @@ export default function ProfileSettings() {
     return (
       <View style={styles.container}>
         <View style={styles.content}>
-          <Text style={styles.title}>Profile Settings</Text>
+          <Text style={styles.title}>Your Info</Text>
           <Text style={styles.subtitle}>
             Please sign in to manage your profile.
           </Text>
@@ -166,7 +166,7 @@ export default function ProfileSettings() {
               <View style={styles.header}>
                 <View style={styles.headerLeft}>
                   <Text variant="headlineMedium" style={styles.title}>
-                    Profile Settings
+                    Your Info
                   </Text>
                   <Text variant="bodyLarge" style={styles.subtitle}>
                     Manage your personal information
