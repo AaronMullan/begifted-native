@@ -20,12 +20,8 @@ import {
 } from "../../utils/home-occasions";
 import { formatOccasionDate } from "../../utils/occasion-dates";
 import OccasionAvatar from "./OccasionAvatar";
-import {
-  HOME_CARD_GAP,
-  HOME_EDGE_INSET,
-  nextUpCardWidth,
-  nextUpSideInset,
-} from "./home-layout";
+import OccasionOverflowMenu from "./OccasionOverflowMenu";
+import { HOME_CARD_GAP, HOME_EDGE_INSET, nextUpCardWidth } from "./home-layout";
 
 type NextUpCarouselProps = {
   occasions: Occasion[];
@@ -36,10 +32,9 @@ export default function NextUpCarousel({ occasions }: NextUpCarouselProps) {
 
   if (occasions.length === 0) return null;
 
-  // One large card centered per the approved option-2 frame, with a fixed
-  // sliver of each neighbor visible so the section still reads as scrollable.
+  // One large card left-aligned with the content column, with a wide sliver
+  // of the next card visible so the section still reads as scrollable.
   const cardWidth = nextUpCardWidth(windowWidth);
-  const sideInset = nextUpSideInset(windowWidth);
 
   return (
     <View style={styles.section}>
@@ -48,10 +43,7 @@ export default function NextUpCarousel({ occasions }: NextUpCarouselProps) {
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.scroll}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingHorizontal: sideInset },
-        ]}
+        contentContainerStyle={styles.scrollContent}
         snapToInterval={cardWidth + HOME_CARD_GAP}
         decelerationRate="fast"
       >
@@ -145,19 +137,20 @@ function NextUpCard({
           <Text style={styles.ctaText}>View Gift Ideas</Text>
           <MaterialIcons name="chevron-right" size={16} color={Colors.white} />
         </View>
+        <OccasionOverflowMenu occasion={occasion} dotColor={Colors.white} />
       </View>
     </Pressable>
   );
 }
 
-// Spec: Figma frame 4305:1504 NEXT UP card (230x160 at the 402pt frame, radius
-// 12, insets 12 horizontal / 14 top / 19 bottom). One card is centered and the
-// carousel snaps card-to-card, with a fixed sliver of each neighbor visible
-// (see `nextUpCardWidth`). Card color comes from `occasionScheme`; 30px avatar
-// top-left, scheme eyebrow, white H2 title, white large CTA.
+// Spec: Figma frame 4302:1538 NEXT UP card (230x160 at the 402pt frame, radius
+// 12, insets 12 horizontal / 14 top / 19 bottom). The active card sits at the
+// content gutter and the carousel snaps card-to-card, with a wide sliver of
+// the next card visible (see `nextUpCardWidth`). Card color comes from
+// `occasionScheme`; 30px avatar top-left, scheme eyebrow, white H2 title,
+// white large CTA + white overflow dots on the bottom row.
 const styles = StyleSheet.create({
   section: {
-    // Section head → cards (Figma Dev Mode, DEV-161): 17pt.
     gap: Spacing.sectionHeadToContent,
   },
   sectionLabel: {
@@ -175,6 +168,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     gap: HOME_CARD_GAP,
+    paddingHorizontal: HOME_EDGE_INSET,
   },
   card: {
     borderRadius: Radii.md,
