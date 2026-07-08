@@ -11,6 +11,7 @@ import HomeHeroCard from "../../components/home/HomeHeroCard";
 import NextUpCarousel from "../../components/home/NextUpCarousel";
 import OnTheHorizonGrid from "../../components/home/OnTheHorizonGrid";
 import AddPeopleTile from "../../components/home/AddPeopleTile";
+import HomeEmptyState from "../../components/home/HomeEmptyState";
 import GradientBackground from "../../components/GradientBackground";
 
 export default function Dashboard() {
@@ -62,6 +63,17 @@ export default function Dashboard() {
             Loading dashboard...
           </Text>
         </View>
+      </View>
+    );
+  }
+
+  // Post-onboarding users with nobody added yet get the welcome empty state
+  // instead of a bare dashboard.
+  if (recipients.length === 0) {
+    return (
+      <View style={styles.container}>
+        <GradientBackground />
+        <HomeEmptyState />
       </View>
     );
   }
