@@ -13,10 +13,7 @@ import { Typography } from "../../../lib/typography";
 import type { Recipient, GiftSuggestion } from "../../../types/recipient";
 import { AboutRecipientView } from "../../../components/recipients/AboutRecipientView";
 import GiftSuggestionsList from "../../../components/gifts/GiftSuggestionsList";
-import PastGiftsDrawer, {
-  COLLAPSED_DRAWER_HEIGHT,
-} from "../../../components/gifts/PastGiftsDrawer";
-import { partitionSuggestions } from "../../../components/gifts/partition";
+import PastGiftsSection from "../../../components/gifts/PastGiftsSection";
 import { useAuth } from "../../../hooks/use-auth";
 import { useRecipient } from "../../../hooks/use-recipient";
 import { useOccasion } from "../../../hooks/use-occasion";
@@ -554,14 +551,6 @@ export default function RecipientEditPage() {
   }
 
   const shortName = formatShortName(recipient.name);
-  const upperShortName = shortName.toUpperCase();
-
-  // Pinned Past Gifts drawer lives only on the gifts tab; its collapsed bar
-  // needs extra scroll clearance so active cards don't hide behind it.
-  const hasPastGifts =
-    partitionSuggestions(suggestions, occasionFilter).past.length > 0;
-  const showPastDrawer = activeTab === "gifts" && hasPastGifts;
-
   return (
     <View style={styles.container}>
       {activeTab === "gifts" ? (
@@ -587,7 +576,7 @@ export default function RecipientEditPage() {
             accessibilityLabel={`About ${shortName}`}
             hitSlop={6}
           >
-            <Text style={styles.aboutLinkText}>ABOUT {upperShortName} ›</Text>
+            <Text style={styles.aboutLinkText}>About {shortName} ›</Text>
           </Pressable>
         </View>
       ) : (
@@ -606,10 +595,7 @@ export default function RecipientEditPage() {
         ref={scrollRef}
         style={styles.content}
         contentContainerStyle={{
-          paddingBottom:
-            BOTTOM_NAV_HEIGHT +
-            Math.max(insets.bottom, 0) +
-            (showPastDrawer ? COLLAPSED_DRAWER_HEIGHT : 0),
+          paddingBottom: BOTTOM_NAV_HEIGHT + Math.max(insets.bottom, 0),
         }}
         keyboardShouldPersistTaps="handled"
       >
@@ -636,25 +622,28 @@ export default function RecipientEditPage() {
             onDelete={() => setConfirmDeleteVisible(true)}
           />
         ) : (
-          <View style={styles.giftsContainer}>
-            <GiftSuggestionsList
-              suggestions={suggestions}
-              loading={loadingSuggestions}
-              recipientName={formatShortName(recipient.name)}
-              isGenerating={isGenerating}
-              occasionId={occasionFilter}
-              occasionLabel={occasionLabel}
-              onClearOccasionFilter={() => setOccasionFilter(null)}
-            />
-          </View>
+          <>
+            <View style={styles.giftsContainer}>
+              <GiftSuggestionsList
+                suggestions={suggestions}
+                loading={loadingSuggestions}
+                recipientName={formatShortName(recipient.name)}
+                isGenerating={isGenerating}
+                occasionId={occasionFilter}
+                occasionLabel={occasionLabel}
+                onClearOccasionFilter={() => setOccasionFilter(null)}
+              />
+            </View>
+            {/* Full-bleed band — outside the padded gifts container. */}
+            <View style={styles.pastSection}>
+              <PastGiftsSection
+                suggestions={suggestions}
+                occasionId={occasionFilter}
+              />
+            </View>
+          </>
         )}
       </ScrollView>
-      {showPastDrawer && (
-        <PastGiftsDrawer
-          suggestions={suggestions}
-          occasionId={occasionFilter}
-        />
-      )}
       <Portal>
         <Dialog
           visible={confirmDeleteVisible}
@@ -717,9 +706,8 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   aboutLinkText: {
-    ...Typography.sectionHeadAc,
-    letterSpacing: 0.8,
-    color: Colors.blues.dark,
+    ...Typography.largeCta,
+    color: Colors.brand.gold,
   },
   detailsHeader: {
     flexDirection: "row",
@@ -733,6 +721,10 @@ const styles = StyleSheet.create({
   giftsContainer: {
     paddingHorizontal: 16,
     paddingTop: 8,
+  },
+  pastSection: {
+    // Active cards → band gap from the frame (4306:1620: 20pt).
+    marginTop: 20,
   },
   dialog: {
     borderRadius: 18,
