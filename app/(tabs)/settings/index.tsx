@@ -1,14 +1,38 @@
-import { View, ScrollView, StyleSheet } from "react-native";
-import { Text, Button } from "react-native-paper";
+import { View, ScrollView, StyleSheet, Pressable } from "react-native";
+import { Text } from "react-native-paper";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
+import { MaterialIcons } from "@expo/vector-icons";
 import { supabase } from "../../../lib/supabase";
 import type { Session } from "@supabase/supabase-js";
+import type { Href } from "expo-router";
 import { Colors } from "../../../lib/colors";
 import { Typography } from "../../../lib/typography";
-import MenuCard from "../../../components/MenuCard";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { openBugReport } from "../../../lib/feedback";
+
+type SettingsRowProps = {
+  label: string;
+  onPress: () => void;
+};
+
+const SettingsRow: React.FC<SettingsRowProps> = ({ label, onPress }) => (
+  <Pressable
+    onPress={onPress}
+    accessibilityRole="button"
+    accessibilityLabel={label}
+    style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+  >
+    <Text style={styles.rowLabel}>{label}</Text>
+    <MaterialIcons
+      name="chevron-right"
+      size={16}
+      color={Colors.brand.darkTeal}
+    />
+  </Pressable>
+);
+
+const Divider: React.FC = () => <View style={styles.divider} />;
 
 export default function Settings() {
   const [session, setSession] = useState<Session | null>(null);
@@ -36,10 +60,17 @@ export default function Settings() {
     return () => subscription.unsubscribe();
   }, [router]);
 
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut({ scope: "local" });
+    if (error) {
+      console.error("Sign out failed:", error);
+    }
+    router.replace("/");
+  };
+
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={styles.headerSpacer} />
         <View style={styles.content}>
           <Text variant="bodyLarge" style={styles.loadingText}>
             Loading...
@@ -52,12 +83,9 @@ export default function Settings() {
   if (!session) {
     return (
       <View style={styles.container}>
-        <View style={styles.headerSpacer} />
         <View style={styles.content}>
-          <Text variant="headlineMedium" style={styles.title}>
-            Settings
-          </Text>
-          <Text variant="bodyLarge" style={styles.subtitle}>
+          <Text style={styles.title}>Settings</Text>
+          <Text style={styles.subtitle}>
             Please sign in to manage your settings.
           </Text>
         </View>
@@ -65,163 +93,122 @@ export default function Settings() {
     );
   }
 
-  const settingsCards = [
-    {
-      id: "profile",
-      title: "Profile Settings",
-      description: "Manage your personal information and account details",
-      icon: "person-outline",
-      iconColor: "#000000",
-      route: "/settings/profile" as any,
-    },
-    {
-      id: "gifting",
-      title: "Gifting Preferences",
-      description: "Customize how AI generates gift recommendations",
-      icon: "card-giftcard",
-      iconColor: "#000000",
-      route: "/settings/gifting" as any,
-    },
-    {
-      id: "notifications",
-      title: "Notifications",
-      description: "Control email and push notification settings",
-      icon: "notifications-none",
-      iconColor: "#000000",
-      route: "/settings/notifications" as any,
-    },
-    {
-      id: "billing",
-      title: "Billing & Subscription",
-      description: "Manage your subscription plan and payment methods",
-      icon: "credit-card",
-      iconColor: "#000000",
-      route: "/settings/billing" as any,
-    },
-    {
-      id: "support",
-      title: "Support & Help",
-      description: "Get help, contact support or report issues",
-      icon: "help-outline",
-      iconColor: "#000000",
-      route: "/settings/support" as any,
-    },
-    {
-      id: "faq",
-      title: "Help & FAQ",
-      description: "Quick answers about how BeGifted works",
-      icon: "quiz",
-      iconColor: "#000000",
-      route: "/faq" as any,
-    },
-  ];
+  const push = (route: Href) => () => router.push(route);
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerSpacer} />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.content}>
-          {/* Header */}
-          <View style={styles.header}>
-            <Text variant="headlineMedium" style={styles.title}>
-              Settings
-            </Text>
-            <Text variant="bodyLarge" style={styles.subtitle}>
-              Manage your account and preferences
-            </Text>
-          </View>
+          <Text style={styles.title}>Settings</Text>
 
-          {/* Settings cards */}
-          <View style={styles.cardsContainer}>
-            {settingsCards.map((card) => (
-              <MenuCard
-                key={card.id}
-                icon={card.icon as any}
-                title={card.title}
-                description={card.description}
-                onPress={() => router.push(card.route)}
-                showChevron
-              />
-            ))}
-            {/* Beta bug-report entry (DEV-96). Opens Sentry's feedback widget
-                in-app rather than navigating, so testers can report straight
-                from Settings with a screenshot + crash context attached. */}
-            <MenuCard
-              icon="bug-report"
-              title="Report a Bug"
-              description="Something off? Tell us what happened and attach a screenshot"
+          <View style={styles.list}>
+            <Divider />
+            <SettingsRow
+              label="Your Info"
+              onPress={push("/settings/profile")}
+            />
+            <SettingsRow
+              label="Your Gifting Style"
+              onPress={push("/settings/gifting")}
+            />
+            <SettingsRow
+              label="Notifications"
+              onPress={push("/settings/notifications")}
+            />
+            <Divider />
+            <SettingsRow
+              label="Billing & Subscription"
+              onPress={push("/settings/billing")}
+            />
+            <Divider />
+            <SettingsRow label="FAQ" onPress={push("/faq")} />
+            <SettingsRow
+              label="Contact Us"
+              onPress={push("/settings/support")}
+            />
+            {/* Not in the Settings frame; kept until design confirms whether
+                bug reporting is dropped or folds into Contact Us. */}
+            <SettingsRow
+              label="Report a Bug"
               onPress={() => openBugReport("settings")}
             />
+            <Divider />
           </View>
 
-          {/* Sign Out */}
-          <Button
-            mode="text"
-            icon="logout"
-            textColor={Colors.darks.black}
-            onPress={async () => {
-              const { error } = await supabase.auth.signOut({ scope: "local" });
-              if (error) {
-                console.error("Sign out failed:", error);
-              }
-              router.replace("/");
-            }}
-            style={styles.signOutButton}
-          >
-            Sign Out
-          </Button>
+          <View style={styles.signOut}>
+            <SettingsRow label="Sign Out" onPress={handleSignOut} />
+          </View>
         </View>
       </ScrollView>
     </View>
   );
 }
 
+// Spec: Figma frame 4335:1880 — serif Settings title, then divider-bounded
+// groups of plain text rows ("Label >") inset to x=50 on the 402pt frame,
+// with Sign Out as a bare row pinned near the bottom nav.
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "transparent",
   },
-  headerSpacer: {
-    height: 0,
-  },
   scrollView: {
     flex: 1,
     backgroundColor: "transparent",
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: BOTTOM_NAV_HEIGHT,
   },
   content: {
     flex: 1,
     maxWidth: 800,
     alignSelf: "center",
     width: "100%",
-    padding: 20,
-  },
-  scrollContent: {
-    paddingBottom: BOTTOM_NAV_HEIGHT,
-  },
-  header: {
-    marginBottom: 48,
+    paddingTop: 20,
+    paddingLeft: 50,
+    paddingRight: 52,
   },
   title: {
-    marginBottom: 8,
-    color: Colors.darks.black,
+    ...Typography.h1,
+    color: Colors.brand.darkTeal,
+    marginTop: 105,
   },
   subtitle: {
-    color: Colors.darks.black,
-    opacity: 0.9,
+    ...Typography.subhead,
+    color: Colors.brand.darkTeal,
+    marginTop: 12,
   },
-  cardsContainer: {
-    gap: 24,
+  list: {
+    marginTop: 39,
   },
-  signOutButton: {
-    marginTop: 32,
-    alignSelf: "center",
+  row: {
+    height: 56,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  rowPressed: {
+    opacity: 0.6,
+  },
+  rowLabel: {
+    ...Typography.subhead,
+    color: Colors.brand.darkTeal,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.white,
+  },
+  signOut: {
+    marginTop: "auto",
+    paddingTop: 40,
   },
   loadingText: {
     textAlign: "center",
-    color: "#666",
-    ...Typography.subhead,
+    color: Colors.darks.black,
+    opacity: 0.7,
   },
 });
