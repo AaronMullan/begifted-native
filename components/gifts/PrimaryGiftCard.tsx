@@ -77,15 +77,25 @@ export default function PrimaryGiftCard({
   const reportedLayout = useRef(false);
 
   // Reset the image lifecycle when the card is reused for a different
-  // suggestion. A missing url is a terminal outcome we log here; present urls
-  // resolve via onLoad/onError.
+  // suggestion. Done during render (not an effect) via stored previous values;
+  // present urls then resolve via onLoad/onError.
+  const [prevSuggestionId, setPrevSuggestionId] = useState(suggestion.id);
+  const [prevImageUrl, setPrevImageUrl] = useState(suggestion.image_url);
+  if (
+    suggestion.id !== prevSuggestionId ||
+    suggestion.image_url !== prevImageUrl
+  ) {
+    setPrevSuggestionId(suggestion.id);
+    setPrevImageUrl(suggestion.image_url);
+    setImageState(suggestion.image_url ? "pending" : "hidden");
+  }
+
+  // A missing url is a terminal outcome we log; logging is a real side effect,
+  // so it stays in an effect (no setState here).
   useEffect(() => {
     if (!suggestion.image_url) {
-      setImageState("hidden");
       logGiftImageOutcome({ suggestion, outcome: "no_image_url" });
-      return;
     }
-    setImageState("pending");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [suggestion.id, suggestion.image_url]);
 

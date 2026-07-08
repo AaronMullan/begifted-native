@@ -1,5 +1,5 @@
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -29,33 +29,38 @@ export function DataReviewView({
   onDataChange,
   onSave,
 }: DataReviewViewProps) {
-  // Store raw interests text separately to allow free typing
+  // Store raw interests text separately to allow free typing. Re-sync during
+  // render (not in an effect) when the incoming prop changes externally, using
+  // a stored previous value to detect the change — the documented alternative
+  // to a setState-in-effect sync.
   const [interestsText, setInterestsText] = useState(
     extractedData.interests ? extractedData.interests.join(", ") : ""
   );
-
-  // Sync interestsText when extractedData.interests changes externally
-  useEffect(() => {
+  const [prevInterests, setPrevInterests] = useState(extractedData.interests);
+  if (extractedData.interests !== prevInterests) {
+    setPrevInterests(extractedData.interests);
     setInterestsText(
       extractedData.interests ? extractedData.interests.join(", ") : ""
     );
-  }, [extractedData.interests]);
+  }
 
-  // Show the birthday in customary "Month Day, Year" form rather than raw ISO
-  // (DEV-178). Fall back to the raw value while it's mid-edit/unparseable so we
-  // never blank out what the user is typing; the save path normalizes it.
+  // Show the birthday in customary "Month Day, Year" form rather than raw ISO.
+  // Fall back to the raw value while it's mid-edit/unparseable so we never blank
+  // out what the user is typing; the save path normalizes it.
   const [birthdayText, setBirthdayText] = useState(
     formatBirthdayDisplay(extractedData.birthday) ||
       extractedData.birthday ||
       ""
   );
-  useEffect(() => {
+  const [prevBirthday, setPrevBirthday] = useState(extractedData.birthday);
+  if (extractedData.birthday !== prevBirthday) {
+    setPrevBirthday(extractedData.birthday);
     setBirthdayText(
       formatBirthdayDisplay(extractedData.birthday) ||
         extractedData.birthday ||
         ""
     );
-  }, [extractedData.birthday]);
+  }
 
   const updateField = (field: keyof ExtractedData, value: any) => {
     onDataChange({

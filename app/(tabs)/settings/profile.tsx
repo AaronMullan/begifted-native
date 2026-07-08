@@ -41,8 +41,11 @@ export default function ProfileSettings() {
     }
   }, [authLoading, user, router]);
 
-  // Sync form state when profile loads
-  useEffect(() => {
+  // Sync form state when the profile loads/changes. Done during render (not in
+  // an effect) via a stored previous value.
+  const [prevProfile, setPrevProfile] = useState(profile);
+  if (profile !== prevProfile) {
+    setPrevProfile(profile);
     if (profile) {
       const fetchedFullName = profile.full_name || profile.name || "";
       const fetchedCity = profile.billing_address_city || "";
@@ -57,7 +60,7 @@ export default function ProfileSettings() {
         state: fetchedState,
       });
     }
-  }, [profile]);
+  }
 
   async function handleSave() {
     if (!user) {

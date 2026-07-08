@@ -55,7 +55,9 @@ export function ConversationView({
   const [isSending, setIsSending] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
-  const keyboardOffset = useRef(new Animated.Value(0)).current;
+  // Lazy state init (not useRef().current) keeps the Animated.Value stable
+  // without reading a ref during render, which react-hooks/refs forbids.
+  const [keyboardOffset] = useState(() => new Animated.Value(0));
   const insets = useSafeAreaInsets();
   const inputBottomPadding = isKeyboardVisible
     ? Math.max(insets.bottom, 8)

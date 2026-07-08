@@ -193,30 +193,35 @@ export function useConversationFlow(
   // (DEV-134).
   const [pendingRetry, setPendingRetry] = useState<Message[] | null>(null);
 
-  // Seed the welcome message whenever the conversation is empty (first mount
+  // Stable timestamp for the seeded welcome message; a fresh Date() would be an
+  // impure call during the render-time seeding below.
+  const [welcomeTimestamp] = useState(() => new Date());
+
+  // Seed the welcome message whenever the conversation is pristine (first mount
   // and after resetConversation). While the chat is still pristine — just the
   // welcome, no user turn — keep it in sync with initialMessage, so a greeting
   // seeded before async data arrived (e.g. the recipient's name) gets the real
-  // value instead of a blank.
-  useEffect(() => {
-    const pristine =
-      messages.length === 0 ||
-      (messages.length === 1 &&
-        messages[0].role === "assistant" &&
-        messages[0].id === "1");
-    if (!pristine) return;
+  // value instead of a blank. Done during render (not an effect): the content
+  // guard makes it idempotent and the pristine check stops it after a reply.
+  const conversationPristine =
+    messages.length === 0 ||
+    (messages.length === 1 &&
+      messages[0].role === "assistant" &&
+      messages[0].id === "1");
+  if (conversationPristine) {
     const welcomeMessage =
       initialMessage || getDefaultWelcomeMessage(conversationType);
-    if (messages.length === 1 && messages[0].content === welcomeMessage) return;
-    setMessages([
-      {
-        id: "1",
-        role: "assistant",
-        content: welcomeMessage,
-        timestamp: new Date(),
-      },
-    ]);
-  }, [messages, initialMessage, conversationType]);
+    if (!(messages.length === 1 && messages[0].content === welcomeMessage)) {
+      setMessages([
+        {
+          id: "1",
+          role: "assistant",
+          content: welcomeMessage,
+          timestamp: welcomeTimestamp,
+        },
+      ]);
+    }
+  }
 
   // Sends an already-assembled conversation (ending at the user's turn) to the
   // edge function. Shared by sendMessage and retryLastSend so a manual retry

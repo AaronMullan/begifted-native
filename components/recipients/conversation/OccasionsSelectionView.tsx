@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { View, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
 import { Text, IconButton, Chip } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -42,8 +42,21 @@ export function OccasionsSelectionView({
     number | null
   >(null);
 
-  // Merge conversation-extracted occasions with interest-based AI recommendations
-  useEffect(() => {
+  // Merge conversation-extracted occasions with interest-based AI
+  // recommendations. Recomputed during render (not in an effect) via stored
+  // previous values whenever the inputs change.
+  const [prevOccasions, setPrevOccasions] = useState(extractedData.occasions);
+  const [prevBirthday, setPrevBirthday] = useState(extractedData.birthday);
+  const [prevRecommendations, setPrevRecommendations] =
+    useState(recommendations);
+  if (
+    extractedData.occasions !== prevOccasions ||
+    extractedData.birthday !== prevBirthday ||
+    recommendations !== prevRecommendations
+  ) {
+    setPrevOccasions(extractedData.occasions);
+    setPrevBirthday(extractedData.birthday);
+    setPrevRecommendations(recommendations);
     const merged: {
       date: string;
       occasion_type: string;
@@ -105,7 +118,7 @@ export function OccasionsSelectionView({
     });
 
     setSelectedOccasions(merged);
-  }, [extractedData.occasions, extractedData.birthday, recommendations]);
+  }
 
   const toggleOccasion = (index: number) => {
     setSelectedOccasions((prev) =>

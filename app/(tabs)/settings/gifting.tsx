@@ -42,17 +42,11 @@ export default function GiftingPreferences() {
     }
   }, [authLoading, user, router]);
 
-  useEffect(() => {
-    if (!user) {
-      setPreferencesLoading(false);
-      return;
-    }
-    fetchPreferences(user.id);
-  }, [user]);
-
   async function fetchPreferences(userId: string) {
+    // preferencesLoading starts true, so no synchronous setState is needed here
+    // — that would make the calling effect a set-state-in-effect violation. The
+    // finally below flips it off once the single mount-time load resolves.
     try {
-      setPreferencesLoading(true);
       const FETCH_TIMEOUT_MS = 15_000;
       const fetchPromise = supabase
         .from("user_preferences")
@@ -82,6 +76,18 @@ export default function GiftingPreferences() {
       setPreferencesLoading(false);
     }
   }
+
+  // Fetch preferences once the user resolves. The no-user case needs no
+  // synchronous setState: `loading` below treats "no user" as not loading, and
+  // the redirect effect above navigates away. The fetch runs past an await
+  // boundary so its setState calls aren't synchronous within the effect.
+  useEffect(() => {
+    if (!user) return;
+    const userId = user.id;
+    void (async () => {
+      await fetchPreferences(userId);
+    })();
+  }, [user]);
 
   async function extractUserSummary(text: string): Promise<string | undefined> {
     try {
@@ -168,7 +174,7 @@ export default function GiftingPreferences() {
 
   const hasChanges = giftingStyleText !== originalGiftingStyleText;
 
-  const loading = authLoading || preferencesLoading;
+  const loading = authLoading || (!!user && preferencesLoading);
   if (loading) {
     return (
       <View style={styles.container}>
