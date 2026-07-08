@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-BeGifted is a gift-planning mobile app built with Expo SDK 54, React Native 0.81, React 19, and TypeScript. It uses Supabase for auth/database, TanStack Query for server state, React Native Paper for UI, and Expo Router for file-based navigation.
+BeGifted is a gift-planning mobile app built with Expo SDK 57, React Native 0.86, React 19, and TypeScript. It uses Supabase for auth/database, TanStack Query for server state, React Native Paper for UI, and Expo Router for file-based navigation.
 
 ## Working Style
 
@@ -41,7 +41,11 @@ eas build --profile production --platform ios    # Production
 eas update --branch production                    # OTA update
 ```
 
-No test framework is currently configured.
+Tests use Jest + React Native Testing Library (`npm test`); Deno tests cover edge functions.
+
+### Node toolchain — pin to Node 20
+
+CI runs on **Node 20 / npm 10.8.2** (see `.github/workflows/ci.yml`; `.nvmrc` pins it — run `nvm use`). Generate `package-lock.json` with this toolchain only. Running `npm install` under a newer Node/npm (e.g. Node 24 / npm 11) rewrites the lockfile into a tree that CI's strict `npm ci` rejects with `EUSAGE … Missing: <pkg> from lock file` — even though `npm ci` passes locally under the newer npm. If CI fails there after a merge or dependency change, `nvm use` then `rm -rf node_modules package-lock.json && npm install` to regenerate a Node-20-consistent lockfile.
 
 ## Architecture
 
