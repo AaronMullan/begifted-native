@@ -1,13 +1,12 @@
-import {
-  View,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  Pressable,
-} from "react-native";
+import { View, ScrollView, StyleSheet, Pressable } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
-import { IconButton, Text, ActivityIndicator } from "react-native-paper";
+import {
+  IconButton,
+  Text,
+  ActivityIndicator,
+  TouchableRipple,
+} from "react-native-paper";
 import { BlurView } from "expo-blur";
 import { Colors } from "../lib/colors";
 import { Typography } from "../lib/typography";
@@ -46,14 +45,14 @@ export default function FAQ() {
             <IconButton
               icon="arrow-left"
               size={20}
-              iconColor="#000000"
+              iconColor={Colors.black}
               onPress={() => router.back()}
               style={styles.backButton}
             />
           </View>
           {isLoading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#000000" />
+              <ActivityIndicator size="large" color={Colors.black} />
               <Text variant="bodyMedium" style={styles.loadingText}>
                 Loading FAQ…
               </Text>
@@ -68,12 +67,12 @@ export default function FAQ() {
                 <Pressable key={i} style={styles.faqItem}>
                   <BlurView intensity={20} style={styles.blurBackground} />
                   <View style={styles.faqContent}>
-                    <TouchableOpacity
+                    <TouchableRipple
                       onPress={() => toggleFAQ(i)}
                       style={styles.question}
                     >
                       <Text style={styles.questionText}>{faq.q}</Text>
-                    </TouchableOpacity>
+                    </TouchableRipple>
                     {expandedIndex === i && (
                       <Text style={styles.answer}>{faq.a}</Text>
                     )}

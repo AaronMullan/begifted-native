@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
-import { supabase } from "./supabase";
+import { deletePushToken, upsertPushToken } from "./api";
 
 /**
  * Register for push notifications and store the token in Supabase.
@@ -41,20 +41,11 @@ export async function registerForPushNotifications(
 
   const platform = Platform.OS as "ios" | "android";
 
-  const { error } = await supabase.from("user_push_tokens").upsert(
-    {
-      user_id: userId,
-      token: tokenData,
-      platform,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "token" }
-  );
-
-  if (error) {
-    console.error("[push] Failed to store push token:", error);
-  } else {
+  try {
+    await upsertPushToken({ user_id: userId, token: tokenData, platform });
     console.log("[push] Push token registered:", tokenData);
+  } catch (error) {
+    console.error("[push] Failed to store push token:", error);
   }
 }
 
@@ -75,16 +66,8 @@ export async function unregisterPushToken(): Promise<void> {
       projectId,
     });
 
-    const { error } = await supabase
-      .from("user_push_tokens")
-      .delete()
-      .eq("token", tokenData);
-
-    if (error) {
-      console.error("[push] Failed to delete push token:", error);
-    } else {
-      console.log("[push] Push token unregistered");
-    }
+    await deletePushToken(tokenData);
+    console.log("[push] Push token unregistered");
   } catch (error) {
     console.error("[push] Error during token unregistration:", error);
   }

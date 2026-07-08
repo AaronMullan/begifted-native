@@ -65,5 +65,18 @@ export const Colors = {
 
   // Common colors
   white: "#FFFFFF",
+  black: "#000000",
   transparent: "transparent",
+
+  // Neutral grays used by pre-redesign screens. Prefer brand tokens for new
+  // UI; these exist so legacy screens don't hardcode hex.
+  grays: {
+    dark: "#333333",
+    text: "#666666",
+    placeholder: "#999999",
+    border: "#E0E0E0",
+    hairline: "#f0f0f0",
+    field: "#f5f5f5",
+    surface: "#f8f8f8",
+  },
 } as const;

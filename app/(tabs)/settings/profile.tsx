@@ -2,7 +2,6 @@ import {
   View,
   ScrollView,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Keyboard,
   Platform,
@@ -93,7 +92,7 @@ export default function ProfileSettings() {
         state: trimmedState,
       });
 
-      Alert.alert("Success", "Profile updated successfully!");
+      showSnackbar("Profile updated.");
     } catch {
       // Logged and surfaced (snackbar) by the shared mutation handler; the
       // catch only keeps the success path from running.

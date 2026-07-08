@@ -1,4 +1,4 @@
-import { View, StyleSheet, TouchableOpacity } from "react-native";
+import { View, StyleSheet, Pressable } from "react-native";
 import { Text } from "react-native-paper";
 import { Link, usePathname } from "expo-router";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
@@ -73,7 +73,7 @@ export default function BottomNav() {
             const tint = isActive ? Colors.blues.dark : Colors.white;
             return (
               <Link key={item.key} href={item.href} asChild>
-                <TouchableOpacity
+                <Pressable
                   accessibilityRole="button"
                   accessibilityState={{ selected: isActive }}
                   style={styles.navItem}
@@ -93,7 +93,7 @@ export default function BottomNav() {
                   >
                     {item.label}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               </Link>
             );
           })}

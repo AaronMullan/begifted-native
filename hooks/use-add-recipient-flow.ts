@@ -3,7 +3,7 @@ import * as Sentry from "@sentry/react-native";
 import * as FileSystem from "expo-file-system/legacy";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert, View } from "react-native";
 import { invokeWithRetry } from "../lib/edge-retry";
 import { queryKeys } from "../lib/query-keys";
@@ -237,144 +237,138 @@ export function useAddRecipientFlow(
   });
 
   // Define saveRecipient FIRST so it can be used by other callbacks
-  const saveRecipient = useCallback(
-    async (data: ExtractedData) => {
-      if (!userId) {
-        Alert.alert("Error", "User not authenticated");
-        return;
+  const saveRecipient = async (data: ExtractedData) => {
+    if (!userId) {
+      Alert.alert("Error", "User not authenticated");
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const photoUri = cachedPhotoUri.current;
+      if (!photoUri) {
+        Sentry.addBreadcrumb({
+          category: "flow",
+          message: "photo_skipped_at_save",
+          level: "info",
+          data: {
+            flow: "add_recipient",
+            step: "photo_skip",
+          },
+        });
       }
+      const photoUrl = photoUri ? await uploadRecipientPhoto(photoUri) : null;
 
-      setIsSaving(true);
+      // Prepare recipient data
+      const recipientData = {
+        user_id: userId,
+        name: data.name!.trim(),
+        relationship_type: data.relationship_type!.trim(),
+        interests:
+          data.interests && data.interests.length > 0 ? data.interests : null,
+        birthday: normalizeBirthday(data.birthday),
+        emotional_tone_preference:
+          data.emotional_tone_preference?.trim() || null,
+        gift_budget_min: data.gift_budget_min || null,
+        gift_budget_max: data.gift_budget_max || null,
+        address: data.address?.trim() || null,
+        address_line_2: data.address_line_2?.trim() || null,
+        city: data.city?.trim() || null,
+        state: data.state?.trim() || null,
+        zip_code: data.zip_code?.trim() || null,
+        country: data.country?.trim() || "US",
+        photo_url: photoUrl,
+      };
 
-      try {
-        const photoUri = cachedPhotoUri.current;
-        if (!photoUri) {
-          Sentry.addBreadcrumb({
-            category: "flow",
-            message: "photo_skipped_at_save",
-            level: "info",
-            data: {
-              flow: "add_recipient",
-              step: "photo_skip",
-            },
-          });
-        }
-        const photoUrl = photoUri ? await uploadRecipientPhoto(photoUri) : null;
+      // Insert recipient
+      const { data: recipient, error: recipientError } = await supabase
+        .from("recipients")
+        .insert([recipientData])
+        .select()
+        .single();
 
-        // Prepare recipient data
-        const recipientData = {
+      if (recipientError) throw recipientError;
+
+      // Create occasions if provided (includes birthday if it was extracted as an occasion)
+      if (data.occasions && data.occasions.length > 0 && recipient) {
+        const occasionsData = data.occasions.map((occasion) => ({
           user_id: userId,
-          name: data.name!.trim(),
-          relationship_type: data.relationship_type!.trim(),
-          interests:
-            data.interests && data.interests.length > 0 ? data.interests : null,
-          birthday: normalizeBirthday(data.birthday),
-          emotional_tone_preference:
-            data.emotional_tone_preference?.trim() || null,
-          gift_budget_min: data.gift_budget_min || null,
-          gift_budget_max: data.gift_budget_max || null,
-          address: data.address?.trim() || null,
-          address_line_2: data.address_line_2?.trim() || null,
-          city: data.city?.trim() || null,
-          state: data.state?.trim() || null,
-          zip_code: data.zip_code?.trim() || null,
-          country: data.country?.trim() || "US",
-          photo_url: photoUrl,
-        };
+          recipient_id: recipient.id,
+          date: occasion.date,
+          occasion_type: occasion.occasion_type || "custom",
+        }));
 
-        // Insert recipient
-        const { data: recipient, error: recipientError } = await supabase
-          .from("recipients")
-          .insert([recipientData])
-          .select()
-          .single();
+        const { error: occasionsError } = await supabase
+          .from("occasions")
+          .insert(occasionsData);
 
-        if (recipientError) throw recipientError;
-
-        // Create occasions if provided (includes birthday if it was extracted as an occasion)
-        if (data.occasions && data.occasions.length > 0 && recipient) {
-          const occasionsData = data.occasions.map((occasion) => ({
-            user_id: userId,
-            recipient_id: recipient.id,
-            date: occasion.date,
-            occasion_type: occasion.occasion_type || "custom",
-          }));
-
-          const { error: occasionsError } = await supabase
-            .from("occasions")
-            .insert(occasionsData);
-
-          if (occasionsError) {
-            console.error("Error creating occasions:", occasionsError);
-            // Don't fail the whole operation if occasions fail
-          }
+        if (occasionsError) {
+          console.error("Error creating occasions:", occasionsError);
+          // Don't fail the whole operation if occasions fail
         }
-
-        // Invalidate cache so dashboard, contacts, and calendar show the new recipient
-        await queryClient.invalidateQueries({
-          queryKey: queryKeys.recipients(userId),
-        });
-        await queryClient.invalidateQueries({
-          queryKey: queryKeys.occasions(userId),
-        });
-
-        // Trigger success haptic feedback
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-        // Show success immediately — background work happens after
-        setSavedRecipientName(data.name || "Recipient");
-        setSavedRecipientId(recipient.id);
-        setSaveSuccess(true);
-
-        // Fire-and-forget: synthesize-recipient-profile runs on the server,
-        // chains to gift generation itself (which honors the kill switch),
-        // and updates the DB. We dispatch the request and return immediately
-        // so iOS can't kill the JS task before the long server-side chain
-        // (synthesis + gift gen ~60s) finishes.
-        if (recipient?.id) {
-          supabase.functions
-            .invoke("synthesize-recipient-profile", {
-              body: { recipientId: recipient.id },
-            })
-            .catch((err) => {
-              console.error("Failed to trigger profile synthesis:", err);
-              Sentry.captureException(err, {
-                tags: {
-                  flow: "add_recipient",
-                  step: "synthesize_profile",
-                  edge_function: "synthesize-recipient-profile",
-                },
-              });
-            });
-        }
-      } catch (error) {
-        console.error("Error saving recipient:", error);
-        Sentry.captureException(error, {
-          tags: { flow: "add_recipient", step: "save" },
-        });
-        Alert.alert(
-          "Error",
-          error instanceof Error
-            ? error.message
-            : "Failed to save recipient. Please try again."
-        );
-      } finally {
-        setIsSaving(false);
       }
-    },
-    [userId, router, queryClient, cachedPhotoUri]
-  );
+
+      // Invalidate cache so dashboard, contacts, and calendar show the new recipient
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.recipients(userId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.occasions(userId),
+      });
+
+      // Trigger success haptic feedback
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      // Show success immediately — background work happens after
+      setSavedRecipientName(data.name || "Recipient");
+      setSavedRecipientId(recipient.id);
+      setSaveSuccess(true);
+
+      // Fire-and-forget: synthesize-recipient-profile runs on the server,
+      // chains to gift generation itself (which honors the kill switch),
+      // and updates the DB. We dispatch the request and return immediately
+      // so iOS can't kill the JS task before the long server-side chain
+      // (synthesis + gift gen ~60s) finishes.
+      if (recipient?.id) {
+        supabase.functions
+          .invoke("synthesize-recipient-profile", {
+            body: { recipientId: recipient.id },
+          })
+          .catch((err) => {
+            console.error("Failed to trigger profile synthesis:", err);
+            Sentry.captureException(err, {
+              tags: {
+                flow: "add_recipient",
+                step: "synthesize_profile",
+                edge_function: "synthesize-recipient-profile",
+              },
+            });
+          });
+      }
+    } catch (error) {
+      console.error("Error saving recipient:", error);
+      Sentry.captureException(error, {
+        tags: { flow: "add_recipient", step: "save" },
+      });
+      Alert.alert(
+        "Error",
+        error instanceof Error
+          ? error.message
+          : "Failed to save recipient. Please try again."
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Wrap generic sendMessage to maintain interface
-  const sendMessage = useCallback(
-    async (message: string) => {
-      await genericSendMessage(message);
-    },
-    [genericSendMessage]
-  );
+  const sendMessage = async (message: string) => {
+    await genericSendMessage(message);
+  };
 
   // Wrap generic handleFinishConversation with validation and flow logic
-  const handleFinishConversation = useCallback(async (): Promise<boolean> => {
+  const handleFinishConversation = async (): Promise<boolean> => {
     const extracted = await genericHandleFinishConversation();
 
     if (extracted && extracted.name && extracted.relationship_type) {
@@ -412,9 +406,9 @@ export function useAddRecipientFlow(
     }
 
     return false;
-  }, [genericHandleFinishConversation, genericSetExtractedData]);
+  };
 
-  const handleDataReviewContinue = useCallback(async () => {
+  const handleDataReviewContinue = async () => {
     if (
       !extractedData ||
       !extractedData.name ||
@@ -427,42 +421,41 @@ export function useAddRecipientFlow(
     // Always show occasions selection so users can add birthday,
     // holidays, and other occasions even if birthday wasn't extracted
     setShowOccasionsSelection(true);
-  }, [extractedData, saveRecipient]);
+  };
 
-  const handleOccasionsBack = useCallback(() => {
+  const handleOccasionsBack = () => {
     setShowOccasionsSelection(false);
-  }, []);
+  };
 
-  const handleOccasionsContinue = useCallback(
-    async (occasions: NonNullable<ExtractedData["occasions"]>) => {
-      if (!extractedData) return;
+  const handleOccasionsContinue = async (
+    occasions: NonNullable<ExtractedData["occasions"]>
+  ) => {
+    if (!extractedData) return;
 
-      const dataWithOccasions = {
-        ...extractedData,
-        occasions,
-      };
+    const dataWithOccasions = {
+      ...extractedData,
+      occasions,
+    };
 
-      await saveRecipient(dataWithOccasions);
-    },
-    [extractedData, saveRecipient]
-  );
+    await saveRecipient(dataWithOccasions);
+  };
 
-  const handleOccasionsSkip = useCallback(async () => {
+  const handleOccasionsSkip = async () => {
     if (!extractedData) return;
     await saveRecipient(extractedData);
-  }, [extractedData, saveRecipient]);
+  };
 
-  const handleNavigateBack = useCallback(() => {
+  const handleNavigateBack = () => {
     router.back();
-  }, [router]);
+  };
 
-  const handleViewRecipients = useCallback(() => {
+  const handleViewRecipients = () => {
     if (savedRecipientId) {
       router.replace(`/contacts/${savedRecipientId}?tab=gifts&generating=true`);
     } else {
       router.replace("/contacts");
     }
-  }, [router, savedRecipientId]);
+  };
 
   // Background enrichment of occasions with dates
   useEffect(() => {
@@ -499,12 +492,9 @@ export function useAddRecipientFlow(
   }, [extractedData, genericSetExtractedData]);
 
   // Wrapper for setExtractedData to maintain interface
-  const setExtractedData = useCallback(
-    (data: ExtractedData | null) => {
-      genericSetExtractedData(data);
-    },
-    [genericSetExtractedData]
-  );
+  const setExtractedData = (data: ExtractedData | null) => {
+    genericSetExtractedData(data);
+  };
 
   return {
     messages,

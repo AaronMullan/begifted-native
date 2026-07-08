@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import * as Sentry from "@sentry/react-native";
 import { supabase } from "../lib/supabase";
 import { Alert, View } from "react-native";
@@ -221,124 +221,116 @@ export function useConversationFlow(
   // Sends an already-assembled conversation (ending at the user's turn) to the
   // edge function. Shared by sendMessage and retryLastSend so a manual retry
   // doesn't re-append the user turn.
-  const sendConversationTurn = useCallback(
-    async (convo: Message[]) => {
-      setIsLoading(true);
+  const sendConversationTurn = async (convo: Message[]) => {
+    setIsLoading(true);
 
-      try {
-        // Get session for auth
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+    try {
+      // Get session for auth
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-        if (!session) {
-          throw new Error("Not authenticated");
-        }
-
-        // Prepare request body
-        const requestBody: ConversationRequestBody = {
-          action: "conversation",
-          conversationType,
-          messages: convo.map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-        };
-
-        // Add optional fields if provided
-        if (targetFields && targetFields.length > 0) {
-          requestBody.targetFields = targetFields;
-        }
-        if (existingData) {
-          requestBody.existingData = existingData;
-        }
-
-        // Call Supabase Edge Function for conversation (retries transient
-        // network/5xx failures with backoff before surfacing an error).
-        const { data, error } = await invokeWithRetry<ConversationReply>(
-          "recipient-conversation",
-          {
-            body: requestBody,
-          }
-        );
-
-        if (error) {
-          console.error("Supabase function error:", error);
-          console.error("Error details:", JSON.stringify(error, null, 2));
-          throw error;
-        }
-
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content: data?.reply || "I understand. Tell me more.",
-          timestamp: new Date(),
-        };
-
-        setMessages((prev) => [...prev, assistantMessage]);
-        setConversationContext(
-          data?.conversationContext || conversationContext
-        );
-        setShouldShowNextStepButton(data?.shouldShowNextStepButton || false);
-        setPendingRetry(null);
-      } catch (error) {
-        console.error("Error sending message:", error);
-        console.error("Error details:", JSON.stringify(error, null, 2));
-        if (!isBackgroundCancelledFetch(error)) {
-          Sentry.captureException(error, {
-            tags: {
-              edge_function: "recipient-conversation",
-              action: "conversation",
-              conversationType,
-            },
-          });
-        }
-
-        const errorMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content: "Sorry, I hit an error sending that.",
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, errorMessage]);
-        // Retries are already exhausted inside invokeWithRetry — surface a
-        // manual "Try again" CTA (DEV-134) instead of a dead-end Alert.
-        setPendingRetry(convo);
-      } finally {
-        setIsLoading(false);
+      if (!session) {
+        throw new Error("Not authenticated");
       }
-    },
-    [conversationContext, conversationType, targetFields, existingData]
-  );
 
-  const sendMessage = useCallback(
-    async (message: string) => {
-      if (!message.trim() || isLoading) return;
+      // Prepare request body
+      const requestBody: ConversationRequestBody = {
+        action: "conversation",
+        conversationType,
+        messages: convo.map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
+      };
 
-      const userMessage: Message = {
-        id: Date.now().toString(),
-        role: "user",
-        content: message.trim(),
+      // Add optional fields if provided
+      if (targetFields && targetFields.length > 0) {
+        requestBody.targetFields = targetFields;
+      }
+      if (existingData) {
+        requestBody.existingData = existingData;
+      }
+
+      // Call Supabase Edge Function for conversation (retries transient
+      // network/5xx failures with backoff before surfacing an error).
+      const { data, error } = await invokeWithRetry<ConversationReply>(
+        "recipient-conversation",
+        {
+          body: requestBody,
+        }
+      );
+
+      if (error) {
+        console.error("Supabase function error:", error);
+        console.error("Error details:", JSON.stringify(error, null, 2));
+        throw error;
+      }
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: data?.reply || "I understand. Tell me more.",
         timestamp: new Date(),
       };
 
-      const convo = [...messages, userMessage];
-      setMessages(convo);
+      setMessages((prev) => [...prev, assistantMessage]);
+      setConversationContext(data?.conversationContext || conversationContext);
+      setShouldShowNextStepButton(data?.shouldShowNextStepButton || false);
       setPendingRetry(null);
-      await sendConversationTurn(convo);
-    },
-    [messages, isLoading, sendConversationTurn]
-  );
+    } catch (error) {
+      console.error("Error sending message:", error);
+      console.error("Error details:", JSON.stringify(error, null, 2));
+      if (!isBackgroundCancelledFetch(error)) {
+        Sentry.captureException(error, {
+          tags: {
+            edge_function: "recipient-conversation",
+            action: "conversation",
+            conversationType,
+          },
+        });
+      }
+
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "Sorry, I hit an error sending that.",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      // Retries are already exhausted inside invokeWithRetry — surface a
+      // manual "Try again" CTA (DEV-134) instead of a dead-end Alert.
+      setPendingRetry(convo);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const sendMessage = async (message: string) => {
+    if (!message.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: message.trim(),
+      timestamp: new Date(),
+    };
+
+    const convo = [...messages, userMessage];
+    setMessages(convo);
+    setPendingRetry(null);
+    await sendConversationTurn(convo);
+  };
 
   // Re-send the last failed turn. Resetting messages to the stashed
   // conversation drops the error bubble that was appended after the failure.
-  const retryLastSend = useCallback(async () => {
+  const retryLastSend = async () => {
     if (!pendingRetry || isLoading) return;
     const convo = pendingRetry;
     setMessages(convo);
     setPendingRetry(null);
     await sendConversationTurn(convo);
-  }, [pendingRetry, isLoading, sendConversationTurn]);
+  };
 
   // When initialUserMessage is set, send it once after the welcome message is shown
   useEffect(() => {
@@ -352,114 +344,106 @@ export function useConversationFlow(
     }
   }, [initialUserMessage, messages.length, sendMessage]);
 
-  const handleFinishConversation =
-    useCallback(async (): Promise<ExtractedData | null> => {
-      setIsLoading(true);
-      try {
-        // Get session for auth
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+  const handleFinishConversation = async (): Promise<ExtractedData | null> => {
+    setIsLoading(true);
+    try {
+      // Get session for auth
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-        if (!session) {
-          throw new Error("Not authenticated");
-        }
-
-        // Prepare request body
-        const requestBody: ConversationRequestBody = {
-          action: "extract",
-          conversationType,
-          messages: messages.map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-        };
-
-        // Add optional fields if provided
-        if (targetFields && targetFields.length > 0) {
-          requestBody.targetFields = targetFields;
-        }
-        if (existingData) {
-          requestBody.existingData = existingData;
-        }
-
-        // Call Supabase Edge Function for data extraction (retries transient
-        // network/5xx failures with backoff before surfacing an error).
-        const { data, error } = await invokeWithRetry<ExtractResponse>(
-          "recipient-conversation",
-          {
-            body: requestBody,
-          }
-        );
-
-        if (error) {
-          console.error("Supabase function error:", error);
-          console.error("Error details:", JSON.stringify(error, null, 2));
-          throw error;
-        }
-
-        // The Edge Function returns { extractedData }
-        const rawExtracted = data?.extractedData || data;
-
-        if (rawExtracted) {
-          const extracted = sanitizeExtractedBirthday(rawExtracted);
-          setExtractedData(extracted);
-
-          // Call success callback if provided
-          if (onExtractSuccess) {
-            onExtractSuccess(extracted);
-          }
-
-          return extracted;
-        }
-
-        return null;
-      } catch (error) {
-        console.error("Error finishing conversation:", error);
-        console.error("Error details:", JSON.stringify(error, null, 2));
-        if (!isBackgroundCancelledFetch(error)) {
-          Sentry.captureException(error, {
-            tags: {
-              edge_function: "recipient-conversation",
-              action: "extract",
-              conversationType,
-            },
-          });
-        }
-
-        const errorMsg =
-          error instanceof Error
-            ? error.message
-            : "Failed to extract data. Please try again.";
-
-        // Call error callback if provided
-        if (onExtractError) {
-          onExtractError(error instanceof Error ? error : new Error(errorMsg));
-        } else {
-          Alert.alert("Error", errorMsg);
-        }
-
-        return null;
-      } finally {
-        setIsLoading(false);
+      if (!session) {
+        throw new Error("Not authenticated");
       }
-    }, [
-      messages,
-      conversationType,
-      targetFields,
-      existingData,
-      onExtractSuccess,
-      onExtractError,
-    ]);
 
-  const resetConversation = useCallback(() => {
+      // Prepare request body
+      const requestBody: ConversationRequestBody = {
+        action: "extract",
+        conversationType,
+        messages: messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
+      };
+
+      // Add optional fields if provided
+      if (targetFields && targetFields.length > 0) {
+        requestBody.targetFields = targetFields;
+      }
+      if (existingData) {
+        requestBody.existingData = existingData;
+      }
+
+      // Call Supabase Edge Function for data extraction (retries transient
+      // network/5xx failures with backoff before surfacing an error).
+      const { data, error } = await invokeWithRetry<ExtractResponse>(
+        "recipient-conversation",
+        {
+          body: requestBody,
+        }
+      );
+
+      if (error) {
+        console.error("Supabase function error:", error);
+        console.error("Error details:", JSON.stringify(error, null, 2));
+        throw error;
+      }
+
+      // The Edge Function returns { extractedData }
+      const rawExtracted = data?.extractedData || data;
+
+      if (rawExtracted) {
+        const extracted = sanitizeExtractedBirthday(rawExtracted);
+        setExtractedData(extracted);
+
+        // Call success callback if provided
+        if (onExtractSuccess) {
+          onExtractSuccess(extracted);
+        }
+
+        return extracted;
+      }
+
+      return null;
+    } catch (error) {
+      console.error("Error finishing conversation:", error);
+      console.error("Error details:", JSON.stringify(error, null, 2));
+      if (!isBackgroundCancelledFetch(error)) {
+        Sentry.captureException(error, {
+          tags: {
+            edge_function: "recipient-conversation",
+            action: "extract",
+            conversationType,
+          },
+        });
+      }
+
+      const errorMsg =
+        error instanceof Error
+          ? error.message
+          : "Failed to extract data. Please try again.";
+
+      // Call error callback if provided
+      if (onExtractError) {
+        onExtractError(error instanceof Error ? error : new Error(errorMsg));
+      } else {
+        Alert.alert("Error", errorMsg);
+      }
+
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetConversation = () => {
     setMessages([]);
     setExtractedData(null);
     setConversationContext(null);
     setShouldShowNextStepButton(false);
     setIsLoading(false);
     setPendingRetry(null);
-  }, []);
+  };
 
   return {
     messages,

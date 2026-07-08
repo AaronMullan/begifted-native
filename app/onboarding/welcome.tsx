@@ -3,7 +3,7 @@ import { Text, Button } from "react-native-paper";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../lib/colors";
-import { Typography } from "../../lib/typography";
+import { FontFamily, Typography } from "../../lib/typography";
 
 export default function OnboardingWelcome() {
   const router = useRouter();
@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   headline: {
     color: Colors.darks.black,
     marginBottom: 16,
-    fontFamily: "Fraunces_400Regular",
+    fontFamily: FontFamily.fraunces.regular,
   },
   body: {
     color: Colors.darks.black,
