@@ -34,6 +34,24 @@ Return ONLY valid JSON:
   "synthesized_giver_profile": "3-5 sentence profile here"
 }`;
 
+type SynthesizeGiverProfileRequest = { userId?: unknown };
+
+/**
+ * Stored user_preferences.user_summary JSONB, written by
+ * extract-user-preferences (see its UserSummaryPayload). Older rows may hold
+ * a plain string where an array is expected — joinField accepts both.
+ */
+type StoredUserSummary = {
+  user_summary?: string;
+  taste_and_world?: string[] | string;
+  care_and_relationship_style?: string[] | string;
+  giver_style_implications?: string[] | string;
+  things_to_avoid?: string[] | string;
+};
+
+type RecipientRow = { id: string; relationship_type: string | null };
+type SuggestionRow = { price: number | null };
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -43,7 +61,7 @@ serve(async (req) => {
     const { user, errorResponse } = await requireUser(req, corsHeaders);
     if (errorResponse) return errorResponse;
 
-    const { userId } = await req.json();
+    const { userId } = (await req.json()) as SynthesizeGiverProfileRequest;
 
     if (!userId || typeof userId !== "string") {
       return new Response(
@@ -76,7 +94,7 @@ serve(async (req) => {
 
     const userDescription = prefs?.user_description ?? "";
     const userSummary =
-      (prefs?.user_summary as Record<string, any> | null) ?? null;
+      (prefs?.user_summary as StoredUserSummary | null) ?? null;
 
     if (!userDescription && !userSummary) {
       return new Response(
@@ -95,7 +113,7 @@ serve(async (req) => {
       .eq("user_id", userId);
 
     let historyContext = "";
-    const recipientIds = (recipients ?? []).map((r: any) => r.id);
+    const recipientIds = (recipients ?? []).map((r: RecipientRow) => r.id);
 
     if (recipientIds.length > 0) {
       const { data: suggestions } = await supabase
@@ -105,8 +123,8 @@ serve(async (req) => {
 
       if (suggestions && suggestions.length > 0) {
         const prices = suggestions
-          .map((s: any) => s.price)
-          .filter((p: any) => p != null && p > 0);
+          .map((s: SuggestionRow) => s.price)
+          .filter((p): p is number => p != null && p > 0);
 
         const avgPrice =
           prices.length > 0
@@ -121,7 +139,7 @@ serve(async (req) => {
         const uniqueRelationships = [
           ...new Set(
             (recipients ?? [])
-              .map((r: any) => r.relationship_type)
+              .map((r: RecipientRow) => r.relationship_type)
               .filter(Boolean)
           ),
         ];
@@ -138,7 +156,7 @@ serve(async (req) => {
       }
     }
 
-    const joinField = (v: any): string =>
+    const joinField = (v: unknown): string =>
       Array.isArray(v) ? v.join("; ") : typeof v === "string" ? v : "";
 
     const giftingContext = userSummary
@@ -189,7 +207,9 @@ serve(async (req) => {
       cleanContent = cleanContent.replace(/^```\s*/, "").replace(/\s*```$/, "");
     }
 
-    const parsed = JSON.parse(cleanContent);
+    const parsed = JSON.parse(cleanContent) as {
+      synthesized_giver_profile?: unknown;
+    };
     const profile =
       typeof parsed.synthesized_giver_profile === "string"
         ? parsed.synthesized_giver_profile
