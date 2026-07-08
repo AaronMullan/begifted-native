@@ -24,7 +24,6 @@ import { useAddOccasionFlow } from "../../../hooks/use-add-occasion-flow";
 import { useConversationFlow } from "../../../hooks/use-conversation-flow";
 import { useUserPreferences } from "../../../hooks/use-user-preferences";
 import { formatShortName } from "../../../lib/format-name";
-import { fetchOccasionDateTypePairs, insertOccasions } from "../../../lib/api";
 import { useToast } from "../../../hooks/use-toast";
 import {
   backfillBirthdayFromAge,
@@ -77,10 +76,16 @@ async function persistUpdateChatOccasions(
     `${date}::${(type || "custom").toLowerCase()}`;
 
   try {
-    const existing = await fetchOccasionDateTypePairs(userId, recipientId);
+    const { data: existing } = await supabase
+      .from("occasions")
+      .select("date, occasion_type")
+      .eq("recipient_id", recipientId)
+      .eq("user_id", userId);
 
     const seen = new Set(
-      existing.map((o) => occasionKey(o.date, o.occasion_type ?? "custom"))
+      (existing ?? []).map((o) =>
+        occasionKey(o.date, o.occasion_type ?? "custom")
+      )
     );
 
     const rows = candidates
@@ -99,7 +104,11 @@ async function persistUpdateChatOccasions(
 
     if (rows.length === 0) return 0;
 
-    await insertOccasions(rows);
+    const { error } = await supabase.from("occasions").insert(rows);
+    if (error) {
+      console.error("Failed to persist occasions from update chat:", error);
+      return 0;
+    }
     return rows.length;
   } catch (error) {
     console.error("Failed to persist occasions from update chat:", error);

@@ -332,40 +332,6 @@ export async function createOccasion(
 }
 
 /**
- * Fetch just the (date, occasion_type) pairs of a recipient's occasions —
- * enough for callers to de-duplicate before a batch insert.
- */
-export async function fetchOccasionDateTypePairs(
-  userId: string,
-  recipientId: string
-): Promise<{ date: string; occasion_type: string | null }[]> {
-  const { data, error } = await supabase
-    .from("occasions")
-    .select("date, occasion_type")
-    .eq("recipient_id", recipientId)
-    .eq("user_id", userId);
-
-  if (error) throw error;
-  return data || [];
-}
-
-/**
- * Batch-insert occasions.
- */
-export async function insertOccasions(
-  rows: {
-    user_id: string;
-    recipient_id: string;
-    date: string;
-    occasion_type: string;
-  }[]
-): Promise<void> {
-  const { error } = await supabase.from("occasions").insert(rows);
-
-  if (error) throw error;
-}
-
-/**
  * Delete a single occasion
  */
 export async function deleteOccasion(occasionId: string): Promise<void> {
