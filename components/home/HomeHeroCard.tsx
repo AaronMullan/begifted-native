@@ -14,6 +14,7 @@ import {
 } from "../../utils/home-occasions";
 import { formatOccasionDate } from "../../utils/occasion-dates";
 import OccasionAvatar from "./OccasionAvatar";
+import OccasionOverflowMenu from "./OccasionOverflowMenu";
 
 type HomeHeroCardProps = {
   occasion: Occasion;
@@ -67,13 +68,15 @@ export default function HomeHeroCard({ occasion }: HomeHeroCardProps) {
           <Text style={styles.ctaText}>View gift ideas</Text>
           <MaterialIcons name="chevron-right" size={14} color={Colors.white} />
         </View>
+        <OccasionOverflowMenu occasion={occasion} dotColor={Colors.white} />
       </View>
     </Pressable>
   );
 }
 
-// Spec: Figma frame 4305:1504 "Event container" (360x230, dark teal, radius 12).
-// 45px avatar top-left, eyebrow + H1 headline, large CTA pinned to the bottom.
+// Spec: Figma frame 4302:1538 "Event container" (360x230, dark teal, radius
+// 12). 45px avatar top-left, eyebrow + H1 headline, large CTA pinned to the
+// bottom with white overflow dots at the right.
 const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.brand.darkTeal,

@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 40,
+    minHeight: 44,
     borderRadius: Radii.md,
     backgroundColor: Colors.brand.mediumTeal,
     paddingHorizontal: 16,
