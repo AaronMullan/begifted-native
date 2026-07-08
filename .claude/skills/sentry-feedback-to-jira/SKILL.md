@@ -29,7 +29,14 @@ For each genuine item, draft:
 - **Priority** — your read of severity × reach. A reported crash outranks a copy nit.
 - **Description** — what the user reported (quote the relevant feedback line), which screen/flow it concerns, and any acceptance criteria you can infer. Include the Sentry feedback URL as the source.
 - **Locate the screen (light touch).** Grep the codebase for the relevant route/component so the ticket points whoever implements at a concrete file (`path:line`). This is orientation, not root-cause — don't fan out a `/triage`-style investigation; one or two pointers is enough.
-- **Dedup check** — `jira_search` (project `DEV`) for an existing open ticket matching the item by keyword/signature **before** proposing a new one. Feedback often overlaps prior tickets (DEV-200/DEV-201 came from earlier sweeps) — if an _open_ one exists, map to that key instead of drafting a duplicate.
+- **Dedup check** — search Jira via REST for an existing open ticket matching the item by keyword/signature **before** proposing a new one:
+
+  ````bash
+  .claude/scripts/jira-api search 'project = DEV AND statusCategory != Done AND text ~ "<keywords>"' 'summary,status' 10 \
+    | jq '.issues[] | {key, summary: .fields.summary, status: .fields.status.name}'
+  ``` Feedback often overlaps prior tickets (DEV-200/DEV-201 came from earlier sweeps) — if an _open_ one exists, map to that key instead of drafting a duplicate.
+  ````
+
 - **Related-but-declined** — also surface any closed/declined ticket that overlaps. Not a dupe (don't suppress the draft), but cite the key so the reviewer can decide whether to revive it.
 
 ## Step 3 — Show the draft, wait for approval
@@ -51,7 +58,8 @@ The user marks them resolved by hand (or we mint a write-scoped token later, per
 ## Notes
 
 - **One hard stop:** never file tickets before Step 3 approval. Everything else runs straight through.
-- **Dedup is mandatory** — `jira_search` before filing. A duplicate is worse than a miss.
+- **Dedup is mandatory** — search before filing. A duplicate is worse than a miss.
+- **Jira reads vs writes:** reads/searches via `.claude/scripts/jira-api` (REST + `jq`, filtered fields); writes stay on the Jira MCP.
 - Create issues **individually** with `jira_create_issue`; avoid `jira_batch_create_issues`.
 - **Draft from the feedback body, not the title** — the title is a paraphrase; the body has the screen, the repro, the user's actual words.
 - **Account for everything pulled** — junk dropped, low-confidence flagged, items mapped to existing keys. If you cap or sample the inbox, **say so**; never let a partial pass read as "cleared the backlog."

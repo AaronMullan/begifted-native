@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Authenticated Jira Cloud REST helper for be-gifted.atlassian.net.
+# Reads credentials at runtime from the Jira MCP config in ~/.claude.json —
+# never prints them. Pipe output through jq to keep payloads small.
+#
+# Usage:
+#   jira-api get <path>                      # raw GET, e.g. get '/rest/api/2/issue/DEV-110?fields=summary'
+#   jira-api search <jql> [fields] [max]     # JQL search (handles URL-encoding)
+#   jira-api download <url> <outfile>        # authenticated binary download (attachments)
+set -euo pipefail
+
+BASE="https://be-gifted.atlassian.net"
+CREDS=$(python3 - <<'EOF'
+import json, os
+args = json.load(open(os.path.expanduser('~/.claude.json')))['mcpServers']['jira']['args']
+print(args[args.index('--jira-username') + 1] + ':' + args[args.index('--jira-token') + 1])
+EOF
+)
+
+cmd="${1:-}"; shift || true
+case "$cmd" in
+  get)
+    curl -sf -u "$CREDS" -H 'Accept: application/json' "$BASE$1"
+    ;;
+  search)
+    jql="$1"
+    fields="${2:-summary,status,issuetype,priority,assignee}"
+    max="${3:-20}"
+    # /search/jql is the current endpoint; the legacy /search was decommissioned.
+    curl -sf -u "$CREDS" -H 'Accept: application/json' -G "$BASE/rest/api/2/search/jql" \
+      --data-urlencode "jql=$jql" \
+      --data-urlencode "fields=$fields" \
+      --data-urlencode "maxResults=$max"
+    ;;
+  download)
+    curl -sfL -u "$CREDS" -o "$2" "$1"
+    ;;
+  *)
+    echo "usage: jira-api get <path> | search <jql> [fields] [max] | download <url> <outfile>" >&2
+    exit 1
+    ;;
+esac

@@ -26,7 +26,13 @@ Pull out only **actionable** items — bugs, feature requests, concrete decision
 - **Type** — Bug / Task / Story.
 - **Priority** — your read of severity/urgency from the thread.
 - **Description** — what's being asked, who asked, and any acceptance criteria stated in the thread. Include the Slack permalink as the source.
-- **Dedup check** — `jira_search` for an existing open ticket matching the item (by keywords / signature) **before** proposing a new one. If an _open_ one exists, map to that key instead of drafting a duplicate.
+- **Dedup check** — search Jira via REST for an existing open ticket matching the item (by keywords / signature) **before** proposing a new one. If an _open_ one exists, map to that key instead of drafting a duplicate:
+
+  ```bash
+  .claude/scripts/jira-api search 'project = DEV AND statusCategory != Done AND text ~ "<keywords>"' 'summary,status' 10 \
+    | jq '.issues[] | {key, summary: .fields.summary, status: .fields.status.name}'
+  ```
+
 - **Related-but-declined** — also surface any closed/declined ticket that overlaps in scope. It's not a dupe (don't suppress the draft), but it's useful context: cite the key so the reviewer can decide whether to revive it instead of filing fresh.
 
 ## Step 3 — Show the draft, wait for approval
@@ -53,7 +59,8 @@ On approval, create the reply as a **Slack draft** with `slack_send_message_draf
 ## Notes
 
 - **Two hard stops:** never file tickets before Step 3 approval, never create the Slack draft before Step 5 approval. Everything else runs straight through.
-- **Dedup is mandatory** — `jira_search` before filing. A duplicate is worse than a miss.
+- **Dedup is mandatory** — search before filing. A duplicate is worse than a miss.
+- **Jira reads vs writes:** reads/searches via `.claude/scripts/jira-api` (REST + `jq`, filtered fields); writes (`jira_create_issue`, `jira_update_issue`, links) stay on the Jira MCP.
 - Create issues **individually** with `jira_create_issue`; avoid `jira_batch_create_issues`.
 - Don't pass a `comment` argument to `jira_transition_issue` — it requires ADF, not plain text. (Relevant only if a thread item asks to move an existing ticket.)
 - The reply is always a **draft** (`slack_send_message_draft`), always **threaded** (pass `thread_ts`) — never `slack_send_message`, which adds a "sent by Claude" annotation.

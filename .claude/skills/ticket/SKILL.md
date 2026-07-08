@@ -9,7 +9,14 @@ Take a Jira ticket from investigation to merged-ready PR. The ticket ID is passe
 
 ## Steps
 
-1. **Read the ticket.** Fetch it with `jira_get_issue` (summary, description, acceptance criteria, linked designs/PRs). If the description cites prior-art/related tickets, glance at them for context. **Pull any attached screenshots** with `jira_get_issue_images` — the original reporter's screenshot (e.g. carried over from a Slack report) usually shows the concrete error/UI better than the text. Identify which repo(s) are affected — this app (`begifted-native`) and/or the sibling `be-gifted` backend repo. If the ticket links a Figma/PDF design, confirm the interaction model and exact components/icons before coding (see CLAUDE.md → _Implementing from Designs_).
+1. **Read the ticket.** Fetch it via REST (not the Jira MCP — REST + `jq` keeps the payload small; see _Jira reads vs writes_ below):
+
+   ```bash
+   .claude/scripts/jira-api get '/rest/api/2/issue/<KEY>?fields=summary,description,status,priority,labels,issuelinks,attachment' \
+     | jq '{key, summary: .fields.summary, status: .fields.status.name, description: .fields.description, links: [.fields.issuelinks[]? | {type: .type.name, key: (.inwardIssue.key // .outwardIssue.key)}], attachments: [.fields.attachment[]? | {filename, content}]}'
+   ```
+
+   Capture summary, description, acceptance criteria, linked designs/PRs. If the description cites prior-art/related tickets, glance at them for context (same `jira-api get` on each key). **Pull any attached screenshots** — download each attachment's `content` URL with `.claude/scripts/jira-api download <url> <scratchpad-path>` and Read the file — the original reporter's screenshot (e.g. carried over from a Slack report) usually shows the concrete error/UI better than the text. Identify which repo(s) are affected — this app (`begifted-native`) and/or the sibling `be-gifted` backend repo. If the ticket links a Figma/PDF design, confirm the interaction model and exact components/icons before coding (see CLAUDE.md → _Implementing from Designs_).
 
 2. **Scope it first.** Before writing code, give a 3-line plan: root cause, the smallest change that fixes it, and which files. Start with the narrowest fix that satisfies the ticket — do not expand scope or refactor unless required. Pause for sign-off if scope is ambiguous or any change is destructive.
 
@@ -73,6 +80,7 @@ If given several ticket IDs (space- or comma-separated), run them **sequentially
 
 ## Notes
 
+- **Jira reads vs writes:** all reads/searches go through `.claude/scripts/jira-api` (REST + `jq` — filter fields so full issue payloads never enter context); writes (`jira_create_issue`, `jira_add_comment`, `jira_transition_issue`, `jira_update_issue`) stay on the Jira MCP, which handles markdown→ADF.
 - Deploy edge functions via PR + merge, never direct CLI deploy.
 - Verify a PR is still open before pushing follow-up commits — PRs merge fast.
 - If a fix needs a production data backfill, call it out and propose the backfill query for review.

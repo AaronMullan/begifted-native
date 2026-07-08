@@ -51,6 +51,7 @@ app-example
 # Share team-wide Claude Code config; keep personal overrides + local state private
 !.claude/settings.json
 !.claude/skills/
+!.claude/scripts/
 supabase/.temp/
 
 .env.local

@@ -23,7 +23,13 @@ Spawn the subagents **concurrently** (one Task/Agent per work-item, in a single 
 
 - **Root cause:** grep the codebase (`begifted-native` and the sibling `be-gifted` backend) for the culprit/stack frames. For a Sentry issue, optionally call `mcp__sentry__analyze_issue_with_seer` for an AI root-cause hypothesis, then confirm it against the actual code.
 - **Affected files:** concrete `path:line` references.
-- **Dedup check:** `jira_search` for an existing open ticket matching this issue (by title keywords / error signature) **before** proposing a new one. If found, return the existing key instead of a draft.
+- **Dedup check:** search Jira via REST for an existing open ticket matching this issue (by title keywords / error signature) **before** proposing a new one. If found, return the existing key instead of a draft.
+
+  ```bash
+  .claude/scripts/jira-api search 'project = DEV AND statusCategory != Done AND text ~ "<keywords>"' 'summary,status' 10 \
+    | jq '.issues[] | {key, summary: .fields.summary, status: .fields.status.name}'
+  ```
+
 - **Severity:** crash vs degraded vs cosmetic, weighted by users-affected and frequency.
 - **Proposed fix:** the narrowest change that resolves it (one or two lines of intent, not a full diff).
 
@@ -40,11 +46,12 @@ Show the table and **wait for sign-off**. Do not file anything yet.
 
 ## Phase 4 — File approved tickets
 
-For each approved draft: `jira_create_issue` (or `jira_batch_create_issues`) with severity, root cause, affected files, and proposed fix in the description. Then link the originating Sentry issue back to the ticket.
+For each approved draft: `jira_create_issue` (one at a time — `jira_batch_create_issues` is unreliable) with severity, root cause, affected files, and proposed fix in the description. Then link the originating Sentry issue back to the ticket.
 
 ## Notes
 
-- **Dedup is mandatory** — always `jira_search` before filing. Filing duplicates is worse than missing one.
+- **Dedup is mandatory** — always search before filing. Filing duplicates is worse than missing one.
+- **Jira reads vs writes:** reads/searches via `.claude/scripts/jira-api` (REST + `jq`, filtered fields); writes (`jira_create_issue`, `jira_add_comment`, links) stay on the Jira MCP.
 - Do not pass a `comment` argument to `jira_transition_issue` — it requires ADF, not plain text.
 - This is a _triage_ step: it produces tickets, it does not fix code. Hand the resulting tickets to `/ticket <KEY>` to implement.
 - If you cap or sample the issue list, **say so** in the output — never let a silent top-N read as "the whole backlog."
