@@ -238,6 +238,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 16,
     color: "#666",
   },

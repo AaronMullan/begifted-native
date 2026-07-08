@@ -704,18 +704,21 @@ const styles = StyleSheet.create({
   },
   heroAbout: {
     fontFamily: "Fraunces_600SemiBold",
+    // eslint-disable-next-line no-restricted-syntax -- legacy Fraunces face predates the type scale
     fontSize: 36,
     lineHeight: 42,
     color: Colors.blues.dark,
   },
   heroName: {
     fontFamily: "Fraunces_600SemiBold",
+    // eslint-disable-next-line no-restricted-syntax -- legacy Fraunces face predates the type scale
     fontSize: 36,
     lineHeight: 42,
     color: Colors.blues.dark,
     marginBottom: 24,
   },
   sectionLabel: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 0.8,
@@ -724,6 +727,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   narrative: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 15,
     lineHeight: 22,
     color: Colors.darks.black,
@@ -738,6 +742,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   refreshingText: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 13,
     fontStyle: "italic",
     color: Colors.blues.medium,
@@ -748,6 +753,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   updateLinkText: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 14,
     fontWeight: "600",
     color: Colors.darks.black,
@@ -768,16 +774,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   occasionTitle: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 17,
     fontWeight: "700",
     color: Colors.blues.dark,
   },
   occasionDate: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 14,
     color: Colors.yellows.orange,
     marginTop: 2,
   },
   occasionRecurrence: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 12,
     color: Colors.blues.medium,
     marginTop: 2,
@@ -786,6 +795,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   fieldLabel: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.6,
@@ -794,12 +804,14 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   fieldValue: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 15,
     lineHeight: 22,
     color: Colors.blues.dark,
     fontWeight: "600",
   },
   fieldHint: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 12,
     fontStyle: "italic",
     color: Colors.blues.medium,
@@ -813,6 +825,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   emptyText: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 14,
     color: Colors.darks.black,
     fontStyle: "italic",

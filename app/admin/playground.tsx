@@ -1452,6 +1452,7 @@ const styles = StyleSheet.create({
   testTextInput: {
     marginTop: 8,
     backgroundColor: Colors.white,
+    // eslint-disable-next-line no-restricted-syntax -- dense admin tooling is off the design type scale
     fontSize: 13,
   },
   testMessageRow: {
@@ -1480,6 +1481,7 @@ const styles = StyleSheet.create({
     color: Colors.darks.brown,
     textTransform: "uppercase",
     letterSpacing: 0.5,
+    // eslint-disable-next-line no-restricted-syntax -- dense admin tooling is off the design type scale
     fontSize: 10,
     marginTop: 4,
     marginBottom: 2,
@@ -1504,6 +1506,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.yellows.amber,
   },
   promptInput: {
+    // eslint-disable-next-line no-restricted-syntax -- dense admin tooling is off the design type scale
     fontSize: 13,
     backgroundColor: Colors.white,
   },
@@ -1512,6 +1515,7 @@ const styles = StyleSheet.create({
   },
   promptInputContent: {
     fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
+    // eslint-disable-next-line no-restricted-syntax -- monospace readout; the type scale has no mono token
     fontSize: 12,
   },
   defaultPromptToggle: {
@@ -1529,6 +1533,7 @@ const styles = StyleSheet.create({
   },
   monoText: {
     fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
+    // eslint-disable-next-line no-restricted-syntax -- monospace readout; the type scale has no mono token
     fontSize: 11,
     color: Colors.darks.brown,
   },

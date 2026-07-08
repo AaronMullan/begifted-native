@@ -189,6 +189,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   buttonLabel: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 16,
   },
   skipButton: {

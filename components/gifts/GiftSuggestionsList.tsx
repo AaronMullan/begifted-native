@@ -208,6 +208,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   occasionHeaderLabel: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 0.4,
@@ -218,10 +219,12 @@ const styles = StyleSheet.create({
   },
   occasionHeaderValue: {
     fontFamily: "Fraunces_600SemiBold",
+    // eslint-disable-next-line no-restricted-syntax -- legacy Fraunces face predates the type scale
     fontSize: 18,
     color: Colors.blues.dark,
   },
   viewAllLink: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 14,
     fontWeight: "600",
     color: Colors.yellows.amber,

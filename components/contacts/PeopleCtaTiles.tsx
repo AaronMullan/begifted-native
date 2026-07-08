@@ -77,6 +77,7 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: "RobotoFlex_400Regular",
     color: Colors.blues.dark,
+    // eslint-disable-next-line no-restricted-syntax -- legacy RobotoFlex face predates the type scale
     fontSize: 13,
     fontWeight: "500",
     textAlign: "center",

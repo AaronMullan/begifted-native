@@ -27,6 +27,21 @@ module.exports = defineConfig([
       ],
       "max-depth": ["error", 3],
       complexity: ["warn", 10],
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "Property[key.name='fontSize'] > Literal[raw=/^[0-9]/]",
+          message:
+            "Use a Typography token from lib/typography.ts instead of a numeric fontSize (add the token there if the type scale is missing one).",
+        },
+      ],
+    },
+  },
+  {
+    // The type scale itself is where literal font sizes live.
+    files: ["lib/typography.ts"],
+    rules: {
+      "no-restricted-syntax": "off",
     },
   },
   {

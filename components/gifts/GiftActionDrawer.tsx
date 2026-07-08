@@ -11,7 +11,7 @@ import type { GiftSuggestion } from "../../types/recipient";
 import type { GiftFeedbackAction } from "../../lib/api";
 import { useSubmitGiftFeedback } from "../../hooks/use-submit-gift-feedback";
 import { Colors } from "../../lib/colors";
-import { FontFamily } from "../../lib/typography";
+import { FontFamily, Typography } from "../../lib/typography";
 
 export type GiftActionDrawerState = {
   suggestion: GiftSuggestion;
@@ -307,9 +307,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   title: {
-    fontFamily: FontFamily.sans.medium,
+    ...Typography.subhead,
     color: Colors.brand.mediumTeal,
-    fontSize: 16,
     paddingBottom: 16,
   },
   // 44pt min tap target (HIG) so adjacent options are unambiguous to tap; the
@@ -324,6 +323,7 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     fontFamily: FontFamily.sans.regular,
+    // eslint-disable-next-line no-restricted-syntax -- DM Sans size the type scale doesn't define
     fontSize: 12,
     lineHeight: 24,
     color: Colors.brand.darkTeal,
@@ -337,6 +337,7 @@ const styles = StyleSheet.create({
   },
   prompt: {
     fontFamily: FontFamily.sans.medium,
+    // eslint-disable-next-line no-restricted-syntax -- DM Sans size the type scale doesn't define
     fontSize: 15,
     color: Colors.brand.darkTeal,
   },
@@ -355,6 +356,7 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontFamily: FontFamily.sans.regular,
+    // eslint-disable-next-line no-restricted-syntax -- DM Sans size the type scale doesn't define
     fontSize: 12,
     color: Colors.brand.darkTeal,
   },
@@ -370,8 +372,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 16,
     paddingBottom: 16,
-    fontFamily: FontFamily.sans.regular,
-    fontSize: 11,
+    ...Typography.eyebrow,
     color: Colors.brand.darkTeal,
     textAlignVertical: "top",
   },

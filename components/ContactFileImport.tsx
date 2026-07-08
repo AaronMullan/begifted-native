@@ -264,6 +264,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   divider: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 14,
     color: "#999",
     textAlign: "center",

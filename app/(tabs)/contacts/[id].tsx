@@ -740,6 +740,7 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     fontFamily: "Fraunces_600SemiBold",
+    // eslint-disable-next-line no-restricted-syntax -- legacy Fraunces face predates the type scale
     fontSize: 36,
     lineHeight: 42,
     color: Colors.blues.dark,
@@ -749,6 +750,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   aboutLinkText: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 0.8,

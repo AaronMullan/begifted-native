@@ -75,6 +75,7 @@ export const resultStyles = StyleSheet.create({
   },
   resolvedPromptText: {
     fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+    // eslint-disable-next-line no-restricted-syntax -- monospace readout; the type scale has no mono token
     fontSize: 11,
     lineHeight: 16,
     color: Colors.darks.brown,

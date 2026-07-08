@@ -559,12 +559,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 28,
     fontWeight: "bold",
     color: "#000000",
     marginBottom: 8,
   },
   subtitle: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 16,
     color: Colors.darks.black,
     opacity: 0.9,
@@ -579,12 +581,14 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   sectionTitle: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 20,
     fontWeight: "bold",
     color: "#000000",
     marginBottom: 8,
   },
   sectionSubtitle: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 14,
     color: Colors.darks.black,
     opacity: 0.85,
@@ -603,12 +607,14 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   settingLabel: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 16,
     fontWeight: "600",
     color: "#000000",
     marginBottom: 4,
   },
   settingDescription: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 14,
     color: Colors.darks.black,
     opacity: 0.9,
@@ -626,6 +632,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   timezoneValue: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 16,
     color: "#000000",
     marginTop: 4,
@@ -650,6 +657,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   timezoneOptionText: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 16,
     color: "#000000",
   },
@@ -682,11 +690,13 @@ const styles = StyleSheet.create({
     minWidth: 120,
   },
   leadStepperNumber: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 32,
     fontWeight: "bold",
     color: "#000000",
   },
   leadStepperUnit: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 16,
     color: Colors.darks.black,
     opacity: 0.7,
@@ -710,6 +720,7 @@ const styles = StyleSheet.create({
     borderColor: "#000000",
   },
   leadPresetChipText: {
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 14,
     color: "#000000",
   },
@@ -733,6 +744,7 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: "white",
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 16,
     fontWeight: "600",
   },
@@ -743,6 +755,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: Colors.darks.black,
     opacity: 0.9,
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 16,
   },
 });

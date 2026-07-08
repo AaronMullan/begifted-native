@@ -266,6 +266,7 @@ const styles = StyleSheet.create({
   },
   buttonLabel: {
     ...Typography.largeCta,
+    // eslint-disable-next-line no-restricted-syntax -- Figma intro frames set this CTA at 13; no token at that size
     fontSize: 13,
     // largeCta sets lineHeight 12, which clips a 13px glyph — give it room.
     lineHeight: 18,

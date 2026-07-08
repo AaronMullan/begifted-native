@@ -119,11 +119,11 @@ export const Typography = {
     fontSize: 14,
     lineHeight: 50,
   } satisfies TextStyle,
-  // Bottom-nav labels
+  // Bottom-nav labels. No lineHeight: the nav centers labels via flex, and a
+  // pinned line box would stretch the nav row at large Dynamic Type.
   navLabel: {
     fontFamily: FontFamily.sans.semibold,
     fontSize: 9.625,
-    lineHeight: 34.38,
   } satisfies TextStyle,
 } as const;
 

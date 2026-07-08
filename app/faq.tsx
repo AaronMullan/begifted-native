@@ -158,6 +158,7 @@ const styles = StyleSheet.create({
   },
   questionText: {
     fontWeight: "700",
+    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
     fontSize: 16,
     color: Colors.darks.black,
     textTransform: "uppercase",

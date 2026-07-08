@@ -222,6 +222,7 @@ const styles = StyleSheet.create({
   avatarInitials: {
     fontFamily: "DMSans_600SemiBold",
     color: Colors.brand.darkTeal,
+    // eslint-disable-next-line no-restricted-syntax -- DM Sans size the type scale doesn't define
     fontSize: 11,
   },
   textColumn: {

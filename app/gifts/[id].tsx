@@ -167,6 +167,7 @@ const styles = StyleSheet.create({
   aboutLabel: {
     fontFamily: FontFamily.sans.semibold,
     color: Colors.brand.gold,
+    // eslint-disable-next-line no-restricted-syntax -- DM Sans size the type scale doesn't define
     fontSize: 11,
     lineHeight: 12,
   },

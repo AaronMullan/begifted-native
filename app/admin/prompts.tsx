@@ -305,6 +305,7 @@ const styles = StyleSheet.create({
   },
   promptPreview: {
     fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
+    // eslint-disable-next-line no-restricted-syntax -- monospace readout; the type scale has no mono token
     fontSize: 11,
     backgroundColor: Colors.neutrals.light,
     padding: 8,
