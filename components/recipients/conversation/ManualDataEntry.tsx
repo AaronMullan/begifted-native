@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   View,
   ScrollView,
@@ -37,8 +37,12 @@ export function ManualDataEntry({
   const [zipCode, setZipCode] = useState("");
   const [country, setCountry] = useState("US");
 
-  useEffect(() => {
-    // Pre-populate with partial data if available
+  // Pre-populate with partial data when it changes. Done during render (not in
+  // an effect) via a stored previous value, the documented alternative to a
+  // setState-in-effect sync.
+  const [prevPartialData, setPrevPartialData] = useState(partialData);
+  if (partialData !== prevPartialData) {
+    setPrevPartialData(partialData);
     if (partialData) {
       setName(partialData.name || "");
       setRelationshipType(partialData.relationship_type || "");
@@ -55,7 +59,7 @@ export function ManualDataEntry({
       setZipCode(partialData.zip_code || "");
       setCountry(partialData.country || "US");
     }
-  }, [partialData]);
+  }
 
   const handleSave = () => {
     if (!name.trim() || !relationshipType.trim()) {

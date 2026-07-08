@@ -125,14 +125,19 @@ export function useOccasionRecommendations(
     useState<OccasionRecommendations | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Clear stale recommendations when the recipient loses its name. Done during
+  // render, not synchronously inside the effect below (set-state-in-effect).
+  const [prevName, setPrevName] = useState(extractedData?.name);
+  if (extractedData?.name !== prevName) {
+    setPrevName(extractedData?.name);
+    if (!extractedData?.name) setRecommendations(null);
+  }
+
   useEffect(() => {
     // Only a name is required. A missing relationship no longer hard-bails to
     // zero recommendations (Michelle's `relationship: null` case) — we still run
     // and let the prompt produce birthday + interest-based occasions (DEV-160).
-    if (!extractedData?.name) {
-      setRecommendations(null);
-      return;
-    }
+    if (!extractedData?.name) return;
 
     const fetchRecommendations = async () => {
       setIsLoading(true);

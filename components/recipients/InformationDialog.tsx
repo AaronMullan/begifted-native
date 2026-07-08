@@ -51,13 +51,19 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
   const [birthday, setBirthday] = useState(seedBirthday(recipient.birthday));
   const [saving, setSaving] = useState(false);
 
-  React.useEffect(() => {
+  // Re-seed the editable fields when the dialog opens or its recipient changes.
+  // Done during render (not in an effect) via stored previous values.
+  const [prevVisible, setPrevVisible] = useState(visible);
+  const [prevRecipient, setPrevRecipient] = useState(recipient);
+  if (visible !== prevVisible || recipient !== prevRecipient) {
+    setPrevVisible(visible);
+    setPrevRecipient(recipient);
     if (visible) {
       setName(recipient.name);
       setRelationshipType(cleanRelationship(recipient.relationship_type));
       setBirthday(seedBirthday(recipient.birthday));
     }
-  }, [visible, recipient]);
+  }
 
   const birthdayInvalid = isInvalidBirthdayInput(birthday);
   const canSave =

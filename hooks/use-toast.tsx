@@ -12,8 +12,10 @@ const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export function useToast(): UseToastReturn {
   const [visible, setVisible] = useState(false);
-  const messageRef = useRef("");
-  const opacity = useRef(new Animated.Value(0)).current;
+  const [message, setMessage] = useState("");
+  // Lazy state init (not useRef().current) keeps the Animated.Value stable
+  // without reading a ref during render, which react-hooks/refs forbids.
+  const [opacity] = useState(() => new Animated.Value(0));
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export function useToast(): UseToastReturn {
   }, [visible, opacity]);
 
   const showToast = (toastMessage: string) => {
-    messageRef.current = toastMessage;
+    setMessage(toastMessage);
     if (timerRef.current) clearTimeout(timerRef.current);
     opacity.setValue(0);
     setVisible(true);
@@ -51,7 +53,7 @@ export function useToast(): UseToastReturn {
         <Animated.View style={[styles.container, { opacity }]}>
           <View style={styles.toast}>
             <Text variant="bodyLarge" style={styles.message}>
-              {messageRef.current}
+              {message}
             </Text>
           </View>
         </Animated.View>

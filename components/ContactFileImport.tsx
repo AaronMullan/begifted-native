@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { View, StyleSheet, Platform } from "react-native";
 import { Button, Text } from "react-native-paper";
 import { DeviceContact } from "../hooks/use-device-contacts";
@@ -36,14 +36,14 @@ type ContactsNavigator = Navigator & {
 
 export default function ContactFileImport({ onImport }: Props) {
   const [loading, setLoading] = useState(false);
-  const [hasContactPicker, setHasContactPicker] = useState(false);
-
-  // Check if browser supports Contact Picker API
-  useEffect(() => {
-    if (Platform.OS === "web" && typeof navigator !== "undefined") {
-      setHasContactPicker("contacts" in navigator);
-    }
-  }, []);
+  // Feature-detect the Contact Picker API once. navigator/Platform are stable,
+  // so lazy state init replaces a mount effect that set state synchronously.
+  const [hasContactPicker] = useState(
+    () =>
+      Platform.OS === "web" &&
+      typeof navigator !== "undefined" &&
+      "contacts" in navigator
+  );
 
   if (Platform.OS !== "web") return null;
 

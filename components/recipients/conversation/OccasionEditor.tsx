@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   View,
   Modal,
@@ -55,7 +55,19 @@ export function OccasionEditor({
   const [isAnnual, setIsAnnual] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
-  useEffect(() => {
+  // Seed the editor when it opens or its inputs change. Done during render (not
+  // in an effect) via stored previous values.
+  const [prevVisible, setPrevVisible] = useState(visible);
+  const [prevOccasion, setPrevOccasion] = useState(occasion);
+  const [prevShowRecurrence, setPrevShowRecurrence] = useState(showRecurrence);
+  if (
+    visible !== prevVisible ||
+    occasion !== prevOccasion ||
+    showRecurrence !== prevShowRecurrence
+  ) {
+    setPrevVisible(visible);
+    setPrevOccasion(occasion);
+    setPrevShowRecurrence(showRecurrence);
     if (visible && occasion) {
       setErrorMessage("");
       const annual = showRecurrence ? (occasion.is_annual ?? true) : false;
@@ -73,7 +85,7 @@ export function OccasionEditor({
         setDateInput(hasRealDate);
       }
     }
-  }, [visible, occasion, showRecurrence]);
+  }
 
   const handleDateChange = (text: string) => {
     const digits = text.replace(/\D/g, "");

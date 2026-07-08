@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Animated, StyleSheet, useWindowDimensions } from "react-native";
 import Svg, { Path, G } from "react-native-svg";
 import GradientBackground from "./GradientBackground";
@@ -10,9 +10,11 @@ type AnimatedSplashProps = {
 
 const AnimatedSplash: React.FC<AnimatedSplashProps> = ({ ready, onFinish }) => {
   const { width } = useWindowDimensions();
-  const wordmarkScale = useRef(new Animated.Value(1)).current;
-  const wordmarkOpacity = useRef(new Animated.Value(1)).current;
-  const overlayOpacity = useRef(new Animated.Value(1)).current;
+  // Lazy state init (not useRef().current) keeps the Animated.Values stable
+  // without reading a ref during render, which react-hooks/refs forbids.
+  const [wordmarkScale] = useState(() => new Animated.Value(1));
+  const [wordmarkOpacity] = useState(() => new Animated.Value(1));
+  const [overlayOpacity] = useState(() => new Animated.Value(1));
 
   useEffect(() => {
     if (!ready) return;

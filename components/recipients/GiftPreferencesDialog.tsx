@@ -48,7 +48,19 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
   const [zipCode, setZipCode] = useState(recipient.zip_code ?? "");
   const [saving, setSaving] = useState(false);
 
-  React.useEffect(() => {
+  // Re-seed the editable fields when the dialog opens or its inputs change.
+  // Done during render (not in an effect) via stored previous values.
+  const [prevVisible, setPrevVisible] = useState(visible);
+  const [prevRecipient, setPrevRecipient] = useState(recipient);
+  const [prevSeededTone, setPrevSeededTone] = useState(seededTone);
+  if (
+    visible !== prevVisible ||
+    recipient !== prevRecipient ||
+    seededTone !== prevSeededTone
+  ) {
+    setPrevVisible(visible);
+    setPrevRecipient(recipient);
+    setPrevSeededTone(seededTone);
     if (visible) {
       setTone(seededTone);
       setMinBudget(
@@ -67,7 +79,7 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
       setState(recipient.state ?? "");
       setZipCode(recipient.zip_code ?? "");
     }
-  }, [visible, recipient, seededTone]);
+  }
 
   const handleSave = async () => {
     setSaving(true);

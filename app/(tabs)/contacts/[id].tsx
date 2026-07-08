@@ -230,7 +230,12 @@ export default function RecipientEditPage() {
     useGiftSuggestions(recipientId, {
       refetchInterval: genBaseline
         ? () => {
-            if (Date.now() - genBaseline.startedAt >= GIFT_POLL_MAX_MS) {
+            // The nav-param start path seeds startedAt=0 (Date.now() is impure
+            // in render); stamp the real start time on the first tick.
+            const startedAt = genBaseline.startedAt || Date.now();
+            if (startedAt !== genBaseline.startedAt) {
+              setGenBaseline({ ...genBaseline, startedAt });
+            } else if (Date.now() - startedAt >= GIFT_POLL_MAX_MS) {
               setGenBaseline(null);
               return false;
             }
@@ -267,7 +272,9 @@ export default function RecipientEditPage() {
   if (params.generating !== seenGeneratingParam) {
     setSeenGeneratingParam(params.generating);
     if (params.generating === "true" && suggestions.length === 0) {
-      setGenBaseline({ count: 0, newest: 0, startedAt: Date.now() });
+      // startedAt is stamped by the first poll tick below; Date.now() is impure
+      // during render, so seed 0 and let the refetchInterval fill in the clock.
+      setGenBaseline({ count: 0, newest: 0, startedAt: 0 });
     }
   }
 

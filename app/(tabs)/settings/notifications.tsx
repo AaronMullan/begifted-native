@@ -63,32 +63,6 @@ export default function Notifications() {
     useState<NotificationPreferences>(preferences);
   const [showTimezonePicker, setShowTimezonePicker] = useState(false);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) {
-        fetchPreferences(session.user.id);
-      } else {
-        setLoading(false);
-        router.replace("/");
-      }
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session) {
-        fetchPreferences(session.user.id);
-      } else {
-        setLoading(false);
-        router.replace("/");
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [router]);
-
   async function fetchPreferences(userId: string) {
     try {
       setLoading(true);
@@ -121,6 +95,32 @@ export default function Notifications() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) {
+        fetchPreferences(session.user.id);
+      } else {
+        setLoading(false);
+        router.replace("/");
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) {
+        fetchPreferences(session.user.id);
+      } else {
+        setLoading(false);
+        router.replace("/");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [router]);
 
   async function handleSave() {
     if (!session?.user) {
