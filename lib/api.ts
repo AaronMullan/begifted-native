@@ -546,11 +546,11 @@ export async function fetchOutboundClicks(
   const clicks: OutboundClickRow[] = (data ?? []).map((r) => {
     const rawRecipient = (r.recipients ?? null) as unknown;
     const recipient = (
-      Array.isArray(rawRecipient) ? rawRecipient[0] ?? null : rawRecipient
+      Array.isArray(rawRecipient) ? (rawRecipient[0] ?? null) : rawRecipient
     ) as OutboundClickRow["recipient"];
     const rawGift = (r.gift_suggestions ?? null) as unknown;
     const giftSuggestion = (
-      Array.isArray(rawGift) ? rawGift[0] ?? null : rawGift
+      Array.isArray(rawGift) ? (rawGift[0] ?? null) : rawGift
     ) as OutboundClickRow["gift_suggestion"];
     return {
       id: r.id,
@@ -1021,7 +1021,7 @@ export async function fetchRecentRuns(
         .map((r) => {
           const raw = (r.recipients ?? null) as unknown;
           const rec: RecipientEmbed | null = Array.isArray(raw)
-            ? (raw[0] as RecipientEmbed | undefined) ?? null
+            ? ((raw[0] as RecipientEmbed | undefined) ?? null)
             : (raw as RecipientEmbed | null);
           return rec?.user_id ?? null;
         })
@@ -1046,10 +1046,10 @@ export async function fetchRecentRuns(
     const rawRecipients = (r.recipients ?? null) as unknown;
     const rawOccasions = (r.occasions ?? null) as unknown;
     const recipient: RecipientEmbed | null = Array.isArray(rawRecipients)
-      ? (rawRecipients[0] as RecipientEmbed | undefined) ?? null
+      ? ((rawRecipients[0] as RecipientEmbed | undefined) ?? null)
       : (rawRecipients as RecipientEmbed | null);
     const occasion: OccasionEmbed | null = Array.isArray(rawOccasions)
-      ? (rawOccasions[0] as OccasionEmbed | undefined) ?? null
+      ? ((rawOccasions[0] as OccasionEmbed | undefined) ?? null)
       : (rawOccasions as OccasionEmbed | null);
 
     let summary = runMap.get(r.run_id);
@@ -1062,7 +1062,7 @@ export async function fetchRecentRuns(
         protocol_prompt_id: r.protocol_prompt_id,
         protocol_version:
           r.protocol_prompt_id != null
-            ? promptVersionById.get(r.protocol_prompt_id) ?? null
+            ? (promptVersionById.get(r.protocol_prompt_id) ?? null)
             : null,
         wrapper_template_hash: r.wrapper_template_hash,
         search_queries: (r.search_queries ?? []) as string[],

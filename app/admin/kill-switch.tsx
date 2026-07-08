@@ -25,9 +25,7 @@ const KillSwitchScreen: React.FC = () => {
 
   function toggle(
     flag:
-      | "recommendations_enabled"
-      | "notifications_enabled"
-      | "signups_enabled"
+      "recommendations_enabled" | "notifications_enabled" | "signups_enabled"
   ) {
     if (!config) return;
     updateConfig.mutate({ [flag]: !config[flag] });

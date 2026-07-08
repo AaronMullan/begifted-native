@@ -615,7 +615,7 @@ const InformationDialog: React.FC<InformationDialogProps> = ({
       birthday:
         trimmedBirthday === ""
           ? undefined
-          : normalizeBirthday(trimmedBirthday) ?? undefined,
+          : (normalizeBirthday(trimmedBirthday) ?? undefined),
     });
     setSaving(false);
   };

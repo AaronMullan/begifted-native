@@ -79,8 +79,8 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
     expandedId === null
       ? null
       : expandedStillVisible
-      ? expandedId
-      : activeSuggestions[0]?.id ?? null;
+        ? expandedId
+        : (activeSuggestions[0]?.id ?? null);
 
   if (loading) {
     return (

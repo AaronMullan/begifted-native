@@ -18,8 +18,8 @@ function syncSentryUser(user: User | null) {
       typeof metadata.full_name === "string"
         ? metadata.full_name
         : typeof metadata.name === "string"
-        ? metadata.name
-        : undefined;
+          ? metadata.name
+          : undefined;
     Sentry.setUser({
       id: user.id,
       email: user.email ?? undefined,

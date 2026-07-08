@@ -34,8 +34,7 @@ export const PreferencesResultView: React.FC<{
   const rawResponse =
     typeof result.rawResponse === "string" ? result.rawResponse : null;
   const modelUsed = result.modelUsed as
-    | { provider?: string; model?: string }
-    | undefined;
+    { provider?: string; model?: string } | undefined;
 
   const arrayFields: { label: string; key: string }[] = [
     { label: "Taste & World", key: "taste_and_world" },

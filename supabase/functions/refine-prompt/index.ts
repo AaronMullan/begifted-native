@@ -90,8 +90,8 @@ serve(async (req) => {
       promptCategory && CATEGORY_GUIDANCE[promptCategory]
         ? `\n\nCATEGORY-SPECIFIC GUIDANCE:\n${CATEGORY_GUIDANCE[promptCategory]}`
         : CATEGORY_GUIDANCE.gift_generation_system
-        ? `\n\nCATEGORY-SPECIFIC GUIDANCE:\n${CATEGORY_GUIDANCE.gift_generation_system}`
-        : "";
+          ? `\n\nCATEGORY-SPECIFIC GUIDANCE:\n${CATEGORY_GUIDANCE.gift_generation_system}`
+          : "";
 
     // Build messages for the LLM
     const messages: { role: string; content: string }[] = [

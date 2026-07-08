@@ -172,8 +172,7 @@ export interface ExtractionResponse {
 }
 
 export type ConversationFunctionResponse =
-  | ConversationResponse
-  | ExtractionResponse;
+  ConversationResponse | ExtractionResponse;
 
 // ----------------------------------------------------------------------------
 // Gift Suggestions Function Types (generate-gift-suggestions)

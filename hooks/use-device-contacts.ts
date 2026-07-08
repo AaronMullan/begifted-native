@@ -97,8 +97,8 @@ export function useDeviceContacts() {
             country: addr.country,
           })),
           imageUri: contact.imageAvailable
-            ? normalizeContactImageUri(contact.image?.uri) ??
-              normalizeContactImageUri(contact.rawImage?.uri)
+            ? (normalizeContactImageUri(contact.image?.uri) ??
+              normalizeContactImageUri(contact.rawImage?.uri))
             : undefined,
         }));
       return filteredContacts;

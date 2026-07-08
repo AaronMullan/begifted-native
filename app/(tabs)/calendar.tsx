@@ -141,7 +141,7 @@ export default function Calendar() {
   }
 
   const selectedOccasions = selectedDate
-    ? occasionsByDay.get(dayKey(selectedDate)) ?? []
+    ? (occasionsByDay.get(dayKey(selectedDate)) ?? [])
     : [];
 
   // Someone already on the picked day can't be added to it again, so hide them
