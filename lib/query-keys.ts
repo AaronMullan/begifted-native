@@ -20,6 +20,8 @@ export const queryKeys = {
   allOccasions: (userId: string) => ["occasions", userId, "all"] as const,
   recipientOccasions: (recipientId: string) =>
     ["occasions", "recipient", recipientId] as const,
+  occasion: (occasionId: string) =>
+    ["occasions", "detail", occasionId] as const,
 
   // Gift Suggestions
   giftSuggestions: (recipientId: string) =>
