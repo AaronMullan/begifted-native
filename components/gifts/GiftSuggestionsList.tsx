@@ -62,7 +62,7 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
   };
 
   // The active recommendation cards; the "Past Gifts" remainder is rendered
-  // separately by PastGiftsDrawer, pinned above the bottom nav by the host.
+  // separately by PastGiftsSection, placed after this list by the host.
   const { visible: visibleSuggestions, active: activeSuggestions } =
     partitionSuggestions(suggestions, occasionId);
 

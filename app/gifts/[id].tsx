@@ -9,10 +9,7 @@ import { BOTTOM_NAV_HEIGHT } from "../../lib/constants";
 import { useRecipient } from "../../hooks/use-recipient";
 import { useGiftSuggestions } from "../../hooks/use-gift-suggestions";
 import GiftSuggestionsList from "../../components/gifts/GiftSuggestionsList";
-import PastGiftsDrawer, {
-  COLLAPSED_DRAWER_HEIGHT,
-} from "../../components/gifts/PastGiftsDrawer";
-import { partitionSuggestions } from "../../components/gifts/partition";
+import PastGiftsSection from "../../components/gifts/PastGiftsSection";
 
 /** Gap left above an expanded card once it's scrolled to the top of the visible
  * area, so it sits a touch below the sticky header rather than flush against it. */
@@ -100,21 +97,12 @@ export default function GiftIdeasPage() {
     );
   }
 
-  // Reserve extra bottom space for the pinned drawer's collapsed bar so active
-  // cards can scroll clear of it — only when there are past gifts to show.
-  const hasPastGifts = partitionSuggestions(suggestions).past.length > 0;
-
   return (
     <View style={styles.root}>
       <ScrollView
         ref={scrollRef}
         style={styles.scroll}
-        contentContainerStyle={[
-          styles.scrollContent,
-          hasPastGifts && {
-            paddingBottom: BOTTOM_NAV_HEIGHT + 32 + COLLAPSED_DRAWER_HEIGHT,
-          },
-        ]}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         <View ref={contentRef} style={styles.content}>
@@ -125,8 +113,11 @@ export default function GiftIdeasPage() {
             onScrollCardIntoView={handleScrollCardIntoView}
           />
         </View>
+        {/* Full-bleed band — outside the horizontally-padded content column. */}
+        <View style={styles.pastSection}>
+          <PastGiftsSection suggestions={suggestions} />
+        </View>
       </ScrollView>
-      <PastGiftsDrawer suggestions={suggestions} />
     </View>
   );
 }
@@ -165,8 +156,12 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   aboutLabel: {
-    ...Typography.sectionHeadAc,
+    ...Typography.largeCta,
     color: Colors.brand.gold,
+  },
+  pastSection: {
+    // Active cards → band gap from the frame (4306:1620: 20pt).
+    marginTop: 20,
   },
   centered: {
     flex: 1,
