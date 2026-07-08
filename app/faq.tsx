@@ -10,6 +10,7 @@ import { useRouter } from "expo-router";
 import { IconButton, Text, ActivityIndicator } from "react-native-paper";
 import { BlurView } from "expo-blur";
 import { Colors } from "../lib/colors";
+import { Typography } from "../lib/typography";
 import { BOTTOM_NAV_HEIGHT } from "../lib/constants";
 import { useFaqs } from "../hooks/use-faqs";
 import GradientBackground from "../components/GradientBackground";
@@ -157,9 +158,7 @@ const styles = StyleSheet.create({
     cursor: "pointer",
   },
   questionText: {
-    fontWeight: "700",
-    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
-    fontSize: 16,
+    ...Typography.subhead,
     color: Colors.darks.black,
     textTransform: "uppercase",
     letterSpacing: 0.5,

@@ -86,7 +86,8 @@ export const Typography = {
   } satisfies TextStyle,
   smallCta: {
     fontFamily: FontFamily.sans.semibold,
-    fontSize: 8,
+    fontSize: 12,
+    lineHeight: scaleLineHeight(16),
   } satisfies TextStyle,
   sectionHeadAc: {
     fontFamily: FontFamily.sans.semibold,
@@ -113,11 +114,11 @@ export const Typography = {
     fontSize: 32,
     lineHeight: scaleLineHeight(33),
   } satisfies TextStyle,
-  // Avatar initials in user pill (DM Sans 14 / 50)
+  // Avatar initials. No lineHeight: the avatar container centers the glyph;
+  // Figma's 50 line box is the pill height, not a text metric.
   avatarInitials: {
     fontFamily: FontFamily.sans.semibold,
     fontSize: 14,
-    lineHeight: 50,
   } satisfies TextStyle,
   // Bottom-nav labels. No lineHeight: the nav centers labels via flex, and a
   // pinned line box would stretch the nav row at large Dynamic Type.

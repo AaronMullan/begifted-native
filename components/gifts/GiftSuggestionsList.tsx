@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { ActivityIndicator, Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
+import { Typography } from "../../lib/typography";
 import type { GiftSuggestion } from "../../types/recipient";
 import PrimaryGiftCard from "./PrimaryGiftCard";
 import CollapsedGiftCard from "./CollapsedGiftCard";
@@ -208,9 +209,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   occasionHeaderLabel: {
-    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
-    fontSize: 12,
-    fontWeight: "700",
+    ...Typography.sectionHeadAc,
     letterSpacing: 0.4,
     textTransform: "uppercase",
     color: Colors.blues.dark,
@@ -218,15 +217,11 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   occasionHeaderValue: {
-    fontFamily: "Fraunces_600SemiBold",
-    // eslint-disable-next-line no-restricted-syntax -- legacy Fraunces face predates the type scale
-    fontSize: 18,
+    ...Typography.h3,
     color: Colors.blues.dark,
   },
   viewAllLink: {
-    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
-    fontSize: 14,
-    fontWeight: "600",
+    ...Typography.largeCta,
     color: Colors.yellows.amber,
   },
   emptyContainer: {

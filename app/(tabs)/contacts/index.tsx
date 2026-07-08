@@ -172,15 +172,11 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   emptyText: {
-    fontFamily: "Fraunces_600SemiBold",
-    // eslint-disable-next-line no-restricted-syntax -- legacy Fraunces face predates the type scale
-    fontSize: 18,
+    ...Typography.h3,
     color: Colors.blues.dark,
   },
   emptySubtext: {
-    fontFamily: "RobotoFlex_400Regular",
-    // eslint-disable-next-line no-restricted-syntax -- legacy RobotoFlex face predates the type scale
-    fontSize: 14,
+    ...Typography.subhead,
     color: Colors.darks.black,
     opacity: 0.7,
   },

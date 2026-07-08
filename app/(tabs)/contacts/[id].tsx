@@ -9,6 +9,7 @@ import { supabase } from "../../../lib/supabase";
 import { queryKeys } from "../../../lib/query-keys";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { Colors } from "../../../lib/colors";
+import { Typography } from "../../../lib/typography";
 import type { Recipient } from "../../../types/recipient";
 import { AboutRecipientView } from "../../../components/recipients/AboutRecipientView";
 import GiftSuggestionsList from "../../../components/gifts/GiftSuggestionsList";
@@ -739,10 +740,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   heroTitle: {
-    fontFamily: "Fraunces_600SemiBold",
-    // eslint-disable-next-line no-restricted-syntax -- legacy Fraunces face predates the type scale
-    fontSize: 36,
-    lineHeight: 42,
+    ...Typography.h1,
     color: Colors.blues.dark,
     marginBottom: 6,
   },
@@ -750,9 +748,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   aboutLinkText: {
-    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
-    fontSize: 12,
-    fontWeight: "700",
+    ...Typography.sectionHeadAc,
     letterSpacing: 0.8,
     color: Colors.blues.dark,
   },

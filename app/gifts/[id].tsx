@@ -4,7 +4,7 @@ import { ActivityIndicator, Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Colors } from "../../lib/colors";
-import { Typography, FontFamily } from "../../lib/typography";
+import { Typography } from "../../lib/typography";
 import { BOTTOM_NAV_HEIGHT } from "../../lib/constants";
 import { useRecipient } from "../../hooks/use-recipient";
 import { useGiftSuggestions } from "../../hooks/use-gift-suggestions";
@@ -165,11 +165,8 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   aboutLabel: {
-    fontFamily: FontFamily.sans.semibold,
+    ...Typography.sectionHeadAc,
     color: Colors.brand.gold,
-    // eslint-disable-next-line no-restricted-syntax -- DM Sans size the type scale doesn't define
-    fontSize: 11,
-    lineHeight: 12,
   },
   centered: {
     flex: 1,

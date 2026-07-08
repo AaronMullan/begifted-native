@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { supabase } from "../../../lib/supabase";
 import type { Session } from "@supabase/supabase-js";
 import { Colors } from "../../../lib/colors";
+import { Typography } from "../../../lib/typography";
 import MenuCard from "../../../components/MenuCard";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { openBugReport } from "../../../lib/feedback";
@@ -221,7 +222,6 @@ const styles = StyleSheet.create({
   loadingText: {
     textAlign: "center",
     color: "#666",
-    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
-    fontSize: 16,
+    ...Typography.subhead,
   },
 });

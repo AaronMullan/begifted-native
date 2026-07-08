@@ -322,9 +322,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   rowLabel: {
-    fontFamily: FontFamily.sans.regular,
-    // eslint-disable-next-line no-restricted-syntax -- DM Sans size the type scale doesn't define
-    fontSize: 12,
+    ...Typography.eyebrow,
     lineHeight: 24,
     color: Colors.brand.darkTeal,
   },
@@ -336,9 +334,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   prompt: {
-    fontFamily: FontFamily.sans.medium,
-    // eslint-disable-next-line no-restricted-syntax -- DM Sans size the type scale doesn't define
-    fontSize: 15,
+    ...Typography.subhead,
     color: Colors.brand.darkTeal,
   },
   chips: {
@@ -355,9 +351,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.brand.darkTeal,
   },
   chipText: {
-    fontFamily: FontFamily.sans.regular,
-    // eslint-disable-next-line no-restricted-syntax -- DM Sans size the type scale doesn't define
-    fontSize: 12,
+    ...Typography.eyebrow,
     color: Colors.brand.darkTeal,
   },
   chipTextSelected: {

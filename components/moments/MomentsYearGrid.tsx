@@ -155,9 +155,7 @@ const styles = StyleSheet.create({
     width: "30%",
   },
   monthLabel: {
-    fontFamily: "DMSans_500Medium",
-    // eslint-disable-next-line no-restricted-syntax -- DM Sans size the type scale doesn't define
-    fontSize: 15,
+    ...Typography.subhead,
     color: Colors.darks.black,
     marginBottom: 6,
   },
@@ -170,7 +168,7 @@ const styles = StyleSheet.create({
   },
   dayNumber: {
     fontFamily: "DMSans_500Medium",
-    // eslint-disable-next-line no-restricted-syntax -- DM Sans size the type scale doesn't define
+    // eslint-disable-next-line no-restricted-syntax -- 10pt mini-month digits; Figma's matching copy-block token is still provisional
     fontSize: 10,
     lineHeight: scaleLineHeight(12),
     textAlign: "center",

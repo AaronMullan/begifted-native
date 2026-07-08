@@ -220,10 +220,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarInitials: {
-    fontFamily: "DMSans_600SemiBold",
+    ...Typography.smallCta,
     color: Colors.brand.darkTeal,
-    // eslint-disable-next-line no-restricted-syntax -- DM Sans size the type scale doesn't define
-    fontSize: 11,
   },
   textColumn: {
     flex: 1,

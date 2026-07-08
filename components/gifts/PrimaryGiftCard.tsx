@@ -289,10 +289,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   whyHeading: {
-    fontFamily: FontFamily.sans.semibold,
+    ...Typography.sectionHeadAc,
     color: Colors.darks.black,
-    // eslint-disable-next-line no-restricted-syntax -- DM Sans size the type scale doesn't define
-    fontSize: 12,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },

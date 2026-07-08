@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../lib/colors";
+import { Typography } from "../../lib/typography";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../hooks/use-auth";
 
@@ -189,8 +190,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   buttonLabel: {
-    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
-    fontSize: 16,
+    ...Typography.largeCta,
   },
   skipButton: {
     marginTop: 4,

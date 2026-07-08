@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { View, StyleSheet, Platform } from "react-native";
 import { Button, Text } from "react-native-paper";
 import { DeviceContact } from "../hooks/use-device-contacts";
+import { Typography } from "../lib/typography";
 
 interface Props {
   onImport: (contacts: DeviceContact[]) => void;
@@ -264,8 +265,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   divider: {
-    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
-    fontSize: 14,
+    ...Typography.eyebrow,
     color: "#999",
     textAlign: "center",
     marginVertical: 12,

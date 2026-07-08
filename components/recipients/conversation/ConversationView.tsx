@@ -16,6 +16,7 @@ import {
 } from "react-native-paper";
 import { Message } from "@/hooks/use-add-recipient-flow";
 import { BOTTOM_NAV_HEIGHT } from "@/lib/constants";
+import { Typography } from "@/lib/typography";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface ConversationViewProps {
@@ -343,8 +344,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
-    fontSize: 16,
+    ...Typography.subhead,
     maxHeight: 120,
   },
   sendButton: {

@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import { supabase } from "../../../lib/supabase";
 import { HEADER_HEIGHT, BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { Colors } from "../../../lib/colors";
+import { Typography } from "../../../lib/typography";
 import { Session } from "@supabase/supabase-js";
 import { IconButton } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -559,15 +560,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
-    fontSize: 28,
-    fontWeight: "bold",
+    ...Typography.h1,
     color: "#000000",
     marginBottom: 8,
   },
   subtitle: {
-    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
-    fontSize: 16,
+    ...Typography.subhead,
     color: Colors.darks.black,
     opacity: 0.9,
   },
@@ -581,15 +579,12 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   sectionTitle: {
-    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
-    fontSize: 20,
-    fontWeight: "bold",
+    ...Typography.h2,
     color: "#000000",
     marginBottom: 8,
   },
   sectionSubtitle: {
-    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
-    fontSize: 14,
+    ...Typography.subhead,
     color: Colors.darks.black,
     opacity: 0.85,
     marginBottom: 20,
@@ -607,15 +602,12 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   settingLabel: {
-    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
-    fontSize: 16,
-    fontWeight: "600",
+    ...Typography.subhead,
     color: "#000000",
     marginBottom: 4,
   },
   settingDescription: {
-    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
-    fontSize: 14,
+    ...Typography.subhead,
     color: Colors.darks.black,
     opacity: 0.9,
     lineHeight: 20,
@@ -632,8 +624,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   timezoneValue: {
-    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
-    fontSize: 16,
+    ...Typography.subhead,
     color: "#000000",
     marginTop: 4,
   },
@@ -657,8 +648,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   timezoneOptionText: {
-    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
-    fontSize: 16,
+    ...Typography.subhead,
     color: "#000000",
   },
   timezoneOptionTextSelected: {
@@ -690,14 +680,11 @@ const styles = StyleSheet.create({
     minWidth: 120,
   },
   leadStepperNumber: {
-    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
-    fontSize: 32,
-    fontWeight: "bold",
+    ...Typography.h1,
     color: "#000000",
   },
   leadStepperUnit: {
-    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
-    fontSize: 16,
+    ...Typography.subhead,
     color: Colors.darks.black,
     opacity: 0.7,
     marginLeft: 6,
@@ -720,8 +707,7 @@ const styles = StyleSheet.create({
     borderColor: "#000000",
   },
   leadPresetChipText: {
-    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
-    fontSize: 14,
+    ...Typography.smallCta,
     color: "#000000",
   },
   leadPresetChipTextSelected: {
@@ -744,9 +730,7 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: "white",
-    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
-    fontSize: 16,
-    fontWeight: "600",
+    ...Typography.largeCta,
   },
   saveButtonTextDisabled: {
     color: "#666",
@@ -755,7 +739,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: Colors.darks.black,
     opacity: 0.9,
-    // eslint-disable-next-line no-restricted-syntax -- legacy style on the system face; no token applies without a typeface change
-    fontSize: 16,
+    ...Typography.subhead,
   },
 });
