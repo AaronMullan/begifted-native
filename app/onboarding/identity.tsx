@@ -12,7 +12,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../lib/colors";
-import { Typography } from "../../lib/typography";
+import { FontFamily, Typography } from "../../lib/typography";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../hooks/use-auth";
 
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   headline: {
     color: Colors.darks.black,
     marginBottom: 12,
-    fontFamily: "Fraunces_400Regular",
+    fontFamily: FontFamily.fraunces.regular,
   },
   body: {
     color: Colors.darks.black,

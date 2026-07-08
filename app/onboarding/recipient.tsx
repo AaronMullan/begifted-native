@@ -5,8 +5,8 @@ import { useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
-import { Typography } from "../../lib/typography";
-import { supabase } from "../../lib/supabase";
+import { FontFamily, Typography } from "../../lib/typography";
+import { upsertUserPreferences } from "../../lib/api";
 import { useAuth } from "../../hooks/use-auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "../../lib/query-keys";
@@ -25,14 +25,7 @@ export default function OnboardingRecipient() {
 
     try {
       setCompleting(true);
-      await supabase.from("user_preferences").upsert(
-        {
-          user_id: user.id,
-          onboarding_completed: true,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id" }
-      );
+      await upsertUserPreferences(user.id, { onboarding_completed: true });
       queryClient.invalidateQueries({
         queryKey: queryKeys.userPreferences(user.id),
       });
@@ -105,7 +98,7 @@ const styles = StyleSheet.create({
   headline: {
     color: Colors.darks.black,
     marginBottom: 12,
-    fontFamily: "Fraunces_400Regular",
+    fontFamily: FontFamily.fraunces.regular,
   },
   body: {
     color: Colors.darks.black,

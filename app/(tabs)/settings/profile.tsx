@@ -2,7 +2,6 @@ import {
   View,
   ScrollView,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Keyboard,
   Platform,
@@ -15,6 +14,7 @@ import { HEADER_HEIGHT, BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { useAuth } from "../../../hooks/use-auth";
 import { useProfile } from "../../../hooks/use-profile";
 import { useUpdateProfile } from "../../../hooks/use-profile-mutations";
+import { showSnackbar } from "../../../components/GlobalSnackbar";
 
 export default function ProfileSettings() {
   const router = useRouter();
@@ -61,7 +61,7 @@ export default function ProfileSettings() {
 
   async function handleSave() {
     if (!user) {
-      Alert.alert("Error", "You must be logged in to save changes");
+      showSnackbar("You must be logged in to save changes.");
       return;
     }
 
@@ -92,30 +92,10 @@ export default function ProfileSettings() {
         state: trimmedState,
       });
 
-      Alert.alert("Success", "Profile updated successfully!");
-    } catch (error: unknown) {
-      let message = "Unknown error";
-      if (error instanceof Error) {
-        message = error.message;
-      } else if (error && typeof error === "object") {
-        const supabaseError = error as {
-          message?: string;
-          details?: string;
-          code?: string;
-        };
-        message = supabaseError.message || message;
-        if (supabaseError.details) {
-          message += `\n\n${supabaseError.details}`;
-        }
-      }
-      const isNetworkError = /network request failed/i.test(message);
-      console.error("Error saving profile:", error);
-      Alert.alert(
-        "Error",
-        isNetworkError
-          ? "Network request failed. Check your internet connection and try again."
-          : `Failed to save profile: ${message}`
-      );
+      showSnackbar("Profile updated.");
+    } catch {
+      // Logged and surfaced (snackbar) by the shared mutation handler; the
+      // catch only keeps the success path from running.
     }
   }
 

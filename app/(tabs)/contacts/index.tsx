@@ -2,7 +2,7 @@ import { useRouter } from "expo-router";
 import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 import { Colors } from "../../../lib/colors";
-import { Typography } from "../../../lib/typography";
+import { FontFamily, Typography } from "../../../lib/typography";
 import GradientBackground from "../../../components/GradientBackground";
 import ContactFileImport from "../../../components/ContactFileImport";
 import ContactPicker from "../../../components/ContactPicker";
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     color: Colors.brand.darkTeal,
   },
   loadingText: {
-    fontFamily: "RobotoFlex_400Regular",
+    fontFamily: FontFamily.body.regular,
     textAlign: "center",
     color: Colors.darks.black,
     opacity: 0.7,

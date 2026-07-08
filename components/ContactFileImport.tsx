@@ -8,6 +8,32 @@ interface Props {
   onImport: (contacts: DeviceContact[]) => void;
 }
 
+// Contact Picker API (Chromium, web-only) — not in lib.dom yet, so declare
+// just the slice we use.
+type PickedContactAddress = {
+  addressLine?: string[];
+  city?: string;
+  region?: string;
+  postalCode?: string;
+  country?: string;
+};
+
+type PickedContact = {
+  name?: string[];
+  email?: string[];
+  tel?: string[];
+  address?: PickedContactAddress[];
+};
+
+type ContactsNavigator = Navigator & {
+  contacts: {
+    select: (
+      props: string[],
+      opts: { multiple: boolean }
+    ) => Promise<PickedContact[]>;
+  };
+};
+
 export default function ContactFileImport({ onImport }: Props) {
   const [loading, setLoading] = useState(false);
   const [hasContactPicker, setHasContactPicker] = useState(false);
@@ -24,28 +50,26 @@ export default function ContactFileImport({ onImport }: Props) {
   const handleContactPicker = async () => {
     try {
       setLoading(true);
-      // @ts-ignore - Contact Picker API types not in all browsers
       const props = ["name", "email", "tel", "address"];
       const opts = { multiple: true };
 
-      // @ts-ignore
-      const selectedContacts = await navigator.contacts.select(props, opts);
+      const selectedContacts = await (
+        navigator as ContactsNavigator
+      ).contacts.select(props, opts);
 
-      const contacts: DeviceContact[] = selectedContacts.map(
-        (contact: any) => ({
-          id: Math.random().toString(),
-          name: contact.name?.[0] || "Unknown",
-          emails: contact.email,
-          phoneNumbers: contact.tel,
-          addresses: contact.address?.map((addr: any) => ({
-            street: addr.addressLine?.[0],
-            city: addr.city,
-            region: addr.region,
-            postalCode: addr.postalCode,
-            country: addr.country,
-          })),
-        })
-      );
+      const contacts: DeviceContact[] = selectedContacts.map((contact) => ({
+        id: Math.random().toString(),
+        name: contact.name?.[0] || "Unknown",
+        emails: contact.email,
+        phoneNumbers: contact.tel,
+        addresses: contact.address?.map((addr) => ({
+          street: addr.addressLine?.[0],
+          city: addr.city,
+          region: addr.region,
+          postalCode: addr.postalCode,
+          country: addr.country,
+        })),
+      }));
 
       if (contacts.length > 0) {
         onImport(contacts);
@@ -63,7 +87,9 @@ export default function ContactFileImport({ onImport }: Props) {
     }
   };
 
-  const handleFileUpload = async (event: any) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -202,7 +228,7 @@ function parseCSV(text: string): DeviceContact[] {
 
   for (let i = 1; i < lines.length; i++) {
     const values = lines[i].split(",");
-    const contact: any = {
+    const contact: DeviceContact = {
       id: Math.random().toString(),
       name: "",
     };

@@ -239,11 +239,11 @@ export default function Calendar() {
         isAnnual: occasionIsAnnual,
       },
       {
+        // Failures surface via the shared mutation handler's snackbar.
         onSuccess: () => {
           showToast("Occasion added");
           handleDismissOccasionEntry();
         },
-        onError: () => showToast("Failed to add occasion"),
       }
     );
   }
@@ -268,14 +268,9 @@ export default function Calendar() {
         recipientId: occasionToDelete.recipient_id,
       },
       {
-        onSuccess: () => {
-          showToast("Occasion deleted");
-          setOccasionToDelete(null);
-        },
-        onError: () => {
-          showToast("Failed to delete occasion");
-          setOccasionToDelete(null);
-        },
+        // Failures surface via the shared mutation handler's snackbar.
+        onSuccess: () => showToast("Occasion deleted"),
+        onSettled: () => setOccasionToDelete(null),
       }
     );
   }
