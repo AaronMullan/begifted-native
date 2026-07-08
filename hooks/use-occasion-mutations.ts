@@ -6,6 +6,7 @@ import {
   fetchRecipientOccasions,
 } from "../lib/api";
 import { queryKeys } from "../lib/query-keys";
+import { makeMutationHandlers } from "../lib/mutation-handlers";
 import { useAuth } from "./use-auth";
 
 /**
@@ -19,6 +20,12 @@ export function useRecipientOccasions(recipientId: string | undefined) {
   });
 }
 
+type UpdateOccasionVariables = {
+  occasionId: string;
+  recipientId: string;
+  fields: { date?: string; occasion_type?: string; is_annual?: boolean };
+};
+
 /**
  * Hook to update an occasion
  */
@@ -30,26 +37,27 @@ export function useUpdateOccasion() {
     mutationFn: async ({
       occasionId,
       fields,
-    }: {
-      occasionId: string;
-      recipientId: string;
-      fields: { date?: string; occasion_type?: string; is_annual?: boolean };
-    }): Promise<void> => {
+    }: UpdateOccasionVariables): Promise<void> => {
       await updateOccasion(occasionId, fields);
     },
-    onSuccess: (_, variables) => {
-      if (user) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.occasions(user.id),
-        });
-      }
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.recipientOccasions(variables.recipientId),
-      });
-    },
-    onError: (error) => console.error("useUpdateOccasion failed:", error),
+    ...makeMutationHandlers<void, UpdateOccasionVariables>({
+      queryClient,
+      label: "useUpdateOccasion",
+      errorMessage: "Couldn't save the occasion. Please try again.",
+      invalidateKeys: (_, variables) => [
+        ...(user ? [queryKeys.occasions(user.id)] : []),
+        queryKeys.recipientOccasions(variables.recipientId),
+      ],
+    }),
   });
 }
+
+type CreateOccasionVariables = {
+  recipientId: string;
+  date: string;
+  occasionType: string;
+  isAnnual?: boolean;
+};
 
 /**
  * Hook to create a new occasion
@@ -64,28 +72,26 @@ export function useCreateOccasion() {
       date,
       occasionType,
       isAnnual = true,
-    }: {
-      recipientId: string;
-      date: string;
-      occasionType: string;
-      isAnnual?: boolean;
-    }) => {
+    }: CreateOccasionVariables) => {
       if (!user) throw new Error("Not authenticated");
       return createOccasion(user.id, recipientId, date, occasionType, isAnnual);
     },
-    onSuccess: (_, variables) => {
-      if (user) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.occasions(user.id),
-        });
-      }
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.recipientOccasions(variables.recipientId),
-      });
-    },
-    onError: (error) => console.error("useCreateOccasion failed:", error),
+    ...makeMutationHandlers<unknown, CreateOccasionVariables>({
+      queryClient,
+      label: "useCreateOccasion",
+      errorMessage: "Couldn't add the occasion. Please try again.",
+      invalidateKeys: (_, variables) => [
+        ...(user ? [queryKeys.occasions(user.id)] : []),
+        queryKeys.recipientOccasions(variables.recipientId),
+      ],
+    }),
   });
 }
+
+type DeleteOccasionVariables = {
+  occasionId: string;
+  recipientId: string;
+};
 
 /**
  * Hook to delete an occasion
@@ -97,22 +103,17 @@ export function useDeleteOccasion() {
   return useMutation({
     mutationFn: async ({
       occasionId,
-    }: {
-      occasionId: string;
-      recipientId: string;
-    }): Promise<void> => {
+    }: DeleteOccasionVariables): Promise<void> => {
       await deleteOccasion(occasionId);
     },
-    onSuccess: (_, variables) => {
-      if (user) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.occasions(user.id),
-        });
-      }
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.recipientOccasions(variables.recipientId),
-      });
-    },
-    onError: (error) => console.error("useDeleteOccasion failed:", error),
+    ...makeMutationHandlers<void, DeleteOccasionVariables>({
+      queryClient,
+      label: "useDeleteOccasion",
+      errorMessage: "Couldn't delete the occasion. Please try again.",
+      invalidateKeys: (_, variables) => [
+        ...(user ? [queryKeys.occasions(user.id)] : []),
+        queryKeys.recipientOccasions(variables.recipientId),
+      ],
+    }),
   });
 }
