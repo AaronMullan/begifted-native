@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 import { queryKeys } from "../lib/query-keys";
+import { makeMutationHandlers } from "../lib/mutation-handlers";
 import type { Recipient } from "../types/recipient";
 import { normalizeBirthday } from "../utils/birthday";
 
@@ -72,18 +73,24 @@ export function useCreateRecipient() {
       if (error) throw error;
       return recipient;
     },
-    onSuccess: (_, variables) => {
-      // Invalidate recipients and occasions (dashboard derives from these)
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.recipients(variables.user_id),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.occasions(variables.user_id),
-      });
-    },
-    onError: (error) => console.error("useCreateRecipient failed:", error),
+    ...makeMutationHandlers<Recipient, CreateRecipientData>({
+      queryClient,
+      label: "useCreateRecipient",
+      errorMessage: "Couldn't save this person. Please try again.",
+      // Dashboard derives from recipients and occasions
+      invalidateKeys: (_, variables) => [
+        queryKeys.recipients(variables.user_id),
+        queryKeys.occasions(variables.user_id),
+      ],
+    }),
   });
 }
+
+type UpdateRecipientVariables = {
+  userId: string;
+  recipientId: string;
+  data: UpdateRecipientData;
+};
 
 /**
  * Hook to update a recipient
@@ -96,11 +103,7 @@ export function useUpdateRecipient() {
       userId,
       recipientId,
       data,
-    }: {
-      userId: string;
-      recipientId: string;
-      data: UpdateRecipientData;
-    }): Promise<Recipient> => {
+    }: UpdateRecipientVariables): Promise<Recipient> => {
       const safeData =
         "birthday" in data
           ? { ...data, birthday: normalizeBirthday(data.birthday) }
@@ -119,35 +122,39 @@ export function useUpdateRecipient() {
       if (error) throw error;
       return recipient;
     },
-    onSuccess: (_, variables) => {
-      // Invalidate recipients, detail, and occasions (dashboard derives from these)
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.recipients(variables.userId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.recipient(variables.userId, variables.recipientId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.occasions(variables.userId),
-      });
-
-      // Re-synthesize profile in the background if any profile-relevant fields changed
-      const needsResynthesis = PROFILE_RELEVANT_FIELDS.some(
-        (field) => field in variables.data
-      );
-      if (needsResynthesis) {
-        supabase.functions
-          .invoke("synthesize-recipient-profile", {
-            body: { recipientId: variables.recipientId },
-          })
-          .catch((err) => {
-            console.error("Failed to trigger profile synthesis:", err);
-          });
-      }
-    },
-    onError: (error) => console.error("useUpdateRecipient failed:", error),
+    ...makeMutationHandlers<Recipient, UpdateRecipientVariables>({
+      queryClient,
+      label: "useUpdateRecipient",
+      errorMessage: "Couldn't save your changes. Please try again.",
+      // Dashboard derives from recipients and occasions
+      invalidateKeys: (_, variables) => [
+        queryKeys.recipients(variables.userId),
+        queryKeys.recipient(variables.userId, variables.recipientId),
+        queryKeys.occasions(variables.userId),
+      ],
+      afterSuccess: (_, variables) => {
+        // Re-synthesize profile in the background if any profile-relevant fields changed
+        const needsResynthesis = PROFILE_RELEVANT_FIELDS.some(
+          (field) => field in variables.data
+        );
+        if (needsResynthesis) {
+          supabase.functions
+            .invoke("synthesize-recipient-profile", {
+              body: { recipientId: variables.recipientId },
+            })
+            .catch((err) => {
+              console.error("Failed to trigger profile synthesis:", err);
+            });
+        }
+      },
+    }),
   });
 }
+
+type DeleteRecipientVariables = {
+  userId: string;
+  recipientId: string;
+};
 
 /**
  * Hook to delete a recipient
@@ -159,10 +166,7 @@ export function useDeleteRecipient() {
     mutationFn: async ({
       userId,
       recipientId,
-    }: {
-      userId: string;
-      recipientId: string;
-    }): Promise<void> => {
+    }: DeleteRecipientVariables): Promise<void> => {
       const { error } = await supabase
         .from("recipients")
         .delete()
@@ -171,22 +175,18 @@ export function useDeleteRecipient() {
 
       if (error) throw error;
     },
-    onSuccess: (_, variables) => {
-      // Invalidate recipients, detail, and occasions (dashboard derives from these)
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.recipients(variables.userId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.recipient(variables.userId, variables.recipientId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.occasions(variables.userId),
-      });
-      // Also invalidate gift suggestions for this recipient
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.giftSuggestions(variables.recipientId),
-      });
-    },
-    onError: (error) => console.error("useDeleteRecipient failed:", error),
+    ...makeMutationHandlers<void, DeleteRecipientVariables>({
+      queryClient,
+      label: "useDeleteRecipient",
+      errorMessage: "Couldn't delete this person. Please try again.",
+      // Dashboard derives from recipients and occasions; gift suggestions
+      // for the deleted recipient are stale too
+      invalidateKeys: (_, variables) => [
+        queryKeys.recipients(variables.userId),
+        queryKeys.recipient(variables.userId, variables.recipientId),
+        queryKeys.occasions(variables.userId),
+        queryKeys.giftSuggestions(variables.recipientId),
+      ],
+    }),
   });
 }

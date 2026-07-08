@@ -467,13 +467,11 @@ export default function RecipientEditPage() {
     deleteRecipient.mutate(
       { userId: user.id, recipientId: recipient.id },
       {
+        // Failures surface via the shared mutation handler's snackbar.
         onSuccess: () => {
           router.back();
         },
-        onError: () => {
-          setConfirmDeleteVisible(false);
-          showToast("Failed to delete recipient.");
-        },
+        onError: () => setConfirmDeleteVisible(false),
       }
     );
   };

@@ -15,6 +15,7 @@ import Header from "../components/Header";
 import AnimatedSplash from "../components/AnimatedSplash";
 import BottomNav from "../components/BottomNav";
 import GiftActionDrawerProvider from "../components/gifts/GiftActionDrawerProvider";
+import GlobalSnackbar from "../components/GlobalSnackbar";
 import { Colors } from "../lib/colors";
 import { useFontsLoader } from "../hooks/use-fonts-loader";
 import { usePushNotifications } from "../hooks/use-push-notifications";
@@ -208,6 +209,7 @@ export default Sentry.wrap(function RootLayout() {
               <AppShell />
             </GiftActionDrawerProvider>
           </ErrorBoundary>
+          <GlobalSnackbar />
           {!splashDone && (
             <AnimatedSplash
               ready={splashReady}

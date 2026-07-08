@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 import { queryKeys } from "../lib/query-keys";
+import { makeMutationHandlers } from "../lib/mutation-handlers";
 import type { Profile } from "../lib/api";
 
 interface UpdateProfileData {
@@ -13,6 +14,11 @@ interface UpdateProfileData {
 /**
  * Hook to update user profile
  */
+type UpdateProfileVariables = {
+  userId: string;
+  data: UpdateProfileData;
+};
+
 export function useUpdateProfile() {
   const queryClient = useQueryClient();
 
@@ -20,10 +26,7 @@ export function useUpdateProfile() {
     mutationFn: async ({
       userId,
       data,
-    }: {
-      userId: string;
-      data: UpdateProfileData;
-    }): Promise<Profile> => {
+    }: UpdateProfileVariables): Promise<Profile> => {
       // Use update instead of upsert - profile row should exist from signup trigger.
       // Only send full_name (omit username to avoid min-3-char constraint).
       const payload: Record<string, unknown> = {
@@ -46,25 +49,26 @@ export function useUpdateProfile() {
       if (error) throw error;
       return profile as Profile;
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.profile(variables.userId),
-      });
-
-      // Re-synthesize giver profile in the background when location changes
-      const locationChanged =
-        "billing_address_city" in variables.data ||
-        "billing_address_state" in variables.data;
-      if (locationChanged) {
-        supabase.functions
-          .invoke("synthesize-giver-profile", {
-            body: { userId: variables.userId },
-          })
-          .catch((err) =>
-            console.error("Failed to trigger giver profile synthesis:", err)
-          );
-      }
-    },
-    onError: (error) => console.error("useUpdateProfile failed:", error),
+    ...makeMutationHandlers<Profile, UpdateProfileVariables>({
+      queryClient,
+      label: "useUpdateProfile",
+      errorMessage: "Couldn't save your profile. Please try again.",
+      invalidateKeys: (_, variables) => [queryKeys.profile(variables.userId)],
+      afterSuccess: (_, variables) => {
+        // Re-synthesize giver profile in the background when location changes
+        const locationChanged =
+          "billing_address_city" in variables.data ||
+          "billing_address_state" in variables.data;
+        if (locationChanged) {
+          supabase.functions
+            .invoke("synthesize-giver-profile", {
+              body: { userId: variables.userId },
+            })
+            .catch((err) =>
+              console.error("Failed to trigger giver profile synthesis:", err)
+            );
+        }
+      },
+    }),
   });
 }
