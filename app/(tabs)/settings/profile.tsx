@@ -25,10 +25,20 @@ import { showSnackbar } from "../../../components/GlobalSnackbar";
 import { supabase } from "../../../lib/supabase";
 import { Colors } from "../../../lib/colors";
 
+// Deferred, pending backend infra (flagged on DEV-261 for sign-off): the
+// finalized Account frame also shows a profile photo ("Tap to add photo") and a
+// Phone field. Both need schema/storage that doesn't exist yet — a `profiles`
+// `avatar_url` column + a storage bucket + RLS for the photo, and a `phone`
+// column — so they are intentionally not built here.
+
+const MIN_PASSWORD_LENGTH = 6;
+
+type SaveState = "idle" | "saving" | "saved" | "error";
+
 export default function ProfileSettings() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { data: profile, isLoading: _profileLoading } = useProfile();
+  const { data: profile } = useProfile();
   const updateProfile = useUpdateProfile();
   const loading = authLoading;
 
@@ -37,15 +47,22 @@ export default function ProfileSettings() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
 
-  // Original values to track changes
+  // Original values, used to detect which fields changed on blur.
   const [originalValues, setOriginalValues] = useState({
     fullName: "",
     city: "",
     state: "",
   });
 
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+
   const [confirmDeleteVisible, setConfirmDeleteVisible] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const [passwordDialogVisible, setPasswordDialogVisible] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
 
   async function handleDeleteAccount() {
     setDeleting(true);
@@ -97,26 +114,30 @@ export default function ProfileSettings() {
     }
   }
 
-  async function handleSave() {
-    if (!user) {
-      showSnackbar("You must be logged in to save changes.");
-      return;
-    }
+  // Persist on blur. The finalized frame shows no Save button, so edits commit
+  // when the user leaves a field. Only send location keys when they actually
+  // changed, so the giver-profile re-synthesis (fired in the mutation handler
+  // on location change) doesn't run on every unrelated save.
+  async function persistOnBlur() {
+    if (!user) return;
 
     const trimmedFullName = fullName.trim();
-
     const trimmedCity = city.trim();
     const trimmedState = state.trim();
+
+    const nameChanged = trimmedFullName !== originalValues.fullName;
     const locationChanged =
       trimmedCity !== originalValues.city ||
       trimmedState !== originalValues.state;
 
+    if (!nameChanged && !locationChanged) return;
+
+    setSaveState("saving");
     try {
       await updateProfile.mutateAsync({
         userId: user.id,
         data: {
           full_name: trimmedFullName || null,
-          // Only include location when it changed so the hook knows to re-synthesize
           ...(locationChanged && {
             billing_address_city: trimmedCity || null,
             billing_address_state: trimmedState || null,
@@ -129,19 +150,49 @@ export default function ProfileSettings() {
         city: trimmedCity,
         state: trimmedState,
       });
-
-      showSnackbar("Profile updated.");
+      setSaveState("saved");
     } catch {
-      // Logged and surfaced (snackbar) by the shared mutation handler; the
-      // catch only keeps the success path from running.
+      // The shared mutation handler logs and shows an error snackbar; reflect it
+      // inline too so the auto-save state doesn't read as "saved".
+      setSaveState("error");
     }
   }
 
-  // Check if there are unsaved changes
-  const hasChanges =
-    fullName.trim() !== originalValues.fullName ||
-    city.trim() !== originalValues.city ||
-    state.trim() !== originalValues.state;
+  async function handleChangePassword() {
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+      showSnackbar(
+        `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`
+      );
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showSnackbar("Passwords don't match.");
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+      if (error) throw error;
+
+      setPasswordDialogVisible(false);
+      setNewPassword("");
+      setConfirmPassword("");
+      showSnackbar("Password updated.");
+    } catch (err) {
+      // Supabase rejects the change when the session is too old and "secure
+      // password change" is enabled; point the user at re-auth in that case.
+      const message =
+        err instanceof Error && /reauthentication|session/i.test(err.message)
+          ? "For security, sign out and back in, then try again."
+          : "Couldn't update your password. Please try again.";
+      showSnackbar(message);
+    } finally {
+      setChangingPassword(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -157,7 +208,7 @@ export default function ProfileSettings() {
     return (
       <View style={styles.container}>
         <View style={styles.content}>
-          <Text style={styles.title}>Your Info</Text>
+          <Text style={styles.title}>Account Info</Text>
           <Text style={styles.subtitle}>
             Please sign in to manage your profile.
           </Text>
@@ -165,6 +216,15 @@ export default function ProfileSettings() {
       </View>
     );
   }
+
+  const saveStatusLabel =
+    saveState === "saving"
+      ? "Saving…"
+      : saveState === "saved"
+        ? "Saved"
+        : saveState === "error"
+          ? "Not saved"
+          : "";
 
   return (
     <KeyboardAvoidingView
@@ -178,13 +238,12 @@ export default function ProfileSettings() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.content}>
-            {/* Main white card container */}
             <View style={styles.mainCard}>
               {/* Header section */}
               <View style={styles.header}>
                 <View style={styles.headerLeft}>
                   <Text variant="headlineMedium" style={styles.title}>
-                    Your Info
+                    Account Info
                   </Text>
                   <Text variant="bodyLarge" style={styles.subtitle}>
                     Manage your personal information
@@ -201,11 +260,24 @@ export default function ProfileSettings() {
 
               {/* Personal Information Section */}
               <View style={styles.section}>
-                <Text variant="titleLarge" style={styles.sectionTitle}>
-                  Personal Information
-                </Text>
+                <View style={styles.sectionHeaderRow}>
+                  <Text variant="titleLarge" style={styles.sectionTitle}>
+                    Personal Information
+                  </Text>
+                  {saveStatusLabel ? (
+                    <Text
+                      variant="bodySmall"
+                      style={[
+                        styles.saveStatus,
+                        saveState === "error" && styles.saveStatusError,
+                      ]}
+                    >
+                      {saveStatusLabel}
+                    </Text>
+                  ) : null}
+                </View>
                 <Text variant="bodyMedium" style={styles.sectionSubtitle}>
-                  Update your personal details.
+                  Changes save automatically.
                 </Text>
 
                 {/* Full Name */}
@@ -215,13 +287,13 @@ export default function ProfileSettings() {
                     label="Full Name"
                     value={fullName}
                     onChangeText={setFullName}
+                    onBlur={persistOnBlur}
                     placeholder="Enter your full name"
-                    right={<TextInput.Icon icon="ellipsis-horizontal" />}
                     style={styles.input}
                   />
                 </View>
 
-                {/* Location */}
+                {/* Location — kept for location-based gift timing (DEV-261) */}
                 <View style={styles.locationRow}>
                   <View style={styles.cityField}>
                     <TextInput
@@ -229,6 +301,7 @@ export default function ProfileSettings() {
                       label="City"
                       value={city}
                       onChangeText={setCity}
+                      onBlur={persistOnBlur}
                       placeholder="City"
                       style={styles.input}
                     />
@@ -239,6 +312,7 @@ export default function ProfileSettings() {
                       label="State"
                       value={state}
                       onChangeText={setState}
+                      onBlur={persistOnBlur}
                       placeholder="State"
                       autoCapitalize="characters"
                       style={styles.input}
@@ -262,17 +336,19 @@ export default function ProfileSettings() {
                 </View>
               </View>
 
-              {/* Save Button */}
-              <Button
-                mode="contained"
-                buttonColor="#000000"
-                onPress={handleSave}
-                disabled={updateProfile.isPending || !hasChanges}
-                loading={updateProfile.isPending}
-                style={styles.saveButton}
-              >
-                {hasChanges ? "Save Changes" : "No Changes"}
-              </Button>
+              {/* Security */}
+              <View style={styles.section}>
+                <Text variant="titleLarge" style={styles.sectionTitle}>
+                  Security
+                </Text>
+                <Button
+                  mode="outlined"
+                  onPress={() => setPasswordDialogVisible(true)}
+                  style={styles.changePasswordButton}
+                >
+                  Change Password
+                </Button>
+              </View>
 
               <Button
                 mode="text"
@@ -288,6 +364,48 @@ export default function ProfileSettings() {
       </TouchableWithoutFeedback>
 
       <Portal>
+        <Dialog
+          visible={passwordDialogVisible}
+          onDismiss={() => !changingPassword && setPasswordDialogVisible(false)}
+        >
+          <Dialog.Title>Change Password</Dialog.Title>
+          <Dialog.Content>
+            <TextInput
+              mode="outlined"
+              label="New password"
+              value={newPassword}
+              onChangeText={setNewPassword}
+              secureTextEntry
+              autoCapitalize="none"
+              style={styles.dialogInput}
+            />
+            <TextInput
+              mode="outlined"
+              label="Confirm new password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              autoCapitalize="none"
+              style={styles.dialogInput}
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button
+              onPress={() => setPasswordDialogVisible(false)}
+              disabled={changingPassword}
+            >
+              Cancel
+            </Button>
+            <Button
+              onPress={handleChangePassword}
+              loading={changingPassword}
+              disabled={changingPassword}
+            >
+              Update
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
         <Dialog
           visible={confirmDeleteVisible}
           onDismiss={() => !deleting && setConfirmDeleteVisible(false)}
@@ -370,8 +488,19 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 32,
   },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   sectionTitle: {
     marginBottom: 8,
+  },
+  saveStatus: {
+    color: "#666",
+  },
+  saveStatusError: {
+    color: Colors.pinks.dark,
   },
   sectionSubtitle: {
     marginBottom: 20,
@@ -396,8 +525,11 @@ const styles = StyleSheet.create({
     marginTop: 4,
     color: "#999",
   },
-  saveButton: {
-    marginTop: 8,
+  changePasswordButton: {
+    marginTop: 4,
+  },
+  dialogInput: {
+    marginBottom: 12,
   },
   deleteButton: {
     marginTop: 16,
