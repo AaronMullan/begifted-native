@@ -107,11 +107,11 @@ export default function Settings() {
           <View style={styles.list}>
             <Divider />
             <SettingsRow
-              label="Your Info"
+              label="Account Info"
               onPress={push("/settings/profile")}
             />
             <SettingsRow
-              label="Your Gifting Style"
+              label="Gifting Style"
               onPress={push("/settings/gifting")}
             />
             <SettingsRow
