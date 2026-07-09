@@ -9,6 +9,7 @@ import { invokeWithRetry } from "../lib/edge-retry";
 import { queryKeys } from "../lib/query-keys";
 import { supabase } from "../lib/supabase";
 import { formatBirthdayDisplay, normalizeBirthday } from "../utils/birthday";
+import { useBetaCheckIn } from "../components/beta/BetaCheckInProvider";
 import {
   ExtractedData,
   Message,
@@ -146,6 +147,7 @@ export function useAddRecipientFlow(
 ): UseAddRecipientFlowReturn {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { triggerCheckIn } = useBetaCheckIn();
   // Stable cached copy of the contact photo — expo-contacts temp files are cleaned up by iOS
   const cachedPhotoUri = useRef<string | null>(initialPhotoUri ?? null);
   const [showDataReview, setShowDataReview] = useState(false);
@@ -324,6 +326,11 @@ export function useAddRecipientFlow(
       setSavedRecipientName(data.name || "Recipient");
       setSavedRecipientId(recipient.id);
       setSaveSuccess(true);
+
+      // A recipient was just saved -> fire the "first recipient added" beta
+      // check-in (once-gated in the provider, so only the genuine first save
+      // shows it).
+      triggerCheckIn("first_recipient");
 
       // Fire-and-forget: synthesize-recipient-profile runs on the server,
       // chains to gift generation itself (which honors the kill switch),
