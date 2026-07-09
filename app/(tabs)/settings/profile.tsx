@@ -7,7 +7,14 @@ import {
   Platform,
   TouchableWithoutFeedback,
 } from "react-native";
-import { Text, TextInput, IconButton, Button } from "react-native-paper";
+import {
+  Text,
+  TextInput,
+  IconButton,
+  Button,
+  Dialog,
+  Portal,
+} from "react-native-paper";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { HEADER_HEIGHT, BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
@@ -15,6 +22,8 @@ import { useAuth } from "../../../hooks/use-auth";
 import { useProfile } from "../../../hooks/use-profile";
 import { useUpdateProfile } from "../../../hooks/use-profile-mutations";
 import { showSnackbar } from "../../../components/GlobalSnackbar";
+import { supabase } from "../../../lib/supabase";
+import { Colors } from "../../../lib/colors";
 
 export default function ProfileSettings() {
   const router = useRouter();
@@ -34,6 +43,32 @@ export default function ProfileSettings() {
     city: "",
     state: "",
   });
+
+  const [confirmDeleteVisible, setConfirmDeleteVisible] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    try {
+      const { error } = await supabase.functions.invoke("delete-account", {
+        method: "POST",
+      });
+      if (error) throw error;
+
+      setConfirmDeleteVisible(false);
+      // The account is gone; drop the local session and return to landing.
+      await supabase.auth.signOut({ scope: "local" });
+      router.replace("/");
+      showSnackbar("Your account has been deleted.");
+    } catch {
+      setConfirmDeleteVisible(false);
+      showSnackbar(
+        "Couldn't delete your account. Please try again or contact support."
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -238,10 +273,48 @@ export default function ProfileSettings() {
               >
                 {hasChanges ? "Save Changes" : "No Changes"}
               </Button>
+
+              <Button
+                mode="text"
+                textColor={Colors.pinks.dark}
+                onPress={() => setConfirmDeleteVisible(true)}
+                style={styles.deleteButton}
+              >
+                Delete My Account
+              </Button>
             </View>
           </View>
         </ScrollView>
       </TouchableWithoutFeedback>
+
+      <Portal>
+        <Dialog
+          visible={confirmDeleteVisible}
+          onDismiss={() => !deleting && setConfirmDeleteVisible(false)}
+        >
+          <Dialog.Title>Delete your account?</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">
+              Deleting your account will remove your saved people, occasions,
+              preferences, feedback, and reminders, so BeGifted will no longer
+              be able to help with future gifting moments.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setConfirmDeleteVisible(false)}>
+              Keep my account
+            </Button>
+            <Button
+              textColor={Colors.pinks.dark}
+              onPress={handleDeleteAccount}
+              loading={deleting}
+              disabled={deleting}
+            >
+              Delete my account
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </KeyboardAvoidingView>
   );
 }
@@ -325,6 +398,9 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     marginTop: 8,
+  },
+  deleteButton: {
+    marginTop: 16,
   },
   loadingText: {
     textAlign: "center",
