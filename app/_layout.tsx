@@ -9,7 +9,7 @@ import {
   Text,
   Button,
 } from "react-native-paper";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, LogBox } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Header from "../components/Header";
 import AnimatedSplash from "../components/AnimatedSplash";
@@ -25,6 +25,15 @@ import { captureMutationError, captureQueryError } from "../lib/sentry-helpers";
 import { openBugReport } from "../lib/feedback";
 import * as Sentry from "@sentry/react-native";
 import * as ImagePicker from "expo-image-picker";
+
+// RN 0.86's experimental VirtualView native component declares an `onModeChange`
+// event whose codegen args don't resolve under the New Architecture, so RN emits
+// a view-config error on launch that LogBox escalates to a blocking red box the
+// moment you focus a TextInput inside a ScrollView. Nothing in our tree renders
+// VirtualView — it's RN-internal, dev-only noise (LogBox/redbox are no-ops in
+// release). Suppress the specific message so it can't hijack dev testing;
+// ignoreLogs also retroactively clears the already-collected launch log.
+LogBox.ignoreLogs(['Unable to determine event arguments for "onModeChange"']);
 
 // expo-image-picker types several asset fields as string | null | undefined
 // but Sentry's ImagePickerAsset expects string | undefined. Return only the
