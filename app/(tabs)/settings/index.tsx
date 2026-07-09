@@ -1,5 +1,5 @@
 import { View, ScrollView, StyleSheet, Pressable } from "react-native";
-import { Text } from "react-native-paper";
+import { Text, Button, Dialog, Portal } from "react-native-paper";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -37,6 +37,7 @@ const Divider: React.FC = () => <View style={styles.divider} />;
 export default function Settings() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [signOutVisible, setSignOutVisible] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -139,10 +140,38 @@ export default function Settings() {
           </View>
 
           <View style={styles.signOut}>
-            <SettingsRow label="Sign Out" onPress={handleSignOut} />
+            <SettingsRow
+              label="Sign Out"
+              onPress={() => setSignOutVisible(true)}
+            />
           </View>
         </View>
       </ScrollView>
+
+      <Portal>
+        <Dialog
+          visible={signOutVisible}
+          onDismiss={() => setSignOutVisible(false)}
+        >
+          <Dialog.Title>Sign Out?</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">
+              You&apos;ll need to sign back in to access your BeGifted account.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setSignOutVisible(false)}>Cancel</Button>
+            <Button
+              onPress={() => {
+                setSignOutVisible(false);
+                handleSignOut();
+              }}
+            >
+              Sign Out
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 }
