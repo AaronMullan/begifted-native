@@ -15,6 +15,7 @@ import Header from "../components/Header";
 import AnimatedSplash from "../components/AnimatedSplash";
 import BottomNav from "../components/BottomNav";
 import GiftActionDrawerProvider from "../components/gifts/GiftActionDrawerProvider";
+import BetaCheckInProvider from "../components/beta/BetaCheckInProvider";
 import GlobalSnackbar from "../components/GlobalSnackbar";
 import { Colors } from "../lib/colors";
 import { useFontsLoader } from "../hooks/use-fonts-loader";
@@ -215,7 +216,9 @@ export default Sentry.wrap(function RootLayout() {
         <PaperProvider theme={customTheme}>
           <ErrorBoundary>
             <GiftActionDrawerProvider>
-              <AppShell />
+              <BetaCheckInProvider>
+                <AppShell />
+              </BetaCheckInProvider>
             </GiftActionDrawerProvider>
           </ErrorBoundary>
           <GlobalSnackbar />

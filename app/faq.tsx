@@ -1,22 +1,16 @@
 import { View, ScrollView, StyleSheet, Pressable } from "react-native";
 import { useState } from "react";
-import { useRouter } from "expo-router";
-import {
-  IconButton,
-  Text,
-  ActivityIndicator,
-  TouchableRipple,
-} from "react-native-paper";
-import { BlurView } from "expo-blur";
+import { Text, ActivityIndicator } from "react-native-paper";
+import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../lib/colors";
 import { Typography } from "../lib/typography";
 import { BOTTOM_NAV_HEIGHT } from "../lib/constants";
 import { useFaqs } from "../hooks/use-faqs";
 import GradientBackground from "../components/GradientBackground";
+import SubpageHeader, { SUBPAGE_GUTTER } from "../components/SubpageHeader";
 
 export default function FAQ() {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
-  const router = useRouter();
   const { data: faqs = [], isLoading, isError } = useFaqs();
 
   const toggleFAQ = (index: number) => {
@@ -26,62 +20,50 @@ export default function FAQ() {
   return (
     <View style={styles.container}>
       <GradientBackground />
-      <View style={styles.headerSpacer} />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.content}>
-          {/* Header section */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text variant="headlineMedium" style={styles.title}>
-                Help & FAQ
-              </Text>
-              <Text variant="bodyLarge" style={styles.subtitle}>
-                Quick answers about how BeGifted works.
-              </Text>
-            </View>
-            <IconButton
-              icon="arrow-left"
-              size={20}
-              iconColor={Colors.black}
-              onPress={() => router.back()}
-              style={styles.backButton}
-            />
+        <SubpageHeader title="FAQ" />
+
+        {isLoading ? (
+          <View style={styles.stateContainer}>
+            <ActivityIndicator size="large" color={Colors.brand.darkTeal} />
+            <Text style={styles.stateText}>Loading FAQ…</Text>
           </View>
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={Colors.black} />
-              <Text variant="bodyMedium" style={styles.loadingText}>
-                Loading FAQ…
-              </Text>
-            </View>
-          ) : isError ? (
-            <Text variant="bodyMedium" style={styles.errorText}>
+        ) : isError ? (
+          <View style={styles.stateContainer}>
+            <Text style={styles.stateText}>
               Could not load FAQs. Please try again later.
             </Text>
-          ) : (
-            <View style={styles.list}>
-              {faqs.map((faq, i) => (
-                <Pressable key={i} style={styles.faqItem}>
-                  <BlurView intensity={20} style={styles.blurBackground} />
-                  <View style={styles.faqContent}>
-                    <TouchableRipple
-                      onPress={() => toggleFAQ(i)}
-                      style={styles.question}
-                    >
-                      <Text style={styles.questionText}>{faq.q}</Text>
-                    </TouchableRipple>
-                    {expandedIndex === i && (
-                      <Text style={styles.answer}>{faq.a}</Text>
-                    )}
-                  </View>
-                </Pressable>
-              ))}
-            </View>
-          )}
-        </View>
+          </View>
+        ) : (
+          <View style={styles.list}>
+            <View style={styles.divider} />
+            {faqs.map((faq, i) => {
+              const expanded = expandedIndex === i;
+              return (
+                <View key={i}>
+                  <Pressable
+                    onPress={() => toggleFAQ(i)}
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded }}
+                    style={styles.row}
+                  >
+                    <Text style={styles.question}>{faq.q}</Text>
+                    <MaterialIcons
+                      name={expanded ? "expand-less" : "expand-more"}
+                      size={20}
+                      color={Colors.brand.mediumTeal}
+                    />
+                  </Pressable>
+                  {expanded && <Text style={styles.answer}>{faq.a}</Text>}
+                  <View style={styles.divider} />
+                </View>
+              );
+            })}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -92,93 +74,51 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "transparent",
   },
-  headerSpacer: {
-    height: 0,
-  },
   scrollView: {
     flex: 1,
     backgroundColor: "transparent",
   },
-  content: {
-    maxWidth: 800,
-    alignSelf: "center",
-    width: "100%",
-    padding: 20,
-  },
   scrollContent: {
+    // Small gap below the in-flow global app Header; no full header-height
+    // spacer (the Header already occupies its own vertical space above).
+    paddingTop: 8,
     paddingBottom: BOTTOM_NAV_HEIGHT,
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 32,
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  title: {
-    marginBottom: 8,
-    color: Colors.darks.black,
-  },
-  subtitle: {
-    color: Colors.darks.black,
-    opacity: 0.9,
-  },
-  // 44pt min tap target (HIG); transparent container, 20pt icon unchanged.
-  backButton: {
-    margin: 0,
-    width: 44,
-    height: 44,
-  },
   list: {
-    gap: 24,
+    marginTop: 32,
+    paddingHorizontal: SUBPAGE_GUTTER,
   },
-  faqItem: {
-    backgroundColor: Colors.neutrals.light + "30", // Low opacity (~19%) – match dashboard cards
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: Colors.white,
-    overflow: "hidden",
-    position: "relative",
-    marginBottom: 0,
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.white,
   },
-  blurBackground: {
-    ...StyleSheet.absoluteFill,
-    borderRadius: 18,
-    overflow: "hidden",
-  },
-  faqContent: {
-    padding: 20,
-    position: "relative",
-    zIndex: 1,
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 16,
+    gap: 16,
   },
   question: {
-    cursor: "pointer",
-  },
-  questionText: {
     ...Typography.subhead,
-    color: Colors.darks.black,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    flex: 1,
+    color: Colors.brand.darkTeal,
+    lineHeight: 20,
   },
   answer: {
-    marginTop: 12,
-    color: Colors.darks.black,
-    opacity: 0.8,
-    lineHeight: 22,
+    ...Typography.copyblock,
+    color: Colors.brand.mediumTeal,
+    paddingBottom: 16,
   },
-  loadingContainer: {
-    paddingVertical: 40,
+  stateContainer: {
+    paddingTop: 60,
+    paddingHorizontal: SUBPAGE_GUTTER,
     alignItems: "center",
   },
-  loadingText: {
+  stateText: {
+    ...Typography.subhead,
     marginTop: 16,
-    color: Colors.darks.black,
-    opacity: 0.8,
-  },
-  errorText: {
-    color: Colors.darks.black,
-    opacity: 0.8,
+    color: Colors.brand.mediumTeal,
+    textAlign: "center",
   },
 });
