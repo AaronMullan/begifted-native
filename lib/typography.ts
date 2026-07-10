@@ -73,6 +73,13 @@ export const Typography = {
     fontFamily: FontFamily.sans.medium,
     fontSize: 16,
   } satisfies TextStyle,
+  // Body copy ("copyblock" in the FINAL file): DM Sans 400 14/18. Intro
+  // paragraphs and expanded FAQ answers.
+  copyblock: {
+    fontFamily: FontFamily.sans.regular,
+    fontSize: 14,
+    lineHeight: scaleLineHeight(18),
+  } satisfies TextStyle,
   eyebrow: {
     fontFamily: FontFamily.sans.regular,
     fontSize: 11,
