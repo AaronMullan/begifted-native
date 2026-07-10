@@ -25,11 +25,10 @@ import { showSnackbar } from "../../../components/GlobalSnackbar";
 import { supabase } from "../../../lib/supabase";
 import { Colors } from "../../../lib/colors";
 
-// Deferred, pending backend infra (flagged on DEV-261 for sign-off): the
-// finalized Account frame also shows a profile photo ("Tap to add photo") and a
-// Phone field. Both need schema/storage that doesn't exist yet — a `profiles`
-// `avatar_url` column + a storage bucket + RLS for the photo, and a `phone`
-// column — so they are intentionally not built here.
+// Deferred, pending backend infra: the finalized Account frame also shows a
+// profile photo ("Tap to add photo") and a Phone field. The `profiles.avatar_url`
+// column already exists, so the photo still needs a storage bucket + RLS; the
+// phone field needs a `phone` column. Neither is built here yet.
 
 const MIN_PASSWORD_LENGTH = 6;
 
