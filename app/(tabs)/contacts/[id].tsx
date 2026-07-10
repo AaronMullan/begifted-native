@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, Button, Dialog, IconButton, Portal } from "react-native-paper";
@@ -14,6 +14,7 @@ import type { Recipient, GiftSuggestion } from "../../../types/recipient";
 import { AboutRecipientView } from "../../../components/recipients/AboutRecipientView";
 import GiftSuggestionsList from "../../../components/gifts/GiftSuggestionsList";
 import PastGiftsSection from "../../../components/gifts/PastGiftsSection";
+import { useBetaCheckIn } from "../../../components/beta/BetaCheckInProvider";
 import { useAuth } from "../../../hooks/use-auth";
 import { useRecipient } from "../../../hooks/use-recipient";
 import { useOccasion } from "../../../hooks/use-occasion";
@@ -159,6 +160,7 @@ export default function RecipientEditPage() {
   const recipientId = params.id;
   const { user, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
+  const { triggerCheckIn } = useBetaCheckIn();
   const scrollRef = useRef<ScrollView>(null);
   const { showToast, toast } = useToast();
   const { data: userPreferences } = useUserPreferences();
@@ -263,6 +265,16 @@ export default function RecipientEditPage() {
     setGenBaseline(null);
   }
   const isGenerating = genBaseline !== null;
+
+  // First gift set reviewed -> fire the third beta check-in once the gifts tab
+  // shows a settled, non-empty set (not still generating). Effect, not a render
+  // latch, because it responds to async data arrival; the provider gates it to
+  // a single showing per user.
+  const giftsReady =
+    activeTab === "gifts" && !isGenerating && suggestions.length > 0;
+  useEffect(() => {
+    if (giftsReady) triggerCheckIn("first_gift_set");
+  }, [giftsReady, triggerCheckIn]);
 
   // Start generation tracking when navigated from the add flow with
   // generating=true (only when there is nothing to show yet).
