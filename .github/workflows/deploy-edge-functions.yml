@@ -49,6 +49,7 @@ jobs:
             supabase functions deploy synthesize-recipient-profile --project-ref $SUPABASE_PROJECT_REF
             supabase functions deploy generate-gift-suggestions --project-ref $SUPABASE_PROJECT_REF
             supabase functions deploy upload-recipient-photo --project-ref $SUPABASE_PROJECT_REF
+            supabase functions deploy upload-avatar --project-ref $SUPABASE_PROJECT_REF
             supabase functions deploy record-legal-acceptance --project-ref $SUPABASE_PROJECT_REF
             supabase functions deploy delete-account --project-ref $SUPABASE_PROJECT_REF
           elif [ -d "begifted/supabase/functions" ]; then
@@ -60,6 +61,7 @@ jobs:
             supabase functions deploy synthesize-recipient-profile --project-ref $SUPABASE_PROJECT_REF
             supabase functions deploy generate-gift-suggestions --project-ref $SUPABASE_PROJECT_REF
             supabase functions deploy upload-recipient-photo --project-ref $SUPABASE_PROJECT_REF
+            supabase functions deploy upload-avatar --project-ref $SUPABASE_PROJECT_REF
             supabase functions deploy record-legal-acceptance --project-ref $SUPABASE_PROJECT_REF
             supabase functions deploy delete-account --project-ref $SUPABASE_PROJECT_REF
           else
