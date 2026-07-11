@@ -1,5 +1,6 @@
 export interface Recipient {
   id: string;
+  user_id?: string;
   name: string;
   relationship_type: string;
   interests?: string[];
@@ -13,6 +14,11 @@ export interface Recipient {
   state?: string;
   zip_code?: string;
   country?: string;
+  aesthetic?: string[];
+  avoid_list?: string[];
+  conversation_summary?: string | null;
+  summary_approved?: boolean;
+  fallback_days_before?: number;
   photo_url?: string;
   synthesized_profile?: string | null;
   known_roles?: string[];

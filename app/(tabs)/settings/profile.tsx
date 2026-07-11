@@ -159,7 +159,7 @@ export default function ProfileSettings() {
   if (profile !== prevProfile) {
     setPrevProfile(profile);
     if (profile) {
-      const fetchedFullName = profile.full_name || profile.name || "";
+      const fetchedFullName = profile.full_name || "";
       const fetchedCity = profile.billing_address_city || "";
       const fetchedState = profile.billing_address_state || "";
 

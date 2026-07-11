@@ -25,7 +25,7 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
     return null;
   }
 
-  const fullName = profile?.full_name ?? profile?.name ?? "";
+  const fullName = profile?.full_name ?? "";
   const initials = deriveInitials(fullName, user?.email ?? "");
 
   return (
