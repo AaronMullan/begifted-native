@@ -18,9 +18,11 @@ type NavItem = {
   icon: keyof typeof MaterialCommunityIcons.glyphMap;
 };
 
-/** Height of the nav's content row (excludes the safe-area inset added below
- * it). Exported so overlays like the Past Gifts drawer can pin flush above the
- * nav: their bottom offset is this plus the same safe-area inset. */
+/** Base height of the nav bar, excluding the home-indicator safe-area inset.
+ * Total nav height = this + the bottom inset; the icons are centered within
+ * that total (see the container style). Exported so overlays like the Past
+ * Gifts drawer can pin flush above the nav: their bottom offset is this plus
+ * the same safe-area inset. */
 export const NAV_CONTENT_HEIGHT = 55;
 
 const NAV_ITEMS: NavItem[] = [
@@ -62,7 +64,12 @@ export default function BottomNav() {
       <View
         style={[
           styles.container,
-          { paddingBottom: Math.max(insets.bottom, 12) },
+          // Reserve the home-indicator safe area as part of the bar's total
+          // height (rather than as bottom padding) so the icons center in the
+          // whole teal band instead of sitting in the top NAV_CONTENT_HEIGHT
+          // with the inset pooled as empty space below — while still clearing
+          // the home-indicator pill.
+          { minHeight: NAV_CONTENT_HEIGHT + Math.max(insets.bottom, 12) },
         ]}
       >
         <View style={styles.navContent}>
@@ -125,18 +132,19 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: "rgba(255,255,255,0.15)",
     backgroundColor: Colors.blues.medium,
+    // Center the nav row vertically in the full bar height (base + safe area).
+    justifyContent: "center",
   },
   navContent: {
-    // Content row that can grow taller so a label scaled up at large Dynamic
-    // Type isn't clipped; the safe-area inset is applied separately as additive
-    // paddingBottom on the container so it never crushes this row.
-    minHeight: NAV_CONTENT_HEIGHT,
+    // The row grows with the content, so a label scaled up at large Dynamic
+    // Type isn't clipped; the container's minHeight reserves the base + inset
+    // and centers this row within it.
     maxWidth: 800,
     width: "100%",
     alignSelf: "center",
     flexDirection: "row",
     justifyContent: "space-around",
-    alignItems: "stretch",
+    alignItems: "center",
   },
   navItem: {
     flex: 1,
