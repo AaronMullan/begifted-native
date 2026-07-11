@@ -69,16 +69,17 @@ export interface Profile {
   id: string;
   username?: string;
   full_name?: string;
-  name?: string;
-  street_address?: string;
-  city?: string;
-  state?: string;
-  zip_code?: string;
+  avatar_url?: string;
+  website?: string;
   billing_address_street?: string;
   billing_address_city?: string;
   billing_address_state?: string;
   billing_address_zip?: string;
+  billing_address_country?: string;
+  push_notifications_enabled?: boolean;
+  email_notifications_enabled?: boolean;
   is_admin?: boolean;
+  updated_at?: string;
 }
 
 /**
