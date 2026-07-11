@@ -7,7 +7,9 @@ import { Colors } from "../lib/colors";
 import { Typography } from "../lib/typography";
 
 // Glyphs are matched to the "Footer Navigation" design frame: an outlined house
-// (only in MaterialCommunityIcons), a filled group, and a dotted month calendar.
+// and a filled group (front figure + one behind) — both only in
+// MaterialCommunityIcons; MaterialIcons "group"/"people" render as two equal
+// figures, which don't match the frame — plus a dotted month calendar.
 type NavItem = {
   key: "dashboard" | "people" | "moments";
   label: string;
@@ -33,8 +35,8 @@ const NAV_ITEMS: NavItem[] = [
   {
     key: "people",
     label: "People",
-    iconSet: "material",
-    icon: "people",
+    iconSet: "community",
+    icon: "account-multiple",
     href: "/contacts",
   },
   {
