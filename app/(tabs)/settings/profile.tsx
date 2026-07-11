@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView,
   Keyboard,
   Platform,
+  Pressable,
   TouchableWithoutFeedback,
 } from "react-native";
 import {
@@ -14,7 +15,13 @@ import {
   Button,
   Dialog,
   Portal,
+  ActivityIndicator,
 } from "react-native-paper";
+import { Image } from "expo-image";
+import { MaterialIcons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sentry from "@sentry/react-native";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { HEADER_HEIGHT, BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
@@ -22,16 +29,15 @@ import { useAuth } from "../../../hooks/use-auth";
 import { useProfile } from "../../../hooks/use-profile";
 import { useUpdateProfile } from "../../../hooks/use-profile-mutations";
 import { showSnackbar } from "../../../components/GlobalSnackbar";
+import { invokeWithRetry } from "../../../lib/edge-retry";
 import { supabase } from "../../../lib/supabase";
 import { Colors } from "../../../lib/colors";
 
-// Deferred, pending backend infra (flagged on DEV-261 for sign-off): the
-// finalized Account frame also shows a profile photo ("Tap to add photo") and a
-// Phone field. Both need schema/storage that doesn't exist yet — a `profiles`
-// `avatar_url` column + a storage bucket + RLS for the photo, and a `phone`
-// column — so they are intentionally not built here.
-
 const MIN_PASSWORD_LENGTH = 6;
+
+// Content type sent to upload-avatar; expo-image-picker returns JPEG for camera
+// captures and library picks after our resize/edit step.
+const AVATAR_CONTENT_TYPE = "image/jpeg";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -63,6 +69,60 @@ export default function ProfileSettings() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
+
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  // Pick from the library, upload via the service_role edge function (direct
+  // client uploads to storage are RLS-rejected on this project), then persist
+  // the returned public URL on the profile. Mirrors uploadRecipientPhoto.
+  async function handleChangePhoto() {
+    if (!user) return;
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      showSnackbar("Allow photo access in Settings to add a profile photo.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (result.canceled || !result.assets[0]) return;
+
+    setUploadingPhoto(true);
+    try {
+      const base64 = await FileSystem.readAsStringAsync(result.assets[0].uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const { data, error } = await invokeWithRetry<{
+        publicUrl?: string;
+        error?: string;
+      }>(
+        "upload-avatar",
+        { body: { base64, contentType: AVATAR_CONTENT_TYPE } },
+        2
+      );
+      if (error || !data?.publicUrl) {
+        throw new Error(error?.message ?? data?.error ?? "Upload failed");
+      }
+
+      await updateProfile.mutateAsync({
+        userId: user.id,
+        data: { avatar_url: data.publicUrl },
+      });
+      showSnackbar("Profile photo updated.");
+    } catch (err) {
+      Sentry.captureException(err, {
+        tags: { flow: "account_settings", step: "avatar_upload" },
+      });
+      showSnackbar("Couldn't update your photo. Please try again.");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
 
   async function handleDeleteAccount() {
     setDeleting(true);
@@ -256,6 +316,47 @@ export default function ProfileSettings() {
                   onPress={() => router.back()}
                   style={styles.backButton}
                 />
+              </View>
+
+              {/* Profile photo */}
+              <View style={styles.photoSection}>
+                <Pressable
+                  onPress={handleChangePhoto}
+                  disabled={uploadingPhoto}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    profile?.avatar_url
+                      ? "Change profile photo"
+                      : "Add profile photo"
+                  }
+                  style={styles.photoTarget}
+                >
+                  {profile?.avatar_url ? (
+                    <Image
+                      source={{ uri: profile.avatar_url }}
+                      style={styles.photo}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <View style={[styles.photo, styles.photoEmpty]}>
+                      <MaterialIcons
+                        name="add-a-photo"
+                        size={28}
+                        color={Colors.grays.text}
+                      />
+                    </View>
+                  )}
+                  {uploadingPhoto ? (
+                    <View style={[styles.photo, styles.photoOverlay]}>
+                      <ActivityIndicator color={Colors.white} />
+                    </View>
+                  ) : null}
+                </Pressable>
+                <Text variant="bodyMedium" style={styles.photoHint}>
+                  {profile?.avatar_url
+                    ? "Tap to change photo"
+                    : "Tap to add photo"}
+                </Text>
               </View>
 
               {/* Personal Information Section */}
@@ -484,6 +585,38 @@ const styles = StyleSheet.create({
     margin: 0,
     width: 44,
     height: 44,
+  },
+  photoSection: {
+    alignItems: "center",
+    marginBottom: 32,
+  },
+  photoTarget: {
+    width: 96,
+    height: 96,
+  },
+  photo: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+  },
+  photoEmpty: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.grays.field,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.grays.border,
+  },
+  photoOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
+  photoHint: {
+    marginTop: 8,
+    color: Colors.grays.text,
   },
   section: {
     marginBottom: 32,

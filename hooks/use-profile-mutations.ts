@@ -6,6 +6,7 @@ import type { Profile } from "../lib/api";
 
 interface UpdateProfileData {
   full_name?: string | null;
+  avatar_url?: string | null;
   billing_address_city?: string | null;
   billing_address_state?: string | null;
   updated_at?: string;
@@ -34,6 +35,7 @@ export function useUpdateProfile() {
         updated_at: new Date().toISOString(),
       };
 
+      if ("avatar_url" in data) payload.avatar_url = data.avatar_url ?? null;
       if ("billing_address_city" in data)
         payload.billing_address_city = data.billing_address_city ?? null;
       if ("billing_address_state" in data)

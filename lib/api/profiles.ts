@@ -69,6 +69,7 @@ export interface Profile {
   id: string;
   username?: string;
   full_name?: string;
+  avatar_url?: string;
   name?: string;
   street_address?: string;
   city?: string;
