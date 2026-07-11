@@ -1,23 +1,22 @@
 import { View, StyleSheet, Pressable } from "react-native";
 import { Text } from "react-native-paper";
 import { Link, usePathname } from "expo-router";
-import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../lib/colors";
 import { Typography } from "../lib/typography";
 
-// Glyphs are matched to the "Footer Navigation" design frame: an outlined house
-// and a filled group (front figure + one behind) — both only in
-// MaterialCommunityIcons; MaterialIcons "group"/"people" render as two equal
-// figures, which don't match the frame — plus a dotted month calendar.
+// Glyphs are matched to the "Footer Navigation" design frame: an outlined house,
+// a filled group (front figure + one behind), and an outlined month calendar.
+// All three are MaterialCommunityIcons — MaterialIcons "group"/"people" render
+// as two equal figures and its "calendar-month" is filled, neither matching the
+// frame.
 type NavItem = {
   key: "dashboard" | "people" | "moments";
   label: string;
   href: "/dashboard" | "/contacts" | "/calendar";
-} & (
-  | { iconSet: "community"; icon: keyof typeof MaterialCommunityIcons.glyphMap }
-  | { iconSet: "material"; icon: keyof typeof MaterialIcons.glyphMap }
-);
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+};
 
 /** Height of the nav's content row (excludes the safe-area inset added below
  * it). Exported so overlays like the Past Gifts drawer can pin flush above the
@@ -28,22 +27,19 @@ const NAV_ITEMS: NavItem[] = [
   {
     key: "dashboard",
     label: "Home",
-    iconSet: "community",
     icon: "home-outline",
     href: "/dashboard",
   },
   {
     key: "people",
     label: "People",
-    iconSet: "community",
     icon: "account-multiple",
     href: "/contacts",
   },
   {
     key: "moments",
     label: "Moments",
-    iconSet: "material",
-    icon: "calendar-month",
+    icon: "calendar-month-outline",
     href: "/calendar",
   },
 ];
@@ -80,15 +76,11 @@ export default function BottomNav() {
                   accessibilityState={{ selected: isActive }}
                   style={styles.navItem}
                 >
-                  {item.iconSet === "community" ? (
-                    <MaterialCommunityIcons
-                      name={item.icon}
-                      size={24}
-                      color={tint}
-                    />
-                  ) : (
-                    <MaterialIcons name={item.icon} size={24} color={tint} />
-                  )}
+                  <MaterialCommunityIcons
+                    name={item.icon}
+                    size={24}
+                    color={tint}
+                  />
                   <Text
                     variant="labelSmall"
                     style={[styles.label, { color: tint }]}
