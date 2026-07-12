@@ -9,7 +9,6 @@ import type { Href } from "expo-router";
 import { Colors } from "../../../lib/colors";
 import { Typography } from "../../../lib/typography";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
-import { openBugReport } from "../../../lib/feedback";
 
 type SettingsRowProps = {
   label: string;
@@ -112,7 +111,7 @@ export default function Settings() {
               onPress={push("/settings/profile")}
             />
             <SettingsRow
-              label="Gifting Style"
+              label="About You"
               onPress={push("/settings/gifting")}
             />
             <SettingsRow
@@ -130,20 +129,21 @@ export default function Settings() {
               label="Contact Us"
               onPress={push("/settings/support")}
             />
-            {/* Not in the Settings frame; kept until design confirms whether
-                bug reporting is dropped or folds into Contact Us. */}
-            <SettingsRow
-              label="Report a Bug"
-              onPress={() => openBugReport("settings")}
-            />
             <Divider />
           </View>
 
           <View style={styles.signOut}>
-            <SettingsRow
-              label="Sign Out"
+            <Pressable
               onPress={() => setSignOutVisible(true)}
-            />
+              accessibilityRole="button"
+              accessibilityLabel="Sign Out"
+              style={({ pressed }) => [
+                styles.row,
+                pressed && styles.rowPressed,
+              ]}
+            >
+              <Text style={styles.signOutLabel}>Sign Out</Text>
+            </Pressable>
           </View>
         </View>
       </ScrollView>
@@ -234,6 +234,10 @@ const styles = StyleSheet.create({
   signOut: {
     marginTop: "auto",
     paddingTop: 40,
+  },
+  signOutLabel: {
+    ...Typography.largeCta,
+    color: Colors.brand.darkTeal,
   },
   loadingText: {
     textAlign: "center",
