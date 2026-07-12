@@ -1,0 +1,1 @@
+- Signup confirmation emails now arrive reliably, come from noreply@bgftd.com with BeGifted branding, and are no longer capped at 2 per hour (DEV-75).
