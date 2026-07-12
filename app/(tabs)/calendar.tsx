@@ -33,7 +33,7 @@ import {
   useCreateOccasion,
   useDeleteOccasion,
 } from "../../hooks/use-occasion-mutations";
-import { useToast } from "../../hooks/use-toast";
+import { showSnackbar } from "../../components/GlobalSnackbar";
 import GradientBackground from "../../components/GradientBackground";
 import { dialogStyles } from "../../components/recipients/recipient-dialog-styles";
 import MomentsCalendar from "../../components/moments/MomentsCalendar";
@@ -86,7 +86,6 @@ export default function Calendar() {
   const { data: recipients = [] } = useRecipients();
   const deleteOccasion = useDeleteOccasion();
   const createOccasion = useCreateOccasion();
-  const { toast, showToast } = useToast();
 
   const today = new Date();
   const [viewMonth, setViewMonth] = useState(() => startOfMonth(new Date()));
@@ -246,7 +245,7 @@ export default function Calendar() {
       {
         // Failures surface via the shared mutation handler's snackbar.
         onSuccess: () => {
-          showToast("Occasion added");
+          showSnackbar("Occasion added");
           handleDismissOccasionEntry();
         },
       }
@@ -274,7 +273,7 @@ export default function Calendar() {
       },
       {
         // Failures surface via the shared mutation handler's snackbar.
-        onSuccess: () => showToast("Occasion deleted"),
+        onSuccess: () => showSnackbar("Occasion deleted"),
         onSettled: () => setOccasionToDelete(null),
       }
     );
@@ -636,7 +635,6 @@ export default function Calendar() {
           </Pressable>
         </KeyboardAvoidingView>
       </Modal>
-      {toast}
     </View>
   );
 }

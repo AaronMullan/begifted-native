@@ -9,6 +9,7 @@ interface UpdateProfileData {
   avatar_url?: string | null;
   billing_address_city?: string | null;
   billing_address_state?: string | null;
+  birthday?: string | null;
   updated_at?: string;
 }
 
@@ -40,6 +41,7 @@ export function useUpdateProfile() {
         payload.billing_address_city = data.billing_address_city ?? null;
       if ("billing_address_state" in data)
         payload.billing_address_state = data.billing_address_state ?? null;
+      if ("birthday" in data) payload.birthday = data.birthday ?? null;
 
       const { data: profile, error } = await supabase
         .from("profiles")

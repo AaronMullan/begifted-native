@@ -10,7 +10,6 @@ import ContactsAccessIntro from "../../../components/ContactsAccessIntro";
 import PeopleCtaTiles from "../../../components/contacts/PeopleCtaTiles";
 import PeopleRecipientCard from "../../../components/contacts/PeopleRecipientCard";
 import { useContactImportFlow } from "../../../hooks/use-contact-import-flow";
-import { useToast } from "../../../hooks/use-toast";
 import { useAuth } from "../../../hooks/use-auth";
 import { useRecipients } from "../../../hooks/use-recipients";
 import { useAllOccasions } from "../../../hooks/use-occasions";
@@ -43,7 +42,6 @@ export default function Contacts() {
     importFromFile,
     selectContact,
   } = useContactImportFlow();
-  const { toast } = useToast();
 
   const handleAddManually = () => router.push("/contacts/add");
 
@@ -125,7 +123,6 @@ export default function Contacts() {
           onClose={closePicker}
         />
       </ScrollView>
-      {toast}
     </View>
   );
 }

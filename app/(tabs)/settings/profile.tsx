@@ -29,9 +29,15 @@ import { useAuth } from "../../../hooks/use-auth";
 import { useProfile } from "../../../hooks/use-profile";
 import { useUpdateProfile } from "../../../hooks/use-profile-mutations";
 import { showSnackbar } from "../../../components/GlobalSnackbar";
+import StateDropdown from "../../../components/settings/StateDropdown";
 import { invokeWithRetry } from "../../../lib/edge-retry";
 import { supabase } from "../../../lib/supabase";
 import { Colors } from "../../../lib/colors";
+import {
+  formatBirthdayDisplay,
+  isInvalidBirthdayInput,
+  normalizeBirthday,
+} from "../../../utils/birthday";
 
 const MIN_PASSWORD_LENGTH = 6;
 
@@ -52,12 +58,14 @@ export default function ProfileSettings() {
   const [fullName, setFullName] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
+  const [birthday, setBirthday] = useState("");
 
   // Original values, used to detect which fields changed on blur.
   const [originalValues, setOriginalValues] = useState({
     fullName: "",
     city: "",
     state: "",
+    birthday: "",
   });
 
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -162,14 +170,17 @@ export default function ProfileSettings() {
       const fetchedFullName = profile.full_name || "";
       const fetchedCity = profile.billing_address_city || "";
       const fetchedState = profile.billing_address_state || "";
+      const fetchedBirthday = formatBirthdayDisplay(profile.birthday);
 
       setFullName(fetchedFullName);
       setCity(fetchedCity);
       setState(fetchedState);
+      setBirthday(fetchedBirthday);
       setOriginalValues({
         fullName: fetchedFullName,
         city: fetchedCity,
         state: fetchedState,
+        birthday: fetchedBirthday,
       });
     }
   }
@@ -177,20 +188,24 @@ export default function ProfileSettings() {
   // Persist on blur. The finalized frame shows no Save button, so edits commit
   // when the user leaves a field. Only send location keys when they actually
   // changed, so the giver-profile re-synthesis (fired in the mutation handler
-  // on location change) doesn't run on every unrelated save.
-  async function persistOnBlur() {
+  // on location change) doesn't run on every unrelated save. State-dropdown
+  // selection persists immediately via the override (React state hasn't
+  // re-rendered yet when its onSelect fires).
+  async function persistOnBlur(overrides?: { state?: string }) {
     if (!user) return;
 
     const trimmedFullName = fullName.trim();
     const trimmedCity = city.trim();
-    const trimmedState = state.trim();
+    const trimmedState = (overrides?.state ?? state).trim();
+    const trimmedBirthday = birthday.trim();
 
     const nameChanged = trimmedFullName !== originalValues.fullName;
     const locationChanged =
       trimmedCity !== originalValues.city ||
       trimmedState !== originalValues.state;
+    const birthdayChanged = trimmedBirthday !== originalValues.birthday;
 
-    if (!nameChanged && !locationChanged) return;
+    if (!nameChanged && !locationChanged && !birthdayChanged) return;
 
     setSaveState("saving");
     try {
@@ -202,6 +217,12 @@ export default function ProfileSettings() {
             billing_address_city: trimmedCity || null,
             billing_address_state: trimmedState || null,
           }),
+          // Unparseable input saves as null rather than blocking the save —
+          // the inline hint flags it (mirrors the recipient-side DEV-178
+          // behavior).
+          ...(birthdayChanged && {
+            birthday: normalizeBirthday(trimmedBirthday),
+          }),
         },
       });
 
@@ -209,6 +230,7 @@ export default function ProfileSettings() {
         fullName: trimmedFullName,
         city: trimmedCity,
         state: trimmedState,
+        birthday: trimmedBirthday,
       });
       setSaveState("saved");
     } catch {
@@ -388,7 +410,7 @@ export default function ProfileSettings() {
                     label="Full Name"
                     value={fullName}
                     onChangeText={setFullName}
-                    onBlur={persistOnBlur}
+                    onBlur={() => persistOnBlur()}
                     placeholder="Enter your full name"
                     style={styles.input}
                   />
@@ -402,23 +424,39 @@ export default function ProfileSettings() {
                       label="City"
                       value={city}
                       onChangeText={setCity}
-                      onBlur={persistOnBlur}
+                      onBlur={() => persistOnBlur()}
                       placeholder="City"
                       style={styles.input}
                     />
                   </View>
                   <View style={styles.stateField}>
-                    <TextInput
-                      mode="outlined"
-                      label="State"
+                    <StateDropdown
                       value={state}
-                      onChangeText={setState}
-                      onBlur={persistOnBlur}
-                      placeholder="State"
-                      autoCapitalize="characters"
-                      style={styles.input}
+                      onSelect={(abbreviation) => {
+                        setState(abbreviation);
+                        persistOnBlur({ state: abbreviation });
+                      }}
                     />
                   </View>
+                </View>
+
+                {/* Birthday */}
+                <View style={styles.fieldContainer}>
+                  <TextInput
+                    mode="outlined"
+                    label="Birthday"
+                    value={birthday}
+                    onChangeText={setBirthday}
+                    onBlur={() => persistOnBlur()}
+                    placeholder="e.g. June 12, 1990"
+                    style={styles.input}
+                  />
+                  {isInvalidBirthdayInput(birthday) ? (
+                    <Text variant="bodySmall" style={styles.emailNote}>
+                      Use a date like &quot;June 12, 1990&quot; or &quot;June
+                      12&quot;.
+                    </Text>
+                  ) : null}
                 </View>
 
                 {/* Email */}
