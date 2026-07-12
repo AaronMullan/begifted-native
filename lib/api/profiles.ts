@@ -76,6 +76,7 @@ export interface Profile {
   billing_address_state?: string;
   billing_address_zip?: string;
   billing_address_country?: string;
+  birthday?: string | null;
   push_notifications_enabled?: boolean;
   email_notifications_enabled?: boolean;
   is_admin?: boolean;
