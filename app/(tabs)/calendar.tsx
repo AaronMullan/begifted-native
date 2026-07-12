@@ -2,6 +2,10 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   FlatList,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -31,6 +35,7 @@ import {
 } from "../../hooks/use-occasion-mutations";
 import { useToast } from "../../hooks/use-toast";
 import GradientBackground from "../../components/GradientBackground";
+import { dialogStyles } from "../../components/recipients/recipient-dialog-styles";
 import MomentsCalendar from "../../components/moments/MomentsCalendar";
 import MomentsYearGrid from "../../components/moments/MomentsYearGrid";
 import MomentsPersonCard from "../../components/moments/MomentsPersonCard";
@@ -538,74 +543,99 @@ export default function Calendar() {
             </Button>
           </View>
         </Dialog>
-        <Dialog
-          visible={!!occasionEntryRecipient}
-          onDismiss={handleDismissOccasionEntry}
-          style={styles.dialog}
-        >
-          <Dialog.Title>
-            <Text variant="bodySmall" style={styles.dialogLabel}>
-              Add Occasion
-            </Text>
-          </Dialog.Title>
-          <Dialog.Content>
-            <Text variant="headlineSmall" style={styles.pickerHeadline}>
-              {occasionEntryRecipient?.name}
-              {occasionEntryDate
-                ? ` · ${formatOccasionDate(occasionEntryDate)}`
-                : ""}
-            </Text>
-            <View style={styles.occasionChips}>
-              {COMMON_OCCASION_TYPES.map((type) => (
-                <Chip
-                  key={type}
-                  mode="outlined"
-                  selected={occasionTypeInput.trim().toLowerCase() === type}
-                  onPress={() => setOccasionTypeInput(formatOccasionType(type))}
-                >
-                  {formatOccasionType(type)}
-                </Chip>
-              ))}
-            </View>
-            <TextInput
-              mode="outlined"
-              label="Occasion"
-              placeholder="e.g. Birthday"
-              value={occasionTypeInput}
-              onChangeText={setOccasionTypeInput}
-              autoCapitalize="words"
-              style={styles.occasionInput}
-            />
-            <SegmentedButtons
-              value={occasionIsAnnual ? "annual" : "oneTime"}
-              onValueChange={(value) => setOccasionIsAnnual(value === "annual")}
-              buttons={[
-                { value: "annual", label: "Repeats yearly" },
-                { value: "oneTime", label: "One-time" },
-              ]}
-              style={styles.occasionRecurrence}
-            />
-          </Dialog.Content>
-          <View style={styles.dialogActions}>
-            <Button
-              mode="outlined"
-              onPress={handleDismissOccasionEntry}
-              style={styles.dialogButton}
-            >
-              Cancel
-            </Button>
-            <Button
-              mode="contained"
-              onPress={handleSaveInlineOccasion}
-              loading={createOccasion.isPending}
-              disabled={!occasionTypeInput.trim() || createOccasion.isPending}
-              style={styles.dialogButton}
-            >
-              Save
-            </Button>
-          </View>
-        </Dialog>
       </Portal>
+      {/* Plain RN Modal (not Paper Dialog) so the keyboard-avoiding wrapper can
+      lift the whole card above the keyboard — Paper's Dialog has no keyboard
+      handling, which left Save covered (see the Dialog exception in CLAUDE.md;
+      same pattern as InformationDialog). */}
+      <Modal
+        visible={!!occasionEntryRecipient}
+        transparent
+        animationType="fade"
+        onRequestClose={handleDismissOccasionEntry}
+      >
+        <KeyboardAvoidingView
+          style={dialogStyles.modalOverlay}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <Pressable
+            style={styles.keyboardDismissArea}
+            onPress={Keyboard.dismiss}
+          >
+            <View style={dialogStyles.dismissArea}>
+              <View style={dialogStyles.modalContent}>
+                <View style={styles.occasionEntryBody}>
+                  <Text variant="bodySmall" style={styles.dialogLabel}>
+                    Add Occasion
+                  </Text>
+                  <Text variant="headlineSmall" style={styles.pickerHeadline}>
+                    {occasionEntryRecipient?.name}
+                    {occasionEntryDate
+                      ? ` · ${formatOccasionDate(occasionEntryDate)}`
+                      : ""}
+                  </Text>
+                  <View style={styles.occasionChips}>
+                    {COMMON_OCCASION_TYPES.map((type) => (
+                      <Chip
+                        key={type}
+                        mode="outlined"
+                        selected={
+                          occasionTypeInput.trim().toLowerCase() === type
+                        }
+                        onPress={() =>
+                          setOccasionTypeInput(formatOccasionType(type))
+                        }
+                      >
+                        {formatOccasionType(type)}
+                      </Chip>
+                    ))}
+                  </View>
+                  <TextInput
+                    mode="outlined"
+                    label="Occasion"
+                    placeholder="e.g. Birthday"
+                    value={occasionTypeInput}
+                    onChangeText={setOccasionTypeInput}
+                    autoCapitalize="words"
+                    style={styles.occasionInput}
+                  />
+                  <SegmentedButtons
+                    value={occasionIsAnnual ? "annual" : "oneTime"}
+                    onValueChange={(value) =>
+                      setOccasionIsAnnual(value === "annual")
+                    }
+                    buttons={[
+                      { value: "annual", label: "Repeats yearly" },
+                      { value: "oneTime", label: "One-time" },
+                    ]}
+                    style={styles.occasionRecurrence}
+                  />
+                </View>
+                <View style={styles.dialogActions}>
+                  <Button
+                    mode="outlined"
+                    onPress={handleDismissOccasionEntry}
+                    style={styles.dialogButton}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    mode="contained"
+                    onPress={handleSaveInlineOccasion}
+                    loading={createOccasion.isPending}
+                    disabled={
+                      !occasionTypeInput.trim() || createOccasion.isPending
+                    }
+                    style={styles.dialogButton}
+                  >
+                    Save
+                  </Button>
+                </View>
+              </View>
+            </View>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
       {toast}
     </View>
   );
@@ -739,6 +769,18 @@ const styles = StyleSheet.create({
   dialogButton: {
     minWidth: 100,
   },
+  // Full-screen so a tap anywhere off the inputs (card or dim backdrop)
+  // dismisses the keyboard instead of leaving Enter as the only way out.
+  keyboardDismissArea: {
+    flex: 1,
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  occasionEntryBody: {
+    paddingHorizontal: 24,
+    paddingTop: 20,
+  },
   pickerHeadline: {
     marginBottom: 12,
   },
@@ -750,6 +792,7 @@ const styles = StyleSheet.create({
   },
   occasionInput: {
     marginBottom: 16,
+    backgroundColor: Colors.brand.cream,
   },
   occasionRecurrence: {
     marginBottom: 4,

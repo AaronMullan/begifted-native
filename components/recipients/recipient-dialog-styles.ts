@@ -3,9 +3,10 @@ import { Colors } from "../../lib/colors";
 import { FontFamily } from "../../lib/typography";
 
 /**
- * Modal chrome shared by GiftPreferencesDialog and InformationDialog. Plain RN
- * Modal (not Paper Dialog) because these forms need precise centering — see
- * the Dialog exception in CLAUDE.md.
+ * Modal chrome shared by the keyboard-safe form dialogs (GiftPreferencesDialog,
+ * InformationDialog, the calendar Add Occasion entry). Plain RN Modal (not
+ * Paper Dialog) because these forms need precise centering and keyboard
+ * avoidance — see the Dialog exception in CLAUDE.md.
  */
 export const dialogStyles = StyleSheet.create({
   modalOverlay: {
