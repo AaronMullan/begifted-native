@@ -62,7 +62,9 @@ export const Typography = {
   h2: {
     fontFamily: FontFamily.serif.bold,
     fontSize: 22,
-    lineHeight: scaleLineHeight(23),
+    // Fixed 28px line box (published token): 22/23 clipped Poltawski
+    // descenders on subpage titles.
+    lineHeight: scaleLineHeight(28),
   } satisfies TextStyle,
   h3: {
     fontFamily: FontFamily.serif.bold,
@@ -83,6 +85,29 @@ export const Typography = {
   eyebrow: {
     fontFamily: FontFamily.sans.regular,
     fontSize: 11,
+  } satisfies TextStyle,
+  // Toggle sub-copy / helper text (Figma "caption": DM Sans 400 12/15).
+  caption: {
+    fontFamily: FontFamily.sans.regular,
+    fontSize: 12,
+    lineHeight: scaleLineHeight(15),
+  } satisfies TextStyle,
+  // Form field labels (Figma "fieldLabel": DM Sans 500 12/15).
+  fieldLabel: {
+    fontFamily: FontFamily.sans.medium,
+    fontSize: 12,
+    lineHeight: scaleLineHeight(15),
+  } satisfies TextStyle,
+  // Chip/tag text (Figma "tagLabel": DM Sans 500 13).
+  tagLabel: {
+    fontFamily: FontFamily.sans.medium,
+    fontSize: 13,
+  } satisfies TextStyle,
+  // Billing plan name (Figma "planName": DM Sans 600 20/24).
+  planName: {
+    fontFamily: FontFamily.sans.semibold,
+    fontSize: 20,
+    lineHeight: scaleLineHeight(24),
   } satisfies TextStyle,
   largeCta: {
     fontFamily: FontFamily.sans.semibold,

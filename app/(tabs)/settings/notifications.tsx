@@ -1,74 +1,98 @@
 import {
   View,
-  Text,
   ScrollView,
   StyleSheet,
   Pressable,
   Switch,
+  Linking,
+  AppState,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
+import * as Notifications from "expo-notifications";
+import { Text, IconButton } from "react-native-paper";
+import { MaterialIcons } from "@expo/vector-icons";
 import { supabase } from "../../../lib/supabase";
 import { HEADER_HEIGHT, BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { Colors } from "../../../lib/colors";
 import { Typography } from "../../../lib/typography";
-import { Session } from "@supabase/supabase-js";
-import { Button, Chip, IconButton, TouchableRipple } from "react-native-paper";
-import { MaterialIcons } from "@expo/vector-icons";
+import { Spacing } from "../../../lib/spacing";
+import type { Session } from "@supabase/supabase-js";
 import { showSnackbar } from "../../../components/GlobalSnackbar";
 
+// The v4 frame's three-row set. Reminder count is bounded 1–3 by the design's
+// pill selector.
 interface NotificationPreferences {
   push_notifications_enabled: boolean;
-  email_notifications_enabled: boolean;
-  feedback_requests_enabled: boolean;
-  system_updates_enabled: boolean;
+  occasion_reminders_enabled: boolean;
+  reminder_count: number;
   promotional_emails_enabled: boolean;
-  timezone: string;
-  notification_lead_days: number;
 }
 
-const LEAD_DAYS_PRESETS = [14, 21, 28];
-const LEAD_DAYS_MIN = 7;
-const LEAD_DAYS_MAX = 60;
+const REMINDER_COUNTS = [1, 2, 3];
 
-const TIMEZONES = [
-  { value: "America/New_York", label: "Eastern Time (ET)" },
-  { value: "America/Chicago", label: "Central Time (CT)" },
-  { value: "America/Denver", label: "Mountain Time (MT)" },
-  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
-  { value: "America/Anchorage", label: "Alaska Time (AKT)" },
-  { value: "Pacific/Honolulu", label: "Hawaii Time (HST)" },
-];
+const DEFAULT_PREFERENCES: NotificationPreferences = {
+  push_notifications_enabled: true,
+  occasion_reminders_enabled: true,
+  reminder_count: 2,
+  promotional_emails_enabled: false,
+};
 
-export default function Notifications() {
+type ToggleRowProps = {
+  label: string;
+  caption: string;
+  value: boolean;
+  onValueChange: (value: boolean) => void;
+  children?: React.ReactNode;
+};
+
+const ToggleRow: React.FC<ToggleRowProps> = ({
+  label,
+  caption,
+  value,
+  onValueChange,
+  children,
+}) => (
+  <View style={styles.row}>
+    <View style={styles.rowText}>
+      <Text style={styles.rowLabel}>{label}</Text>
+      <Text style={styles.rowCaption}>{caption}</Text>
+      {children}
+    </View>
+    <Switch
+      value={value}
+      onValueChange={onValueChange}
+      trackColor={{
+        false: Colors.grays.border,
+        true: Colors.brand.mediumTeal,
+      }}
+      thumbColor={Colors.white}
+    />
+  </View>
+);
+
+const Rule: React.FC = () => <View style={styles.rule} />;
+
+export default function NotificationsSettings() {
   const insets = useSafeAreaInsets();
   const headerSpacerHeight = Math.max(HEADER_HEIGHT, insets.top + 60);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [pushPermissionGranted, setPushPermissionGranted] = useState(true);
   const router = useRouter();
 
-  const [preferences, setPreferences] = useState<NotificationPreferences>({
-    push_notifications_enabled: true,
-    email_notifications_enabled: true,
-    feedback_requests_enabled: true,
-    system_updates_enabled: true,
-    promotional_emails_enabled: false,
-    timezone: "America/New_York",
-    notification_lead_days: 21,
-  });
-
-  const [originalPreferences, setOriginalPreferences] =
-    useState<NotificationPreferences>(preferences);
-  const [showTimezonePicker, setShowTimezonePicker] = useState(false);
+  const [preferences, setPreferences] =
+    useState<NotificationPreferences>(DEFAULT_PREFERENCES);
 
   async function fetchPreferences(userId: string) {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from("user_preferences")
-        .select("*")
+        .select(
+          "push_notifications_enabled, occasion_reminders_enabled, reminder_count, promotional_emails_enabled"
+        )
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -77,17 +101,19 @@ export default function Notifications() {
       }
 
       if (data) {
-        const prefs: NotificationPreferences = {
-          push_notifications_enabled: data.push_notifications_enabled ?? true,
-          email_notifications_enabled: data.email_notifications_enabled ?? true,
-          feedback_requests_enabled: data.feedback_requests_enabled ?? true,
-          system_updates_enabled: data.system_updates_enabled ?? true,
-          promotional_emails_enabled: data.promotional_emails_enabled ?? false,
-          timezone: data.timezone || "America/New_York",
-          notification_lead_days: data.notification_lead_days ?? 21,
-        };
-        setPreferences(prefs);
-        setOriginalPreferences(prefs);
+        setPreferences({
+          push_notifications_enabled:
+            data.push_notifications_enabled ??
+            DEFAULT_PREFERENCES.push_notifications_enabled,
+          occasion_reminders_enabled:
+            data.occasion_reminders_enabled ??
+            DEFAULT_PREFERENCES.occasion_reminders_enabled,
+          reminder_count:
+            data.reminder_count ?? DEFAULT_PREFERENCES.reminder_count,
+          promotional_emails_enabled:
+            data.promotional_emails_enabled ??
+            DEFAULT_PREFERENCES.promotional_emails_enabled,
+        });
       }
     } catch (error) {
       console.error("Error fetching preferences:", error);
@@ -111,9 +137,7 @@ export default function Notifications() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (session) {
-        fetchPreferences(session.user.id);
-      } else {
+      if (!session) {
         setLoading(false);
         router.replace("/");
       }
@@ -122,75 +146,46 @@ export default function Notifications() {
     return () => subscription.unsubscribe();
   }, [router]);
 
-  async function handleSave() {
-    if (!session?.user) {
-      return;
-    }
+  // The "Open Settings" sub-CTA reflects OS-level permission, re-checked when
+  // the app returns to the foreground so granting in iOS Settings updates the
+  // row without a manual refresh.
+  useEffect(() => {
+    const check = () =>
+      Notifications.getPermissionsAsync().then(({ status }) =>
+        setPushPermissionGranted(status === "granted")
+      );
+    check();
+    const listener = AppState.addEventListener("change", (state) => {
+      if (state === "active") check();
+    });
+    return () => listener.remove();
+  }, []);
 
-    try {
-      setSaving(true);
+  // No Save button in the v4 frame — every change persists immediately.
+  // Optimistic update; revert on failure.
+  async function persist(update: Partial<NotificationPreferences>) {
+    if (!session?.user) return;
+    const previous = preferences;
+    const next = { ...preferences, ...update };
+    setPreferences(next);
 
-      const updates = {
+    const { error } = await supabase.from("user_preferences").upsert(
+      {
         user_id: session.user.id,
-        push_notifications_enabled: preferences.push_notifications_enabled,
-        email_notifications_enabled: preferences.email_notifications_enabled,
-        feedback_requests_enabled: preferences.feedback_requests_enabled,
-        system_updates_enabled: preferences.system_updates_enabled,
-        promotional_emails_enabled: preferences.promotional_emails_enabled,
-        timezone: preferences.timezone,
-        notification_lead_days: preferences.notification_lead_days,
+        ...next,
         updated_at: new Date().toISOString(),
-      };
+      },
+      { onConflict: "user_id" }
+    );
 
-      const { error } = await supabase
-        .from("user_preferences")
-        .upsert(updates, { onConflict: "user_id" })
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      setOriginalPreferences(preferences);
-    } catch (error) {
+    if (error) {
       console.error("Error saving preferences:", error);
+      setPreferences(previous);
       showSnackbar(
         "Couldn't save your notification settings. Please try again."
       );
-    } finally {
-      setSaving(false);
     }
   }
-
-  function togglePreference(key: keyof NotificationPreferences) {
-    setPreferences((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  }
-
-  function setTimezone(timezone: string) {
-    setPreferences((prev) => ({
-      ...prev,
-      timezone,
-    }));
-    setShowTimezonePicker(false);
-  }
-
-  function setLeadDays(days: number) {
-    const clamped = Math.min(LEAD_DAYS_MAX, Math.max(LEAD_DAYS_MIN, days));
-    setPreferences((prev) => ({
-      ...prev,
-      notification_lead_days: clamped,
-    }));
-  }
-
-  const hasChanges =
-    JSON.stringify(preferences) !== JSON.stringify(originalPreferences);
-  const currentTimezoneLabel =
-    TIMEZONES.find((tz) => tz.value === preferences.timezone)?.label ||
-    "Eastern Time (ET)";
 
   if (loading) {
     return (
@@ -209,7 +204,7 @@ export default function Notifications() {
         <View style={styles.headerSpacer} />
         <View style={styles.content}>
           <Text style={styles.title}>Notifications</Text>
-          <Text style={styles.subtitle}>
+          <Text style={styles.rowCaption}>
             Please sign in to manage your notifications.
           </Text>
         </View>
@@ -225,309 +220,111 @@ export default function Notifications() {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.content}>
-          {/* Main white card container */}
-          <View style={styles.mainCard}>
-            {/* Header section */}
-            <View style={styles.header}>
-              <View style={styles.headerLeft}>
-                <Text style={styles.title}>Notifications</Text>
-                <Text style={styles.subtitle}>
-                  Manage your communication preferences
-                </Text>
-              </View>
-              <IconButton
-                icon="arrow-left"
-                size={20}
-                iconColor={Colors.black}
-                onPress={() => router.back()}
-                style={styles.backButton}
-              />
-            </View>
-
-            {/* Notification Methods Section */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Notification Methods</Text>
-              <Text style={styles.sectionSubtitle}>
-                Choose how you&apos;d like to receive notifications.
-              </Text>
-
-              <View style={styles.settingRow}>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingLabel}>Push Notifications</Text>
-                  <Text style={styles.settingDescription}>
-                    Receive notifications directly in your browser.
-                  </Text>
-                </View>
-                <Switch
-                  value={preferences.push_notifications_enabled}
-                  onValueChange={() =>
-                    togglePreference("push_notifications_enabled")
-                  }
-                  trackColor={{
-                    false: Colors.grays.border,
-                    true: Colors.grays.dark,
-                  }}
-                  thumbColor={Colors.white}
-                />
-              </View>
-
-              <View style={styles.settingRow}>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingLabel}>Email Notifications</Text>
-                  <Text style={styles.settingDescription}>
-                    Receive notifications via email.
-                  </Text>
-                </View>
-                <Switch
-                  value={preferences.email_notifications_enabled}
-                  onValueChange={() =>
-                    togglePreference("email_notifications_enabled")
-                  }
-                  trackColor={{
-                    false: Colors.grays.border,
-                    true: Colors.grays.dark,
-                  }}
-                  thumbColor={Colors.white}
-                />
-              </View>
-            </View>
-
-            {/* Communication Types Section */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Communication Types</Text>
-              <Text style={styles.sectionSubtitle}>
-                Choose what types of communications you&apos;d like to receive.
-              </Text>
-
-              <View style={styles.settingRow}>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingLabel}>Feedback Requests</Text>
-                  <Text style={styles.settingDescription}>
-                    Get asked for feedback after sending gifts.
-                  </Text>
-                </View>
-                <Switch
-                  value={preferences.feedback_requests_enabled}
-                  onValueChange={() =>
-                    togglePreference("feedback_requests_enabled")
-                  }
-                  trackColor={{
-                    false: Colors.grays.border,
-                    true: Colors.grays.dark,
-                  }}
-                  thumbColor={Colors.white}
-                />
-              </View>
-
-              <View style={styles.settingRow}>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingLabel}>System Updates</Text>
-                  <Text style={styles.settingDescription}>
-                    Receive important app updates and announcements.
-                  </Text>
-                </View>
-                <Switch
-                  value={preferences.system_updates_enabled}
-                  onValueChange={() =>
-                    togglePreference("system_updates_enabled")
-                  }
-                  trackColor={{
-                    false: Colors.grays.border,
-                    true: Colors.grays.dark,
-                  }}
-                  thumbColor={Colors.white}
-                />
-              </View>
-
-              <View style={styles.settingRow}>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingLabel}>Promotional Emails</Text>
-                  <Text style={styles.settingDescription}>
-                    Receive tips, feature highlights, and special offers.
-                  </Text>
-                </View>
-                <Switch
-                  value={preferences.promotional_emails_enabled}
-                  onValueChange={() =>
-                    togglePreference("promotional_emails_enabled")
-                  }
-                  trackColor={{
-                    false: Colors.grays.border,
-                    true: Colors.grays.dark,
-                  }}
-                  thumbColor={Colors.white}
-                />
-              </View>
-            </View>
-
-            {/* Gift Reminder Lead Time Section */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Gift reminder lead time</Text>
-              <Text style={styles.sectionSubtitle}>
-                How far ahead of an occasion you want gift ideas — earlier means
-                more time to order and ship.
-              </Text>
-
-              <View style={styles.leadStepperRow}>
-                <Pressable
-                  style={[
-                    styles.leadStepperButton,
-                    preferences.notification_lead_days <= LEAD_DAYS_MIN &&
-                      styles.leadStepperButtonDisabled,
-                  ]}
-                  onPress={() =>
-                    setLeadDays(preferences.notification_lead_days - 1)
-                  }
-                  disabled={preferences.notification_lead_days <= LEAD_DAYS_MIN}
-                  accessibilityRole="button"
-                  accessibilityLabel="Decrease lead days"
-                >
-                  <MaterialIcons name="remove" size={22} color={Colors.black} />
-                </Pressable>
-
-                <View style={styles.leadStepperValue}>
-                  <Text style={styles.leadStepperNumber}>
-                    {preferences.notification_lead_days}
-                  </Text>
-                  <Text style={styles.leadStepperUnit}>days</Text>
-                </View>
-
-                <Pressable
-                  style={[
-                    styles.leadStepperButton,
-                    preferences.notification_lead_days >= LEAD_DAYS_MAX &&
-                      styles.leadStepperButtonDisabled,
-                  ]}
-                  onPress={() =>
-                    setLeadDays(preferences.notification_lead_days + 1)
-                  }
-                  disabled={preferences.notification_lead_days >= LEAD_DAYS_MAX}
-                  accessibilityRole="button"
-                  accessibilityLabel="Increase lead days"
-                >
-                  <MaterialIcons name="add" size={22} color={Colors.black} />
-                </Pressable>
-              </View>
-
-              <View style={styles.leadPresetRow}>
-                {LEAD_DAYS_PRESETS.map((preset) => {
-                  const selected =
-                    preferences.notification_lead_days === preset;
-                  return (
-                    <Chip
-                      key={preset}
-                      mode="outlined"
-                      onPress={() => setLeadDays(preset)}
-                      style={[
-                        styles.leadPresetChip,
-                        selected && styles.leadPresetChipSelected,
-                      ]}
-                      textStyle={[
-                        styles.leadPresetChipText,
-                        selected && styles.leadPresetChipTextSelected,
-                      ]}
-                    >
-                      {preset / 7} weeks
-                    </Chip>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* Timezone Settings Section */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Timezone Settings</Text>
-              <Text style={styles.sectionSubtitle}>
-                Set your timezone for accurate notification timing.
-              </Text>
-
-              {showTimezonePicker && (
-                <ScrollView
-                  style={styles.timezonePicker}
-                  nestedScrollEnabled
-                  keyboardShouldPersistTaps="handled"
-                >
-                  {TIMEZONES.map((tz) => (
-                    <TouchableRipple
-                      key={tz.value}
-                      onPress={() => {
-                        setTimezone(tz.value);
-                        setShowTimezonePicker(false);
-                      }}
-                    >
-                      <View
-                        style={[
-                          styles.timezoneOption,
-                          preferences.timezone === tz.value &&
-                            styles.timezoneOptionSelected,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.timezoneOptionText,
-                            preferences.timezone === tz.value &&
-                              styles.timezoneOptionTextSelected,
-                          ]}
-                        >
-                          {tz.label}
-                        </Text>
-                        {preferences.timezone === tz.value && (
-                          <MaterialIcons
-                            name="check"
-                            size={20}
-                            color={Colors.black}
-                            accessibilityLabel="Selected"
-                          />
-                        )}
-                      </View>
-                    </TouchableRipple>
-                  ))}
-                </ScrollView>
-              )}
-
-              <TouchableRipple
-                onPress={() => setShowTimezonePicker(!showTimezonePicker)}
-              >
-                <View style={styles.timezoneSelector}>
-                  <View style={styles.timezoneInfo}>
-                    <Text style={styles.settingLabel}>Timezone</Text>
-                    <Text style={styles.timezoneValue}>
-                      {currentTimezoneLabel}
-                    </Text>
-                  </View>
-                  <MaterialIcons
-                    name={showTimezonePicker ? "expand-less" : "expand-more"}
-                    size={20}
-                    color={Colors.grays.text}
-                  />
-                </View>
-              </TouchableRipple>
-            </View>
-
-            {/* Save Button */}
-            <Button
-              mode="contained"
-              buttonColor={Colors.black}
-              textColor={Colors.white}
-              onPress={handleSave}
-              disabled={saving || !hasChanges}
-              loading={saving}
-              style={styles.saveButton}
-              labelStyle={styles.saveButtonText}
-            >
-              {saving
-                ? "Saving..."
-                : hasChanges
-                  ? "Save Changes"
-                  : "No Changes"}
-            </Button>
+          <View style={styles.header}>
+            <IconButton
+              icon="chevron-left"
+              size={20}
+              iconColor={Colors.brand.darkTeal}
+              onPress={() => router.back()}
+              style={styles.backButton}
+            />
+            <Text style={styles.title}>Notifications</Text>
           </View>
+
+          <Rule />
+          <ToggleRow
+            label="Push Notifications"
+            caption={
+              pushPermissionGranted
+                ? "Turn all BeGifted alerts on or off."
+                : "Turn on notifications in Settings so BeGifted can remind you about upcoming occasions"
+            }
+            value={preferences.push_notifications_enabled}
+            onValueChange={(value) =>
+              persist({ push_notifications_enabled: value })
+            }
+          >
+            {!pushPermissionGranted ? (
+              <Pressable
+                onPress={() => Linking.openSettings()}
+                accessibilityRole="button"
+                accessibilityLabel="Open Settings"
+                style={styles.openSettingsCta}
+              >
+                <Text style={styles.openSettingsLabel}>Open Settings</Text>
+                <MaterialIcons
+                  name="chevron-right"
+                  size={14}
+                  color={Colors.brand.mediumTeal}
+                />
+              </Pressable>
+            ) : null}
+          </ToggleRow>
+
+          <Rule />
+          <ToggleRow
+            label="Gift & Occasion Reminders"
+            caption="Birthdays, holidays, and new recommendations"
+            value={preferences.occasion_reminders_enabled}
+            onValueChange={(value) =>
+              persist({ occasion_reminders_enabled: value })
+            }
+          />
+
+          {/* Grouped directly beneath the reminders toggle — no divider. */}
+          <View style={styles.reminderCountGroup}>
+            <Text style={styles.rowLabel}>How Many Reminders?</Text>
+            <Text style={styles.rowCaption}>
+              Starting 3 weeks before the occasion
+            </Text>
+            <View style={styles.reminderCountOptions}>
+              {REMINDER_COUNTS.map((count) => {
+                const selected = preferences.reminder_count === count;
+                return (
+                  <Pressable
+                    key={count}
+                    onPress={() => persist({ reminder_count: count })}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    accessibilityLabel={`${count} reminder${count === 1 ? "" : "s"}`}
+                    style={[
+                      styles.countPill,
+                      selected && styles.countPillSelected,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.countPillLabel,
+                        selected && styles.countPillLabelSelected,
+                      ]}
+                    >
+                      {count}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          <Rule />
+          <ToggleRow
+            label="Product Updates"
+            caption="New features and improvements"
+            value={preferences.promotional_emails_enabled}
+            onValueChange={(value) =>
+              persist({ promotional_emails_enabled: value })
+            }
+          />
+          <Rule />
         </View>
       </ScrollView>
     </View>
   );
 }
 
+// Spec: Figma frame 4518:3896 ("Notifications v4") — rows are 338 wide inset
+// to x=32 (Spacing.sectionHeadInset) on the 402pt frame, bounded by 1px white
+// rule lines, DM Sans subhead labels over mediumTeal captions, 44×26 toggles.
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -549,192 +346,92 @@ const styles = StyleSheet.create({
     maxWidth: 800,
     alignSelf: "center",
     width: "100%",
-    padding: 20,
-  },
-  mainCard: {
-    backgroundColor: "transparent",
-    borderRadius: 16,
-    padding: 24,
-    marginTop: 20,
-    shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    paddingHorizontal: Spacing.sectionHeadInset,
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 32,
+    alignItems: "center",
+    gap: 14,
+    marginBottom: 24,
+    // The frame's header sits at the row edge; IconButton pads its 44pt tap
+    // target, so pull it back to keep the chevron on the gutter line.
+    marginLeft: -12,
   },
-  headerLeft: {
-    flex: 1,
-  },
-  title: {
-    ...Typography.h1,
-    color: Colors.black,
-    marginBottom: 8,
-  },
-  subtitle: {
-    ...Typography.subhead,
-    color: Colors.darks.black,
-    opacity: 0.9,
-  },
-  // 44pt min tap target (HIG); transparent container, 20pt icon unchanged.
   backButton: {
     margin: 0,
-    width: 44,
-    height: 44,
   },
-  section: {
-    marginBottom: 32,
-  },
-  sectionTitle: {
+  title: {
     ...Typography.h2,
-    color: Colors.black,
-    marginBottom: 8,
+    color: Colors.brand.darkTeal,
   },
-  sectionSubtitle: {
-    ...Typography.subhead,
-    color: Colors.darks.black,
-    opacity: 0.85,
-    marginBottom: 20,
-  },
-  settingRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.grays.hairline,
-  },
-  settingInfo: {
-    flex: 1,
-    marginRight: 16,
-  },
-  settingLabel: {
-    ...Typography.subhead,
-    color: Colors.black,
-    marginBottom: 4,
-  },
-  settingDescription: {
-    ...Typography.subhead,
-    color: Colors.darks.black,
-    opacity: 0.9,
-    lineHeight: 20,
-  },
-  timezoneSelector: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.grays.hairline,
-  },
-  timezoneInfo: {
-    flex: 1,
-  },
-  timezoneValue: {
-    ...Typography.subhead,
-    color: Colors.black,
-    marginTop: 4,
-  },
-  timezonePicker: {
-    marginBottom: 8,
-    maxHeight: 220,
-    backgroundColor: Colors.grays.surface,
-    borderRadius: 8,
-    overflow: "hidden",
-  },
-  timezoneOption: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.grays.border,
-  },
-  timezoneOptionSelected: {
+  rule: {
+    height: 1,
     backgroundColor: Colors.white,
   },
-  timezoneOptionText: {
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 24,
+  },
+  rowText: {
+    flex: 1,
+    gap: 2,
+    marginRight: 16,
+  },
+  rowLabel: {
     ...Typography.subhead,
-    color: Colors.black,
+    lineHeight: 20,
+    color: Colors.brand.darkTeal,
   },
-  timezoneOptionTextSelected: {
-    fontWeight: "600",
-    color: Colors.black,
+  rowCaption: {
+    ...Typography.caption,
+    color: Colors.brand.mediumTeal,
   },
-  leadStepperRow: {
+  openSettingsCta: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-  leadStepperButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: Colors.grays.border,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  leadStepperButtonDisabled: {
-    opacity: 0.4,
-  },
-  leadStepperValue: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    justifyContent: "center",
-    minWidth: 120,
-  },
-  leadStepperNumber: {
-    ...Typography.h1,
-    color: Colors.black,
-  },
-  leadStepperUnit: {
-    ...Typography.subhead,
-    color: Colors.darks.black,
-    opacity: 0.7,
-    marginLeft: 6,
-  },
-  leadPresetRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 12,
-  },
-  leadPresetChip: {
-    borderRadius: 20,
-    borderColor: Colors.grays.border,
-    backgroundColor: Colors.grays.surface,
-  },
-  leadPresetChipSelected: {
-    backgroundColor: Colors.black,
-    borderColor: Colors.black,
-  },
-  leadPresetChipText: {
-    ...Typography.smallCta,
-    color: Colors.black,
-  },
-  leadPresetChipTextSelected: {
-    color: Colors.white,
-    fontWeight: "600",
-  },
-  saveButton: {
-    borderRadius: 8,
+    gap: 6,
     marginTop: 8,
   },
-  saveButtonText: {
-    ...Typography.largeCta,
-    paddingVertical: 6,
+  openSettingsLabel: {
+    ...Typography.smallCta,
+    color: Colors.brand.mediumTeal,
+  },
+  reminderCountGroup: {
+    gap: 5,
+    paddingBottom: 24,
+  },
+  reminderCountOptions: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 12,
+  },
+  countPill: {
+    width: 48,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.brand.lightTeal,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  countPillSelected: {
+    backgroundColor: Colors.brand.darkTeal,
+    borderColor: Colors.brand.darkTeal,
+  },
+  countPillLabel: {
+    ...Typography.tagLabel,
+    color: Colors.brand.darkTeal,
+  },
+  countPillLabelSelected: {
+    color: Colors.white,
   },
   loadingText: {
+    ...Typography.subhead,
     textAlign: "center",
     color: Colors.darks.black,
     opacity: 0.9,
-    ...Typography.subhead,
   },
 });
