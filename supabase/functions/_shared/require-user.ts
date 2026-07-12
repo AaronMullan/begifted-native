@@ -6,7 +6,7 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 // @ts-ignore - Deno environment variables are resolved at runtime
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
-export type VerifiedUser = { id: string };
+export type VerifiedUser = { id: string; email?: string };
 
 type RequireUserResult =
   | { user: VerifiedUser; errorResponse: null }

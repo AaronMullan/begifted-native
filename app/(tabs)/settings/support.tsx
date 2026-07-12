@@ -17,14 +17,13 @@ import { Typography } from "../../../lib/typography";
 import { Session } from "@supabase/supabase-js";
 import { showSnackbar } from "../../../components/GlobalSnackbar";
 
-// Confirmation copy the real send flow (DEV-263) should show once wired:
-// "Thanks — we received your message. We'll get back to you within 3 business days."
-
 export default function SupportSettings() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -48,7 +47,21 @@ export default function SupportSettings() {
     return () => subscription.unsubscribe();
   }, [router]);
 
-  const canSend = subject.trim().length > 0 && message.trim().length > 0;
+  const canSend =
+    subject.trim().length > 0 && message.trim().length > 0 && !sending;
+
+  const handleSend = async () => {
+    setSending(true);
+    const { error } = await supabase.functions.invoke("send-support-message", {
+      body: { subject: subject.trim(), message: message.trim() },
+    });
+    setSending(false);
+    if (error) {
+      showSnackbar("Couldn't send your message — please try again.");
+      return;
+    }
+    setSent(true);
+  };
 
   if (loading) {
     return (
@@ -66,6 +79,33 @@ export default function SupportSettings() {
         <View style={styles.content}>
           <Text style={styles.title}>Contact Us</Text>
           <Text style={styles.subtitle}>Please sign in to access support.</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (sent) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.headerSpacer} />
+        <View style={styles.content}>
+          <View style={styles.mainCard}>
+            <Text style={styles.title}>Message sent</Text>
+            <Text style={styles.subtitle}>
+              Thanks — we received your message. We&apos;ll get back to you
+              within 3 business days.
+            </Text>
+            <Button
+              mode="contained"
+              buttonColor={Colors.black}
+              textColor={Colors.white}
+              onPress={() => router.back()}
+              style={styles.sendButton}
+              labelStyle={styles.sendButtonText}
+            >
+              Done
+            </Button>
+          </View>
         </View>
       </View>
     );
@@ -129,9 +169,8 @@ export default function SupportSettings() {
                   buttonColor={Colors.black}
                   textColor={Colors.white}
                   disabled={!canSend}
-                  onPress={() =>
-                    showSnackbar("Support messaging is coming soon.")
-                  }
+                  loading={sending}
+                  onPress={handleSend}
                   style={styles.sendButton}
                   labelStyle={styles.sendButtonText}
                 >
