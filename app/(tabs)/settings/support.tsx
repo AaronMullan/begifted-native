@@ -10,14 +10,53 @@ import {
 import { Text, TextInput, IconButton, Button } from "react-native-paper";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../../../lib/supabase";
 import { HEADER_HEIGHT, BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { Colors } from "../../../lib/colors";
 import { Typography } from "../../../lib/typography";
-import { Session } from "@supabase/supabase-js";
+import { Spacing } from "../../../lib/spacing";
+import type { Session } from "@supabase/supabase-js";
 import { showSnackbar } from "../../../components/GlobalSnackbar";
 
+// v4 "input/text-field": label above the box, white fill, sharp corners, no
+// stroke — so the Paper input runs flat with its own label suppressed.
+type FieldProps = {
+  label: string;
+  value: string;
+  onChangeText: (value: string) => void;
+  placeholder: string;
+  multiline?: boolean;
+};
+
+const Field: React.FC<FieldProps> = ({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  multiline = false,
+}) => (
+  <View style={styles.field}>
+    <Text style={styles.fieldLabel}>{label}</Text>
+    <TextInput
+      mode="flat"
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+      placeholderTextColor={Colors.brand.mediumTeal}
+      multiline={multiline}
+      underlineColor="transparent"
+      activeUnderlineColor="transparent"
+      textColor={Colors.brand.darkTeal}
+      style={[styles.fieldBox, multiline && styles.fieldBoxMultiline]}
+      contentStyle={styles.fieldContent}
+    />
+  </View>
+);
+
 export default function SupportSettings() {
+  const insets = useSafeAreaInsets();
+  const headerSpacerHeight = Math.max(HEADER_HEIGHT, insets.top + 60);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [subject, setSubject] = useState("");
@@ -66,6 +105,7 @@ export default function SupportSettings() {
   if (loading) {
     return (
       <View style={styles.container}>
+        <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
         <View style={styles.content}>
           <Text style={styles.loadingText}>Loading...</Text>
         </View>
@@ -76,9 +116,10 @@ export default function SupportSettings() {
   if (!session) {
     return (
       <View style={styles.container}>
+        <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
         <View style={styles.content}>
           <Text style={styles.title}>Contact Us</Text>
-          <Text style={styles.subtitle}>Please sign in to access support.</Text>
+          <Text style={styles.intro}>Please sign in to access support.</Text>
         </View>
       </View>
     );
@@ -87,25 +128,23 @@ export default function SupportSettings() {
   if (sent) {
     return (
       <View style={styles.container}>
-        <View style={styles.headerSpacer} />
+        <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
         <View style={styles.content}>
-          <View style={styles.mainCard}>
-            <Text style={styles.title}>Message sent</Text>
-            <Text style={styles.subtitle}>
-              Thanks — we received your message. We&apos;ll get back to you
-              within 3 business days.
-            </Text>
-            <Button
-              mode="contained"
-              buttonColor={Colors.black}
-              textColor={Colors.white}
-              onPress={() => router.back()}
-              style={styles.sendButton}
-              labelStyle={styles.sendButtonText}
-            >
-              Done
-            </Button>
-          </View>
+          <Text style={styles.title}>Message sent</Text>
+          <Text style={styles.intro}>
+            Thanks — we received your message. We&apos;ll get back to you within
+            3 business days.
+          </Text>
+          <Button
+            mode="contained"
+            buttonColor={Colors.brand.darkTeal}
+            textColor={Colors.white}
+            onPress={() => router.back()}
+            style={styles.sendButton}
+            labelStyle={styles.sendButtonText}
+          >
+            Done
+          </Button>
         </View>
       </View>
     );
@@ -118,65 +157,55 @@ export default function SupportSettings() {
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={styles.flex}>
-          <View style={styles.headerSpacer} />
+          <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
           <ScrollView
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
           >
             <View style={styles.content}>
-              <View style={styles.mainCard}>
-                <View style={styles.header}>
-                  <View style={styles.headerLeft}>
-                    <Text style={styles.title}>Contact Us</Text>
-                    <Text style={styles.subtitle}>
-                      Have a question or need help? Send us a note and
-                      we&apos;ll get back to you within 3 business days.
-                    </Text>
-                  </View>
-                  <IconButton
-                    icon="arrow-left"
-                    size={20}
-                    iconColor={Colors.black}
-                    onPress={() => router.back()}
-                    style={styles.backButton}
-                  />
-                </View>
-
-                <View style={styles.section}>
-                  <TextInput
-                    mode="outlined"
-                    label="Subject"
-                    value={subject}
-                    onChangeText={setSubject}
-                    placeholder="What can we help with?"
-                    style={styles.input}
-                  />
-                  <TextInput
-                    mode="outlined"
-                    label="Message"
-                    value={message}
-                    onChangeText={setMessage}
-                    placeholder="Tell us what's going on."
-                    multiline
-                    numberOfLines={6}
-                    style={styles.messageInput}
-                  />
-                </View>
-
-                <Button
-                  mode="contained"
-                  buttonColor={Colors.black}
-                  textColor={Colors.white}
-                  disabled={!canSend}
-                  loading={sending}
-                  onPress={handleSend}
-                  style={styles.sendButton}
-                  labelStyle={styles.sendButtonText}
-                >
-                  Send message
-                </Button>
+              <View style={styles.header}>
+                <IconButton
+                  icon="chevron-left"
+                  size={20}
+                  iconColor={Colors.brand.darkTeal}
+                  onPress={() => router.back()}
+                  style={styles.backButton}
+                />
+                <Text style={styles.title}>Contact Us</Text>
               </View>
+
+              <Text style={styles.intro}>
+                Have a question or need help? Send us a note and we&apos;ll get
+                back to you within 3 business days.
+              </Text>
+
+              <Field
+                label="Subject"
+                value={subject}
+                onChangeText={setSubject}
+                placeholder="What can we help with?"
+              />
+              <Field
+                label="Message"
+                value={message}
+                onChangeText={setMessage}
+                placeholder="Tell us what's going on."
+                multiline
+              />
+
+              <Button
+                mode="contained"
+                buttonColor={Colors.brand.darkTeal}
+                textColor={Colors.white}
+                disabled={!canSend}
+                loading={sending}
+                onPress={handleSend}
+                style={styles.sendButton}
+                labelStyle={styles.sendButtonText}
+              >
+                Send message
+              </Button>
             </View>
           </ScrollView>
         </View>
@@ -185,6 +214,9 @@ export default function SupportSettings() {
   );
 }
 
+// Spec: Figma frame 4518:4038 ("Contact Us v4") — chevron + h2 header,
+// mediumTeal intro copy, label-above white sharp-cornered fields (Subject,
+// 140pt Message), centered 170×46 darkTeal Send pill.
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
@@ -209,60 +241,66 @@ const styles = StyleSheet.create({
     maxWidth: 800,
     alignSelf: "center",
     width: "100%",
-    padding: 20,
-  },
-  mainCard: {
-    backgroundColor: "transparent",
-    borderRadius: 16,
-    padding: 24,
-    marginTop: 20,
+    paddingHorizontal: Spacing.sectionHeadInset,
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 32,
+    alignItems: "center",
+    gap: 14,
+    marginBottom: 24,
+    // IconButton pads its 44pt tap target; pull it back so the chevron sits
+    // on the gutter line.
+    marginLeft: -12,
   },
-  headerLeft: {
-    flex: 1,
-  },
-  title: {
-    ...Typography.h1,
-    color: Colors.black,
-    marginBottom: 8,
-  },
-  subtitle: {
-    ...Typography.subhead,
-    color: Colors.darks.black,
-    opacity: 0.9,
-  },
-  // 44pt min tap target (HIG); transparent container, 20pt icon unchanged.
   backButton: {
     margin: 0,
-    width: 44,
-    height: 44,
   },
-  section: {
+  title: {
+    ...Typography.h2,
+    color: Colors.brand.darkTeal,
+  },
+  intro: {
+    ...Typography.copyblock,
+    color: Colors.brand.mediumTeal,
     marginBottom: 24,
   },
-  input: {
-    marginBottom: 16,
+  field: {
+    marginBottom: 24,
+    gap: 4,
   },
-  messageInput: {
+  fieldLabel: {
+    ...Typography.fieldLabel,
+    color: Colors.brand.mediumTeal,
+  },
+  fieldBox: {
+    backgroundColor: Colors.white,
+    borderRadius: 0,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+  },
+  fieldBoxMultiline: {
     minHeight: 140,
   },
+  // Field values use the subhead scale per the handoff's style table.
+  fieldContent: {
+    ...Typography.subhead,
+  },
   sendButton: {
-    borderRadius: 8,
-    marginTop: 8,
+    alignSelf: "center",
+    width: 170,
+    height: 46,
+    borderRadius: 24,
+    justifyContent: "center",
+    marginTop: 12,
   },
   sendButtonText: {
     ...Typography.largeCta,
-    paddingVertical: 6,
+    color: Colors.white,
   },
   loadingText: {
+    ...Typography.subhead,
     textAlign: "center",
     color: Colors.darks.black,
     opacity: 0.9,
-    ...Typography.subhead,
   },
 });

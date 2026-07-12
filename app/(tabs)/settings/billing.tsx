@@ -1,21 +1,18 @@
 import { View, ScrollView, StyleSheet } from "react-native";
-import { Text, IconButton, Button } from "react-native-paper";
+import { Text, IconButton } from "react-native-paper";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../../../lib/supabase";
 import { HEADER_HEIGHT, BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { Colors } from "../../../lib/colors";
 import { Typography } from "../../../lib/typography";
-import { Session } from "@supabase/supabase-js";
-import { showSnackbar } from "../../../components/GlobalSnackbar";
-
-// Display copy only — plan state and the switch-plan action are placeholders
-// until real subscription wiring lands (DEV-262). Values below are the
-// finalized-frame sample content, not a live subscription.
-const CURRENT_PLAN_NAME = "BeGifted Plus";
-const CURRENT_PLAN_RENEWAL = "Renews Aug 12, 2026 · $9/mo";
+import { Spacing } from "../../../lib/spacing";
+import type { Session } from "@supabase/supabase-js";
 
 export default function BillingSettings() {
+  const insets = useSafeAreaInsets();
+  const headerSpacerHeight = Math.max(HEADER_HEIGHT, insets.top + 60);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -44,6 +41,7 @@ export default function BillingSettings() {
   if (loading) {
     return (
       <View style={styles.container}>
+        <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
         <View style={styles.content}>
           <Text style={styles.loadingText}>Loading...</Text>
         </View>
@@ -54,9 +52,10 @@ export default function BillingSettings() {
   if (!session) {
     return (
       <View style={styles.container}>
+        <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
         <View style={styles.content}>
           <Text style={styles.title}>Billing & Subscription</Text>
-          <Text style={styles.subtitle}>
+          <Text style={styles.note}>
             Please sign in to manage your billing.
           </Text>
         </View>
@@ -64,68 +63,50 @@ export default function BillingSettings() {
     );
   }
 
+  // v4 frame: a non-functional "Coming Soon" billboard. Billing management
+  // happens outside the app (web only, App Store revenue-share constraints);
+  // real subscription management is DEV-262.
   return (
     <View style={styles.container}>
-      <View style={styles.headerSpacer} />
+      <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.content}>
-          <View style={styles.mainCard}>
-            <View style={styles.header}>
-              <View style={styles.headerLeft}>
-                <Text style={styles.title}>Billing & Subscription</Text>
-                <Text style={styles.subtitle}>
-                  Manage your subscription plan and payment methods
-                </Text>
-              </View>
-              <IconButton
-                icon="arrow-left"
-                size={20}
-                iconColor={Colors.black}
-                onPress={() => router.back()}
-                style={styles.backButton}
-              />
-            </View>
-
-            {/* Current plan */}
-            <View style={styles.planCard}>
-              <Text style={styles.planLabel}>Current Plan</Text>
-              <Text style={styles.planName}>{CURRENT_PLAN_NAME}</Text>
-              <Text style={styles.planRenewal}>{CURRENT_PLAN_RENEWAL}</Text>
-            </View>
-
-            {/* Pricing */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Pricing</Text>
-              <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>Monthly</Text>
-                <Text style={styles.priceValue}>$9/month</Text>
-              </View>
-              <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>Yearly</Text>
-                <Text style={styles.priceValue}>$99/year</Text>
-              </View>
-            </View>
-
-            <Button
-              mode="contained"
-              buttonColor={Colors.black}
-              textColor={Colors.white}
-              onPress={() => showSnackbar("Plan management is coming soon.")}
-              style={styles.switchButton}
-              labelStyle={styles.switchButtonText}
-            >
-              Switch plan – 99/y
-            </Button>
+          <View style={styles.header}>
+            <IconButton
+              icon="chevron-left"
+              size={20}
+              iconColor={Colors.brand.darkTeal}
+              onPress={() => router.back()}
+              style={styles.backButton}
+            />
+            <Text style={styles.title}>Billing & Subscription</Text>
           </View>
+
+          <View style={styles.billboard}>
+            <Text style={styles.comingSoon}>COMING SOON</Text>
+            <Text style={styles.planName}>BeGifted Plus</Text>
+            <Text style={styles.pricing}>
+              $9/mo or $99/yr — pricing may change before launch
+            </Text>
+          </View>
+
+          <Text style={styles.note}>
+            We&apos;ll let you know as soon as subscriptions are ready. No
+            action needed from you right now.
+          </Text>
         </View>
       </ScrollView>
     </View>
   );
 }
 
+// Spec: Figma frame 4518:3994 ("Billing & Subscription v4") — darkTeal
+// billboard card (338 wide at x=32, radius 12, 18/16 padding) with gold
+// COMING SOON eyebrow, white plan name, lightTeal pricing line; mediumTeal
+// note below.
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -147,102 +128,54 @@ const styles = StyleSheet.create({
     maxWidth: 800,
     alignSelf: "center",
     width: "100%",
-    padding: 20,
-  },
-  mainCard: {
-    backgroundColor: "transparent",
-    borderRadius: 16,
-    padding: 24,
-    marginTop: 20,
+    paddingHorizontal: Spacing.sectionHeadInset,
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 32,
+    alignItems: "center",
+    gap: 14,
+    marginBottom: 24,
+    // IconButton pads its 44pt tap target; pull it back so the chevron sits
+    // on the gutter line.
+    marginLeft: -12,
   },
-  headerLeft: {
-    flex: 1,
-  },
-  title: {
-    ...Typography.h1,
-    color: Colors.black,
-    marginBottom: 8,
-  },
-  subtitle: {
-    ...Typography.subhead,
-    color: Colors.darks.black,
-    opacity: 0.9,
-  },
-  // 44pt min tap target (HIG); transparent container, 20pt icon unchanged.
   backButton: {
     margin: 0,
-    width: 44,
-    height: 44,
   },
-  planCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: Colors.white,
-    backgroundColor: Colors.neutrals.light + "30",
-    padding: 20,
-    marginBottom: 32,
+  title: {
+    ...Typography.h2,
+    color: Colors.brand.darkTeal,
   },
-  planLabel: {
-    ...Typography.smallCta,
-    color: Colors.darks.black,
-    opacity: 0.7,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 8,
+  billboard: {
+    backgroundColor: Colors.brand.darkTeal,
+    borderRadius: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    gap: 6,
+  },
+  comingSoon: {
+    ...Typography.sectionHeadAc,
+    color: Colors.brand.gold,
   },
   planName: {
-    ...Typography.h2,
-    color: Colors.black,
-    marginBottom: 6,
+    ...Typography.planName,
+    color: Colors.white,
   },
-  planRenewal: {
-    ...Typography.subhead,
-    color: Colors.darks.black,
-    opacity: 0.9,
+  pricing: {
+    ...Typography.copyblock,
+    color: Colors.brand.lightTeal,
   },
-  section: {
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    ...Typography.h3,
-    color: Colors.black,
-    marginBottom: 12,
-  },
-  priceRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.grays.hairline,
-  },
-  priceLabel: {
-    ...Typography.subhead,
-    color: Colors.darks.black,
-    opacity: 0.9,
-  },
-  priceValue: {
-    ...Typography.subhead,
-    color: Colors.black,
-  },
-  switchButton: {
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  switchButtonText: {
-    ...Typography.largeCta,
-    paddingVertical: 6,
+  // The frame's 13pt is off the published scale; copyblock (14) is the
+  // nearest token.
+  note: {
+    ...Typography.copyblock,
+    color: Colors.brand.mediumTeal,
+    marginTop: 23,
   },
   loadingText: {
+    ...Typography.subhead,
     textAlign: "center",
     color: Colors.darks.black,
     opacity: 0.9,
-    ...Typography.subhead,
   },
 });
