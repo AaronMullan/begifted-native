@@ -25,7 +25,7 @@ import { useAddOccasionFlow } from "../../../hooks/use-add-occasion-flow";
 import { useConversationFlow } from "../../../hooks/use-conversation-flow";
 import { useUserPreferences } from "../../../hooks/use-user-preferences";
 import { formatShortName } from "../../../lib/format-name";
-import { useToast } from "../../../hooks/use-toast";
+import { showSnackbar } from "../../../components/GlobalSnackbar";
 import {
   backfillBirthdayFromAge,
   normalizeBirthday,
@@ -162,7 +162,6 @@ export default function RecipientEditPage() {
   const queryClient = useQueryClient();
   const { triggerCheckIn } = useBetaCheckIn();
   const scrollRef = useRef<ScrollView>(null);
-  const { showToast, toast } = useToast();
   const { data: userPreferences } = useUserPreferences();
   const defaultEmotionalTone =
     userPreferences?.user_summary?.default_emotional_tone;
@@ -308,7 +307,7 @@ export default function RecipientEditPage() {
     recipientName: recipient?.name || "",
     onSuccess: () => {
       setShowAddOccasionChat(false);
-      showToast("Occasion added!");
+      showSnackbar("Occasion added!");
     },
   });
 
@@ -477,7 +476,7 @@ export default function RecipientEditPage() {
     });
     resynthesizeProfile(recipient.synthesized_profile ?? "");
 
-    showToast(`Updated ${recipient.name}'s profile.`);
+    showSnackbar(`Updated ${recipient.name}'s profile.`);
     setShowUpdateChat(false);
   };
 
@@ -688,7 +687,6 @@ export default function RecipientEditPage() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
-      {toast}
     </View>
   );
 }
