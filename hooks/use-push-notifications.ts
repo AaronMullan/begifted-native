@@ -1,14 +1,21 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppState, Platform } from "react-native";
 import * as Notifications from "expo-notifications";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useAuth } from "./use-auth";
 import { queryKeys } from "../lib/query-keys";
 import {
+  needsPushPermissionPrompt,
   registerForPushNotifications,
   unregisterPushToken,
 } from "../lib/push-notifications";
+
+// "Not now" on the pre-permission explainer is remembered so the sheet doesn't
+// reappear every launch; the OS-level ask is preserved for a future
+// re-engagement surface (e.g. notification settings).
+const PUSH_INTRO_DECLINED_KEY = "begifted-push-intro-declined";
 
 // Configure how notifications appear when the app is in the foreground
 Notifications.setNotificationHandler({
@@ -29,18 +36,36 @@ if (Platform.OS === "android") {
   });
 }
 
-export function usePushNotifications(): void {
+export type PushIntroControls = {
+  /** Render the pre-permission explainer when true. */
+  introVisible: boolean;
+  /** User agreed — fire the OS prompt and register. */
+  acceptIntro: () => void;
+  /** User declined — dismiss and remember so we don't nag every launch. */
+  declineIntro: () => void;
+};
+
+export function usePushNotifications(): PushIntroControls {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const previousUserId = useRef<string | null>(null);
+  const [introVisible, setIntroVisible] = useState(false);
 
-  // Register/unregister based on auth state
+  // Register/unregister based on auth state. The OS permission prompt must be
+  // preceded by the in-app explainer, so when a prompt would fire we show the
+  // sheet instead of registering; registration runs on acceptance.
   useEffect(() => {
     if (user?.id && user.id !== previousUserId.current) {
       previousUserId.current = user.id;
-      registerForPushNotifications(user.id).catch((err) =>
-        console.error("[push] Registration failed:", err)
-      );
+      (async () => {
+        if (await needsPushPermissionPrompt()) {
+          const declined = await AsyncStorage.getItem(PUSH_INTRO_DECLINED_KEY);
+          if (!declined) setIntroVisible(true);
+          return;
+        }
+        // Already granted (or permanently denied): same silent path as before.
+        await registerForPushNotifications(user.id);
+      })().catch((err) => console.error("[push] Registration failed:", err));
     } else if (!user && previousUserId.current) {
       unregisterPushToken().catch((err) =>
         console.error("[push] Unregistration failed:", err)
@@ -48,6 +73,22 @@ export function usePushNotifications(): void {
       previousUserId.current = null;
     }
   }, [user]);
+
+  const acceptIntro = () => {
+    setIntroVisible(false);
+    if (user?.id) {
+      registerForPushNotifications(user.id).catch((err) =>
+        console.error("[push] Registration failed:", err)
+      );
+    }
+  };
+
+  const declineIntro = () => {
+    setIntroVisible(false);
+    AsyncStorage.setItem(PUSH_INTRO_DECLINED_KEY, "true").catch(() => {
+      // Best-effort; worst case the explainer shows again next launch.
+    });
+  };
 
   // Invalidate notification cache when a push is received in foreground
   useEffect(() => {
@@ -101,4 +142,6 @@ export function usePushNotifications(): void {
 
     return () => subscription.remove();
   }, []);
+
+  return { introVisible, acceptIntro, declineIntro };
 }
