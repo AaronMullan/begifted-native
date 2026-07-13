@@ -11,6 +11,7 @@ import { useAuth } from "../../hooks/use-auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "../../lib/query-keys";
 import { useBetaCheckIn } from "../../components/beta/BetaCheckInProvider";
+import AddRecipientLegalNotice from "../../components/recipients/AddRecipientLegalNotice";
 
 export default function OnboardingRecipient() {
   const router = useRouter();
@@ -58,6 +59,7 @@ export default function OnboardingRecipient() {
       </View>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 24 }]}>
+        <AddRecipientLegalNotice />
         <Button
           mode="contained"
           onPress={() => completeOnboarding("/contacts/add")}

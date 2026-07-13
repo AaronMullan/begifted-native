@@ -35,6 +35,12 @@ interface ConversationViewProps {
   onRetry?: () => Promise<void> | void;
   title?: string;
   finishButtonLabel?: string;
+  /**
+   * Renders the add-recipient legal notices under the header. Only the
+   * add-recipient entry point sets this; the update-recipient chat reuses
+   * this view and must not show them.
+   */
+  headerNotice?: React.ReactNode;
 }
 
 export function ConversationView({
@@ -50,6 +56,7 @@ export function ConversationView({
   onRetry,
   title = "Add Recipient",
   finishButtonLabel = "Let's Move to the Next Step",
+  headerNotice,
 }: ConversationViewProps) {
   const [inputMessage, setInputMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -134,6 +141,8 @@ export function ConversationView({
         </Text>
         <View style={styles.headerSpacer} />
       </View>
+
+      {headerNotice}
 
       {/* Messages */}
       <ScrollView
