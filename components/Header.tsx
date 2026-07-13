@@ -65,13 +65,21 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
               accessibilityLabel="Open settings"
               style={styles.avatarButton}
             >
-              <Avatar.Text
-                size={36}
-                label={initials}
-                style={styles.avatar}
-                color={Colors.darks.black}
-                labelStyle={styles.avatarLabel}
-              />
+              {profile?.avatar_url ? (
+                <Avatar.Image
+                  size={36}
+                  source={{ uri: profile.avatar_url }}
+                  style={styles.avatar}
+                />
+              ) : (
+                <Avatar.Text
+                  size={36}
+                  label={initials}
+                  style={styles.avatar}
+                  color={Colors.darks.black}
+                  labelStyle={styles.avatarLabel}
+                />
+              )}
             </Pressable>
           </Link>
         </View>
