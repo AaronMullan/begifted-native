@@ -13,6 +13,7 @@ import { supabase } from "../lib/supabase";
 import Auth from "../components/Auth";
 import GradientBackground from "../components/GradientBackground";
 import { hasSeenIntro, markIntroSeen } from "../lib/intro-storage";
+import { flushPendingLegalAcceptance } from "../lib/legal-acceptance";
 
 export default function Index() {
   const [session, setSession] = useState<Session | null>(null);
@@ -27,6 +28,9 @@ export default function Index() {
       // A session implies the user is past the pre-auth intro; set the gate
       // so a later sign-out returns them to <Auth />, not the slider.
       void markIntroSeen();
+      // Signup via email verification couldn't record the legal acceptance
+      // (no JWT yet); flush any stashed marker now that we have a session.
+      void flushPendingLegalAcceptance();
       try {
         const { data } = await supabase
           .from("user_preferences")

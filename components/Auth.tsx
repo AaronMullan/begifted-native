@@ -10,6 +10,11 @@ import { TextInput, Button, Text } from "react-native-paper";
 import { useForm, Controller } from "react-hook-form";
 import { supabase } from "../lib/supabase";
 import { fetchAppConfig } from "../lib/api";
+import LegalAcceptanceCheckbox from "./LegalAcceptanceCheckbox";
+import {
+  markPendingLegalAcceptance,
+  recordLegalAcceptance,
+} from "../lib/legal-acceptance";
 import { Session } from "@supabase/supabase-js";
 import { Colors } from "../lib/colors";
 import { Typography, Radii } from "../lib/typography";
@@ -24,6 +29,7 @@ export default function Auth() {
   const [session, setSession] = useState<Session | null>(null);
   const [message, setMessage] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
 
   const {
     control,
@@ -94,8 +100,14 @@ export default function Auth() {
         "Error: An account with this email already exists. Try signing in instead."
       );
     } else if (signUpData.session) {
+      // Fire-and-forget: recording must not delay the signed-in transition,
+      // and failures are Sentry-reported inside the helper.
+      void recordLegalAcceptance("signup_checkbox");
       reset();
     } else {
+      // No session yet, so the acceptance can't be recorded until the user
+      // verifies and signs in; flushed by app/index.tsx on first load.
+      await markPendingLegalAcceptance();
       setMessage("Check your inbox to verify your email before signing in.");
     }
 
@@ -221,11 +233,21 @@ export default function Auth() {
             )}
           </View>
 
+          {isSignUp && (
+            <View style={styles.verticallySpaced}>
+              <LegalAcceptanceCheckbox
+                accepted={acceptedLegal}
+                onToggle={setAcceptedLegal}
+                disabled={loading}
+              />
+            </View>
+          )}
+
           {/* Submit Button */}
           <View style={[styles.verticallySpaced, styles.mt20]}>
             <Button
               mode="contained"
-              disabled={loading}
+              disabled={loading || (isSignUp && !acceptedLegal)}
               loading={loading}
               onPress={handleSubmit(isSignUp ? handleSignUp : handleSignIn)}
               style={styles.button}
