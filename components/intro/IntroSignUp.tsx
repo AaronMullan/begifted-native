@@ -14,6 +14,11 @@ import { Colors } from "../../lib/colors";
 import { Typography, Radii } from "../../lib/typography";
 import { supabase } from "../../lib/supabase";
 import { fetchAppConfig } from "../../lib/api";
+import LegalAcceptanceCheckbox from "../LegalAcceptanceCheckbox";
+import {
+  markPendingLegalAcceptance,
+  recordLegalAcceptance,
+} from "../../lib/legal-acceptance";
 
 type IntroSignUpProps = {
   onSignedUp: () => Promise<void> | void;
@@ -65,6 +70,7 @@ export default function IntroSignUp({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
@@ -72,6 +78,7 @@ export default function IntroSignUp({
     name.trim().length > 0 &&
     email.trim().length > 0 &&
     password.length >= 6 &&
+    acceptedLegal &&
     !submitting;
 
   async function handleSubmit() {
@@ -87,10 +94,16 @@ export default function IntroSignUp({
         return;
       }
       if ("needsVerification" in result) {
+        // No session yet, so the acceptance can't be recorded until the user
+        // verifies and signs in; flushed by app/index.tsx on first load.
+        await markPendingLegalAcceptance();
         setInfo("Check your inbox to verify your email, then sign in.");
         return;
       }
 
+      // Fire-and-forget: recording must not delay navigation, and failures
+      // are Sentry-reported inside the helper.
+      void recordLegalAcceptance("signup_checkbox");
       await onSignedUp();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -180,6 +193,12 @@ export default function IntroSignUp({
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
         {info ? <Text style={styles.info}>{info}</Text> : null}
+
+        <LegalAcceptanceCheckbox
+          accepted={acceptedLegal}
+          onToggle={setAcceptedLegal}
+          disabled={submitting}
+        />
 
         <Button
           mode="contained"
