@@ -129,6 +129,10 @@ export default function Settings() {
               label="Contact Us"
               onPress={push("/settings/support")}
             />
+            <SettingsRow
+              label="Legal & Privacy"
+              onPress={push("/settings/legal")}
+            />
             <Divider />
           </View>
 
