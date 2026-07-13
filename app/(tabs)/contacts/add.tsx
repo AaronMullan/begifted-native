@@ -5,6 +5,7 @@ import { useAuth } from "../../../hooks/use-auth";
 import { Typography } from "../../../lib/typography";
 import { useAddRecipientFlow } from "../../../hooks/use-add-recipient-flow";
 import { ConversationView } from "../../../components/recipients/conversation/ConversationView";
+import AddRecipientLegalNotice from "../../../components/recipients/AddRecipientLegalNotice";
 import { DataReviewView } from "../../../components/recipients/conversation/DataReviewView";
 import { OccasionsSelectionView } from "../../../components/recipients/conversation/OccasionsSelectionView";
 import { ManualDataEntry } from "../../../components/recipients/conversation/ManualDataEntry";
@@ -226,6 +227,7 @@ const AddRecipientFlow = ({ seed, onAddAnother }: AddRecipientFlowProps) => {
       conversationContext={conversationContext}
       canRetry={canRetrySend}
       onRetry={retryLastSend}
+      headerNotice={<AddRecipientLegalNotice />}
     />
   );
 };
