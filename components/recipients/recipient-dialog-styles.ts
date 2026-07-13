@@ -20,7 +20,7 @@ export const dialogStyles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   modalContent: {
-    backgroundColor: Colors.brand.cream,
+    backgroundColor: Colors.brand.beigeLight,
     borderRadius: 18,
     width: "100%",
     maxWidth: 480,
@@ -64,7 +64,7 @@ export const dialogStyles = StyleSheet.create({
   },
   input: {
     marginBottom: 12,
-    backgroundColor: Colors.brand.cream,
+    backgroundColor: Colors.brand.beigeLight,
   },
   budgetInput: {
     flex: 1,
