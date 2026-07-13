@@ -38,7 +38,8 @@ export default function ContactsAccessIntro({
           </Text>
           <Text variant="bodyLarge" style={styles.body}>
             We&apos;ll ask for permission to read your contacts so you can add
-            recipients from your address book.
+            people from your address book. Only the people you pick are imported
+            — never your whole contact list.
           </Text>
 
           <Button

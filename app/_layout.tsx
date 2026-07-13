@@ -17,6 +17,7 @@ import BottomNav from "../components/BottomNav";
 import GiftActionDrawerProvider from "../components/gifts/GiftActionDrawerProvider";
 import BetaCheckInProvider from "../components/beta/BetaCheckInProvider";
 import GlobalSnackbar from "../components/GlobalSnackbar";
+import PushNotificationsIntro from "../components/PushNotificationsIntro";
 import { Colors } from "../lib/colors";
 import { useFontsLoader } from "../hooks/use-fonts-loader";
 import { usePushNotifications } from "../hooks/use-push-notifications";
@@ -168,10 +169,15 @@ const customTheme = {
 
 function AppShell() {
   // Set up push notification registration, handlers, and deep linking
-  usePushNotifications();
+  const pushIntro = usePushNotifications();
 
   return (
     <View style={styles.container}>
+      <PushNotificationsIntro
+        visible={pushIntro.introVisible}
+        onContinue={pushIntro.acceptIntro}
+        onClose={pushIntro.declineIntro}
+      />
       <Header colorful={false} />
       <Stack
         screenOptions={{

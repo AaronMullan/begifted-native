@@ -5,6 +5,19 @@ import Constants from "expo-constants";
 import { deletePushToken, upsertPushToken } from "./api";
 
 /**
+ * True when requesting push permission would surface the OS dialog: real
+ * device, not yet granted, and the OS still allows asking. Callers show the
+ * in-app explainer first in exactly this case; when permission is already
+ * granted (register silently) or permanently denied (request no-ops), the
+ * explainer would be noise.
+ */
+export async function needsPushPermissionPrompt(): Promise<boolean> {
+  if (!Device.isDevice) return false;
+  const { status, canAskAgain } = await Notifications.getPermissionsAsync();
+  return status !== "granted" && canAskAgain;
+}
+
+/**
  * Register for push notifications and store the token in Supabase.
  * No-ops on simulators. Logs errors but never throws.
  */
