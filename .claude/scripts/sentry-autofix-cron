@@ -2,8 +2,9 @@
 # Headless entry point for the Sentry pipelines, invoked by launchd
 # (com.begifted.sentry-autofix) on weekday mornings. Prepares dedicated bot
 # clones so the runs can never touch the human working checkouts, then runs
-# claude -p against the begifted-native clone: /sentry-autofix (error → PR)
-# followed by /sentry-feedback-to-jira headless (feedback → ticket).
+# claude -p against the begifted-native clone: /sentry-autofix (error → PR),
+# /sentry-feedback-to-jira headless (feedback → ticket), and /slack-to-jira
+# sweep #bugs (Slack bug report → ticket).
 set -euo pipefail
 
 MAIN_CHECKOUT="$HOME/development/begifted-native"
@@ -13,6 +14,7 @@ LOCK_DIR="$LOG_DIR/.lock"
 CLAUDE_BIN="$HOME/.local/bin/claude"
 AUTOFIX_TIMEOUT_SECS=3600
 FEEDBACK_TIMEOUT_SECS=1200
+SWEEP_TIMEOUT_SECS=1200
 REPOS=(begifted-native be-gifted)
 
 mkdir -p "$LOG_DIR" "$AUTOFIX_ROOT"
@@ -83,12 +85,14 @@ run_claude() {
 
 cd "$AUTOFIX_ROOT/begifted-native"
 
-# The passes are independent — a wedged autofix must not starve feedback
-# triage — so run both unconditionally and report failures together.
+# The passes are independent — a wedged pass must not starve the others —
+# so run all of them unconditionally and report failures together.
 AUTOFIX_STATUS=0
 run_claude "/sentry-autofix" "$AUTOFIX_TIMEOUT_SECS" || AUTOFIX_STATUS=$?
 FEEDBACK_STATUS=0
 run_claude "/sentry-feedback-to-jira headless" "$FEEDBACK_TIMEOUT_SECS" || FEEDBACK_STATUS=$?
+SWEEP_STATUS=0
+run_claude "/slack-to-jira sweep #bugs" "$SWEEP_TIMEOUT_SECS" || SWEEP_STATUS=$?
 
 find "$LOG_DIR" -name '*.log' -mtime +30 -delete || true
 
@@ -99,9 +103,12 @@ fi
 if [ "$FEEDBACK_STATUS" -ne 0 ]; then
   FAILURES="${FAILURES:+$FAILURES; }feedback exited $FEEDBACK_STATUS"
 fi
+if [ "$SWEEP_STATUS" -ne 0 ]; then
+  FAILURES="${FAILURES:+$FAILURES; }slack sweep exited $SWEEP_STATUS"
+fi
 if [ -n "$FAILURES" ]; then
   fail "$FAILURES"
 fi
 
-notify "autofix + feedback complete — details in $(basename "$LOG")"
+notify "autofix + feedback + slack sweep complete — details in $(basename "$LOG")"
 echo "=== run complete $(date '+%H:%M:%S') ==="
