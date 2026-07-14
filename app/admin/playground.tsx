@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePromptPlayground } from "@/hooks/use-prompt-playground";
 import type { Provider } from "@/lib/ai-models";
 import { PROVIDER_MODELS } from "@/lib/ai-models";
-import type { Profile } from "@/lib/api";
+import type { AdminProfileListItem } from "@/lib/api";
 import { Colors } from "@/lib/colors";
 import type { PromptDefinition } from "@/lib/prompt-registry";
 import type { Recipient } from "@/types/recipient";
@@ -41,6 +41,14 @@ import {
 } from "react-native-paper";
 
 const DESKTOP_BREAKPOINT = 900;
+
+// Many profiles have no full_name; email is the only reliably identifying
+// label for the giver selector.
+function giverLabel(profile: AdminProfileListItem): string {
+  return profile.full_name
+    ? `${profile.full_name} (${profile.email})`
+    : profile.email;
+}
 
 // Admin gating (loading / Access Denied) lives in app/admin/_layout.tsx; the
 // layout only renders this screen for a signed-in admin.
@@ -106,7 +114,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
   }
 
   const selectedGiver = playground.profiles.find(
-    (p: Profile) => p.id === playground.selectedGiverId
+    (p: AdminProfileListItem) => p.id === playground.selectedGiverId
   );
   const selectedRecipient = playground.recipients.find(
     (r: Recipient) => r.id === playground.selectedRecipientId
@@ -330,25 +338,21 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                 icon="account"
               >
                 {selectedGiver
-                  ? selectedGiver.full_name ||
-                    selectedGiver.username ||
-                    "Unnamed"
+                  ? giverLabel(selectedGiver)
                   : "Select a giver..."}
               </Button>
             }
             contentStyle={styles.menuContent}
           >
             <ScrollView style={styles.menuScroll} nestedScrollEnabled>
-              {playground.profiles.map((profile: Profile) => (
+              {playground.profiles.map((profile: AdminProfileListItem) => (
                 <Menu.Item
                   key={profile.id}
                   onPress={() => {
                     playground.handleGiverChange(profile.id);
                     setGiverMenuVisible(false);
                   }}
-                  title={`${
-                    profile.full_name || profile.username || "Unnamed"
-                  } (${profile.id.substring(0, 8)})`}
+                  title={giverLabel(profile)}
                 />
               ))}
             </ScrollView>
@@ -566,25 +570,21 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                   icon="account"
                 >
                   {selectedGiver
-                    ? selectedGiver.full_name ||
-                      selectedGiver.username ||
-                      "Unnamed"
+                    ? giverLabel(selectedGiver)
                     : "Select a giver..."}
                 </Button>
               }
               contentStyle={styles.menuContent}
             >
               <ScrollView style={styles.menuScroll} nestedScrollEnabled>
-                {playground.profiles.map((profile: Profile) => (
+                {playground.profiles.map((profile: AdminProfileListItem) => (
                   <Menu.Item
                     key={profile.id}
                     onPress={() => {
                       playground.handleGiverChange(profile.id);
                       setGiverMenuVisible(false);
                     }}
-                    title={`${
-                      profile.full_name || profile.username || "Unnamed"
-                    } (${profile.id.substring(0, 8)})`}
+                    title={giverLabel(profile)}
                   />
                 ))}
               </ScrollView>
