@@ -46,6 +46,8 @@ export interface ExtractedData {
   // against the recipient's existing interests on the client (DEV-119).
   interests_removed?: string[];
   birthday?: string;
+  /** Current age in whole years, only when the user explicitly stated it. */
+  age?: number | null;
   emotional_tone_preference?: string;
   // Life roles / household signal captured during extraction. Feeds the
   // occasion prompt so a spouse-who-is-a-parent gets Mother's/Father's Day,

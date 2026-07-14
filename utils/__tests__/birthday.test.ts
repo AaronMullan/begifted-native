@@ -5,6 +5,7 @@ import {
   formatBirthdayDisplay,
   birthdayHasYear,
   backfillBirthdayFromAge,
+  birthYearFromAge,
 } from "../birthday";
 
 // Year validation ("no future years") and age backfill both key off the
@@ -150,6 +151,16 @@ describe("birthdayHasYear", () => {
 describe("backfillBirthdayFromAge", () => {
   it("stores nothing when no month/day is known — never a synthetic Jan 1", () => {
     expect(backfillBirthdayFromAge(47, null)).toBeNull();
+  });
+
+  it("age-only intake lands on birth_year instead (via birthYearFromAge)", () => {
+    expect(birthYearFromAge(47)).toBe(1979);
+    expect(birthYearFromAge(47.4)).toBe(1979);
+    expect(birthYearFromAge(0)).toBeNull();
+    expect(birthYearFromAge(-3)).toBeNull();
+    expect(birthYearFromAge(200)).toBeNull();
+    expect(birthYearFromAge(null)).toBeNull();
+    expect(birthYearFromAge(Number.NaN)).toBeNull();
   });
 
   it("backfills the year onto a known month/day", () => {

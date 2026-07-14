@@ -8,7 +8,13 @@ import { Alert, View } from "react-native";
 import { invokeWithRetry } from "../lib/edge-retry";
 import { queryKeys } from "../lib/query-keys";
 import { supabase } from "../lib/supabase";
-import { formatBirthdayDisplay, normalizeBirthday } from "../utils/birthday";
+import {
+  backfillBirthdayFromAge,
+  birthdayHasYear,
+  birthYearFromAge,
+  formatBirthdayDisplay,
+  normalizeBirthday,
+} from "../utils/birthday";
 import { sanitizeExtractedOccasionDate } from "../utils/occasion-dates";
 import { useBetaCheckIn } from "../components/beta/BetaCheckInProvider";
 import {
@@ -263,6 +269,16 @@ export function useAddRecipientFlow(
       }
       const photoUrl = photoUri ? await uploadRecipientPhoto(photoUri) : null;
 
+      // A volunteered age ("my 8 year old") anchors a birth year: onto the
+      // birthday when its month/day is known, else onto birth_year — never a
+      // fabricated Jan-1 birthday, which the cron would read as a real date.
+      const normalizedBirthday = normalizeBirthday(data.birthday);
+      const extractedAge =
+        typeof data.age === "number" ? data.age : Number(data.age);
+      const age = Number.isFinite(extractedAge) ? extractedAge : null;
+      const birthday =
+        backfillBirthdayFromAge(age, normalizedBirthday) ?? normalizedBirthday;
+
       // Prepare recipient data
       const recipientData = {
         user_id: userId,
@@ -270,7 +286,8 @@ export function useAddRecipientFlow(
         relationship_type: data.relationship_type!.trim(),
         interests:
           data.interests && data.interests.length > 0 ? data.interests : null,
-        birthday: normalizeBirthday(data.birthday),
+        birthday,
+        birth_year: birthdayHasYear(birthday) ? null : birthYearFromAge(age),
         emotional_tone_preference:
           data.emotional_tone_preference?.trim() || null,
         gift_budget_min: data.gift_budget_min || null,

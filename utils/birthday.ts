@@ -207,10 +207,10 @@ export function birthdayHasYear(birthday: string | null | undefined): boolean {
  *   - If we already know the full birthday (year included), the age claim is
  *     redundant — trust the stored date and return null (no change).
  *   - If we know only month/day, backfill the year onto it.
- *   - If we know nothing, store nothing. A synthetic Jan-1 date reads as a
- *     real birthday to every downstream consumer — the cron re-dates the
- *     birthday occasion to Jan 1 from it — so losing the age is the lesser
- *     harm.
+ *   - If we know nothing, store nothing here. A synthetic Jan-1 date reads as
+ *     a real birthday to every downstream consumer — the cron re-dates the
+ *     birthday occasion to Jan 1 from it. The age still gets persisted, as
+ *     recipients.birth_year via birthYearFromAge.
  *
  * Returns the normalized birthday string to persist, or null when nothing
  * should change (already have a year, no month/day to anchor the year to,
@@ -234,4 +234,19 @@ export function backfillBirthdayFromAge(
   const mm = String(parts.month).padStart(2, "0");
   const dd = String(parts.day).padStart(2, "0");
   return normalizeBirthday(`${year}-${mm}-${dd}`);
+}
+
+/**
+ * Derive a birth year from a user-volunteered current age, for storage on
+ * recipients.birth_year when no birthday month/day exists to anchor it to.
+ * Same plausibility rules as backfillBirthdayFromAge. The year is stable
+ * where a stored age would go stale; consumers recompute age from it.
+ */
+export function birthYearFromAge(
+  age: number | null | undefined
+): number | null {
+  if (age == null || !Number.isFinite(age)) return null;
+  const rounded = Math.round(age);
+  if (rounded <= 0 || rounded > 130) return null;
+  return new Date().getFullYear() - rounded;
 }

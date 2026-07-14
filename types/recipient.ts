@@ -5,6 +5,8 @@ export interface Recipient {
   relationship_type: string;
   interests?: string[];
   birthday?: string;
+  /** Birth year derived from a volunteered age when no birthday date is known. */
+  birth_year?: number | null;
   emotional_tone_preference?: string;
   gift_budget_min?: number;
   gift_budget_max?: number;

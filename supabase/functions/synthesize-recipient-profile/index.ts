@@ -75,7 +75,7 @@ serve(async (req) => {
     const { data: recipient, error: recipientError } = await supabase
       .from("recipients")
       .select(
-        "user_id, name, relationship_type, interests, birthday, emotional_tone_preference, gift_budget_min, gift_budget_max, city, state, country"
+        "user_id, name, relationship_type, interests, birthday, birth_year, emotional_tone_preference, gift_budget_min, gift_budget_max, city, state, country"
       )
       .eq("id", recipientId)
       .maybeSingle();
@@ -107,15 +107,17 @@ serve(async (req) => {
       : `${namePart} is a gift recipient.`;
     parts.push(relationshipPart);
 
-    if (recipient.birthday) {
-      // Recipient.birthday is text — either "YYYY-MM-DD" or "--MM-DD" when
-      // the year is unknown. Only compute age when a year is present.
-      const fullDate = /^(\d{4})-(\d{2})-(\d{2})$/.exec(recipient.birthday);
-      if (fullDate) {
-        const today = new Date();
-        const age = today.getFullYear() - Number(fullDate[1]);
-        parts.push(`Age: approximately ${age}`);
-      }
+    // Recipient.birthday is text — either "YYYY-MM-DD" or "--MM-DD" when the
+    // year is unknown. When the birthday carries no year, birth_year holds one
+    // derived from a volunteered age ("he's 47"), so age still reaches the
+    // profile without a fabricated date.
+    const fullDate = recipient.birthday
+      ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(recipient.birthday)
+      : null;
+    const birthYear = fullDate ? Number(fullDate[1]) : recipient.birth_year;
+    if (birthYear) {
+      const age = new Date().getFullYear() - birthYear;
+      parts.push(`Age: approximately ${age}`);
     }
 
     const location = [recipient.city, recipient.state, recipient.country]
