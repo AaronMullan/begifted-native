@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Alert, View } from "react-native";
-import { lookupOccasionDate } from "../utils/occasion-dates";
+import { sanitizeExtractedOccasionDate } from "../utils/occasion-dates";
 import { useCreateOccasion } from "./use-occasion-mutations";
 import { useConversationFlow, type Message } from "./use-conversation-flow";
 
@@ -63,17 +63,13 @@ export function useAddOccasionFlow({
     setIsSaving(true);
     try {
       for (const occasion of extracted.occasions) {
-        // Always prefer lookupOccasionDate for known holidays — it returns
-        // the correct next-future date. Only fall back to the AI's date for
-        // personal occasions (anniversary, etc.) where lookup returns null.
-        const lookedUp = lookupOccasionDate(occasion.occasion_type);
-        let date = lookedUp || occasion.date;
-
-        if (!date || date === "null") {
-          // Unknown occasion with no AI date — placeholder
-          const nextYear = new Date().getFullYear() + 1;
-          date = `${nextYear}-01-01`;
-        }
+        // AI dates are advisory: known holidays resolve through the lookup,
+        // and an unresolvable date is stored as null (undated, editable from
+        // the profile) rather than a fabricated placeholder.
+        const date = sanitizeExtractedOccasionDate(
+          occasion.occasion_type,
+          occasion.date
+        );
 
         await createOccasion.mutateAsync({
           recipientId,

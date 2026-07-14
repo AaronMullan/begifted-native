@@ -11,7 +11,7 @@ import { useRouter } from "expo-router";
 import { Colors } from "../../lib/colors";
 import { Typography, Radii } from "../../lib/typography";
 import { Spacing } from "../../lib/spacing";
-import type { Occasion } from "../../lib/api";
+import type { DatedOccasion } from "../../utils/home-occasions";
 import {
   formatOccasionType,
   possessive,
@@ -22,7 +22,7 @@ import OccasionOverflowMenu from "./OccasionOverflowMenu";
 import { homeCardWidth, HOME_EDGE_INSET } from "./home-layout";
 
 type OnTheHorizonGridProps = {
-  occasions: Occasion[];
+  occasions: DatedOccasion[];
 };
 
 export default function OnTheHorizonGrid({ occasions }: OnTheHorizonGridProps) {
@@ -59,7 +59,7 @@ function HorizonCard({
   occasion,
   width,
 }: {
-  occasion: Occasion;
+  occasion: DatedOccasion;
   width: number;
 }) {
   const router = useRouter();

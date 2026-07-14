@@ -151,7 +151,9 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
                 {formatOccasionType(occasion.occasion_type)}
               </Text>
               <Text style={styles.occasionDate}>
-                {formatOccasionDate(occasion.date)}
+                {occasion.date
+                  ? formatOccasionDate(occasion.date)
+                  : "No date set"}
               </Text>
               <Text style={styles.occasionRecurrence}>
                 {occasion.is_annual ? "Repeats yearly" : "One-time"}

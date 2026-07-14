@@ -33,6 +33,7 @@ export function getNextUpcomingOccasion(
   }
 
   for (const occasion of occasions) {
+    if (!occasion.date) continue;
     if (occasion.is_annual) {
       const next = getNextOccurrence(occasion.date);
       if (ISO_DATE_ONLY.test(next)) {

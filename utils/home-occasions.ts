@@ -1,9 +1,12 @@
 import type { Occasion } from "../lib/api";
 
+/** An occasion guaranteed to carry a real date — the only kind Home features. */
+export type DatedOccasion = Occasion & { date: string };
+
 export type HomeOccasionGroups = {
-  hero: Occasion | null;
-  nextUp: Occasion[];
-  horizon: Occasion[];
+  hero: DatedOccasion | null;
+  nextUp: DatedOccasion[];
+  horizon: DatedOccasion[];
 };
 
 const HERO_COUNT = 1;
@@ -11,13 +14,16 @@ const NEXT_UP_COUNT = 4;
 
 /**
  * Split upcoming occasions into the three Home page sections.
- * Assumes input is already sorted ascending by date.
+ * Assumes input is already sorted ascending by date. Undated occasions can't
+ * be counted down to, so they stay off Home entirely (they remain editable on
+ * the recipient profile).
  */
 export function groupHomeOccasions(occasions: Occasion[]): HomeOccasionGroups {
+  const dated = occasions.filter((o): o is DatedOccasion => o.date !== null);
   return {
-    hero: occasions[0] ?? null,
-    nextUp: occasions.slice(HERO_COUNT, HERO_COUNT + NEXT_UP_COUNT),
-    horizon: occasions.slice(HERO_COUNT + NEXT_UP_COUNT),
+    hero: dated[0] ?? null,
+    nextUp: dated.slice(HERO_COUNT, HERO_COUNT + NEXT_UP_COUNT),
+    horizon: dated.slice(HERO_COUNT + NEXT_UP_COUNT),
   };
 }
 

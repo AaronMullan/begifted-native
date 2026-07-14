@@ -54,7 +54,7 @@ export function useUpdateOccasion() {
 
 type CreateOccasionVariables = {
   recipientId: string;
-  date: string;
+  date: string | null;
   occasionType: string;
   isAnnual?: boolean;
 };

@@ -28,10 +28,15 @@ import { formatShortName } from "../../../lib/format-name";
 import { showSnackbar } from "../../../components/GlobalSnackbar";
 import {
   backfillBirthdayFromAge,
+  birthdayHasYear,
+  birthYearFromAge,
   normalizeBirthday,
 } from "../../../utils/birthday";
 import { formatOccasionType } from "../../../utils/home-occasions";
-import { formatOccasionDate } from "../../../utils/occasion-dates";
+import {
+  formatOccasionDate,
+  sanitizeExtractedOccasionDate,
+} from "../../../utils/occasion-dates";
 
 // Apply an interests delta from an update conversation to the current list:
 // keep what's there, drop the removed ones, append the newly-liked ones —
@@ -68,9 +73,18 @@ function reconcileInterests(
 async function persistUpdateChatOccasions(
   userId: string,
   recipientId: string,
-  occasions: { date: string; occasion_type: string }[]
+  occasions: { date: string | null; occasion_type: string }[]
 ): Promise<number> {
-  const candidates = occasions.filter((o) => o && o.date);
+  // AI dates are advisory: known types resolve through the holiday lookup,
+  // Jan-1 placeholders are rejected, and anything still undated is dropped
+  // (the update chat has no review screen where a date could be added).
+  const candidates = occasions
+    .filter((o) => o)
+    .map((o) => ({
+      occasion_type: o.occasion_type,
+      date: sanitizeExtractedOccasionDate(o.occasion_type, o.date),
+    }))
+    .filter((o): o is { occasion_type: string; date: string } => !!o.date);
   if (candidates.length === 0) return 0;
 
   const occasionKey = (date: string, type: string) =>
@@ -421,16 +435,20 @@ export default function RecipientEditPage() {
 
     // Turn a user-volunteered age ("he's 47") into a birth year so the synopsis
     // can derive age instead of the LLM guessing. Backfill respects a birthday
-    // we already know with a year (DEV-105).
+    // we already know with a year. With a known month/day the year lands on
+    // the birthday; with no date at all it goes to birth_year — never a
+    // fabricated Jan-1 birthday, which the cron would read as a real date.
     const extractedAge = (extracted as Record<string, unknown>).age;
     const ageNum =
       typeof extractedAge === "number" ? extractedAge : Number(extractedAge);
-    const backfilledBirthday = backfillBirthdayFromAge(
-      Number.isFinite(ageNum) ? ageNum : null,
-      updates.birthday ?? recipient.birthday
-    );
+    const age = Number.isFinite(ageNum) ? ageNum : null;
+    const knownBirthday = updates.birthday ?? recipient.birthday;
+    const backfilledBirthday = backfillBirthdayFromAge(age, knownBirthday);
     if (backfilledBirthday) {
       updates.birthday = backfilledBirthday;
+    } else if (!birthdayHasYear(knownBirthday)) {
+      const birthYear = birthYearFromAge(age);
+      if (birthYear) updates.birth_year = birthYear;
     }
 
     if (Object.keys(updates).length > 0) {

@@ -34,12 +34,13 @@ export function parseISODateLocal(isoDate: string): Date | null {
  * Display formatting for occasion dates: "July 7" (default) or "Jul 7".
  * Accepts a YYYY-MM-DD string or an already-parsed Date. An unparseable
  * string is returned as-is so a malformed value stays visible instead of
- * rendering "Invalid Date".
+ * rendering "Invalid Date"; null/undefined (an undated occasion) renders "".
  */
 export function formatOccasionDate(
-  date: string | Date,
+  date: string | Date | null | undefined,
   options: { month?: "long" | "short" } = {}
 ): string {
+  if (date == null) return "";
   const parsed = typeof date === "string" ? parseISODateLocal(date) : date;
   if (!parsed) return typeof date === "string" ? date : "";
   return parsed.toLocaleDateString("en-US", {
@@ -102,6 +103,28 @@ function nextOccurrenceOfMonthDay(month: number, day: number): string {
   return hasPassed(thisYear)
     ? toISO(new Date(today.getFullYear() + 1, month - 1, day))
     : toISO(thisYear);
+}
+
+/**
+ * Sanitize an AI-extracted occasion date at a save boundary. Extraction uses
+ * January 1 as a placeholder when it can't resolve a real date, so a Jan-1
+ * value for anything but New Year's (which resolves through the lookup first)
+ * is noise, not signal. Known types resolve through lookupOccasionDate
+ * regardless of the supplied date; unknown types keep a real ISO date (rolled
+ * to its next occurrence) and anything else becomes null. Never run this on
+ * user-typed dates — a person who deliberately dates a custom occasion Jan 1
+ * is authoritative.
+ */
+export function sanitizeExtractedOccasionDate(
+  occasionType: string,
+  date: string | null | undefined
+): string | null {
+  const lookedUp = lookupOccasionDate(occasionType);
+  if (lookedUp) return lookedUp;
+  const raw = date?.trim() ?? "";
+  if (!ISO_DATE_ONLY.test(raw)) return null;
+  if (raw.endsWith("-01-01")) return null;
+  return getNextOccurrence(raw);
 }
 
 /**
