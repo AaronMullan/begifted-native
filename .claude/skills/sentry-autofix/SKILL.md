@@ -30,7 +30,7 @@ Argument: `dry-run` (optional) — run every phase but **write nothing**: no Jir
 
 1. Unless dry-running interactively, confirm cwd is inside `~/development/autofix/`.
 2. Confirm both clones are on clean `main` matching `origin/main` (`git status --short` empty; the wrapper already reset them — verify, don't fix).
-3. Confirm `SENTRY_TOKEN_TWO` loads, `jira-api get '/rest/api/2/myself'` succeeds, and `gh auth status` succeeds.
+3. Confirm `SENTRY_TOKEN_TWO` loads, `jira-api get '/rest/api/2/myself'` succeeds, and `gh auth status` succeeds. The Sentry health probe is the **issues endpoint** (the Phase 1 list call) — the token is scoped narrowly and 403s on org-root/member endpoints even though issue read/write works.
 
 On failure: print `AUTOFIX ABORT: <reason>` and stop. The wrapper surfaces it via notification + log.
 
