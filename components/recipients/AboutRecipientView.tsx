@@ -333,7 +333,9 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
               occasionId: editingOccasion.id,
               recipientId: recipient.id,
               fields: {
-                date,
+                // An empty date means "leave it alone": the date column
+                // rejects "", and a NULL would vanish from the calendar.
+                ...(date ? { date } : {}),
                 is_annual: isAnnual,
                 ...(slug && slug !== editingOccasion.occasion_type
                   ? { occasion_type: slug }
