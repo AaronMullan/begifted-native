@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useRouter } from "expo-router";
 import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
@@ -7,7 +8,8 @@ import GradientBackground from "../../../components/GradientBackground";
 import ContactFileImport from "../../../components/ContactFileImport";
 import ContactPicker from "../../../components/ContactPicker";
 import ContactsAccessIntro from "../../../components/ContactsAccessIntro";
-import PeopleCtaTiles from "../../../components/contacts/PeopleCtaTiles";
+import AddMorePeopleButton from "../../../components/AddMorePeopleButton";
+import AddPeopleChooserModal from "../../../components/AddPeopleChooserModal";
 import PeopleRecipientCard from "../../../components/contacts/PeopleRecipientCard";
 import { useContactImportFlow } from "../../../hooks/use-contact-import-flow";
 import { useAuth } from "../../../hooks/use-auth";
@@ -43,7 +45,17 @@ export default function Contacts() {
     selectContact,
   } = useContactImportFlow();
 
-  const handleAddManually = () => router.push("/contacts/add");
+  const [chooserVisible, setChooserVisible] = useState(false);
+
+  const handleAddManually = () => {
+    setChooserVisible(false);
+    router.push("/contacts/add");
+  };
+
+  const handleImportPress = () => {
+    setChooserVisible(false);
+    openAccessIntro();
+  };
 
   if (!user) {
     return (
@@ -75,11 +87,7 @@ export default function Contacts() {
             </Text>
           </View>
 
-          <PeopleCtaTiles
-            onImportPress={openAccessIntro}
-            onAddManuallyPress={handleAddManually}
-            importDisabled={contactsLoading}
-          />
+          <AddMorePeopleButton onPress={() => setChooserVisible(true)} />
 
           {Platform.OS === "web" && (
             <ContactFileImport onImport={importFromFile} />
@@ -110,6 +118,13 @@ export default function Contacts() {
           )}
         </View>
 
+        <AddPeopleChooserModal
+          visible={chooserVisible}
+          onClose={() => setChooserVisible(false)}
+          onImportPress={handleImportPress}
+          onAddManuallyPress={handleAddManually}
+          importDisabled={contactsLoading}
+        />
         <ContactsAccessIntro
           visible={accessIntroVisible}
           onContinue={continueWithAccess}
@@ -177,7 +192,10 @@ const styles = StyleSheet.create({
     color: Colors.darks.black,
     opacity: 0.7,
   },
+  // Figma 4641:4554: 44pt from the CTA to the first row (content gap 20 +
+  // 24), 22pt between rows.
   list: {
-    gap: 15,
+    marginTop: 24,
+    gap: 22,
   },
 });

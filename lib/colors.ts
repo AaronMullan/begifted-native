@@ -20,6 +20,9 @@ export const Colors = {
     rose: "#AD4B5F",
     beigeLight: "#F6F4EF",
     pastZone: "#99ADB4",
+    // Destructive text (e.g. "Remove Person"). No Figma variable is bound to
+    // it; pixel-sampled from the Person Overflow Menu frame (4840:5643).
+    destructiveRed: "#B23333",
   },
 
   // Linear gradient stops used by the "BeGifted light gradient" frame

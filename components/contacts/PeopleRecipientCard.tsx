@@ -40,11 +40,6 @@ const PeopleRecipientCard: React.FC<PeopleRecipientCardProps> = ({
     router.push(`/contacts/${recipient.id}?tab=details`);
   };
 
-  const handleViewGifts = () => {
-    closeMenu();
-    router.push(`/contacts/${recipient.id}?tab=gifts`);
-  };
-
   const handleDeletePress = () => {
     closeMenu();
     setConfirmVisible(true);
@@ -79,13 +74,13 @@ const PeopleRecipientCard: React.FC<PeopleRecipientCardProps> = ({
               {upcoming
                 ? `${formatOccasionType(
                     upcoming.occasionType
-                  )} · ${formatOccasionDate(upcoming.date)}`
+                  )}: ${formatOccasionDate(upcoming.date)}`
                 : "No upcoming moments yet"}
             </Text>
             {upcoming && (
               <MaterialIcons
                 name="chevron-right"
-                size={10}
+                size={16}
                 color={Colors.brand.gold}
               />
             )}
@@ -109,21 +104,21 @@ const PeopleRecipientCard: React.FC<PeopleRecipientCardProps> = ({
             <MaterialIcons
               name="more-horiz"
               size={18}
-              color={Colors.brand.lightTeal}
+              color={Colors.brand.mediumTeal}
             />
           </Pressable>
         }
+        contentStyle={styles.menuContent}
       >
-        <Menu.Item onPress={handleEdit} title="Edit" leadingIcon="pencil" />
         <Menu.Item
-          onPress={handleViewGifts}
-          title="View gift ideas"
-          leadingIcon="gift-outline"
+          onPress={handleEdit}
+          title="Modify Details"
+          titleStyle={styles.menuItemTitle}
         />
         <Menu.Item
           onPress={handleDeletePress}
-          title="Delete"
-          leadingIcon="trash-can-outline"
+          title="Remove Person"
+          titleStyle={styles.menuItemDanger}
         />
       </Menu>
       <Portal>
@@ -132,7 +127,7 @@ const PeopleRecipientCard: React.FC<PeopleRecipientCardProps> = ({
           onDismiss={() => setConfirmVisible(false)}
           style={styles.dialog}
         >
-          <Dialog.Title>Delete {recipient.name}?</Dialog.Title>
+          <Dialog.Title>Remove {recipient.name}?</Dialog.Title>
           <Dialog.Content>
             <Text>
               This will permanently remove {recipient.name} and their gift
@@ -146,7 +141,7 @@ const PeopleRecipientCard: React.FC<PeopleRecipientCardProps> = ({
               loading={deleteRecipient.isPending}
               disabled={deleteRecipient.isPending}
             >
-              Delete
+              Remove
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -187,9 +182,9 @@ function getInitials(name: string): string {
   return `${first}${last}`.toUpperCase();
 }
 
-// Spec: Figma "People module" (359x45, radius 12, white bg).
-// 28px avatar at left, name + soonest upcoming occasion stacked, overflow dot
-// at right.
+// Spec: Figma "Person List Row" (4641:4550 — 359x62, radius 12, white bg).
+// 30px lightTeal avatar at left, name (h2) + occasion line (largeCta, gold)
+// stacked, mediumTeal overflow dots at right.
 const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
@@ -197,48 +192,48 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: Radii.md,
     paddingVertical: 8,
-    paddingHorizontal: 8,
-    minHeight: 45,
+    paddingLeft: 7,
+    paddingRight: 12,
+    minHeight: 62,
   },
   body: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 7,
+    gap: 14,
   },
   bodyPressed: {
     opacity: 0.7,
   },
   avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#D9D9D9",
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: Colors.brand.lightTeal,
   },
   avatarFallback: {
     alignItems: "center",
     justifyContent: "center",
   },
   avatarInitials: {
-    ...Typography.smallCta,
-    color: Colors.brand.darkTeal,
+    ...Typography.avatarInitials,
+    color: Colors.white,
   },
   textColumn: {
     flex: 1,
     justifyContent: "center",
-    gap: 4,
   },
   name: {
-    ...Typography.h3,
+    ...Typography.h2,
     color: Colors.brand.darkTeal,
   },
   statusRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 2,
+    gap: 20,
   },
   status: {
-    ...Typography.smallCta,
+    ...Typography.largeCta,
     color: Colors.brand.gold,
     flexShrink: 1,
   },
@@ -248,6 +243,18 @@ const styles = StyleSheet.create({
   },
   overflowPressed: {
     opacity: 0.5,
+  },
+  menuContent: {
+    backgroundColor: Colors.white,
+    borderRadius: Radii.md,
+  },
+  menuItemTitle: {
+    ...Typography.largeCta,
+    color: Colors.brand.darkTeal,
+  },
+  menuItemDanger: {
+    ...Typography.largeCta,
+    color: Colors.brand.destructiveRed,
   },
   dialog: {
     borderRadius: 18,
