@@ -61,6 +61,8 @@ For each unresolved issue, in order (most events first), assign exactly one buck
 gh pr list --search "<SHORT-ID>" --state all   # in both repos
 ```
 
+Jira `text ~` search is tokenized — a short-ID query matches every ticket mentioning any `REACT-NATIVE-*` ID. A hit only counts as tracked if its summary/description actually concerns this error; confirm by reading, never by hit-count.
+
 - **already-tracked** — an open ticket or PR covers it. Skip; list it in the report with the existing key.
 - **fixable** — ALL of: (a) confident code-level root cause in `begifted-native` or `be-gifted`, confirmed by reading the actual code, not just the stack; (b) the fix is narrow and mechanical (guard, validation, off-by-one, bad URL handling — the kind of change that fits in one small PR); (c) requires no product/design judgment, no schema/migration/DDL, no prompt changes, no dependency upgrades; (d) not internal to a library we don't own and not OS/network-transient.
 - **ticket-only** — a real, recurring bug that fails the fixable rubric or lands over the PR cap. Gets a ticket, no PR.
