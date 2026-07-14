@@ -53,6 +53,14 @@ export default function Index() {
     }
 
     async function routeUnauthenticated() {
+      // The intro slider is touch-only (swipe paging, CTA on the last slide),
+      // so on desktop web it strands signed-out users with no path to sign-in.
+      // Web skips the intro gate and goes straight to <Auth />.
+      if (Platform.OS === "web") {
+        setLoading(false);
+        return;
+      }
+
       // First-launch users see the pre-auth intro slider; once the gate is set
       // (intro seen, or a prior session existed) we fall through to <Auth />.
       const seenIntro = await hasSeenIntro();
