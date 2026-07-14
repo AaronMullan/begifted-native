@@ -12,6 +12,7 @@ import {
 import {
   lookupOccasionDate,
   getNextOccurrence,
+  getNextAnnualOccurrence,
 } from "../../../utils/occasion-dates";
 import { OccasionItem } from "./OccasionItem";
 import { OccasionEditor } from "./OccasionEditor";
@@ -93,9 +94,11 @@ export function OccasionsSelectionView({
       }
       // Otherwise drop it — we can't verify the occasion
     }
-    // Add birthday from the verified extractedData field (not AI occasions)
+    // Add birthday from the verified extractedData field (not AI occasions).
+    // Annual: ignore any year the extraction supplied — a spurious future
+    // year would otherwise be stored verbatim and push the occasion a year out.
     if (extractedData.birthday) {
-      const bdayDate = getNextOccurrence(extractedData.birthday);
+      const bdayDate = getNextAnnualOccurrence(extractedData.birthday);
       fromConversation.unshift({
         date: bdayDate,
         occasion_type: "birthday",

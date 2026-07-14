@@ -73,6 +73,29 @@ export function getNextOccurrence(isoDateStr: string): string {
   return nextOccurrenceOfMonthDay(m, d);
 }
 
+/**
+ * Next occurrence of an annual occasion's month/day, ignoring any year in the
+ * input. For annual occasions (birthdays, anniversaries) the stored year
+ * carries no signal, and AI-extracted dates can arrive with a spurious future
+ * year — getNextOccurrence would keep "2027-08-18" verbatim even when the next
+ * real occurrence is 2026-08-18. Accepts YYYY-MM-DD or --MM-DD; anything else
+ * is returned unchanged.
+ */
+export function getNextAnnualOccurrence(isoDateStr: string): string {
+  const noYear = MONTH_DAY_NO_YEAR.exec(isoDateStr);
+  if (noYear) {
+    return nextOccurrenceOfMonthDay(Number(noYear[1]), Number(noYear[2]));
+  }
+  if (!ISO_DATE_ONLY.test(isoDateStr)) {
+    return isoDateStr;
+  }
+  const [y, m, d] = isoDateStr.split("-").map(Number);
+  if (Number.isNaN(new Date(y, m - 1, d).getTime())) {
+    return isoDateStr;
+  }
+  return nextOccurrenceOfMonthDay(m, d);
+}
+
 function nextOccurrenceOfMonthDay(month: number, day: number): string {
   const today = new Date();
   const thisYear = new Date(today.getFullYear(), month - 1, day);
