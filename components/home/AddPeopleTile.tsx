@@ -1,13 +1,10 @@
 import { useState } from "react";
-import { Modal, Platform, Pressable, StyleSheet, View } from "react-native";
-import { Text } from "react-native-paper";
-import { MaterialIcons } from "@expo/vector-icons";
+import { Platform, View } from "react-native";
 import { useRouter } from "expo-router";
-import { Colors } from "../../lib/colors";
-import { Radii, Typography } from "../../lib/typography";
+import AddMorePeopleButton from "../AddMorePeopleButton";
+import AddPeopleChooserModal from "../AddPeopleChooserModal";
 import ContactPicker from "../ContactPicker";
 import ContactsAccessIntro from "../ContactsAccessIntro";
-import PeopleCtaTiles from "../contacts/PeopleCtaTiles";
 import { useContactImportFlow } from "../../hooks/use-contact-import-flow";
 
 export default function AddPeopleTile() {
@@ -48,37 +45,15 @@ export default function AddPeopleTile() {
 
   return (
     <View>
-      <Pressable
-        onPress={handlePress}
-        accessibilityRole="button"
-        accessibilityLabel="Add more people"
-        style={styles.row}
-      >
-        <MaterialIcons name="add" size={16} color={Colors.brand.darkTeal} />
-        <Text style={styles.label}>Add More People</Text>
-        <MaterialIcons name="chevron-right" size={14} color={Colors.white} />
-      </Pressable>
+      <AddMorePeopleButton onPress={handlePress} />
 
-      <Modal
+      <AddPeopleChooserModal
         visible={chooserVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setChooserVisible(false)}
-      >
-        <Pressable
-          style={styles.backdrop}
-          onPress={() => setChooserVisible(false)}
-        >
-          <Pressable style={styles.modalCard} onPress={() => {}}>
-            <PeopleCtaTiles
-              onImportPress={handleImportPress}
-              onAddManuallyPress={goToAddManually}
-              importDisabled={contactsLoading}
-              borderColor={Colors.blues.dark}
-            />
-          </Pressable>
-        </Pressable>
-      </Modal>
+        onClose={() => setChooserVisible(false)}
+        onImportPress={handleImportPress}
+        onAddManuallyPress={goToAddManually}
+        importDisabled={contactsLoading}
+      />
 
       <ContactsAccessIntro
         visible={accessIntroVisible}
@@ -95,35 +70,3 @@ export default function AddPeopleTile() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 44,
-    borderRadius: Radii.md,
-    backgroundColor: Colors.brand.mediumTeal,
-    paddingHorizontal: 16,
-    gap: 6,
-  },
-  label: {
-    ...Typography.largeCta,
-    color: Colors.white,
-  },
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 24,
-  },
-  modalCard: {
-    width: "100%",
-    maxWidth: 420,
-    borderRadius: Radii.md,
-    backgroundColor: Colors.white,
-    paddingVertical: 32,
-    paddingHorizontal: 24,
-  },
-});
