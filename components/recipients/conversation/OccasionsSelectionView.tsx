@@ -41,6 +41,7 @@ export function OccasionsSelectionView({
   const [editingOccasionIndex, setEditingOccasionIndex] = useState<
     number | null
   >(null);
+  const [addingCustom, setAddingCustom] = useState(false);
 
   // Merge conversation-extracted occasions with interest-based AI
   // recommendations. Recomputed during render (not in an effect) via stored
@@ -134,6 +135,21 @@ export function OccasionsSelectionView({
   const availableSuggestions = (recommendations?.additionalSuggestions ?? [])
     .map((name) => ({ name, slug: slugifyOccasionName(name) }))
     .filter(({ slug }) => slug.length > 0 && !existingTypes.has(slug));
+
+  const handleSaveCustomOccasion = (
+    date: string,
+    _isAnnual: boolean,
+    name?: string
+  ) => {
+    const slug = name ? slugifyOccasionName(name) : "";
+    if (!slug || selectedOccasions.some((o) => o.occasion_type === slug)) {
+      return;
+    }
+    setSelectedOccasions((prev) => [
+      ...prev,
+      { date, occasion_type: slug, enabled: true },
+    ]);
+  };
 
   const handleAddSuggestion = (slug: string) => {
     if (selectedOccasions.some((o) => o.occasion_type === slug)) return;
@@ -232,8 +248,8 @@ export function OccasionsSelectionView({
               No occasions found
             </Text>
             <Text variant="bodyMedium" style={styles.emptySubtext}>
-              Occasions will be added from birthday and holidays you mentioned,
-              or add your own after continuing.
+              Occasions will be added from birthday and holidays you mentioned —
+              or tap &quot;Add your own&quot; below.
             </Text>
           </View>
         ) : (
@@ -259,7 +275,7 @@ export function OccasionsSelectionView({
           </>
         )}
 
-        {!isLoadingRecommendations && availableSuggestions.length > 0 && (
+        {!isLoadingRecommendations && (
           <View style={styles.suggestionsSection}>
             <Text variant="titleSmall" style={styles.suggestionsTitle}>
               Also consider
@@ -279,6 +295,14 @@ export function OccasionsSelectionView({
                   {name}
                 </Chip>
               ))}
+              <Chip
+                mode="outlined"
+                icon="plus"
+                onPress={() => setAddingCustom(true)}
+                style={styles.suggestionChip}
+              >
+                Add your own
+              </Chip>
             </View>
           </View>
         )}
@@ -300,6 +324,17 @@ export function OccasionsSelectionView({
           onClose={handleCloseEditor}
           onSave={handleSaveOccasionDate}
           showRecurrence={false}
+        />
+      )}
+
+      {addingCustom && (
+        <OccasionEditor
+          occasion={{ date: "", occasion_type: "" }}
+          visible={addingCustom}
+          onClose={() => setAddingCustom(false)}
+          onSave={handleSaveCustomOccasion}
+          showRecurrence={false}
+          editableName
         />
       )}
     </View>
