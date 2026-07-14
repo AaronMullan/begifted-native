@@ -145,13 +145,13 @@ export function ManualDataEntry({
                 label="Birthday"
                 value={birthday}
                 onChangeText={setBirthday}
-                placeholder="YYYY-MM-DD or MM-DD"
+                placeholder="MM-DD-YYYY or MM-DD"
                 error={isInvalidBirthdayInput(birthday)}
                 style={styles.input}
               />
               {isInvalidBirthdayInput(birthday) && (
                 <HelperText type="error" visible>
-                  Use YYYY-MM-DD (e.g. 1990-12-07) or MM-DD (e.g. 12-07) if the
+                  Use MM-DD-YYYY (e.g. 12-07-1990) or MM-DD (e.g. 12-07) if the
                   year is unknown.
                 </HelperText>
               )}

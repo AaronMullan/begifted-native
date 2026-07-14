@@ -91,6 +91,17 @@ describe("normalizeBirthday", () => {
     expect(normalizeBirthday("garbage")).toBeNull();
     expect(normalizeBirthday(undefined)).toBeNull();
   });
+
+  it("accepts US-customary month-day-year entry", () => {
+    expect(normalizeBirthday("12-07-1990")).toBe("1990-12-07");
+    expect(normalizeBirthday("8/18/1978")).toBe("1978-08-18");
+    expect(normalizeBirthday("3-5-2001")).toBe("2001-03-05");
+    expect(normalizeBirthday("12/7")).toBe("--12-07");
+  });
+
+  it("still accepts canonical ISO input", () => {
+    expect(normalizeBirthday("1990-12-07")).toBe("1990-12-07");
+  });
 });
 
 describe("isInvalidBirthdayInput", () => {

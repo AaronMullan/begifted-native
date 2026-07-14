@@ -36,7 +36,19 @@ interface OccasionEditorProps {
 }
 
 const FULL_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+// One-time dates are ENTERED month-day-year (US-customary) but STORED as ISO.
+const MDY_RE = /^\d{2}-\d{2}-\d{4}$/;
 const MONTH_DAY_RE = /^\d{2}-\d{2}$/;
+
+function mdyToISO(mdy: string): string {
+  const [month, day, year] = mdy.split("-");
+  return `${year}-${month}-${day}`;
+}
+
+function isoToMDY(iso: string): string {
+  const [year, month, day] = iso.split("-");
+  return `${month}-${day}-${year}`;
+}
 
 function formatOccasionType(type: string): string {
   const formatted = type.charAt(0).toUpperCase() + type.slice(1);
@@ -91,6 +103,8 @@ export function OccasionEditor({
       } else if (annual && FULL_DATE_RE.test(hasRealDate)) {
         // Annual occasions ignore the year — show just month-day.
         setDateInput(hasRealDate.slice(5));
+      } else if (FULL_DATE_RE.test(hasRealDate)) {
+        setDateInput(isoToMDY(hasRealDate));
       } else {
         setDateInput(hasRealDate);
       }
@@ -106,12 +120,12 @@ export function OccasionEditor({
       const d = digits.slice(0, 4);
       formatted = d.length > 2 ? `${d.slice(0, 2)}-${d.slice(2)}` : d;
     } else {
-      // YYYY-MM-DD
+      // MM-DD-YYYY
       const d = digits.slice(0, 8);
-      if (d.length > 6) {
-        formatted = `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6)}`;
-      } else if (d.length > 4) {
-        formatted = `${d.slice(0, 4)}-${d.slice(4)}`;
+      if (d.length > 4) {
+        formatted = `${d.slice(0, 2)}-${d.slice(2, 4)}-${d.slice(4)}`;
+      } else if (d.length > 2) {
+        formatted = `${d.slice(0, 2)}-${d.slice(2)}`;
       } else {
         formatted = d;
       }
@@ -126,11 +140,11 @@ export function OccasionEditor({
     setErrorMessage("");
 
     // Convert the current input so the user doesn't lose their entry.
-    if (nextAnnual && FULL_DATE_RE.test(dateInput.trim())) {
-      setDateInput(dateInput.trim().slice(5)); // YYYY-MM-DD -> MM-DD
+    if (nextAnnual && MDY_RE.test(dateInput.trim())) {
+      setDateInput(dateInput.trim().slice(0, 5)); // MM-DD-YYYY -> MM-DD
     } else if (!nextAnnual && MONTH_DAY_RE.test(dateInput.trim())) {
       // MM-DD -> next occurrence as a full editable date
-      setDateInput(getNextOccurrence(`--${dateInput.trim()}`));
+      setDateInput(isoToMDY(getNextOccurrence(`--${dateInput.trim()}`)));
     } else if (nextAnnual && !MONTH_DAY_RE.test(dateInput.trim())) {
       setDateInput("");
     }
@@ -169,15 +183,15 @@ export function OccasionEditor({
       return;
     }
 
-    if (FULL_DATE_RE.test(trimmed)) {
-      const [year, month, day] = trimmed.split("-").map(Number);
+    if (MDY_RE.test(trimmed)) {
+      const [month, day, year] = trimmed.split("-").map(Number);
       if (year >= 1900 && isValidMonthDay(month, day)) {
-        onSave(trimmed, false, name);
+        onSave(mdyToISO(trimmed), false, name);
         onClose();
         return;
       }
     }
-    setErrorMessage("Please enter a full date in YYYY-MM-DD format");
+    setErrorMessage("Please enter a full date in MM-DD-YYYY format");
   };
 
   return (
@@ -249,7 +263,7 @@ export function OccasionEditor({
                     label="Date"
                     value={dateInput}
                     onChangeText={handleDateChange}
-                    placeholder={isAnnual ? "MM-DD" : "YYYY-MM-DD"}
+                    placeholder={isAnnual ? "MM-DD" : "MM-DD-YYYY"}
                     keyboardType="number-pad"
                     maxLength={isAnnual ? 5 : 10}
                     style={styles.input}
@@ -257,7 +271,7 @@ export function OccasionEditor({
                   <Text variant="bodySmall" style={styles.helperText}>
                     {isAnnual
                       ? "Repeats every year — enter the month and day (e.g., 12-25)"
-                      : "Enter the full date in YYYY-MM-DD format (e.g., 2026-12-25)"}
+                      : "Enter the full date in MM-DD-YYYY format (e.g., 12-25-2026)"}
                   </Text>
                 </View>
               </View>

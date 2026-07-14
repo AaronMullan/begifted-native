@@ -11,7 +11,9 @@
  */
 const FULL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const MONTH_DAY_NO_YEAR = /^--(\d{2})-(\d{2})$/;
-const MONTH_DAY_LOOSE = /^(\d{1,2})-(\d{1,2})$/;
+const MONTH_DAY_LOOSE = /^(\d{1,2})[-/](\d{1,2})$/;
+// US-customary month-day-year entry (08-18-1990 or 8/18/1990).
+const MDY_DATE = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/;
 
 // Customary "Month Day, Year" / "Month Day" forms — both full and 3-letter
 // month names. This is the shape formatBirthdayDisplay() emits, so seeding an
@@ -110,6 +112,11 @@ export function parseBirthdayParts(
   const full = FULL_DATE.exec(trimmed);
   if (full) {
     return partsFromNumbers(Number(full[1]), Number(full[2]), Number(full[3]));
+  }
+
+  const mdy = MDY_DATE.exec(trimmed);
+  if (mdy) {
+    return partsFromNumbers(Number(mdy[3]), Number(mdy[1]), Number(mdy[2]));
   }
 
   const md = MONTH_DAY_NO_YEAR.exec(trimmed) ?? MONTH_DAY_LOOSE.exec(trimmed);
