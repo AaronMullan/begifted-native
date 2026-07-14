@@ -63,6 +63,38 @@ function isValidMonthDay(month: number, day: number): boolean {
   return probe.getMonth() === month - 1 && probe.getDate() === day;
 }
 
+type SeededFields = {
+  name: string;
+  date: string;
+  annual: boolean;
+};
+
+function seedFields(
+  occasion: OccasionEditorProps["occasion"],
+  visible: boolean,
+  showRecurrence: boolean
+): SeededFields {
+  if (!visible || !occasion) return { name: "", date: "", annual: true };
+
+  const annual = showRecurrence ? (occasion.is_annual ?? true) : false;
+  const hasRealDate =
+    occasion.date && !occasion.date.includes("01-01") ? occasion.date : "";
+
+  let date: string;
+  if (!hasRealDate) {
+    date = "";
+  } else if (annual && FULL_DATE_RE.test(hasRealDate)) {
+    // Annual occasions ignore the year — show just month-day.
+    date = hasRealDate.slice(5);
+  } else if (FULL_DATE_RE.test(hasRealDate)) {
+    date = isoToMDY(hasRealDate);
+  } else {
+    date = hasRealDate;
+  }
+
+  return { name: formatOccasionType(occasion.occasion_type), date, annual };
+}
+
 export function OccasionEditor({
   occasion,
   visible,
@@ -71,13 +103,22 @@ export function OccasionEditor({
   showRecurrence = true,
   editableName = false,
 }: OccasionEditorProps) {
-  const [dateInput, setDateInput] = useState("");
-  const [nameInput, setNameInput] = useState("");
-  const [isAnnual, setIsAnnual] = useState(true);
+  // Seed from props at mount too, not just on transitions: callers that
+  // conditionally mount the editor (e.g. AboutRecipientView) never flip
+  // `visible`, so a transition-only seed would leave the fields empty.
+  const [dateInput, setDateInput] = useState(
+    () => seedFields(occasion, visible, showRecurrence).date
+  );
+  const [nameInput, setNameInput] = useState(
+    () => seedFields(occasion, visible, showRecurrence).name
+  );
+  const [isAnnual, setIsAnnual] = useState(
+    () => seedFields(occasion, visible, showRecurrence).annual
+  );
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Seed the editor when it opens or its inputs change. Done during render (not
-  // in an effect) via stored previous values.
+  // Re-seed when the editor opens or its inputs change. Done during render
+  // (not in an effect) via stored previous values.
   const [prevVisible, setPrevVisible] = useState(visible);
   const [prevOccasion, setPrevOccasion] = useState(occasion);
   const [prevShowRecurrence, setPrevShowRecurrence] = useState(showRecurrence);
@@ -90,24 +131,11 @@ export function OccasionEditor({
     setPrevOccasion(occasion);
     setPrevShowRecurrence(showRecurrence);
     if (visible && occasion) {
+      const seeded = seedFields(occasion, visible, showRecurrence);
       setErrorMessage("");
-      setNameInput(formatOccasionType(occasion.occasion_type));
-      const annual = showRecurrence ? (occasion.is_annual ?? true) : false;
-      setIsAnnual(annual);
-
-      const hasRealDate =
-        occasion.date && !occasion.date.includes("01-01") ? occasion.date : "";
-
-      if (!hasRealDate) {
-        setDateInput("");
-      } else if (annual && FULL_DATE_RE.test(hasRealDate)) {
-        // Annual occasions ignore the year — show just month-day.
-        setDateInput(hasRealDate.slice(5));
-      } else if (FULL_DATE_RE.test(hasRealDate)) {
-        setDateInput(isoToMDY(hasRealDate));
-      } else {
-        setDateInput(hasRealDate);
-      }
+      setNameInput(seeded.name);
+      setIsAnnual(seeded.annual);
+      setDateInput(seeded.date);
     }
   }
 
