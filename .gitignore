@@ -62,3 +62,7 @@ supabase/.temp/
 
 # Scratch dir for design-parity renders/screenshots (not committed)
 .design-audit/
+
+# sentry-autofix wrapper's npm-ci cache marker in the bot clones; must be
+# ignored or the wrapper's own `git clean -fd` deletes it every run
+.autofix-lockhash
