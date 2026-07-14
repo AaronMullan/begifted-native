@@ -1,0 +1,84 @@
+#!/bin/bash
+# Headless entry point for the /sentry-autofix skill, invoked by launchd
+# (com.begifted.sentry-autofix) on weekday mornings. Prepares dedicated bot
+# clones so the run can never touch the human working checkouts, then runs
+# claude -p against the begifted-native clone.
+set -euo pipefail
+
+MAIN_CHECKOUT="$HOME/development/begifted-native"
+AUTOFIX_ROOT="$HOME/development/autofix"
+LOG_DIR="$HOME/Library/Logs/begifted-autofix"
+LOCK_DIR="$LOG_DIR/.lock"
+CLAUDE_BIN="$HOME/.local/bin/claude"
+RUN_TIMEOUT_SECS=3600
+REPOS=(begifted-native be-gifted)
+
+mkdir -p "$LOG_DIR" "$AUTOFIX_ROOT"
+LOG="$LOG_DIR/$(date +%Y-%m-%d).log"
+exec >>"$LOG" 2>&1
+echo "=== autofix run $(date '+%Y-%m-%d %H:%M:%S') ==="
+
+notify() {
+  /usr/bin/osascript -e "display notification \"$1\" with title \"Sentry autofix\"" || true
+}
+
+# mkdir is atomic: a second run while one is in flight skips instead of
+# stacking git resets and claude sessions on the same clones.
+if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+  echo "another run holds the lock at $LOCK_DIR — skipping"
+  exit 0
+fi
+trap 'rmdir "$LOCK_DIR"' EXIT
+
+fail() {
+  echo "FAILED: $1"
+  notify "failed — see $(basename "$LOG")"
+  exit 1
+}
+
+for repo in "${REPOS[@]}"; do
+  clone="$AUTOFIX_ROOT/$repo"
+  if [ ! -d "$clone/.git" ]; then
+    echo "cloning $repo"
+    git clone "git@github.com:AaronMullan/$repo.git" "$clone" || fail "clone $repo"
+  fi
+  git -C "$clone" fetch origin || fail "fetch $repo"
+  git -C "$clone" checkout main -q || fail "checkout main $repo"
+  git -C "$clone" reset --hard origin/main -q || fail "reset $repo"
+  git -C "$clone" clean -fd -q || fail "clean $repo"
+
+  # npm ci only when the lockfile changed — installs dominate run time otherwise.
+  lockhash=$(shasum "$clone/package-lock.json" | cut -d' ' -f1)
+  hashfile="$clone/.autofix-lockhash"
+  if [ ! -f "$hashfile" ] || [ "$(cat "$hashfile")" != "$lockhash" ]; then
+    echo "npm ci in $repo (lockfile changed)"
+    (cd "$clone" && npm ci --no-audit --no-fund) || fail "npm ci $repo"
+    echo "$lockhash" >"$hashfile"
+  fi
+done
+
+# The Sentry token lives only in the human checkout's untracked .env.local.
+cp "$MAIN_CHECKOUT/.env.local" "$AUTOFIX_ROOT/begifted-native/.env.local" || fail "copy .env.local"
+
+# macOS has no `timeout`; watchdog-kill the run if it wedges past the budget.
+cd "$AUTOFIX_ROOT/begifted-native"
+"$CLAUDE_BIN" -p "/sentry-autofix" --dangerously-skip-permissions &
+CLAUDE_PID=$!
+(
+  sleep "$RUN_TIMEOUT_SECS"
+  echo "TIMEOUT after ${RUN_TIMEOUT_SECS}s — killing claude"
+  kill "$CLAUDE_PID" 2>/dev/null
+) &
+WATCHDOG_PID=$!
+STATUS=0
+wait "$CLAUDE_PID" || STATUS=$?
+kill "$WATCHDOG_PID" 2>/dev/null || true
+
+find "$LOG_DIR" -name '*.log' -mtime +30 -delete || true
+
+if [ "$STATUS" -ne 0 ]; then
+  fail "claude exited $STATUS"
+fi
+
+notify "run complete — details in $(basename "$LOG")"
+echo "=== run complete $(date '+%H:%M:%S') ==="
