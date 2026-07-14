@@ -19,6 +19,72 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-07-13 — Build 54 (TestFlight)
+
+### App
+
+- Creating an account now requires checking "I agree to the Terms of Service and acknowledge the Privacy Policy" — both documents open from the signup screen, and your acceptance is recorded. (DEV-143)
+- Settings has a new "Legal & Privacy" entry that opens Terms of Service, Privacy Policy, and the Apple App License in your browser. (DEV-144)
+- Adding a person now shows a light reminder to only add information you have the right to provide. (DEV-146)
+- The add-a-person screens note that BeGifted is for adults, and child-recipient details should only be added by a parent/guardian or someone with authority. (DEV-147)
+- A short in-app explainer now appears before the system asks to allow notifications (with a "Not now" option), and the contacts-access explainer clarifies that only the people you pick get imported. (DEV-148)
+- The avatar in the top-right header now shows your profile photo when you've added one (Settings → Account Info); initials remain the fallback. (DEV-169)
+- Added quick beta check-in cards that appear once at three moments — after onboarding, after adding your first person, and after reviewing your first set of gift ideas — asking a couple of tap-to-answer questions about how it felt (DEV-191).
+- Saving or deleting people, occasions, and profile changes now shows a brief message at the bottom of the screen when it fails (previously some failures were silent), including a clearer note when you're offline. (DEV-222)
+- No visible change: added an automated test suite covering birthday parsing and occasion-date math (the logic behind calendar dates, reminders, and holiday scheduling), so regressions there get caught before release. (DEV-223)
+- Under-the-hood platform upgrade (Expo SDK 57 / React Native 0.86) with refreshed crash-reporting and data libraries. Requires the new dev build; watch for anything that looks or behaves differently anywhere in the app and report it. (DEV-225)
+- Cleanup pass across settings, FAQ, onboarding, and the chat screens: buttons, chips, and list rows now use the app's standard components, and saving notification settings shows the standard bottom-of-screen message on failure instead of a browser-style popup. No visual redesign — screens should look the same. (DEV-226)
+- Internal cleanup only — nothing visible changes. Dead code and an unused dependency were removed, slightly shrinking the app (DEV-227).
+- Admin-only screens now check access once at the door instead of on every screen. Non-admins who somehow land on any admin page see a single clean "Access Denied" message; admins see no difference (DEV-228).
+- Internal restructuring of the admin Prompt Playground — no visible changes; the screen should look and behave exactly as before (DEV-229).
+- Internal cleanup of how dates like "July 7" are formatted across Home, Moments, People, and person pages — every date should look exactly the same as before (DEV-231).
+- No visible change: internal reorganization of the data layer and the recipient About screen to keep files smaller and easier to work on. (DEV-233)
+- Contact detail screen internals reworked for reliability: deleting a contact now asks via an in-app styled dialog, the "Update what we know" and "Add Occasion" chats now always greet you by the contact's name (previously the chat could open blank), and stale data after profile updates should be rarer. (DEV-235)
+- The "Report a Bug" button at the bottom of the home screen is gone — use the bug icon in the top-right header (or Settings → Report a Bug) instead. (DEV-248)
+- Older screens (Settings, People details, FAQ, onboarding, gift lists) now use the new brand fonts — Poltawski Nowy headlines and DM Sans body text — instead of the system font, and all text sizes snap to the design-system type scale. The People-card status line also returns to a readable size (it was rendering at 8pt). (DEV-249)
+- Adding an occasion from the calendar no longer traps you behind the keyboard — the Save and Cancel buttons stay visible while typing, and tapping anywhere outside the text field dismisses the keyboard. (DEV-250)
+- Home screen matches the refreshed design: occasion cards now carry a "..." menu (view gift ideas / edit person), the Next Up card sits flush left with a wide preview of the next card, and section spacing is tighter (DEV-251)
+- New users with nobody added yet now see a proper welcome screen on Home — "Welcome to BeGifted" with Import From Contacts / Add People Manually cards and a photo collage — instead of a bare "No upcoming occasions yet." (DEV-252)
+- Settings is now a clean text list (Your Info, Your Gifting Style, Notifications, Billing & Subscription, FAQ, Contact Us, Sign Out) instead of the old cards; sub-screens follow the new names (DEV-253)
+- Past Gift Recommendations moved from the bar pinned at the bottom of the gift ideas screen to an inline section after the gift cards — tap the teal band to expand past gifts in place; the "About" link under the title is now gold and product titles stay on one line (DEV-254)
+- Home screen "Next up" cards now come in three colors (gold, maroon, light blue) assigned per occasion, instead of always alternating teal and gold. Each occasion keeps its color between visits. (DEV-255)
+- Next Up cards on Home no longer show all in one color — neighboring cards always get different brand colors (DEV-256)
+- Under-the-hood cleanup of how several screens track state (splash animation, toasts, gifting/notification/profile settings, the recipient add flow, occasion editors, and gift cards). No visible change is intended — watch for any odd re-seeding of form fields, flicker, or values resetting while you type, and report it. (DEV-257)
+- Stopped a React Native internal warning from popping a full-screen red error box when tapping into fields on scrollable screens in dev/TestFlight builds. (DEV-258)
+- The FAQ screen has a refreshed look matching the new design — a clean divided list with the brand serif heading; tap any question to expand its answer. (DEV-259)
+- Settings is closer to the finalized design: the menu now reads "Account Info" and "Gifting Style", Sign Out asks you to confirm first, the Billing screen shows your plan and pricing, and Contact Us has a real message form. (DEV-259)
+- Settings pages now match the finalized v4 design: Notifications is three toggles (Push, Gift & Occasion Reminders with a 1/2/3 "How Many Reminders?" picker, Product Updates) that save instantly; Billing shows the "Coming Soon" BeGifted Plus billboard; Contact Us gets the new field styling with a centered teal Send button; the Settings menu row is renamed "About You" and the separate Report a Bug row is gone — use Contact Us instead. (DEV-259)
+- You can now delete your account from Account Info — a confirmation dialog explains what gets removed before anything is deleted, and confirming permanently erases your account and all your saved data (DEV-260).
+- Account Info edits (name, city, state) now save automatically as you go — no Save button — and you can change your password from a new Security section. (DEV-261)
+- Contact Us now really sends: your message goes straight to the BeGifted support inbox and the screen confirms "Message sent" — no more "coming soon" notice. Replies arrive by email. (DEV-263)
+- You can now add a profile photo in Account Info — tap the photo circle to pick one from your library (DEV-266).
+- Confirmation messages ("Occasion added", profile updated, etc.) now look and behave the same on every screen — they appear as the standard bottom snackbar instead of a different centered popup on the Moments and People screens. (DEV-267)
+- Past gift recommendations now show inline under each person instead of hiding behind a tap-to-expand drawer (DEV-269).
+- The bottom-nav People and Moments icons now match the design (a grouped-people glyph and an outlined calendar) (DEV-271).
+- The bottom-nav icons are now vertically centered in the bar. They were floating near the top because the space reserved at the bottom for the iPhone home-indicator was left empty below them; the icons now center in the full bar while still clearing the home indicator (DEV-271).
+- Admin Playground: the new GPT-5.6 models (Sol, Terra, Luna) are now selectable under the OpenAI provider. (DEV-272)
+- Account Info now has a Birthday field and the State field is a proper dropdown of US states (full names in the list, abbreviation once picked) instead of free text. (DEV-274)
+- The Gifting Style page is now "About You": a card shows what BeGifted has learned about you as a person, and a "Continue the conversation" drawer lets you chat naturally about your interests, tastes, routines, or retailers to avoid — replacing the old free-text box. What you share immediately updates the profile that gift recommendations use. (DEV-275)
+- Refreshed two palette colors: the light teal accent (settings pickers, calendar highlights) is now a cooler blue-gray, and cream card backgrounds (calendar cards, recipient dialogs) are now a lighter warm off-white. (DEV-277)
+- Tapping the verify-account link in the signup email now brings you back into the app, already signed in — instead of stranding you on the BeGifted website in Safari (DEV-279).
+- New users are no longer stuck on intro-style screens after verifying their email — verification now lands in the app and continues into onboarding (DEV-280).
+- A recipient's birthday now always lands on its next real date — previously it could be saved a year too far out and never show up as the next occasion on the home screen (DEV-281)
+- Occasions can now be renamed: open a person's profile, tap the occasion's menu → Edit, and change the name alongside the date (DEV-283)
+- When adding a person, you can now track any occasion you like — tap "Add your own" on the occasion-selection step to name and date a custom occasion beyond the suggested ones (DEV-284)
+- Dates are now entered the familiar US way — month, day, year (e.g. 12-25-2026 or 8/18/1978) — in birthday fields and the occasion date editor, instead of year-first ISO format (DEV-285)
+- The People tab has a refreshed look: one "Add More People" button opens a chooser with Import From Contacts / Add People Manually (the same chooser now appears from the Home button), people rows are larger with the next moment shown as "Birthday: Mar 14", and the "..." menu is now just Modify Details and Remove Person. (DEV-287)
+
+### Backend
+
+- Signup confirmation emails now arrive reliably, come from noreply@bgftd.com with BeGifted branding, and are no longer capped at 2 per hour (DEV-75).
+- Internal restructuring of the recipient-chat backend — no visible changes; adding a person via chat should behave exactly as before (DEV-230).
+- Locked down two database read policies: profile rows (which include addresses) and the AI prompt library are no longer readable by anyone with the app's public API key — each user can now only read their own profile. Testers shouldn't notice anything; all screens keep working (DEV-232).
+- No visible change: stronger type checking on the AI profile-synthesis and preferences-extraction functions and the web contact import, guarding against a class of silent data bugs. (DEV-234)
+- Gift-ready notifications now show up in the app's notification list even if you haven't enabled push notifications on a device (DEV-240).
+- Gift suggestions now come with a product photo far more often — previously about 1 in 4 cards had no image because big retailers (Chewy, Macy's, Walmart, …) block our image lookup; new suggestions now recover those photos from a search index (DEV-270).
+- The Notifications settings now change what you actually receive: turning off "Gift & Occasion Reminders" stops occasion pushes entirely, and "How Many Reminders?" sends that many nudges spread across the weeks before each occasion (e.g. 3 → about 21, 14, and 7 days out). (DEV-276)
+- Gift ideas now reference the recipient's next upcoming occasion — previously a just-passed occasion (e.g. a June birthday) could keep driving suggestions and their "why this fits" copy instead of the next real event (DEV-282)
+
 ## 2026-07-07 — Build 53 (TestFlight)
 
 ### App
