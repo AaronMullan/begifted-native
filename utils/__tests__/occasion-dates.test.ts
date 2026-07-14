@@ -2,6 +2,7 @@ import {
   parseISODateLocal,
   formatOccasionDate,
   getNextOccurrence,
+  getNextAnnualOccurrence,
   lookupOccasionDate,
 } from "../occasion-dates";
 
@@ -73,6 +74,31 @@ describe("getNextOccurrence", () => {
   it("passes non-ISO strings through untouched", () => {
     expect(getNextOccurrence("July 4")).toBe("July 4");
     expect(getNextOccurrence("")).toBe("");
+  });
+});
+
+describe("getNextAnnualOccurrence", () => {
+  it("pulls a spurious far-future year back to the next occurrence", () => {
+    expect(getNextAnnualOccurrence("2027-08-18")).toBe("2026-08-18");
+  });
+
+  it("rolls a passed month/day to next year regardless of input year", () => {
+    expect(getNextAnnualOccurrence("2026-01-01")).toBe("2027-01-01");
+    expect(getNextAnnualOccurrence("1985-03-17")).toBe("2027-03-17");
+  });
+
+  it("treats today as not passed", () => {
+    expect(getNextAnnualOccurrence("1990-07-08")).toBe("2026-07-08");
+  });
+
+  it("handles the vCard --MM-DD year-unknown form", () => {
+    expect(getNextAnnualOccurrence("--02-14")).toBe("2027-02-14");
+    expect(getNextAnnualOccurrence("--12-25")).toBe("2026-12-25");
+  });
+
+  it("passes non-ISO strings through untouched", () => {
+    expect(getNextAnnualOccurrence("July 4")).toBe("July 4");
+    expect(getNextAnnualOccurrence("")).toBe("");
   });
 });
 
