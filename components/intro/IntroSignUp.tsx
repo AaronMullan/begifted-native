@@ -12,7 +12,7 @@ import BrandMark from "../BrandMark";
 import BrandWordmark from "../BrandWordmark";
 import { Colors } from "../../lib/colors";
 import { Typography, Radii } from "../../lib/typography";
-import { supabase } from "../../lib/supabase";
+import { supabase, EMAIL_CONFIRM_REDIRECT_URL } from "../../lib/supabase";
 import { fetchAppConfig } from "../../lib/api";
 import LegalAcceptanceCheckbox from "../LegalAcceptanceCheckbox";
 import {
@@ -40,7 +40,15 @@ async function performSignUp(
     };
   }
 
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    // On web the verification link keeps the default Site URL redirect; on
+    // native it must deep-link back into the app (see app/auth/callback.tsx).
+    ...(Platform.OS === "web"
+      ? {}
+      : { options: { emailRedirectTo: EMAIL_CONFIRM_REDIRECT_URL } }),
+  });
 
   if (error) return { error: error.message };
   if (data.user?.identities?.length === 0) {
@@ -97,7 +105,11 @@ export default function IntroSignUp({
         // No session yet, so the acceptance can't be recorded until the user
         // verifies and signs in; flushed by app/index.tsx on first load.
         await markPendingLegalAcceptance();
-        setInfo("Check your inbox to verify your email, then sign in.");
+        setInfo(
+          Platform.OS === "web"
+            ? "Check your inbox to verify your email, then sign in."
+            : "Check your inbox — the verification link will bring you back to the app."
+        );
         return;
       }
 

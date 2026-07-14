@@ -9,6 +9,12 @@ import { createClient, processLock } from "@supabase/supabase-js";
 const supabaseUrl = "https://qgcyndtymegkobgfcpdh.supabase.co";
 const supabaseAnonKey = "sb_publishable_zQoX48Kvts7b8XOViU-JXg_QNpr35lp";
 
+// Where the verification email returns the user (handled by app/auth/callback.tsx).
+// Must be listed in the Supabase dashboard's auth Redirect URLs allowlist —
+// otherwise emailRedirectTo is silently ignored and the link falls back to the
+// web Site URL, stranding the user in the browser.
+export const EMAIL_CONFIRM_REDIRECT_URL = "begifted://auth/callback";
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     ...(Platform.OS !== "web" ? { storage: AsyncStorage } : {}),
@@ -16,6 +22,13 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: false,
     lock: processLock,
+    // PKCE makes the email-verification redirect carry the auth result as
+    // query params (?code=...), which expo-router hands to app/auth/callback.tsx
+    // on both cold and warm starts. The implicit flow's URL-fragment tokens are
+    // unreliable on warm start (the Linking url event fires before the route
+    // mounts). Web keeps implicit so links landing on the Site URL still work
+    // with the web app's fragment-based session detection.
+    flowType: Platform.OS === "web" ? "implicit" : "pkce",
   },
 });
 
