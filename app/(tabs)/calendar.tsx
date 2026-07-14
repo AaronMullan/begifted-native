@@ -790,7 +790,7 @@ const styles = StyleSheet.create({
   },
   occasionInput: {
     marginBottom: 16,
-    backgroundColor: Colors.brand.cream,
+    backgroundColor: Colors.brand.beigeLight,
   },
   occasionRecurrence: {
     marginBottom: 4,

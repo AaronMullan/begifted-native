@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   modalContent: {
-    backgroundColor: Colors.brand.cream,
+    backgroundColor: Colors.brand.beigeLight,
     borderRadius: 16,
     width: "100%",
     maxWidth: 400,

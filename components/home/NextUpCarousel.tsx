@@ -73,7 +73,7 @@ const CARD_SCHEMES = [
   {
     card: Colors.brand.rose,
     avatar: Colors.brand.mediumTeal,
-    eyebrow: Colors.brand.cream,
+    eyebrow: Colors.brand.beigeLight,
   },
   {
     card: Colors.brand.mediumTeal,

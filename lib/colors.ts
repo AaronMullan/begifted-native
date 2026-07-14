@@ -12,13 +12,13 @@ export const Colors = {
   brand: {
     darkTeal: "#1A4453",
     mediumTeal: "#5E8896",
-    lightTeal: "#94B4B0",
+    lightTeal: "#99ADB4",
     buttonTeal: "#04697E",
     beige: "#DBD1C0",
     beigeMid: "#E7E1D6",
     gold: "#AB8A3E",
     rose: "#AD4B5F",
-    cream: "#F4E6DD",
+    beigeLight: "#F6F4EF",
     pastZone: "#99ADB4",
   },
 
