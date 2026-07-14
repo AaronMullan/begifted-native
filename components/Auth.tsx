@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { TextInput, Button, Text } from "react-native-paper";
 import { useForm, Controller } from "react-hook-form";
-import { supabase } from "../lib/supabase";
+import { supabase, EMAIL_CONFIRM_REDIRECT_URL } from "../lib/supabase";
 import { fetchAppConfig } from "../lib/api";
 import LegalAcceptanceCheckbox from "./LegalAcceptanceCheckbox";
 import {
@@ -91,6 +91,11 @@ export default function Auth() {
     const { data: signUpData, error } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
+      // On web the verification link keeps the default Site URL redirect; on
+      // native it must deep-link back into the app (see app/auth/callback.tsx).
+      ...(Platform.OS === "web"
+        ? {}
+        : { options: { emailRedirectTo: EMAIL_CONFIRM_REDIRECT_URL } }),
     });
 
     if (error) {
@@ -108,7 +113,11 @@ export default function Auth() {
       // No session yet, so the acceptance can't be recorded until the user
       // verifies and signs in; flushed by app/index.tsx on first load.
       await markPendingLegalAcceptance();
-      setMessage("Check your inbox to verify your email before signing in.");
+      setMessage(
+        Platform.OS === "web"
+          ? "Check your inbox to verify your email before signing in."
+          : "Check your inbox — the verification link will bring you back to the app."
+      );
     }
 
     setLoading(false);
