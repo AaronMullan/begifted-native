@@ -72,7 +72,9 @@ CLAUDE_PID=$!
 WATCHDOG_PID=$!
 STATUS=0
 wait "$CLAUDE_PID" || STATUS=$?
-kill "$WATCHDOG_PID" 2>/dev/null || true
+# Reap the watchdog so bash doesn't print an async "Terminated" job notice
+# into the log.
+{ kill "$WATCHDOG_PID" && wait "$WATCHDOG_PID"; } 2>/dev/null || true
 
 find "$LOG_DIR" -name '*.log' -mtime +30 -delete || true
 
