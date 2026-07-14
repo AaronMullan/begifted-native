@@ -4,7 +4,6 @@
 
 import { supabase } from "../supabase";
 import type { Recipient } from "../../types/recipient";
-import type { Profile } from "./profiles";
 
 export interface PromptTestRun {
   id: string;
@@ -45,14 +44,20 @@ export async function fetchIsAdmin(userId: string): Promise<boolean> {
   return data?.is_admin === true;
 }
 
+export interface AdminProfileListItem {
+  id: string;
+  full_name: string | null;
+  username: string | null;
+  email: string;
+}
+
 /**
- * Fetch all profiles (admin-only, for giver selection)
+ * Fetch all profiles with account email (admin-only, for giver selection).
+ * Goes through the admin_list_profiles RPC because email lives in auth.users,
+ * not on public.profiles.
  */
-export async function fetchAllProfiles(): Promise<Profile[]> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .order("full_name", { ascending: true });
+export async function fetchAllProfiles(): Promise<AdminProfileListItem[]> {
+  const { data, error } = await supabase.rpc("admin_list_profiles");
 
   if (error) throw error;
   return data || [];
