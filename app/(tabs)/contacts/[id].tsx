@@ -31,7 +31,10 @@ import {
   normalizeBirthday,
 } from "../../../utils/birthday";
 import { formatOccasionType } from "../../../utils/home-occasions";
-import { formatOccasionDate } from "../../../utils/occasion-dates";
+import {
+  formatOccasionDate,
+  sanitizeExtractedOccasionDate,
+} from "../../../utils/occasion-dates";
 
 // Apply an interests delta from an update conversation to the current list:
 // keep what's there, drop the removed ones, append the newly-liked ones —
@@ -68,9 +71,18 @@ function reconcileInterests(
 async function persistUpdateChatOccasions(
   userId: string,
   recipientId: string,
-  occasions: { date: string; occasion_type: string }[]
+  occasions: { date: string | null; occasion_type: string }[]
 ): Promise<number> {
-  const candidates = occasions.filter((o) => o && o.date);
+  // AI dates are advisory: known types resolve through the holiday lookup,
+  // Jan-1 placeholders are rejected, and anything still undated is dropped
+  // (the update chat has no review screen where a date could be added).
+  const candidates = occasions
+    .filter((o) => o)
+    .map((o) => ({
+      occasion_type: o.occasion_type,
+      date: sanitizeExtractedOccasionDate(o.occasion_type, o.date),
+    }))
+    .filter((o): o is { occasion_type: string; date: string } => !!o.date);
   if (candidates.length === 0) return 0;
 
   const occasionKey = (date: string, type: string) =>

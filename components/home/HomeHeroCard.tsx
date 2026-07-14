@@ -4,7 +4,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Colors } from "../../lib/colors";
 import { Typography, Radii } from "../../lib/typography";
-import type { Occasion } from "../../lib/api";
+import type { DatedOccasion } from "../../utils/home-occasions";
 import {
   daysUntil,
   formatOccasionType,
@@ -17,7 +17,7 @@ import OccasionAvatar from "./OccasionAvatar";
 import OccasionOverflowMenu from "./OccasionOverflowMenu";
 
 type HomeHeroCardProps = {
-  occasion: Occasion;
+  occasion: DatedOccasion;
 };
 
 export default function HomeHeroCard({ occasion }: HomeHeroCardProps) {

@@ -9,6 +9,7 @@ import { invokeWithRetry } from "../lib/edge-retry";
 import { queryKeys } from "../lib/query-keys";
 import { supabase } from "../lib/supabase";
 import { formatBirthdayDisplay, normalizeBirthday } from "../utils/birthday";
+import { sanitizeExtractedOccasionDate } from "../utils/occasion-dates";
 import { useBetaCheckIn } from "../components/beta/BetaCheckInProvider";
 import {
   ExtractedData,
@@ -449,7 +450,19 @@ export function useAddRecipientFlow(
 
   const handleOccasionsSkip = async () => {
     if (!extractedData) return;
-    await saveRecipient(extractedData);
+    // Skip bypasses the review screen, so AI-extracted occasion dates reach
+    // the DB unreviewed — sanitize them (known types resolve via lookup,
+    // Jan-1 placeholders become null/undated).
+    await saveRecipient({
+      ...extractedData,
+      occasions: extractedData.occasions?.map((occasion) => ({
+        ...occasion,
+        date: sanitizeExtractedOccasionDate(
+          occasion.occasion_type,
+          occasion.date
+        ),
+      })),
+    });
   };
 
   const handleNavigateBack = () => {

@@ -55,7 +55,7 @@ import { formatOccasionDate } from "../../utils/occasion-dates";
 
 interface Occasion {
   id: string;
-  date: string;
+  date: string | null;
   occasion_type: string;
   recipient_id: string;
   recipient?: {
@@ -122,6 +122,8 @@ export default function Calendar() {
   const viewYear = viewMonth.getFullYear();
   const occasionsByDay = new Map<string, Occasion[]>();
   for (const occasion of occasions) {
+    // Undated occasions have no day to mark.
+    if (!occasion.date) continue;
     const canonical = occasionDayKey(occasion.date);
     let key = canonical;
     if (occasion.is_annual) {

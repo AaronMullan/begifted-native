@@ -22,7 +22,8 @@ import { getNextOccurrence } from "../../../utils/occasion-dates";
 
 interface OccasionEditorProps {
   occasion: {
-    date: string;
+    /** Null for an undated occasion — the editor seeds an empty date field. */
+    date: string | null;
     occasion_type: string;
     is_annual?: boolean;
   };

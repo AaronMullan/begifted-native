@@ -4,6 +4,7 @@ import {
   getNextOccurrence,
   getNextAnnualOccurrence,
   lookupOccasionDate,
+  sanitizeExtractedOccasionDate,
 } from "../occasion-dates";
 
 // Everything "next occurrence"-shaped is relative to today, so pin the clock.
@@ -138,5 +139,47 @@ describe("lookupOccasionDate", () => {
   it("returns null for unknown or user-specific occasions", () => {
     expect(lookupOccasionDate("birthday")).toBeNull();
     expect(lookupOccasionDate("our first date")).toBeNull();
+  });
+});
+
+describe("sanitizeExtractedOccasionDate", () => {
+  it("resolves known types through the lookup regardless of the supplied date", () => {
+    expect(sanitizeExtractedOccasionDate("valentines_day", "2026-01-01")).toBe(
+      "2027-02-14"
+    );
+    expect(sanitizeExtractedOccasionDate("halloween", null)).toBe("2026-10-31");
+  });
+
+  it("keeps New Year's on Jan 1 via the lookup", () => {
+    expect(sanitizeExtractedOccasionDate("new_years_day", "2026-01-01")).toBe(
+      "2027-01-01"
+    );
+  });
+
+  it("rejects Jan-1 placeholder dates for unknown types", () => {
+    expect(
+      sanitizeExtractedOccasionDate("end_of_tour", "2027-01-01")
+    ).toBeNull();
+    expect(
+      sanitizeExtractedOccasionDate("bastille_day", "2026-01-01")
+    ).toBeNull();
+  });
+
+  it("rolls a real date for an unknown type to its next occurrence", () => {
+    expect(sanitizeExtractedOccasionDate("anniversary", "2001-09-22")).toBe(
+      "2026-09-22"
+    );
+    expect(sanitizeExtractedOccasionDate("graduation", "2027-05-15")).toBe(
+      "2027-05-15"
+    );
+  });
+
+  it("returns null for missing or malformed dates on unknown types", () => {
+    expect(sanitizeExtractedOccasionDate("end_of_tour", null)).toBeNull();
+    expect(sanitizeExtractedOccasionDate("end_of_tour", "null")).toBeNull();
+    expect(
+      sanitizeExtractedOccasionDate("end_of_tour", "next spring")
+    ).toBeNull();
+    expect(sanitizeExtractedOccasionDate("end_of_tour", "")).toBeNull();
   });
 });

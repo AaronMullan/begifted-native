@@ -11,7 +11,7 @@ import { useRouter } from "expo-router";
 import { Colors } from "../../lib/colors";
 import { Typography, Radii } from "../../lib/typography";
 import { Spacing } from "../../lib/spacing";
-import type { Occasion } from "../../lib/api";
+import type { DatedOccasion } from "../../utils/home-occasions";
 import {
   daysUntil,
   formatOccasionType,
@@ -24,7 +24,7 @@ import OccasionOverflowMenu from "./OccasionOverflowMenu";
 import { HOME_CARD_GAP, HOME_EDGE_INSET, nextUpCardWidth } from "./home-layout";
 
 type NextUpCarouselProps = {
-  occasions: Occasion[];
+  occasions: DatedOccasion[];
 };
 
 export default function NextUpCarousel({ occasions }: NextUpCarouselProps) {
@@ -98,7 +98,7 @@ function schemeIndex(id: string) {
 // occasions to gold); the bump guarantees adjacent variety. Colors remain
 // stable across re-renders, refetches, and sessions because the list is
 // date-sorted, so the inputs only change when an occasion is added or passes.
-function assignSchemes(occasions: Occasion[]) {
+function assignSchemes(occasions: DatedOccasion[]) {
   let prevIndex = -1;
   return occasions.map((occasion) => {
     let index = schemeIndex(occasion.id);
@@ -113,7 +113,7 @@ function NextUpCard({
   scheme,
   width,
 }: {
-  occasion: Occasion;
+  occasion: DatedOccasion;
   scheme: CardScheme;
   width: number;
 }) {

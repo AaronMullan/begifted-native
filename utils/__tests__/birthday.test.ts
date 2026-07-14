@@ -148,8 +148,8 @@ describe("birthdayHasYear", () => {
 });
 
 describe("backfillBirthdayFromAge", () => {
-  it("stores a synthetic Jan 1 date when nothing is known", () => {
-    expect(backfillBirthdayFromAge(47, null)).toBe("1979-01-01");
+  it("stores nothing when no month/day is known — never a synthetic Jan 1", () => {
+    expect(backfillBirthdayFromAge(47, null)).toBeNull();
   });
 
   it("backfills the year onto a known month/day", () => {
@@ -161,7 +161,7 @@ describe("backfillBirthdayFromAge", () => {
   });
 
   it("rounds fractional ages", () => {
-    expect(backfillBirthdayFromAge(47.4, null)).toBe("1979-01-01");
+    expect(backfillBirthdayFromAge(47.4, "--06-05")).toBe("1979-06-05");
   });
 
   it("rejects implausible or missing ages", () => {

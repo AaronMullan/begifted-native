@@ -66,7 +66,8 @@ export interface ExtractedData {
   zip_code?: string;
   country?: string;
   occasions?: {
-    date: string;
+    /** The extraction prompt allows null when no date was mentioned. */
+    date: string | null;
     occasion_type: string;
   }[];
   [key: string]: unknown;

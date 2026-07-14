@@ -203,15 +203,18 @@ export function birthdayHasYear(birthday: string | null | undefined): boolean {
  * recomputes it from this year every time, so an off-by-one is harmless and far
  * better than a wrong LLM-invented age.
  *
- * Rules (mirrors the ticket's Path A):
+ * Rules:
  *   - If we already know the full birthday (year included), the age claim is
  *     redundant — trust the stored date and return null (no change).
  *   - If we know only month/day, backfill the year onto it.
- *   - If we know nothing, store a synthetic year-only date (Jan 1) so the
- *     synopsis still has a real year to derive age from.
+ *   - If we know nothing, store nothing. A synthetic Jan-1 date reads as a
+ *     real birthday to every downstream consumer — the cron re-dates the
+ *     birthday occasion to Jan 1 from it — so losing the age is the lesser
+ *     harm.
  *
  * Returns the normalized birthday string to persist, or null when nothing
- * should change (already have a year, or the age is implausible).
+ * should change (already have a year, no month/day to anchor the year to,
+ * or the age is implausible).
  */
 export function backfillBirthdayFromAge(
   age: number | null | undefined,
@@ -224,11 +227,11 @@ export function backfillBirthdayFromAge(
   const parts = parseBirthdayParts(existingBirthday);
   // Already know the real birth year — don't overwrite the truth with a guess.
   if (parts && parts.year !== null) return null;
+  // No month/day to anchor the year to — refuse to fabricate one.
+  if (!parts) return null;
 
   const year = new Date().getFullYear() - rounded;
-  const month = parts?.month ?? 1;
-  const day = parts?.day ?? 1;
-  const mm = String(month).padStart(2, "0");
-  const dd = String(day).padStart(2, "0");
+  const mm = String(parts.month).padStart(2, "0");
+  const dd = String(parts.day).padStart(2, "0");
   return normalizeBirthday(`${year}-${mm}-${dd}`);
 }

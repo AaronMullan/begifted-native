@@ -6,7 +6,8 @@ import { supabase } from "../supabase";
 
 export interface Occasion {
   id: string;
-  date: string;
+  /** ISO date, or null for an occasion whose real date isn't known yet. */
+  date: string | null;
   occasion_type: string;
   recipient_id: string;
   /** Whether the occasion repeats every year (birthdays, anniversaries) or is one-time. */
@@ -20,7 +21,7 @@ export interface Occasion {
 
 type OccasionRow = {
   id: string;
-  date: string;
+  date: string | null;
   occasion_type: string | null;
   recipient_id: string;
   is_annual: boolean | null;
@@ -183,7 +184,7 @@ export async function updateOccasion(
 export async function createOccasion(
   userId: string,
   recipientId: string,
-  date: string,
+  date: string | null,
   occasionType: string,
   isAnnual: boolean = true
 ): Promise<Occasion> {
