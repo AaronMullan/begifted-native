@@ -20,6 +20,7 @@ import {
   useUpdateOccasion,
 } from "../../hooks/use-occasion-mutations";
 import { OccasionEditor } from "./conversation/OccasionEditor";
+import { slugifyOccasionName } from "../../hooks/use-occasion-recommendations";
 import { GiftPreferencesDialog } from "./GiftPreferencesDialog";
 import { InformationDialog } from "./InformationDialog";
 import { formatBirthdayDisplay } from "../../utils/birthday";
@@ -323,11 +324,21 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
           occasion={editingOccasion}
           visible={!!editingOccasion}
           onClose={() => setEditingOccasion(null)}
-          onSave={(date, isAnnual) => {
+          editableName
+          onSave={(date, isAnnual, name) => {
+            // occasion_type doubles as the display name (there is no separate
+            // title column), so a rename is a slug update.
+            const slug = name ? slugifyOccasionName(name) : "";
             updateOccasion.mutate({
               occasionId: editingOccasion.id,
               recipientId: recipient.id,
-              fields: { date, is_annual: isAnnual },
+              fields: {
+                date,
+                is_annual: isAnnual,
+                ...(slug && slug !== editingOccasion.occasion_type
+                  ? { occasion_type: slug }
+                  : {}),
+              },
             });
           }}
         />
