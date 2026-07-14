@@ -52,6 +52,7 @@ app-example
 !.claude/settings.json
 !.claude/skills/
 !.claude/scripts/
+!.claude/launchd/
 supabase/.temp/
 
 .env.local
