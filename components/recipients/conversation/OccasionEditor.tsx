@@ -28,13 +28,20 @@ interface OccasionEditorProps {
   };
   visible: boolean;
   onClose: () => void;
-  onSave: (date: string, isAnnual: boolean) => void;
+  onSave: (date: string, isAnnual: boolean, name?: string) => void;
   /** Show the repeat / one-time toggle. Defaults to true. */
   showRecurrence?: boolean;
+  /** Let the user rename the occasion; the display name is passed to onSave. */
+  editableName?: boolean;
 }
 
 const FULL_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH_DAY_RE = /^\d{2}-\d{2}$/;
+
+function formatOccasionType(type: string): string {
+  const formatted = type.charAt(0).toUpperCase() + type.slice(1);
+  return formatted.replace(/_/g, " ");
+}
 
 /** True if the given 1-based month and day form a real calendar date. */
 function isValidMonthDay(month: number, day: number): boolean {
@@ -50,8 +57,10 @@ export function OccasionEditor({
   onClose,
   onSave,
   showRecurrence = true,
+  editableName = false,
 }: OccasionEditorProps) {
   const [dateInput, setDateInput] = useState("");
+  const [nameInput, setNameInput] = useState("");
   const [isAnnual, setIsAnnual] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -70,6 +79,7 @@ export function OccasionEditor({
     setPrevShowRecurrence(showRecurrence);
     if (visible && occasion) {
       setErrorMessage("");
+      setNameInput(formatOccasionType(occasion.occasion_type));
       const annual = showRecurrence ? (occasion.is_annual ?? true) : false;
       setIsAnnual(annual);
 
@@ -130,10 +140,16 @@ export function OccasionEditor({
 
   const handleSave = () => {
     const trimmed = dateInput.trim();
+    const name = editableName ? nameInput.trim() : undefined;
+
+    if (editableName && !name) {
+      setErrorMessage("Please give the occasion a name");
+      return;
+    }
 
     // Empty clears the date (caller decides what that means).
     if (!trimmed) {
-      onSave("", isAnnual);
+      onSave("", isAnnual, name);
       onClose();
       return;
     }
@@ -144,7 +160,7 @@ export function OccasionEditor({
         const [month, day] = trimmed.split("-").map(Number);
         if (isValidMonthDay(month, day)) {
           // Year is optional for annual occasions — resolve the next occurrence.
-          onSave(getNextOccurrence(`--${trimmed}`), true);
+          onSave(getNextOccurrence(`--${trimmed}`), true, name);
           onClose();
           return;
         }
@@ -156,17 +172,12 @@ export function OccasionEditor({
     if (FULL_DATE_RE.test(trimmed)) {
       const [year, month, day] = trimmed.split("-").map(Number);
       if (year >= 1900 && isValidMonthDay(month, day)) {
-        onSave(trimmed, false);
+        onSave(trimmed, false, name);
         onClose();
         return;
       }
     }
     setErrorMessage("Please enter a full date in YYYY-MM-DD format");
-  };
-
-  const formatOccasionType = (type: string): string => {
-    const formatted = type.charAt(0).toUpperCase() + type.slice(1);
-    return formatted.replace(/_/g, " ");
   };
 
   return (
@@ -197,9 +208,25 @@ export function OccasionEditor({
               </View>
 
               <View style={styles.content}>
-                <Text variant="titleMedium" style={styles.occasionType}>
-                  {formatOccasionType(occasion.occasion_type)}
-                </Text>
+                {editableName ? (
+                  <View style={styles.fieldContainer}>
+                    <TextInput
+                      mode="outlined"
+                      label="Name"
+                      value={nameInput}
+                      onChangeText={(text) => {
+                        setNameInput(text);
+                        setErrorMessage("");
+                      }}
+                      placeholder="e.g. Anniversary"
+                      style={styles.input}
+                    />
+                  </View>
+                ) : (
+                  <Text variant="titleMedium" style={styles.occasionType}>
+                    {formatOccasionType(occasion.occasion_type)}
+                  </Text>
+                )}
 
                 {showRecurrence && (
                   <View style={styles.fieldContainer}>
