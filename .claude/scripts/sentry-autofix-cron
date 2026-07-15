@@ -1,8 +1,10 @@
 #!/bin/bash
-# Headless entry point for the /sentry-autofix skill, invoked by launchd
+# Headless entry point for the Sentry pipelines, invoked by launchd
 # (com.begifted.sentry-autofix) on weekday mornings. Prepares dedicated bot
-# clones so the run can never touch the human working checkouts, then runs
-# claude -p against the begifted-native clone.
+# clones so the runs can never touch the human working checkouts, then runs
+# claude -p against the begifted-native clone: /sentry-autofix (error → PR),
+# /sentry-feedback-to-jira headless (feedback → ticket), and /slack-to-jira
+# sweep #bugs (Slack bug report → ticket).
 set -euo pipefail
 
 MAIN_CHECKOUT="$HOME/development/begifted-native"
@@ -10,7 +12,9 @@ AUTOFIX_ROOT="$HOME/development/autofix"
 LOG_DIR="$HOME/Library/Logs/begifted-autofix"
 LOCK_DIR="$LOG_DIR/.lock"
 CLAUDE_BIN="$HOME/.local/bin/claude"
-RUN_TIMEOUT_SECS=3600
+AUTOFIX_TIMEOUT_SECS=3600
+FEEDBACK_TIMEOUT_SECS=1200
+SWEEP_TIMEOUT_SECS=1200
 REPOS=(begifted-native be-gifted)
 
 mkdir -p "$LOG_DIR" "$AUTOFIX_ROOT"
@@ -60,27 +64,51 @@ done
 # The Sentry token lives only in the human checkout's untracked .env.local.
 cp "$MAIN_CHECKOUT/.env.local" "$AUTOFIX_ROOT/begifted-native/.env.local" || fail "copy .env.local"
 
-# macOS has no `timeout`; watchdog-kill the run if it wedges past the budget.
+# macOS has no `timeout`; watchdog-kill a run if it wedges past its budget.
+run_claude() {
+  local prompt="$1" budget="$2" status=0
+  echo "--- $prompt ($(date '+%H:%M:%S')) ---"
+  "$CLAUDE_BIN" -p "$prompt" --dangerously-skip-permissions &
+  local claude_pid=$!
+  (
+    sleep "$budget"
+    echo "TIMEOUT after ${budget}s — killing claude ($prompt)"
+    kill "$claude_pid" 2>/dev/null
+  ) &
+  local watchdog_pid=$!
+  wait "$claude_pid" || status=$?
+  # Reap the watchdog so bash doesn't print an async "Terminated" job notice
+  # into the log.
+  { kill "$watchdog_pid" && wait "$watchdog_pid"; } 2>/dev/null || true
+  return "$status"
+}
+
 cd "$AUTOFIX_ROOT/begifted-native"
-"$CLAUDE_BIN" -p "/sentry-autofix" --dangerously-skip-permissions &
-CLAUDE_PID=$!
-(
-  sleep "$RUN_TIMEOUT_SECS"
-  echo "TIMEOUT after ${RUN_TIMEOUT_SECS}s — killing claude"
-  kill "$CLAUDE_PID" 2>/dev/null
-) &
-WATCHDOG_PID=$!
-STATUS=0
-wait "$CLAUDE_PID" || STATUS=$?
-# Reap the watchdog so bash doesn't print an async "Terminated" job notice
-# into the log.
-{ kill "$WATCHDOG_PID" && wait "$WATCHDOG_PID"; } 2>/dev/null || true
+
+# The passes are independent — a wedged pass must not starve the others —
+# so run all of them unconditionally and report failures together.
+AUTOFIX_STATUS=0
+run_claude "/sentry-autofix" "$AUTOFIX_TIMEOUT_SECS" || AUTOFIX_STATUS=$?
+FEEDBACK_STATUS=0
+run_claude "/sentry-feedback-to-jira headless" "$FEEDBACK_TIMEOUT_SECS" || FEEDBACK_STATUS=$?
+SWEEP_STATUS=0
+run_claude "/slack-to-jira sweep #bugs" "$SWEEP_TIMEOUT_SECS" || SWEEP_STATUS=$?
 
 find "$LOG_DIR" -name '*.log' -mtime +30 -delete || true
 
-if [ "$STATUS" -ne 0 ]; then
-  fail "claude exited $STATUS"
+FAILURES=""
+if [ "$AUTOFIX_STATUS" -ne 0 ]; then
+  FAILURES="autofix exited $AUTOFIX_STATUS"
+fi
+if [ "$FEEDBACK_STATUS" -ne 0 ]; then
+  FAILURES="${FAILURES:+$FAILURES; }feedback exited $FEEDBACK_STATUS"
+fi
+if [ "$SWEEP_STATUS" -ne 0 ]; then
+  FAILURES="${FAILURES:+$FAILURES; }slack sweep exited $SWEEP_STATUS"
+fi
+if [ -n "$FAILURES" ]; then
+  fail "$FAILURES"
 fi
 
-notify "run complete — details in $(basename "$LOG")"
+notify "autofix + feedback + slack sweep complete — details in $(basename "$LOG")"
 echo "=== run complete $(date '+%H:%M:%S') ==="
