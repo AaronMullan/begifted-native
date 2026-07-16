@@ -15,6 +15,7 @@ CLAUDE_BIN="$HOME/.local/bin/claude"
 AUTOFIX_TIMEOUT_SECS=3600
 FEEDBACK_TIMEOUT_SECS=1200
 SWEEP_TIMEOUT_SECS=1200
+NOTIFY_TIMEOUT_SECS=300
 REPOS=(begifted-native be-gifted)
 
 mkdir -p "$LOG_DIR" "$AUTOFIX_ROOT"
@@ -66,8 +67,8 @@ cp "$MAIN_CHECKOUT/.env.local" "$AUTOFIX_ROOT/begifted-native/.env.local" || fai
 
 # macOS has no `timeout`; watchdog-kill a run if it wedges past its budget.
 run_claude() {
-  local prompt="$1" budget="$2" status=0
-  echo "--- $prompt ($(date '+%H:%M:%S')) ---"
+  local prompt="$1" budget="$2" label="${3:-$1}" status=0
+  echo "--- $label ($(date '+%H:%M:%S')) ---"
   "$CLAUDE_BIN" -p "$prompt" --dangerously-skip-permissions &
   local claude_pid=$!
   (
@@ -106,6 +107,14 @@ fi
 if [ "$SWEEP_STATUS" -ne 0 ]; then
   FAILURES="${FAILURES:+$FAILURES; }slack sweep exited $SWEEP_STATUS"
 fi
+# DM Aaron the run summary. This is the one place a real slack_send_message
+# (not a draft) is authorized: it's a self-notification to the authenticated
+# user, nothing a teammate sees. Runs on failure too, so a broken pass still
+# surfaces in Slack; the DM itself failing must not fail the run.
+OUTCOME="${FAILURES:-all passes completed}"
+NOTIFY_PROMPT="Read today's overnight triage log at $LOG. Then send a Slack DM to myself — the authenticated Slack user — summarizing the run: one short line per pass (sentry-autofix, sentry-feedback-to-jira, #bugs sweep) saying what was filed/opened/archived or that it was quiet, and lead with any failures. Overall outcome: $OUTCOME. Use slack_send_message to my own DM channel; a real send (not a draft) is explicitly authorized for this self-notification. Do not message anyone else or post in any channel."
+run_claude "$NOTIFY_PROMPT" "$NOTIFY_TIMEOUT_SECS" "slack DM notification" || echo "slack notify failed (non-fatal)"
+
 if [ -n "$FAILURES" ]; then
   fail "$FAILURES"
 fi
