@@ -241,6 +241,8 @@ export function ConversationView({
             placeholderTextColor={Colors.grays.placeholder}
             underlineColor={Colors.transparent}
             activeUnderlineColor={Colors.transparent}
+            selectionColor={Colors.black}
+            cursorColor={Colors.black}
             dense
             style={styles.textInput}
             contentStyle={styles.textInputContent}
@@ -357,7 +359,9 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    backgroundColor: Colors.grays.field,
+    // Figma input/textarea field-box (node 4963:2594): beigeLight fill so the
+    // field reads against the near-white bottom of the page gradient.
+    backgroundColor: Colors.brand.beigeLight,
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
     borderBottomLeftRadius: 18,
