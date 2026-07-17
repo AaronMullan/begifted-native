@@ -1,6 +1,7 @@
 import { useState } from "react";
 import * as Contacts from "expo-contacts";
 import * as Linking from "expo-linking";
+import * as Sentry from "@sentry/react-native";
 import { Alert, Platform } from "react-native";
 
 export interface DeviceContact {
@@ -44,24 +45,59 @@ export function useDeviceContacts() {
     return true;
   }
 
-  async function getDeviceContacts(): Promise<DeviceContact[]> {
+  const baseFields = [
+    Contacts.Fields.Name,
+    Contacts.Fields.PhoneNumbers,
+    Contacts.Fields.Emails,
+    Contacts.Fields.Birthday,
+    Contacts.Fields.Addresses,
+  ];
+
+  // Requesting Image/RawImage makes expo-contacts write every contact's photo
+  // to the cache during serialization; a single unwritable image rejects the
+  // whole getContactsAsync call. Retry without image fields so one bad photo
+  // can't kill the entire import — contacts just come through photo-less.
+  async function fetchContacts() {
     try {
-      setLoading(true);
-
-      const hasPermission = await requestPermission();
-      if (!hasPermission) return [];
-
-      const { data } = await Contacts.getContactsAsync({
+      return await Contacts.getContactsAsync({
         fields: [
-          Contacts.Fields.Name,
-          Contacts.Fields.PhoneNumbers,
-          Contacts.Fields.Emails,
-          Contacts.Fields.Birthday,
-          Contacts.Fields.Addresses,
+          ...baseFields,
           Contacts.Fields.Image,
           Contacts.Fields.RawImage,
         ],
       });
+    } catch (error) {
+      Sentry.captureException(error, {
+        tags: { flow: "contact_import", stage: "fetch_with_images" },
+      });
+      return await Contacts.getContactsAsync({ fields: baseFields });
+    }
+  }
+
+  async function getDeviceContacts(): Promise<DeviceContact[]> {
+    setLoading(true);
+
+    let hasPermission = false;
+    try {
+      hasPermission = await requestPermission();
+    } catch (error) {
+      Sentry.captureException(error, {
+        tags: { flow: "contact_import", stage: "permission_request" },
+      });
+      setLoading(false);
+      Alert.alert(
+        "Contacts Access Failed",
+        "We couldn't request access to your contacts. Please check contacts permission for BeGifted in your device settings and try again."
+      );
+      return [];
+    }
+    if (!hasPermission) {
+      setLoading(false);
+      return [];
+    }
+
+    try {
+      const { data } = await fetchContacts();
 
       // iOS sometimes omits the thumbnail (`image.uri`) for iCloud-synced or
       // large-photo contacts even when the picture exists. Fall back to the
@@ -104,7 +140,14 @@ export function useDeviceContacts() {
       return filteredContacts;
     } catch (error) {
       console.error("Error fetching contacts:", error);
-      Alert.alert("Error", "Failed to load contacts from your device.");
+      Sentry.captureException(error, {
+        tags: { flow: "contact_import", stage: "fetch_without_images" },
+      });
+      const detail = error instanceof Error ? ` (${error.message})` : "";
+      Alert.alert(
+        "Couldn't Load Contacts",
+        `Something went wrong reading contacts from your device${detail}. You can also add people manually.`
+      );
       return [];
     } finally {
       setLoading(false);
