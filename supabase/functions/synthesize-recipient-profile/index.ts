@@ -256,12 +256,25 @@ serve(async (req) => {
       Deno.env.get("BEGIFTED_API_URL") ?? "https://be-gifted.vercel.app";
     let giftGenStatus: number | null = null;
     try {
+      // Forward the caller's JWT: /api/generate-gifts requires an
+      // authenticated user and scopes the recipient lookup to them, so an
+      // unauthenticated chain 401s and no gifts are ever generated.
       const res = await fetch(`${giftGenUrl}/api/generate-gifts`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: req.headers.get("Authorization") ?? "",
+        },
         body: JSON.stringify({ recipientId }),
       });
       giftGenStatus = res.status;
+      if (!res.ok) {
+        console.error(
+          `Gift generation chain failed: ${res.status} ${await res
+            .text()
+            .catch(() => "")}`
+        );
+      }
     } catch (err) {
       console.error("Failed to trigger gift generation:", err);
     }
