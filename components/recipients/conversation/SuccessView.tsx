@@ -124,7 +124,6 @@ export const SuccessView: React.FC<SuccessViewProps> = ({
             mode="contained"
             buttonColor="#000000"
             onPress={onViewRecipients}
-            style={styles.button}
             icon="arrow-right"
           >
             View Recipients
@@ -196,13 +195,6 @@ const styles = StyleSheet.create({
   recipientName: {
     fontWeight: "600",
     color: "#000000",
-  },
-  button: {
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
   secondaryButton: {
     marginTop: 12,
