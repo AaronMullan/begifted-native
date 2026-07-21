@@ -17,8 +17,6 @@ import {
   Portal,
   ActivityIndicator,
 } from "react-native-paper";
-import { Image } from "expo-image";
-import { MaterialIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sentry from "@sentry/react-native";
@@ -29,6 +27,7 @@ import { useAuth } from "../../../hooks/use-auth";
 import { useProfile } from "../../../hooks/use-profile";
 import { useUpdateProfile } from "../../../hooks/use-profile-mutations";
 import { showSnackbar } from "../../../components/GlobalSnackbar";
+import Avatar, { deriveUserInitials } from "../../../components/Avatar";
 import StateDropdown from "../../../components/settings/StateDropdown";
 import { invokeWithRetry } from "../../../lib/edge-retry";
 import { supabase } from "../../../lib/supabase";
@@ -353,21 +352,13 @@ export default function ProfileSettings() {
                   }
                   style={styles.photoTarget}
                 >
-                  {profile?.avatar_url ? (
-                    <Image
-                      source={{ uri: profile.avatar_url }}
-                      style={styles.photo}
-                      contentFit="cover"
-                    />
-                  ) : (
-                    <View style={[styles.photo, styles.photoEmpty]}>
-                      <MaterialIcons
-                        name="add-a-photo"
-                        size={28}
-                        color={Colors.grays.text}
-                      />
-                    </View>
-                  )}
+                  <Avatar
+                    name={fullName}
+                    size={96}
+                    context="header"
+                    photoUrl={profile?.avatar_url}
+                    initials={deriveUserInitials(fullName, user?.email ?? "")}
+                  />
                   {uploadingPhoto ? (
                     <View style={[styles.photo, styles.photoOverlay]}>
                       <ActivityIndicator color={Colors.white} />
@@ -631,13 +622,6 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-  },
-  photoEmpty: {
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.grays.field,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.grays.border,
   },
   photoOverlay: {
     position: "absolute",
