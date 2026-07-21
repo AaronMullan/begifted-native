@@ -27,43 +27,18 @@ notify() {
   /usr/bin/osascript -e "display notification \"$1\" with title \"Sentry autofix\"" || true
 }
 
-# mkdir is atomic: a second run while one is in flight skips instead of
-# stacking git resets and claude sessions on the same clones.
-if ! mkdir "$LOCK_DIR" 2>/dev/null; then
-  echo "another run holds the lock at $LOCK_DIR — skipping"
-  exit 0
-fi
-trap 'rmdir "$LOCK_DIR"' EXIT
-
-fail() {
-  echo "FAILED: $1"
-  notify "failed — see $(basename "$LOG")"
-  exit 1
+# launchd fires runs missed during sleep immediately on wake, when Wi-Fi may
+# not be back yet — retry network operations instead of dying on the first
+# refused connection.
+retry() {
+  local attempts=$1 i
+  shift
+  for ((i = 1; i <= attempts; i++)); do
+    "$@" && return 0
+    [ "$i" -lt "$attempts" ] && sleep 30
+  done
+  return 1
 }
-
-for repo in "${REPOS[@]}"; do
-  clone="$AUTOFIX_ROOT/$repo"
-  if [ ! -d "$clone/.git" ]; then
-    echo "cloning $repo"
-    git clone "git@github.com:AaronMullan/$repo.git" "$clone" || fail "clone $repo"
-  fi
-  git -C "$clone" fetch origin || fail "fetch $repo"
-  git -C "$clone" checkout main -q || fail "checkout main $repo"
-  git -C "$clone" reset --hard origin/main -q || fail "reset $repo"
-  git -C "$clone" clean -fd -q || fail "clean $repo"
-
-  # npm ci only when the lockfile changed — installs dominate run time otherwise.
-  lockhash=$(shasum "$clone/package-lock.json" | cut -d' ' -f1)
-  hashfile="$clone/.autofix-lockhash"
-  if [ ! -f "$hashfile" ] || [ "$(cat "$hashfile")" != "$lockhash" ]; then
-    echo "npm ci in $repo (lockfile changed)"
-    (cd "$clone" && npm ci --no-audit --no-fund) || fail "npm ci $repo"
-    echo "$lockhash" >"$hashfile"
-  fi
-done
-
-# The Sentry token lives only in the human checkout's untracked .env.local.
-cp "$MAIN_CHECKOUT/.env.local" "$AUTOFIX_ROOT/begifted-native/.env.local" || fail "copy .env.local"
 
 # macOS has no `timeout`; watchdog-kill a run if it wedges past its budget.
 run_claude() {
@@ -83,6 +58,52 @@ run_claude() {
   { kill "$watchdog_pid" && wait "$watchdog_pid"; } 2>/dev/null || true
   return "$status"
 }
+
+# mkdir is atomic: a second run while one is in flight skips instead of
+# stacking git resets and claude sessions on the same clones.
+if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+  echo "another run holds the lock at $LOCK_DIR — skipping"
+  exit 0
+fi
+trap 'rmdir "$LOCK_DIR"' EXIT
+
+fail() {
+  echo "FAILED: $1"
+  notify "failed — see $(basename "$LOG")"
+  # A failure before the end-of-run summary would otherwise never reach Slack
+  # (that DM lives after the passes) — send a best-effort failure DM, and
+  # never let the DM itself block the exit.
+  if [ -z "${DM_SENT:-}" ]; then
+    local dm_dir="$AUTOFIX_ROOT/begifted-native"
+    [ -d "$dm_dir/.git" ] || dm_dir="$MAIN_CHECKOUT"
+    (cd "$dm_dir" && run_claude "The overnight triage run FAILED before completing: $1. The log is at $LOG. Send a Slack DM to myself — the authenticated Slack user — with one short line saying the overnight triage failed and why. Use slack_send_message to my own DM channel; a real send (not a draft) is explicitly authorized for this self-notification. Do not message anyone else or post in any channel." "$NOTIFY_TIMEOUT_SECS" "failure DM") || echo "failure DM failed (non-fatal)"
+  fi
+  exit 1
+}
+
+for repo in "${REPOS[@]}"; do
+  clone="$AUTOFIX_ROOT/$repo"
+  if [ ! -d "$clone/.git" ]; then
+    echo "cloning $repo"
+    git clone "git@github.com:AaronMullan/$repo.git" "$clone" || fail "clone $repo"
+  fi
+  retry 4 git -C "$clone" fetch origin || fail "fetch $repo"
+  git -C "$clone" checkout main -q || fail "checkout main $repo"
+  git -C "$clone" reset --hard origin/main -q || fail "reset $repo"
+  git -C "$clone" clean -fd -q || fail "clean $repo"
+
+  # npm ci only when the lockfile changed — installs dominate run time otherwise.
+  lockhash=$(shasum "$clone/package-lock.json" | cut -d' ' -f1)
+  hashfile="$clone/.autofix-lockhash"
+  if [ ! -f "$hashfile" ] || [ "$(cat "$hashfile")" != "$lockhash" ]; then
+    echo "npm ci in $repo (lockfile changed)"
+    (cd "$clone" && npm ci --no-audit --no-fund) || fail "npm ci $repo"
+    echo "$lockhash" >"$hashfile"
+  fi
+done
+
+# The Sentry token lives only in the human checkout's untracked .env.local.
+cp "$MAIN_CHECKOUT/.env.local" "$AUTOFIX_ROOT/begifted-native/.env.local" || fail "copy .env.local"
 
 cd "$AUTOFIX_ROOT/begifted-native"
 
@@ -114,6 +135,8 @@ fi
 OUTCOME="${FAILURES:-all passes completed}"
 NOTIFY_PROMPT="Read today's overnight triage log at $LOG. Then send a Slack DM to myself — the authenticated Slack user — summarizing the run: one short line per pass (sentry-autofix, sentry-feedback-to-jira, #bugs sweep) saying what was filed/opened/archived or that it was quiet, and lead with any failures. Overall outcome: $OUTCOME. Use slack_send_message to my own DM channel; a real send (not a draft) is explicitly authorized for this self-notification. Do not message anyone else or post in any channel."
 run_claude "$NOTIFY_PROMPT" "$NOTIFY_TIMEOUT_SECS" "slack DM notification" || echo "slack notify failed (non-fatal)"
+# The summary DM above already led with any failures — don't double-DM from fail().
+DM_SENT=1
 
 if [ -n "$FAILURES" ]; then
   fail "$FAILURES"
