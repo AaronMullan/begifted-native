@@ -19,7 +19,7 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
-## 2026-07-13 — Build 54 (TestFlight)
+## 2026-07-14 — Build 54 (TestFlight)
 
 ### App
 
@@ -70,8 +70,10 @@ running. Earlier builds (≤ 44) are not backfilled here.
 - New users are no longer stuck on intro-style screens after verifying their email — verification now lands in the app and continues into onboarding (DEV-280).
 - A recipient's birthday now always lands on its next real date — previously it could be saved a year too far out and never show up as the next occasion on the home screen (DEV-281)
 - Occasions can now be renamed: open a person's profile, tap the occasion's menu → Edit, and change the name alongside the date (DEV-283)
+- Editing an occasion from a person's profile now opens with its current name and date filled in, and saving a rename works — previously the fields came up blank and saving failed with "Couldn't save the occasion" (DEV-283).
 - When adding a person, you can now track any occasion you like — tap "Add your own" on the occasion-selection step to name and date a custom occasion beyond the suggested ones (DEV-284)
 - Dates are now entered the familiar US way — month, day, year (e.g. 12-25-2026 or 8/18/1978) — in birthday fields and the occasion date editor, instead of year-first ISO format (DEV-285)
+- Occasions no longer get a fake January 1 date when the real date isn't known — known holidays now resolve to their true date automatically, and anything else shows as "No date set" on the profile until you add one. Telling the chat someone's age also no longer creates a phantom January 1 birthday; the age is still remembered for gift suggestions. (DEV-286)
 - The People tab has a refreshed look: one "Add More People" button opens a chooser with Import From Contacts / Add People Manually (the same chooser now appears from the Home button), people rows are larger with the next moment shown as "Birthday: Mar 14", and the "..." menu is now just Modify Details and Remove Person. (DEV-287)
 
 ### Backend
