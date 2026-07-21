@@ -8,6 +8,7 @@ import {
   Platform,
 } from "react-native";
 import { HelperText, IconButton, Text, TextInput } from "react-native-paper";
+import { Colors } from "@/lib/colors";
 import { DualActionFooter } from "./DualActionFooter";
 import {
   formatBirthdayDisplay,
@@ -362,7 +363,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   input: {
-    backgroundColor: "#fff",
+    backgroundColor: Colors.brand.beigeLight,
   },
   row: {
     flexDirection: "row",

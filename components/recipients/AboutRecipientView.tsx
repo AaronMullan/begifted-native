@@ -205,7 +205,7 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
       >
         <View style={styles.card}>
           <View style={styles.cardInner}>
-            <Text style={styles.fieldLabel}>EMOTIONAL TONE</Text>
+            <Text style={styles.fieldLabel}>Emotional Tone</Text>
             {recipient.emotional_tone_preference?.trim() ? (
               <Text style={styles.fieldValue}>
                 {recipient.emotional_tone_preference.trim()}
@@ -225,16 +225,16 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
 
             <View style={styles.row}>
               <View style={styles.col}>
-                <Text style={styles.fieldLabel}>MIN $ BUDGET</Text>
+                <Text style={styles.fieldLabel}>Min $ Budget</Text>
                 <Text style={styles.fieldValue}>{budgetMin}</Text>
               </View>
               <View style={styles.col}>
-                <Text style={styles.fieldLabel}>MAX $ BUDGET</Text>
+                <Text style={styles.fieldLabel}>Max $ Budget</Text>
                 <Text style={styles.fieldValue}>{budgetMax}</Text>
               </View>
             </View>
 
-            <Text style={styles.fieldLabel}>SHIPPING ADDRESS</Text>
+            <Text style={styles.fieldLabel}>Shipping Address</Text>
             <Text style={styles.fieldValue}>{addressBlock || "—"}</Text>
           </View>
         </View>
@@ -250,18 +250,18 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
           <View style={styles.cardInner}>
             <View style={styles.row}>
               <View style={styles.col}>
-                <Text style={styles.fieldLabel}>NAME</Text>
+                <Text style={styles.fieldLabel}>Name</Text>
                 <Text style={styles.fieldValue}>{recipient.name}</Text>
               </View>
               <View style={styles.col}>
-                <Text style={styles.fieldLabel}>RELATIONSHIP</Text>
+                <Text style={styles.fieldLabel}>Relationship</Text>
                 <Text style={styles.fieldValue}>
                   {cleanRelationship(recipient.relationship_type) || "—"}
                 </Text>
               </View>
             </View>
 
-            <Text style={styles.fieldLabel}>BIRTHDAY</Text>
+            <Text style={styles.fieldLabel}>Birthday</Text>
             <Text style={styles.fieldValue}>
               {formatBirthdayDisplay(recipient.birthday) || "—"}
             </Text>
@@ -454,8 +454,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   fieldLabel: {
-    ...Typography.sectionHeadAc,
-    letterSpacing: 0.6,
+    ...Typography.fieldLabel,
     color: Colors.blues.medium,
     marginTop: 10,
     marginBottom: 4,

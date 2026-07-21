@@ -32,6 +32,7 @@ import StateDropdown from "../../../components/settings/StateDropdown";
 import { invokeWithRetry } from "../../../lib/edge-retry";
 import { supabase } from "../../../lib/supabase";
 import { Colors } from "../../../lib/colors";
+import { Typography } from "../../../lib/typography";
 import {
   formatBirthdayDisplay,
   isInvalidBirthdayInput,
@@ -375,9 +376,7 @@ export default function ProfileSettings() {
               {/* Personal Information Section */}
               <View style={styles.section}>
                 <View style={styles.sectionHeaderRow}>
-                  <Text variant="titleLarge" style={styles.sectionTitle}>
-                    Personal Information
-                  </Text>
+                  <Text style={styles.sectionTitle}>Personal Information</Text>
                   {saveStatusLabel ? (
                     <Text
                       variant="bodySmall"
@@ -468,9 +467,7 @@ export default function ProfileSettings() {
 
               {/* Security */}
               <View style={styles.section}>
-                <Text variant="titleLarge" style={styles.sectionTitle}>
-                  Security
-                </Text>
+                <Text style={styles.sectionTitle}>Security</Text>
                 <Button
                   mode="outlined"
                   onPress={() => setPasswordDialogVisible(true)}
@@ -644,6 +641,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   sectionTitle: {
+    ...Typography.sectionHeadAc,
+    color: Colors.brand.mediumTeal,
     marginBottom: 8,
   },
   saveStatus: {
@@ -670,7 +669,9 @@ const styles = StyleSheet.create({
   stateField: {
     flex: 1,
   },
-  input: {},
+  input: {
+    backgroundColor: Colors.brand.beigeLight,
+  },
   emailNote: {
     marginTop: 4,
     color: "#999",

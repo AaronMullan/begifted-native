@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     color: Colors.brand.mediumTeal,
   },
   fieldBox: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.brand.beigeLight,
     borderRadius: 0,
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,

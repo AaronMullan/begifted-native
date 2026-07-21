@@ -9,6 +9,7 @@ import {
   Pressable,
 } from "react-native";
 import { Text, TextInput, HelperText } from "react-native-paper";
+import { Colors } from "@/lib/colors";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
 import { DualActionFooter } from "./DualActionFooter";
 import { isInvalidBirthdayInput } from "@/utils/birthday";
@@ -332,7 +333,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   input: {
-    backgroundColor: "#fff",
+    backgroundColor: Colors.brand.beigeLight,
   },
   row: {
     flexDirection: "row",
