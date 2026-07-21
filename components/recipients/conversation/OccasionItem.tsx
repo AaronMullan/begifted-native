@@ -62,7 +62,7 @@ export function OccasionItem({
   const displayDate = formatDate(occasion.date);
 
   return (
-    <Card style={styles.occasionItem} onPress={onEdit}>
+    <Card mode="contained" style={styles.occasionItem} onPress={onEdit}>
       <Card.Content>
         <View style={styles.occasionContent}>
           <View style={styles.occasionIcon}>
