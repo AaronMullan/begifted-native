@@ -187,7 +187,7 @@ export default function PrimaryGiftCard({
         )}
 
         <View style={styles.titleBlock}>
-          <Text style={styles.title} numberOfLines={1}>
+          <Text style={styles.title} numberOfLines={2}>
             {suggestion.title}
           </Text>
           <View style={styles.priceRow}>
