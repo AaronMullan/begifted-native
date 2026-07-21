@@ -1,13 +1,12 @@
 import { View, StyleSheet, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Avatar } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Link, usePathname } from "expo-router";
 import { useAuth } from "../hooks/use-auth";
 import { useProfile } from "../hooks/use-profile";
 import { Colors } from "../lib/colors";
-import { Typography } from "../lib/typography";
 import { openBugReport } from "../lib/feedback";
+import Avatar, { deriveUserInitials } from "./Avatar";
 import BrandMark from "./BrandMark";
 import BrandWordmark from "./BrandWordmark";
 
@@ -26,7 +25,7 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
   }
 
   const fullName = profile?.full_name ?? "";
-  const initials = deriveInitials(fullName, user?.email ?? "");
+  const initials = deriveUserInitials(fullName, user?.email ?? "");
 
   return (
     <View
@@ -65,21 +64,13 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
               accessibilityLabel="Open settings"
               style={styles.avatarButton}
             >
-              {profile?.avatar_url ? (
-                <Avatar.Image
-                  size={36}
-                  source={{ uri: profile.avatar_url }}
-                  style={styles.avatar}
-                />
-              ) : (
-                <Avatar.Text
-                  size={36}
-                  label={initials}
-                  style={styles.avatar}
-                  color={Colors.darks.black}
-                  labelStyle={styles.avatarLabel}
-                />
-              )}
+              <Avatar
+                name={fullName}
+                size={36}
+                context="header"
+                photoUrl={profile?.avatar_url}
+                initials={initials}
+              />
             </Pressable>
           </Link>
         </View>
@@ -89,36 +80,6 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
 }
 
 const BRAND_MARK_SIZE = 36;
-
-/**
- * Build the avatar fallback initials. Prefers the user's name (profiles store a
- * single `full_name`), taking the first letter of the first two tokens
- * (e.g. "Caspian Michalowski" → "CM"). Single-token names yield one initial.
- * Falls back to the email local part, then "U" when nothing is available.
- */
-function deriveInitials(fullName: string, email: string): string {
-  const fromName = fullName
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-  if (fromName) return fromName;
-
-  if (email.includes("@")) {
-    const fromEmail = email
-      .split("@")[0]
-      .split(/[.\s_-]/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? "")
-      .join("");
-    if (fromEmail) return fromEmail;
-  }
-
-  return "U";
-}
 
 const styles = StyleSheet.create({
   headerBackground: {
@@ -158,13 +119,5 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: "center",
     justifyContent: "center",
-  },
-  avatar: {
-    backgroundColor: Colors.white,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(0,0,0,0.12)",
-  },
-  avatarLabel: {
-    ...Typography.avatarInitials,
   },
 });

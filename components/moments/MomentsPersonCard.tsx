@@ -3,7 +3,7 @@ import { Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
 import { Radii, Typography } from "../../lib/typography";
-import OccasionAvatar from "../home/OccasionAvatar";
+import Avatar from "../Avatar";
 
 type MomentsPersonCardProps = {
   name: string;
@@ -34,13 +34,7 @@ export default function MomentsPersonCard({
       accessibilityRole="button"
       accessibilityLabel={`${name}, gift ideas`}
     >
-      <OccasionAvatar
-        name={name}
-        size={32}
-        photoUrl={photoUrl}
-        circleColor={Colors.brand.mediumTeal}
-        initialsColor={Colors.white}
-      />
+      <Avatar name={name} size={32} context="list" photoUrl={photoUrl} />
       <View style={styles.text}>
         <Text style={styles.name} numberOfLines={1}>
           {name}

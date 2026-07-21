@@ -19,7 +19,7 @@ import {
   stripRecipientName,
 } from "../../utils/home-occasions";
 import { formatOccasionDate } from "../../utils/occasion-dates";
-import OccasionAvatar from "./OccasionAvatar";
+import Avatar from "../Avatar";
 import OccasionOverflowMenu from "./OccasionOverflowMenu";
 import { HOME_CARD_GAP, HOME_EDGE_INSET, nextUpCardWidth } from "./home-layout";
 
@@ -61,23 +61,21 @@ export default function NextUpCarousel({ occasions }: NextUpCarouselProps) {
 }
 
 // Card backgrounds are assigned pseudo-randomly among the three brand colors.
-// Each scheme defines its own avatar counterpart (always a contrasting brand
-// color) and eyebrow color — dark teal reads fine on gold/teal but drops to
-// ~2:1 contrast on rose, so rose uses cream.
+// The rotation applies to the card background only — the avatar is always
+// white/gold (Avatar "homeCard" context). Each scheme sets its eyebrow color:
+// dark teal reads fine on gold/teal but drops to ~2:1 contrast on rose, so
+// rose uses cream.
 const CARD_SCHEMES = [
   {
     card: Colors.brand.gold,
-    avatar: Colors.brand.mediumTeal,
     eyebrow: Colors.brand.darkTeal,
   },
   {
     card: Colors.brand.rose,
-    avatar: Colors.brand.mediumTeal,
     eyebrow: Colors.brand.beigeLight,
   },
   {
     card: Colors.brand.mediumTeal,
-    avatar: Colors.brand.gold,
     eyebrow: Colors.brand.darkTeal,
   },
 ] as const;
@@ -134,12 +132,11 @@ function NextUpCard({
       accessibilityLabel={`View ${possessive(name)} gift ideas`}
       style={[styles.card, { width, backgroundColor: scheme.card }]}
     >
-      <OccasionAvatar
+      <Avatar
         name={name}
         size={30}
+        context="homeCard"
         photoUrl={occasion.recipient?.photo_url}
-        circleColor={scheme.avatar}
-        initialsColor={Colors.white}
       />
       <View style={styles.body}>
         <Text style={[styles.countdown, { color: scheme.eyebrow }]}>

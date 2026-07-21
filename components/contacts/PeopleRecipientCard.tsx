@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text, Menu, Dialog, Portal, Button } from "react-native-paper";
-import { Image } from "expo-image";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Colors } from "../../lib/colors";
@@ -12,6 +11,7 @@ import type { Recipient } from "../../types/recipient";
 import type { UpcomingOccasion } from "../../utils/upcoming-occasion";
 import { formatOccasionType } from "../../utils/home-occasions";
 import { formatOccasionDate } from "../../utils/occasion-dates";
+import Avatar from "../Avatar";
 
 type PeopleRecipientCardProps = {
   recipient: Recipient;
@@ -64,7 +64,12 @@ const PeopleRecipientCard: React.FC<PeopleRecipientCardProps> = ({
         accessibilityLabel={`Open ${recipient.name}`}
         style={({ pressed }) => [styles.body, pressed && styles.bodyPressed]}
       >
-        <Avatar recipient={recipient} />
+        <Avatar
+          name={recipient.name}
+          size={30}
+          context="list"
+          photoUrl={recipient.photo_url}
+        />
         <View style={styles.textColumn}>
           <Text style={styles.name} numberOfLines={1}>
             {recipient.name}
@@ -152,38 +157,8 @@ const PeopleRecipientCard: React.FC<PeopleRecipientCardProps> = ({
 
 export default PeopleRecipientCard;
 
-type AvatarProps = { recipient: Recipient };
-
-const Avatar: React.FC<AvatarProps> = ({ recipient }) => {
-  if (recipient.photo_url) {
-    return (
-      <Image
-        source={{ uri: recipient.photo_url }}
-        style={styles.avatar}
-        contentFit="cover"
-      />
-    );
-  }
-  return (
-    <View style={[styles.avatar, styles.avatarFallback]}>
-      <Text style={styles.avatarInitials}>{getInitials(recipient.name)}</Text>
-    </View>
-  );
-};
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) {
-    return Array.from(parts[0])[0]?.toUpperCase() ?? "?";
-  }
-  const first = Array.from(parts[0])[0] ?? "";
-  const last = Array.from(parts[parts.length - 1])[0] ?? "";
-  return `${first}${last}`.toUpperCase();
-}
-
 // Spec: Figma "Person List Row" (4641:4550 — 359x62, radius 12, white bg).
-// 30px lightTeal avatar at left, name (h2) + occasion line (largeCta, gold)
+// 30px mediumTeal avatar at left, name (h2) + occasion line (largeCta, gold)
 // stacked, mediumTeal overflow dots at right.
 const styles = StyleSheet.create({
   card: {
@@ -204,20 +179,6 @@ const styles = StyleSheet.create({
   },
   bodyPressed: {
     opacity: 0.7,
-  },
-  avatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: Colors.brand.lightTeal,
-  },
-  avatarFallback: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarInitials: {
-    ...Typography.avatarInitials,
-    color: Colors.white,
   },
   textColumn: {
     flex: 1,

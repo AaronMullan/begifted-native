@@ -13,7 +13,7 @@ import {
   stripRecipientName,
 } from "../../utils/home-occasions";
 import { formatOccasionDate } from "../../utils/occasion-dates";
-import OccasionAvatar from "./OccasionAvatar";
+import Avatar from "../Avatar";
 import OccasionOverflowMenu from "./OccasionOverflowMenu";
 
 type HomeHeroCardProps = {
@@ -52,9 +52,10 @@ export default function HomeHeroCard({ occasion }: HomeHeroCardProps) {
       accessibilityLabel={`View ${possessive(recipientName)} gift ideas`}
       style={styles.card}
     >
-      <OccasionAvatar
+      <Avatar
         name={recipientName}
         size={45}
+        context="homeCard"
         photoUrl={occasion.recipient?.photo_url}
       />
       <View style={styles.header}>
