@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   chip: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.brand.beigeLight,
     borderColor: Colors.brand.mediumTeal,
     borderWidth: 1,
   },

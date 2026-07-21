@@ -196,7 +196,9 @@ export default function Auth() {
                 />
               )}
             />
-            <Text style={[Typography.eyebrow, styles.fieldLabel]}>EMAIL</Text>
+            <Text style={[Typography.fieldLabel, styles.fieldLabel]}>
+              Email
+            </Text>
             {errors.email && (
               <Text variant="bodySmall" style={styles.errorText}>
                 {errors.email.message}
@@ -232,8 +234,8 @@ export default function Auth() {
                 />
               )}
             />
-            <Text style={[Typography.eyebrow, styles.fieldLabel]}>
-              PASSWORD (MIN 6 CHARACTERS)
+            <Text style={[Typography.fieldLabel, styles.fieldLabel]}>
+              Password (min 6 characters)
             </Text>
             {errors.password && (
               <Text variant="bodySmall" style={styles.errorText}>
@@ -335,14 +337,13 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 4,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.brand.beigeLight,
   },
   inputOutline: {
     borderRadius: Radii.sm,
   },
   fieldLabel: {
     color: Colors.brand.mediumTeal,
-    letterSpacing: 1,
     marginLeft: 4,
   },
   errorText: {

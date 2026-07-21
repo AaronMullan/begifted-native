@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   input: {
-    backgroundColor: "rgba(255,255,255,0.6)",
+    backgroundColor: Colors.brand.beigeLight,
     minHeight: 120,
   },
   inputOutline: {

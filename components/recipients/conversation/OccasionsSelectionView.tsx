@@ -2,6 +2,7 @@ import { useState } from "react";
 import { View, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
 import { Text, IconButton, Chip } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
+import { Colors } from "@/lib/colors";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
 import { DualActionFooter } from "./DualActionFooter";
 import {
@@ -424,6 +425,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   suggestionChip: {
-    backgroundColor: "transparent",
+    backgroundColor: Colors.brand.beigeLight,
   },
 });

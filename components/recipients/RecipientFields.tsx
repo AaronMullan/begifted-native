@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { HelperText, Text, TextInput } from "react-native-paper";
+import { Colors } from "@/lib/colors";
 import { isInvalidBirthdayInput } from "@/utils/birthday";
 
 type RecipientFieldsProps = {
@@ -219,7 +220,7 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 16,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.brand.beigeLight,
   },
   multilineInput: {
     minHeight: 80,

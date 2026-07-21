@@ -161,7 +161,7 @@ export default function IntroSignUp({
             outlineStyle={styles.inputOutline}
             disabled={submitting}
           />
-          <Text style={[Typography.eyebrow, styles.fieldLabel]}>NAME</Text>
+          <Text style={[Typography.fieldLabel, styles.fieldLabel]}>Name</Text>
         </View>
 
         <View style={styles.field}>
@@ -180,7 +180,7 @@ export default function IntroSignUp({
             outlineStyle={styles.inputOutline}
             disabled={submitting}
           />
-          <Text style={[Typography.eyebrow, styles.fieldLabel]}>EMAIL</Text>
+          <Text style={[Typography.fieldLabel, styles.fieldLabel]}>Email</Text>
         </View>
 
         <View style={styles.field}>
@@ -198,8 +198,8 @@ export default function IntroSignUp({
             outlineStyle={styles.inputOutline}
             disabled={submitting}
           />
-          <Text style={[Typography.eyebrow, styles.fieldLabel]}>
-            PASSWORD (MIN 6 CHARACTERS)
+          <Text style={[Typography.fieldLabel, styles.fieldLabel]}>
+            Password (min 6 characters)
           </Text>
         </View>
 
@@ -268,14 +268,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   input: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.brand.beigeLight,
   },
   inputOutline: {
     borderRadius: Radii.sm,
   },
   fieldLabel: {
     color: Colors.brand.mediumTeal,
-    letterSpacing: 1,
     marginLeft: 4,
   },
   error: {
