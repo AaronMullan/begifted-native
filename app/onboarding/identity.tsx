@@ -15,6 +15,7 @@ import { Colors } from "../../lib/colors";
 import { FontFamily, Typography } from "../../lib/typography";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../hooks/use-auth";
+import { KEYBOARD_CTA_GAP } from "@/lib/constants";
 
 export default function OnboardingIdentity() {
   const router = useRouter();
@@ -81,6 +82,7 @@ export default function OnboardingIdentity() {
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={KEYBOARD_CTA_GAP}
     >
       <Pressable style={styles.flex} onPress={Keyboard.dismiss}>
         <ScrollView

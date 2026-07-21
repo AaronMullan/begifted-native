@@ -13,6 +13,7 @@ import { Colors } from "@/lib/colors";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
 import { DualActionFooter } from "./DualActionFooter";
 import { isInvalidBirthdayInput } from "@/utils/birthday";
+import { KEYBOARD_CTA_GAP } from "@/lib/constants";
 
 interface ManualDataEntryProps {
   partialData: ExtractedData | null;
@@ -96,6 +97,7 @@ export function ManualDataEntry({
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={KEYBOARD_CTA_GAP}
     >
       <Pressable style={styles.container} onPress={Keyboard.dismiss}>
         <ScrollView
