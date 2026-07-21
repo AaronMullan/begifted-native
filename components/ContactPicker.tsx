@@ -1,8 +1,8 @@
 import { Modal, View, FlatList, StyleSheet } from "react-native";
-import { Text, Button, TextInput, List, Avatar } from "react-native-paper";
-import { Image } from "expo-image";
+import { Text, Button, TextInput, List } from "react-native-paper";
 import { useState } from "react";
 import { DeviceContact } from "../hooks/use-device-contacts";
+import Avatar from "./Avatar";
 
 interface ContactPickerProps {
   visible: boolean;
@@ -80,21 +80,16 @@ export default function ContactPicker({
                   )}
                 </>
               }
-              left={() =>
-                item.imageUri ? (
-                  <Image
-                    source={{ uri: item.imageUri }}
-                    style={styles.contactAvatar}
-                    contentFit="cover"
-                  />
-                ) : (
-                  <Avatar.Text
+              left={() => (
+                <View style={styles.contactAvatar}>
+                  <Avatar
+                    name={item.name}
                     size={40}
-                    label={item.name.charAt(0).toUpperCase()}
-                    style={styles.contactAvatarFallback}
+                    context="list"
+                    photoUrl={item.imageUri}
                   />
-                )
-              }
+                </View>
+              )}
               onPress={() => {
                 setSearchQuery("");
                 onSelect(item);
@@ -150,13 +145,6 @@ const styles = StyleSheet.create({
     color: "#999",
   },
   contactAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignSelf: "center",
-    marginLeft: 8,
-  },
-  contactAvatarFallback: {
     alignSelf: "center",
     marginLeft: 8,
   },
