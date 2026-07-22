@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   field: {
-    marginBottom: 24,
+    marginBottom: Spacing.fieldGap,
     gap: 4,
   },
   fieldLabel: {
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     height: 46,
     borderRadius: 24,
     justifyContent: "center",
-    marginTop: 12,
+    marginTop: Spacing.fieldToCta,
   },
   sendButtonText: {
     ...Typography.largeCta,

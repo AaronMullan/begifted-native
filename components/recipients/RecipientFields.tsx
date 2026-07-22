@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { HelperText, Text, TextInput } from "react-native-paper";
 import { Colors } from "@/lib/colors";
 import { isInvalidBirthdayInput } from "@/utils/birthday";
+import { Spacing } from "@/lib/spacing";
 
 type RecipientFieldsProps = {
   name: string;
@@ -219,7 +220,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    marginBottom: 16,
+    marginBottom: Spacing.fieldGap,
     backgroundColor: Colors.brand.beigeLight,
   },
   multilineInput: {
@@ -232,7 +233,7 @@ const styles = StyleSheet.create({
   budgetRow: {
     flexDirection: "row",
     gap: 12,
-    marginBottom: 16,
+    marginBottom: Spacing.fieldGap,
   },
   budgetField: {
     flex: 1,

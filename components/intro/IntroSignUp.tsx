@@ -19,6 +19,7 @@ import {
   markPendingLegalAcceptance,
   recordLegalAcceptance,
 } from "../../lib/legal-acceptance";
+import { Spacing } from "@/lib/spacing";
 
 type IntroSignUpProps = {
   onSignedUp: () => Promise<void> | void;
@@ -287,7 +288,7 @@ const styles = StyleSheet.create({
   },
   button: {
     borderRadius: Radii.pill,
-    marginTop: 16,
+    marginTop: Spacing.fieldToCta,
   },
   buttonContent: {
     height: 52,

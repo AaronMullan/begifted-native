@@ -38,6 +38,7 @@ import {
   isInvalidBirthdayInput,
   normalizeBirthday,
 } from "../../../utils/birthday";
+import { Spacing } from "../../../lib/spacing";
 
 const MIN_PASSWORD_LENGTH = 6;
 
@@ -577,7 +578,7 @@ const styles = StyleSheet.create({
     maxWidth: 800,
     alignSelf: "center",
     width: "100%",
-    padding: 20,
+    padding: Spacing.marginStandard,
     paddingTop: HEADER_HEIGHT, // Account for header height
   },
   mainCard: {
@@ -633,7 +634,7 @@ const styles = StyleSheet.create({
     color: Colors.grays.text,
   },
   section: {
-    marginBottom: 32,
+    marginBottom: Spacing.formSectionGap,
   },
   sectionHeaderRow: {
     flexDirection: "row",
@@ -643,7 +644,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...Typography.sectionHeadAc,
     color: Colors.brand.mediumTeal,
-    marginBottom: 8,
+    marginBottom: Spacing.sectionHeadToModule,
   },
   saveStatus: {
     color: "#666",
@@ -656,12 +657,12 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   fieldContainer: {
-    marginBottom: 20,
+    marginBottom: Spacing.fieldGap,
   },
   locationRow: {
     flexDirection: "row",
     gap: 12,
-    marginBottom: 20,
+    marginBottom: Spacing.fieldGap,
   },
   cityField: {
     flex: 2,

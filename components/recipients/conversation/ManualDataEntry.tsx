@@ -13,6 +13,7 @@ import { Colors } from "@/lib/colors";
 import { ExtractedData } from "@/hooks/use-add-recipient-flow";
 import { DualActionFooter } from "./DualActionFooter";
 import { isInvalidBirthdayInput } from "@/utils/birthday";
+import { Spacing } from "@/lib/spacing";
 
 interface ManualDataEntryProps {
   partialData: ExtractedData | null;
@@ -330,7 +331,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   fieldContainer: {
-    marginBottom: 16,
+    marginBottom: Spacing.fieldGap,
   },
   input: {
     backgroundColor: Colors.brand.beigeLight,

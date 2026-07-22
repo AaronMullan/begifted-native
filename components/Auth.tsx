@@ -18,6 +18,7 @@ import {
 import { Session } from "@supabase/supabase-js";
 import { Colors } from "../lib/colors";
 import { Typography, Radii } from "../lib/typography";
+import { Spacing } from "../lib/spacing";
 
 type FormData = {
   email: string;
@@ -328,8 +329,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   verticallySpaced: {
-    paddingTop: 4,
-    paddingBottom: 4,
+    paddingVertical: Spacing.fieldGapAuth / 2,
     alignSelf: "stretch",
   },
   mt20: {
