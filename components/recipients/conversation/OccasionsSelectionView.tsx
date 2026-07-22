@@ -14,6 +14,7 @@ import {
   lookupOccasionDate,
   getNextOccurrence,
   getNextAnnualOccurrence,
+  formatOccasionDate,
 } from "../../../utils/occasion-dates";
 import { OccasionItem } from "./OccasionItem";
 import { OccasionEditor } from "./OccasionEditor";
@@ -133,12 +134,24 @@ export function OccasionsSelectionView({
     );
   };
 
-  // Secondary/discovery occasions the AI surfaced as plain names (no dates).
-  // Offer the ones not already tracked as tappable chips.
+  // Secondary/discovery occasions. Structured discoverySuggestions carry a
+  // server-resolved future date; the plain-name array remains as the shape
+  // older responses (and custom playground prompts) produce.
   const existingTypes = new Set(selectedOccasions.map((o) => o.occasion_type));
-  const availableSuggestions = (recommendations?.additionalSuggestions ?? [])
-    .map((name) => ({ name, slug: slugifyOccasionName(name) }))
-    .filter(({ slug }) => slug.length > 0 && !existingTypes.has(slug));
+  const structuredSuggestions = recommendations?.discoverySuggestions ?? [];
+  const availableSuggestions = (
+    structuredSuggestions.length > 0
+      ? structuredSuggestions.map((s) => ({
+          name: s.name,
+          slug: slugifyOccasionName(s.name),
+          date: s.suggestedDate || null,
+        }))
+      : (recommendations?.additionalSuggestions ?? []).map((name) => ({
+          name,
+          slug: slugifyOccasionName(name),
+          date: null as string | null,
+        }))
+  ).filter(({ slug }) => slug.length > 0 && !existingTypes.has(slug));
 
   const handleSaveCustomOccasion = (
     date: string,
@@ -155,11 +168,12 @@ export function OccasionsSelectionView({
     ]);
   };
 
-  const handleAddSuggestion = (slug: string) => {
+  const handleAddSuggestion = (slug: string, date: string | null) => {
     if (selectedOccasions.some((o) => o.occasion_type === slug)) return;
-    // Resolve a date for known holidays; otherwise add undated and open the
-    // editor so the user can set one (OccasionItem shows "Add Date").
-    const resolved = lookupOccasionDate(slug);
+    // Structured suggestions arrive with a server-resolved date; otherwise
+    // resolve known holidays locally, or add undated and open the editor so
+    // the user can set one (OccasionItem shows "Add Date").
+    const resolved = date ?? lookupOccasionDate(slug);
     const newIndex = selectedOccasions.length;
     setSelectedOccasions((prev) => [
       ...prev,
@@ -288,15 +302,17 @@ export function OccasionsSelectionView({
               Tap to add a suggestion to the list above.
             </Text>
             <View style={styles.suggestionsChips}>
-              {availableSuggestions.map(({ name, slug }) => (
+              {availableSuggestions.map(({ name, slug, date }) => (
                 <Chip
                   key={slug}
                   mode="outlined"
                   icon="plus"
-                  onPress={() => handleAddSuggestion(slug)}
+                  onPress={() => handleAddSuggestion(slug, date)}
                   style={styles.suggestionChip}
                 >
-                  {name}
+                  {date
+                    ? `${name} · ${formatOccasionDate(date, { month: "short" })}`
+                    : name}
                 </Chip>
               ))}
               <Chip

@@ -12,23 +12,26 @@ import {
   inferRolesFromRelationship,
   normalizeRelationship,
 } from "./relationships.ts";
+import { deriveCoreOccasions } from "./core-occasions.ts";
+import { buildDiscoveryAnchors } from "./discovery-anchors.ts";
+import { finalizeOccasionRecommendations } from "./occasion-validation.ts";
+import type {
+  OccasionRecommendation,
+  OccasionRecommendations,
+} from "./occasion-validation.ts";
 
-// Occasion recommendation types for suggest-occasions-from-interests
-export interface OccasionRecommendation {
-  type: string;
-  name: string;
-  suggestedDate: string | null;
-  isMilestone: boolean;
-  reasoning: string;
-}
+export type { OccasionRecommendation, OccasionRecommendations };
 
-export interface OccasionRecommendations {
-  primaryOccasions: OccasionRecommendation[];
-  additionalSuggestions: string[];
-}
 /**
- * Recommend occasions based on the recipient's interests, relationship, and birthday.
- * Leans into hobbies and interests (e.g. running → race day, music → Record Store Day).
+ * Recommend occasions for a recipient (DEV-310 architecture).
+ *
+ * Core occasions (birthday, Mother's/Father's Day, anniversary, Valentine's,
+ * winter gifting holiday, supplied personal dates) are derived
+ * deterministically in code with code-resolved dates. The model only ranks
+ * those candidates, writes the warm one-sentence copy, and picks 0–3
+ * discovery suggestions from a curated anchor catalog whose dates are also
+ * resolved in code. Deterministic validation then enforces required
+ * occasions, real future dates, anchor whitelisting, dedup, and beta caps.
  */
 export async function recommendOccasions(
   extractedData: ExtractedData | RecipientData,
@@ -66,7 +69,7 @@ export async function recommendOccasions(
     (extractedData as RecipientData).knownOccasions ||
     [];
   // Fall back to the recipient's already-captured occasions as known
-  // occasions so the prompt can use (and avoid re-suggesting) them.
+  // occasions so candidates and prompt avoid re-suggesting them.
   const trackedOccasions = (extractedData as ExtractedData).occasions || [];
   const knownOccasions =
     explicitKnownOccasions.length > 0
@@ -81,19 +84,30 @@ export async function recommendOccasions(
     (extractedData as RecipientData).culturalContext ||
     "";
   // The recipient's stored synthesized profile — the richer "CIS / recipient
-  // profile" lens the v6 prompt is written to use. Absent at add-time (new
-  // recipient not yet synthesized); present for existing recipients (DEV-155).
+  // profile" lens. Absent at add-time (new recipient not yet synthesized);
+  // present for existing recipients (DEV-155).
   const synthesizedProfile = (
     (extractedData as ExtractedData).synthesized_profile ||
     (extractedData as RecipientData).synthesized_profile ||
     ""
   ).trim();
 
+  // Deterministic product logic: the model never decides whether these exist.
+  const coreCandidates = deriveCoreOccasions({
+    relationship,
+    knownRoles,
+    birthday,
+    importantDates,
+    knownOccasions,
+    culturalContext,
+  });
+  const discoveryAnchors = buildDiscoveryAnchors();
+
   const today = new Date().toISOString().split("T")[0];
   const birthdayStr = birthday ? `- Birthday: ${birthday}` : "";
   // Fold the synthesized profile into the {{interests}} block so the prompt's
-  // recipient-profile references have something to anchor on, without needing a
-  // new placeholder/prompt version. Labeled distinctly from the raw interests.
+  // recipient-profile references have something to anchor on, without needing
+  // a dedicated placeholder. Labeled distinctly from the raw interests.
   const interestsLine =
     interests.length > 0
       ? `- Interests: ${interests.join(", ")}`
@@ -118,13 +132,15 @@ export async function recommendOccasions(
   const culturalContextStr = culturalContext
     ? `- Cultural context: ${culturalContext}`
     : "";
+  const coreCandidatesStr = JSON.stringify(coreCandidates, null, 2);
+  const discoveryAnchorsStr = JSON.stringify(discoveryAnchors, null, 2);
 
   // Build the prompt — custom > DB > hardcoded fallback
-  const hardcodedFallback = `You are a gift-planning assistant. Suggest ONLY real, verifiable occasions—no invented or creative-but-fake ones.
+  const hardcodedFallback = `You are an occasion recommendation assistant for BeGifted.
 
-NO HALLUCINATION: Every primaryOccasion MUST be a real observance day, official holiday, or the recipient's birthday. Do NOT invent occasions (e.g. no "Skateboarding video release day", "Hair dye experimentation day", or similar). If you are not certain an occasion exists on an official or widely recognized calendar (national/international observance, public holiday), do not include it. Prefer fewer, real occasions over more, made-up ones.
+BeGifted has already verified the core gifting occasions for this recipient. You rank them, write warm copy, and pick discovery suggestions from an approved list. You never decide whether a core occasion exists, and you never invent occasions or dates.
 
-TODAY'S DATE (all suggestedDate values must be on or after this date): {{today}}
+TODAY'S DATE: {{today}}
 
 RECIPIENT:
 - Name: {{name}}
@@ -132,32 +148,30 @@ RECIPIENT:
 {{birthday}}
 {{knownRoles}}
 {{householdContext}}
+{{importantDates}}
+{{knownOccasions}}
+{{culturalContext}}
 {{interests}}
 
-ALLOWED SOURCES (only these):
-- Birthday (use their next upcoming birthday date).
-- Official or widely recognized national/international observance days, e.g.: National Bird Day (Jan 5), National BBQ Day (May 16), National Country Music Day (Sep 17), Record Store Day (3rd Saturday in April), National Running Day (1st Wed in June), Earth Day (Apr 22), etc.
-- Major holidays: Christmas, Thanksgiving, New Year's Day, Valentine's Day, Mother's Day, Father's Day, Halloween, etc.
-Do not suggest fictional, invented, or "creative" occasions that are not real calendar events.
+CORE OCCASION CANDIDATES (the ONLY occasions allowed in primaryOccasions; reference by key):
+{{coreCandidates}}
+
+AVAILABLE DISCOVERY ANCHORS (the ONLY occasions allowed in additionalSuggestions; dates already resolved):
+{{availableDiscoveryAnchors}}
 
 RULES:
-- DATES MUST BE IN THE FUTURE: suggestedDate must be today or a future date (YYYY-MM-DD). Use the next occurrence for annual events. For birthday, use next upcoming birthday. Never use past years.
-- Include birthday if provided; for ages 30, 40, 50, etc. set isMilestone true.
-- type: lowercase snake_case, one of: birthday, major_gifting_holiday, relationship_based_occasion, interest_based_observance. Put the specific occasion in "name" (e.g. type "interest_based_observance", name "Record Store Day").
-- reasoning: one short sentence tying the occasion to their interests (only for real occasions).
+- primaryOccasions: up to 3 candidate keys, ranked by how likely the user is to add them. Every candidate marked "required": true MUST be included.
+- additionalSuggestions: 0-3 anchors that genuinely fit this recipient's interests. You may personalize the display name (e.g. "Winter Solstice — Ski Season Kickoff") but anchorOccasion must be a key from the list. Return fewer (or none) over weak fits, and never two anchors for the same underlying activity.
+- reasoning: one short, warm, specific sentence per occasion. No hedging.
 
 Return JSON only, no markdown:
 {
   "primaryOccasions": [
-    {
-      "type": "birthday | major_gifting_holiday | relationship_based_occasion | interest_based_observance",
-      "name": "Human-readable name",
-      "suggestedDate": "YYYY-MM-DD or null",
-      "isMilestone": false,
-      "reasoning": "Why this fits their interests"
-    }
+    { "key": "candidate key", "reasoning": "Why this fits this recipient." }
   ],
-  "additionalSuggestions": ["Real holiday/observance names only"]
+  "additionalSuggestions": [
+    { "anchorOccasion": "anchor key", "name": "Personalized display name", "reasoning": "Why this fits this recipient." }
+  ]
 }`;
 
   let promptTemplate: string;
@@ -182,7 +196,9 @@ Return JSON only, no markdown:
     .replace("{{importantDates}}", importantDatesStr)
     .replace("{{knownOccasions}}", knownOccasionsStr)
     .replace("{{culturalContext}}", culturalContextStr)
-    .replace("{{interests}}", interestsStr);
+    .replace("{{interests}}", interestsStr)
+    .replace("{{coreCandidates}}", coreCandidatesStr)
+    .replace("{{availableDiscoveryAnchors}}", discoveryAnchorsStr);
 
   let occasionsRaw: string;
   try {
@@ -199,53 +215,29 @@ Return JSON only, no markdown:
     );
   } catch (err) {
     console.error("recommendOccasions AI error:", err);
-    return getFallbackOccasionRecommendations(birthday);
+    // Deterministic fallback: required core candidates with stock copy, no
+    // discovery. No generic-holiday filler (DEV-158) — required candidates
+    // are relationship-derived, not padding.
+    return finalizeOccasionRecommendations(
+      coreCandidates.filter((c) => c.required),
+      discoveryAnchors,
+      {}
+    );
   }
 
   try {
     const parsed = parseOpenAIJSON(occasionsRaw);
-    const primary = Array.isArray(parsed.primaryOccasions)
-      ? parsed.primaryOccasions
-      : [];
-    const additional = Array.isArray(parsed.additionalSuggestions)
-      ? parsed.additionalSuggestions
-      : [];
-    return {
-      primaryOccasions: primary.map((o: any) => ({
-        type: String(o.type || "custom")
-          .replace(/\s+/g, "_")
-          .toLowerCase(),
-        name: String(o.name || o.type || "Occasion"),
-        suggestedDate: o.suggestedDate ?? null,
-        isMilestone: Boolean(o.isMilestone),
-        reasoning: String(o.reasoning || ""),
-      })),
-      additionalSuggestions: additional.map((s: any) => String(s)),
-    };
+    return finalizeOccasionRecommendations(
+      coreCandidates,
+      discoveryAnchors,
+      parsed
+    );
   } catch (e) {
     console.error("recommendOccasions parse error:", e);
-    return getFallbackOccasionRecommendations(birthday);
+    return finalizeOccasionRecommendations(
+      coreCandidates.filter((c) => c.required),
+      discoveryAnchors,
+      {}
+    );
   }
-}
-
-function getFallbackOccasionRecommendations(
-  birthday: string | null
-): OccasionRecommendations {
-  const primary: OccasionRecommendation[] = [];
-  if (birthday) {
-    primary.push({
-      type: "birthday",
-      name: "Birthday",
-      suggestedDate: birthday,
-      isMilestone: false,
-      reasoning: "Everyone deserves to feel special on their birthday.",
-    });
-  }
-  // No generic-holiday filler: when the AI call fails we return birthday-only
-  // rather than re-injecting the exact holidays the v6 prompt suppresses
-  // (DEV-158). An empty list is honest about the failure.
-  return {
-    primaryOccasions: primary,
-    additionalSuggestions: [],
-  };
 }
