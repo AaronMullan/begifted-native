@@ -11,7 +11,7 @@ import type { GiftSuggestion } from "../../types/recipient";
 import type { GiftFeedbackAction } from "../../lib/api";
 import { useSubmitGiftFeedback } from "../../hooks/use-submit-gift-feedback";
 import { Colors } from "../../lib/colors";
-import { FontFamily, Typography } from "../../lib/typography";
+import { Typography } from "../../lib/typography";
 
 export type GiftActionDrawerState = {
   suggestion: GiftSuggestion;
@@ -35,16 +35,12 @@ type FollowUp = {
 type RowDef = {
   label: string;
   action: GiftFeedbackAction;
-  // Figma state 1 renders the default action ("Keep this in the mix") in a
-  // heavier weight than the rest of the list.
-  emphasized?: boolean;
-  // Absent = the tap is the whole interaction (keep_in_mix). Present = after the
-  // base action saves, offer an always-optional follow-up the user can Skip.
-  followUp?: FollowUp;
+  // After the base action saves, offer an always-optional follow-up the user
+  // can Skip.
+  followUp: FollowUp;
 };
 
 const ROWS: RowDef[] = [
-  { label: "Keep this in the mix", action: "keep_in_mix", emphasized: true },
   {
     label: "I chose this gift",
     action: "chose",
@@ -107,8 +103,8 @@ export default function GiftActionDrawer({
   const [errorVisible, setErrorVisible] = useState(false);
   const submit = useSubmitGiftFeedback();
 
-  // Save the base signal on tap. For rows with a follow-up, keep the sheet open
-  // and switch to the follow-up screen; otherwise the tap completes the flow.
+  // Save the base signal on tap, keep the sheet open, and switch to the row's
+  // follow-up screen.
   const handleRowPress = (row: RowDef) => {
     if (!state) return;
     submit.mutate(
@@ -120,13 +116,7 @@ export default function GiftActionDrawer({
         notes: null,
       },
       {
-        onSuccess: () => {
-          if (row.followUp) {
-            setActiveRow(row);
-          } else {
-            sheetRef.current?.dismiss();
-          }
-        },
+        onSuccess: () => setActiveRow(row),
         onError: () => setErrorVisible(true),
       }
     );
@@ -209,14 +199,7 @@ export default function GiftActionDrawer({
                   accessibilityRole="button"
                   accessibilityLabel={row.label}
                 >
-                  <Text
-                    style={[
-                      styles.rowLabel,
-                      row.emphasized && styles.rowLabelEmphasized,
-                    ]}
-                  >
-                    {row.label}
-                  </Text>
+                  <Text style={styles.rowLabel}>{row.label}</Text>
                 </Pressable>
               ))}
             </>
@@ -325,9 +308,6 @@ const styles = StyleSheet.create({
     ...Typography.eyebrow,
     lineHeight: 24,
     color: Colors.brand.darkTeal,
-  },
-  rowLabelEmphasized: {
-    fontFamily: FontFamily.sans.semibold,
   },
   followUp: {
     marginTop: 4,
