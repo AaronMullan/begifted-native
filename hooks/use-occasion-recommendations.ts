@@ -89,9 +89,23 @@ export interface OccasionRecommendation {
   reasoning: string;
 }
 
+/**
+ * Structured discovery suggestion (DEV-310): bound to a server-approved
+ * anchor with a code-resolved future date. `additionalSuggestions` keeps the
+ * plain names for builds that predate this shape; prefer this field.
+ */
+export interface DiscoverySuggestion {
+  type: string;
+  name: string;
+  anchorOccasion: string;
+  suggestedDate: string;
+  reasoning: string;
+}
+
 export interface OccasionRecommendations {
   primaryOccasions: OccasionRecommendation[];
   additionalSuggestions: string[];
+  discoverySuggestions?: DiscoverySuggestion[];
 }
 
 /** Minimal shape needed for occasion recommendations */
@@ -271,6 +285,7 @@ function getFallbackRecommendations(
   return {
     primaryOccasions,
     additionalSuggestions: [],
+    discoverySuggestions: [],
   };
 }
 

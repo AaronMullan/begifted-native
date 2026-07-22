@@ -24,9 +24,17 @@ export const OccasionResultView: React.FC<{
   const occasions = Array.isArray(result.primaryOccasions)
     ? result.primaryOccasions
     : [];
-  const additional = Array.isArray(result.additionalSuggestions)
-    ? result.additionalSuggestions
+  // Structured discovery suggestions (DEV-310) carry anchor + resolved date;
+  // additionalSuggestions holds the legacy plain names.
+  const discovery = Array.isArray(result.discoverySuggestions)
+    ? result.discoverySuggestions
     : [];
+  const additional =
+    discovery.length > 0
+      ? discovery
+      : Array.isArray(result.additionalSuggestions)
+        ? result.additionalSuggestions
+        : [];
 
   if (occasions.length === 0 && additional.length === 0) {
     return (
@@ -77,9 +85,11 @@ export const OccasionResultView: React.FC<{
             Also consider
           </Text>
           <View style={resultStyles.chipRow}>
-            {additional.map((s: string, i: number) => (
+            {additional.map((s: any, i: number) => (
               <Chip key={i} compact style={resultStyles.contextChip}>
-                {s}
+                {typeof s === "string"
+                  ? s
+                  : [s.name, s.suggestedDate].filter(Boolean).join(" · ")}
               </Chip>
             ))}
           </View>

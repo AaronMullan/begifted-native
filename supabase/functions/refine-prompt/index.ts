@@ -27,10 +27,10 @@ const CATEGORY_GUIDANCE: Record<string, string> = {
 - Preserve the stage-based response structure (Discovery → Enrichment → Ready)
 - Keep the prescriptive templates intact unless explicitly asked to change them
 - Maintain the template variables: {{contextInfo}}, {{conversationHistory}}, {{messageCount}}`,
-  occasion_recommendations: `This prompt generates occasion/holiday recommendations for a recipient.
-- Preserve the JSON output format (primaryOccasions array + additionalSuggestions)
-- Keep the anti-hallucination rules for real observance days only
-- Maintain the template variables: {{today}}, {{name}}, {{relationship}}, {{birthday}}, {{interests}}`,
+  occasion_recommendations: `This prompt ranks product-verified core occasion candidates and picks discovery suggestions from an approved anchor list for a recipient.
+- Preserve the JSON output format: primaryOccasions items reference candidates by "key"; additionalSuggestions items are objects bound to an "anchorOccasion" key
+- Keep the rules that required candidates must always be included and that occasions, dates, and anchors outside the provided lists must never be invented
+- Maintain the template variables: {{today}}, {{name}}, {{relationship}}, {{birthday}}, {{interests}}, {{coreCandidates}}, {{availableDiscoveryAnchors}}`,
   user_preferences_extraction: `This prompt extracts a structured giver profile (user CIS) from natural language.
 - Preserve the JSON output schema: user_summary (string), taste_and_world (string[]), care_and_relationship_style (string[]), giver_style_implications (string[]), things_to_avoid (string[]), confidence ("low"|"medium"|"high")
 - user_summary must be free-text 2-4 sentences in the user's voice, NOT categories or enum values
