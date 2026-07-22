@@ -19,6 +19,7 @@ import {
   markPendingLegalAcceptance,
   recordLegalAcceptance,
 } from "../../lib/legal-acceptance";
+import { Spacing } from "@/lib/spacing";
 import { KEYBOARD_CTA_GAP } from "@/lib/constants";
 
 type IntroSignUpProps = {
@@ -289,7 +290,7 @@ const styles = StyleSheet.create({
   },
   button: {
     borderRadius: Radii.pill,
-    marginTop: 16,
+    marginTop: Spacing.fieldToCta,
   },
   buttonContent: {
     height: 52,

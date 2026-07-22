@@ -11,6 +11,7 @@ import { OccasionsSelectionView } from "../../../components/recipients/conversat
 import { ManualDataEntry } from "../../../components/recipients/conversation/ManualDataEntry";
 import { SuccessView } from "../../../components/recipients/conversation/SuccessView";
 import type { ExtractedData } from "../../../hooks/use-conversation-flow";
+import { Spacing } from "../../../lib/spacing";
 
 type InitialContactSeed = {
   name?: string;
@@ -245,7 +246,7 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   container: {
-    padding: 16,
+    padding: Spacing.marginStandard,
   },
 });
 

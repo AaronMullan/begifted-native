@@ -28,6 +28,24 @@ export const Spacing = {
   heroToSectionGap: 31,
   /** Bottom-nav bar height (full-bleed, flush to the bottom edge). */
   bottomNavHeight: 55,
+
+  // Form/settings rhythm tokens from the hand-off spacing spec. The Home
+  // screen keeps its own measured tokens above — don't swap one set for the
+  // other.
+  /** Screen margin for settings/auth/dedicated form screens. */
+  marginStandard: 32,
+  /** Screen margin for browse/list/feed screens and drawer-nested cards. */
+  marginCompact: 20,
+  /** Vertical gap between adjacent form fields. */
+  fieldGap: 20,
+  /** Tighter field-to-field gap allowed on onboarding/auth screens. */
+  fieldGapAuth: 16,
+  /** Gap between the last field and the submit CTA. */
+  fieldToCta: 32,
+  /** Gap between a section header and the module beneath it. */
+  sectionHeadToModule: 10,
+  /** Vertical gap between one section's content and the next section head. */
+  formSectionGap: 32,
 } as const;
 
 /**

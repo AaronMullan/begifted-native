@@ -1,6 +1,7 @@
 import { StyleSheet } from "react-native";
 import { Colors } from "../../lib/colors";
 import { FontFamily } from "../../lib/typography";
+import { Spacing } from "@/lib/spacing";
 
 /**
  * Modal chrome shared by the keyboard-safe form dialogs (GiftPreferencesDialog,
@@ -63,7 +64,7 @@ export const dialogStyles = StyleSheet.create({
     flex: 1,
   },
   input: {
-    marginBottom: 12,
+    marginBottom: Spacing.fieldGap,
     backgroundColor: Colors.brand.beigeLight,
   },
   budgetInput: {

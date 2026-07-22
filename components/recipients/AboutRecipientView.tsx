@@ -27,6 +27,7 @@ import { formatBirthdayDisplay } from "../../utils/birthday";
 import { formatOccasionType } from "../../utils/home-occasions";
 import { formatOccasionDate } from "../../utils/occasion-dates";
 import { cleanRelationship } from "../../lib/format-name";
+import { Spacing } from "@/lib/spacing";
 
 type AboutRecipientViewProps = {
   recipient: Recipient;
@@ -390,13 +391,17 @@ const styles = StyleSheet.create({
     ...Typography.sectionHeadAc,
     letterSpacing: 0.8,
     color: Colors.blues.dark,
-    marginTop: 16,
-    marginBottom: 10,
+    // Modules above carry a 10pt bottom margin; together they make the 32pt
+    // section gap.
+    marginTop: Spacing.formSectionGap - 10,
+    marginBottom: Spacing.sectionHeadToModule,
   },
   narrative: {
     ...Typography.subhead,
     lineHeight: 22,
     color: Colors.darks.black,
+    // Match the cards' 10pt bottom margin so every section gap sums to 32.
+    marginBottom: 10,
   },
   narrativeDimmed: {
     opacity: 0.4,

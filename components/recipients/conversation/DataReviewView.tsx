@@ -14,6 +14,7 @@ import {
   formatBirthdayDisplay,
   isInvalidBirthdayInput,
 } from "@/utils/birthday";
+import { Spacing } from "@/lib/spacing";
 import { KEYBOARD_CTA_GAP } from "@/lib/constants";
 
 interface DataReviewViewProps {
@@ -362,7 +363,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   fieldContainer: {
-    marginBottom: 16,
+    marginBottom: Spacing.fieldGap,
   },
   input: {
     backgroundColor: Colors.brand.beigeLight,

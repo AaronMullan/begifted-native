@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   field: {
-    marginBottom: 24,
+    marginBottom: Spacing.fieldGap,
     gap: 4,
   },
   fieldLabel: {
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
     ...Typography.subhead,
   },
   sendButton: {
-    marginTop: 12,
+    marginTop: Spacing.fieldToCta,
   },
   loadingText: {
     ...Typography.subhead,
