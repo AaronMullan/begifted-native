@@ -10,6 +10,7 @@ import ContactPicker from "../../../components/ContactPicker";
 import ContactsAccessIntro from "../../../components/ContactsAccessIntro";
 import AddMorePeopleButton from "../../../components/AddMorePeopleButton";
 import AddPeopleChooserModal from "../../../components/AddPeopleChooserModal";
+import ContactsImportFailedModal from "../../../components/ContactsImportFailedModal";
 import PeopleRecipientCard from "../../../components/contacts/PeopleRecipientCard";
 import { useContactImportFlow } from "../../../hooks/use-contact-import-flow";
 import { useAuth } from "../../../hooks/use-auth";
@@ -36,11 +37,14 @@ export default function Contacts() {
     contactsLoading,
     pickerVisible,
     accessIntroVisible,
+    importFailedVisible,
     deviceContacts,
     openAccessIntro,
     closeAccessIntro,
     closePicker,
+    closeImportFailed,
     continueWithAccess,
+    retryImport,
     importFromFile,
     selectContact,
   } = useContactImportFlow();
@@ -49,6 +53,7 @@ export default function Contacts() {
 
   const handleAddManually = () => {
     setChooserVisible(false);
+    closeImportFailed();
     router.push("/contacts/add");
   };
 
@@ -136,6 +141,12 @@ export default function Contacts() {
           contacts={deviceContacts}
           onSelect={selectContact}
           onClose={closePicker}
+        />
+        <ContactsImportFailedModal
+          visible={importFailedVisible}
+          onRetry={retryImport}
+          onAddManuallyPress={handleAddManually}
+          onClose={closeImportFailed}
         />
       </ScrollView>
     </View>

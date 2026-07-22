@@ -5,6 +5,7 @@ import AddMorePeopleButton from "../AddMorePeopleButton";
 import AddPeopleChooserModal from "../AddPeopleChooserModal";
 import ContactPicker from "../ContactPicker";
 import ContactsAccessIntro from "../ContactsAccessIntro";
+import ContactsImportFailedModal from "../ContactsImportFailedModal";
 import { useContactImportFlow } from "../../hooks/use-contact-import-flow";
 
 export default function AddPeopleTile() {
@@ -14,16 +15,20 @@ export default function AddPeopleTile() {
     contactsLoading,
     pickerVisible,
     accessIntroVisible,
+    importFailedVisible,
     deviceContacts,
     openAccessIntro,
     closeAccessIntro,
     closePicker,
+    closeImportFailed,
     continueWithAccess,
+    retryImport,
     selectContact,
   } = useContactImportFlow();
 
   const goToAddManually = () => {
     setChooserVisible(false);
+    closeImportFailed();
     router.push("/contacts/add");
   };
 
@@ -66,6 +71,12 @@ export default function AddPeopleTile() {
         contacts={deviceContacts}
         onSelect={selectContact}
         onClose={closePicker}
+      />
+      <ContactsImportFailedModal
+        visible={importFailedVisible}
+        onRetry={retryImport}
+        onAddManuallyPress={goToAddManually}
+        onClose={closeImportFailed}
       />
     </View>
   );

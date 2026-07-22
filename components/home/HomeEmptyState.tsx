@@ -9,6 +9,7 @@ import { Spacing } from "../../lib/spacing";
 import { BOTTOM_NAV_HEIGHT } from "../../lib/constants";
 import ContactPicker from "../ContactPicker";
 import ContactsAccessIntro from "../ContactsAccessIntro";
+import ContactsImportFailedModal from "../ContactsImportFailedModal";
 import GroupAddIcon from "./GroupAddIcon";
 import { useContactImportFlow } from "../../hooks/use-contact-import-flow";
 
@@ -23,11 +24,14 @@ export default function HomeEmptyState() {
     contactsLoading,
     pickerVisible,
     accessIntroVisible,
+    importFailedVisible,
     deviceContacts,
     openAccessIntro,
     closeAccessIntro,
     closePicker,
+    closeImportFailed,
     continueWithAccess,
+    retryImport,
     selectContact,
   } = useContactImportFlow();
 
@@ -41,7 +45,10 @@ export default function HomeEmptyState() {
     openAccessIntro();
   };
 
-  const handleAddManually = () => router.push("/contacts/add");
+  const handleAddManually = () => {
+    closeImportFailed();
+    router.push("/contacts/add");
+  };
 
   return (
     <View style={styles.root}>
@@ -103,6 +110,12 @@ export default function HomeEmptyState() {
         contacts={deviceContacts}
         onSelect={selectContact}
         onClose={closePicker}
+      />
+      <ContactsImportFailedModal
+        visible={importFailedVisible}
+        onRetry={retryImport}
+        onAddManuallyPress={handleAddManually}
+        onClose={closeImportFailed}
       />
     </View>
   );

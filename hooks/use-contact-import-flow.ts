@@ -8,20 +8,31 @@ export function useContactImportFlow() {
   const router = useRouter();
   const [pickerVisible, setPickerVisible] = useState(false);
   const [accessIntroVisible, setAccessIntroVisible] = useState(false);
+  const [importFailedVisible, setImportFailedVisible] = useState(false);
   const [deviceContacts, setDeviceContacts] = useState<DeviceContact[]>([]);
   const { loading: contactsLoading, getDeviceContacts } = useDeviceContacts();
 
   const openAccessIntro = () => setAccessIntroVisible(true);
   const closeAccessIntro = () => setAccessIntroVisible(false);
   const closePicker = () => setPickerVisible(false);
+  const closeImportFailed = () => setImportFailedVisible(false);
 
   const continueWithAccess = async () => {
     setAccessIntroVisible(false);
     const contacts = await getDeviceContacts();
+    if (contacts === null) {
+      setImportFailedVisible(true);
+      return;
+    }
     setDeviceContacts(contacts);
     if (contacts.length > 0) {
       setPickerVisible(true);
     }
+  };
+
+  const retryImport = async () => {
+    setImportFailedVisible(false);
+    await continueWithAccess();
   };
 
   const importFromFile = (contacts: DeviceContact[]) => {
@@ -97,11 +108,14 @@ export function useContactImportFlow() {
     contactsLoading,
     pickerVisible,
     accessIntroVisible,
+    importFailedVisible,
     deviceContacts,
     openAccessIntro,
     closeAccessIntro,
     closePicker,
+    closeImportFailed,
     continueWithAccess,
+    retryImport,
     importFromFile,
     selectContact,
   };
