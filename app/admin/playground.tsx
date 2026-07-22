@@ -231,7 +231,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
     playground.playgroundModel !== playground.productionModel;
 
   const testModelCard = (
-    <Card style={styles.card}>
+    <Card mode="contained" style={styles.card}>
       <Card.Content>
         <View style={styles.cardTitleRow}>
           <Text variant="titleSmall" style={styles.cardTitle}>
@@ -318,7 +318,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
     <View style={[styles.panel, isDesktop && styles.contextPanelDesktop]}>
       {testModelCard}
       {/* Selectors card */}
-      <Card style={styles.card}>
+      <Card mode="contained" style={styles.card}>
         <Card.Content>
           <Text variant="titleSmall" style={styles.cardTitle}>
             Test Context
@@ -398,7 +398,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
 
       {/* Simulate cron toggle */}
       {playground.selectedRecipientId && (
-        <Card style={styles.card}>
+        <Card mode="contained" style={styles.card}>
           <Card.Content style={styles.cronToggleRow}>
             <View>
               <Text variant="labelLarge">Simulate Cron</Text>
@@ -430,7 +430,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
     // Non-gift prompt context panel
     <View style={[styles.panel, isDesktop && styles.contextPanelDesktop]}>
       {testModelCard}
-      <Card style={styles.card}>
+      <Card mode="contained" style={styles.card}>
         <Card.Content>
           <Text variant="titleSmall" style={styles.cardTitle}>
             {playground.selectedPromptDef?.label}
@@ -460,7 +460,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
 
       {/* Test input panels by prompt type */}
       {playground.selectedPromptKey === "add_recipient_conversation" && (
-        <Card style={styles.card}>
+        <Card mode="contained" style={styles.card}>
           <Card.Content>
             <View style={styles.cardTitleRow}>
               <Text variant="titleSmall" style={styles.cardTitle}>
@@ -547,7 +547,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
       )}
 
       {playground.selectedPromptKey === "occasion_recommendations" && (
-        <Card style={styles.card}>
+        <Card mode="contained" style={styles.card}>
           <Card.Content>
             <Text variant="titleSmall" style={styles.cardTitle}>
               Test Context
@@ -630,7 +630,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
       )}
 
       {playground.selectedPromptKey === "user_preferences_extraction" && (
-        <Card style={styles.card}>
+        <Card mode="contained" style={styles.card}>
           <Card.Content>
             <Text variant="titleSmall" style={styles.cardTitle}>
               Your Gifting Style
@@ -659,7 +659,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
   // --- Prompt editor panel ---
   const promptPanel = (
     <View style={[styles.panel, isDesktop && styles.promptPanelDesktop]}>
-      <Card style={[styles.card, styles.promptCard]}>
+      <Card mode="contained" style={[styles.card, styles.promptCard]}>
         <Card.Content>
           <View style={styles.cardTitleRow}>
             <Text variant="titleSmall" style={styles.cardTitle}>
@@ -714,7 +714,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
       </Card>
 
       {/* Refinement chat */}
-      <Card style={styles.card}>
+      <Card mode="contained" style={styles.card}>
         <Card.Content style={styles.chatCardContent}>
           <Text
             variant="titleSmall"
@@ -812,7 +812,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
     <View style={[styles.panel, isDesktop && styles.resultsPanelDesktop]}>
       {/* Generation results */}
       {playground.generationResult ? (
-        <Card style={styles.card}>
+        <Card mode="contained" style={styles.card}>
           <Card.Content>
             <Text variant="titleSmall" style={styles.cardTitle}>
               {playground.isGiftGeneration
@@ -835,7 +835,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
           </Card.Content>
         </Card>
       ) : (
-        <Card style={[styles.card, styles.emptyResultsCard]}>
+        <Card mode="contained" style={[styles.card, styles.emptyResultsCard]}>
           <Card.Content style={styles.emptyResultsContent}>
             <Text variant="bodyMedium" style={styles.emptyResultsText}>
               {playground.isGiftGeneration
@@ -851,7 +851,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
       {/* Production Context (gift generation only) */}
       {playground.isGiftGeneration &&
         !!playground.generationResult?.productionContext && (
-          <Card style={styles.card}>
+          <Card mode="contained" style={styles.card}>
             <Card.Content>
               <Button
                 mode="text"
@@ -913,7 +913,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
       {/* Cron Context (when simulateCron was used) */}
       {playground.isGiftGeneration &&
         !!playground.generationResult?.cronContext && (
-          <Card style={styles.card}>
+          <Card mode="contained" style={styles.card}>
             <Card.Content>
               <Text variant="titleSmall" style={styles.cardTitle}>
                 Cron Context
@@ -944,7 +944,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
         )}
 
       {/* Test run history */}
-      <Card style={styles.card}>
+      <Card mode="contained" style={styles.card}>
         <Card.Content>
           <View style={styles.cardTitleRow}>
             <Text variant="titleSmall" style={styles.cardTitle}>
@@ -961,6 +961,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
             <View style={styles.historyList}>
               {playground.testRuns.map((run) => (
                 <Card
+                  mode="contained"
                   key={run.id}
                   style={styles.historyItem}
                   onPress={() => playground.loadTestRun(run)}
@@ -1001,7 +1002,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
   const resultsDesktop = (
     <View style={styles.resultsDesktopRow}>
       {/* Test run selector column */}
-      <Card style={[styles.card, styles.testRunSelectorCard]}>
+      <Card mode="contained" style={[styles.card, styles.testRunSelectorCard]}>
         <Card.Content>
           <Text variant="titleSmall" style={styles.cardTitle}>
             Test Runs ({playground.testRuns.length})
@@ -1016,6 +1017,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
                 const isActive = run.id === activeRunId;
                 return (
                   <Card
+                    mode="contained"
                     key={run.id}
                     style={[
                       styles.historyItem,
@@ -1050,7 +1052,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
       {/* Result content column */}
       <View style={styles.resultContentColumn}>
         {playground.generationResult ? (
-          <Card style={styles.card}>
+          <Card mode="contained" style={styles.card}>
             <Card.Content>
               <View style={styles.resultTitleRow}>
                 <Text
@@ -1096,7 +1098,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
             </Card.Content>
           </Card>
         ) : (
-          <Card style={[styles.card, styles.emptyResultsCard]}>
+          <Card mode="contained" style={[styles.card, styles.emptyResultsCard]}>
             <Card.Content style={styles.emptyResultsContent}>
               <Text variant="bodyMedium" style={styles.emptyResultsText}>
                 {playground.isGiftGeneration
@@ -1111,7 +1113,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
 
         {playground.isGiftGeneration &&
           !!playground.generationResult?.productionContext && (
-            <Card style={styles.card}>
+            <Card mode="contained" style={styles.card}>
               <Card.Content>
                 <Button
                   mode="text"
@@ -1174,7 +1176,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
 
         {playground.isGiftGeneration &&
           !!playground.generationResult?.cronContext && (
-            <Card style={styles.card}>
+            <Card mode="contained" style={styles.card}>
               <Card.Content>
                 <Text variant="titleSmall" style={styles.cardTitle}>
                   Cron Context
@@ -1376,7 +1378,6 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 12,
     backgroundColor: Colors.white,
-    elevation: 1,
   },
   cardTitle: {
     fontWeight: "600",
