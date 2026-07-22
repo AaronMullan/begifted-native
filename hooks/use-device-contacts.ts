@@ -1,8 +1,7 @@
 import { useState } from "react";
 import * as Contacts from "expo-contacts";
-import * as Linking from "expo-linking";
 import * as Sentry from "@sentry/react-native";
-import { Alert, Platform } from "react-native";
+import { Platform } from "react-native";
 
 export interface DeviceContact {
   id: string;
@@ -29,20 +28,7 @@ export function useDeviceContacts() {
     }
 
     const { status } = await Contacts.requestPermissionsAsync();
-
-    if (status !== "granted") {
-      Alert.alert(
-        "Permission Required",
-        "Please enable contacts access in your device settings to import contacts.",
-        [
-          { text: "Cancel", style: "cancel" },
-          { text: "Open Settings", onPress: () => Linking.openSettings() },
-        ]
-      );
-      return false;
-    }
-
-    return true;
+    return status === "granted";
   }
 
   const baseFields = [
@@ -74,7 +60,10 @@ export function useDeviceContacts() {
     }
   }
 
-  async function getDeviceContacts(): Promise<DeviceContact[]> {
+  // Resolves to the imported contacts, or null when the import failed
+  // (permission denied or an expo-contacts error) so callers can offer a
+  // retry / add-manually fallback.
+  async function getDeviceContacts(): Promise<DeviceContact[] | null> {
     setLoading(true);
 
     let hasPermission = false;
@@ -85,15 +74,11 @@ export function useDeviceContacts() {
         tags: { flow: "contact_import", stage: "permission_request" },
       });
       setLoading(false);
-      Alert.alert(
-        "Contacts Access Failed",
-        "We couldn't request access to your contacts. Please check contacts permission for BeGifted in your device settings and try again."
-      );
-      return [];
+      return null;
     }
     if (!hasPermission) {
       setLoading(false);
-      return [];
+      return null;
     }
 
     try {
@@ -143,12 +128,7 @@ export function useDeviceContacts() {
       Sentry.captureException(error, {
         tags: { flow: "contact_import", stage: "fetch_without_images" },
       });
-      const detail = error instanceof Error ? ` (${error.message})` : "";
-      Alert.alert(
-        "Couldn't Load Contacts",
-        `Something went wrong reading contacts from your device${detail}. You can also add people manually.`
-      );
-      return [];
+      return null;
     } finally {
       setLoading(false);
     }
