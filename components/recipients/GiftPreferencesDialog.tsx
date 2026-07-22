@@ -10,6 +10,7 @@ import {
 import { Button, IconButton, Text, TextInput } from "react-native-paper";
 import type { Recipient } from "../../types/recipient";
 import { dialogStyles as styles } from "./recipient-dialog-styles";
+import { KEYBOARD_CTA_GAP } from "@/lib/constants";
 
 type GiftPreferencesDialogProps = {
   visible: boolean;
@@ -110,6 +111,7 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
       <KeyboardAvoidingView
         style={styles.modalOverlay}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={KEYBOARD_CTA_GAP}
       >
         <Pressable style={styles.dismissArea} onPress={Keyboard.dismiss}>
           <View style={styles.modalContent}>

@@ -19,6 +19,7 @@ import {
   markPendingLegalAcceptance,
   recordLegalAcceptance,
 } from "../../lib/legal-acceptance";
+import { KEYBOARD_CTA_GAP } from "@/lib/constants";
 
 type IntroSignUpProps = {
   onSignedUp: () => Promise<void> | void;
@@ -128,6 +129,7 @@ export default function IntroSignUp({
     <KeyboardAvoidingView
       style={styles.root}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={KEYBOARD_CTA_GAP}
     >
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <BrandMark size={28} />

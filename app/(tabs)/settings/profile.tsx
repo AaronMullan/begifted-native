@@ -22,8 +22,13 @@ import * as FileSystem from "expo-file-system/legacy";
 import * as Sentry from "@sentry/react-native";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
-import { HEADER_HEIGHT, BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
+import {
+  HEADER_HEIGHT,
+  BOTTOM_NAV_HEIGHT,
+  KEYBOARD_CTA_GAP,
+} from "../../../lib/constants";
 import { useAuth } from "../../../hooks/use-auth";
+import { useKeyboardHeight } from "../../../hooks/use-keyboard-height";
 import { useProfile } from "../../../hooks/use-profile";
 import { useUpdateProfile } from "../../../hooks/use-profile-mutations";
 import { showSnackbar } from "../../../components/GlobalSnackbar";
@@ -74,6 +79,7 @@ export default function ProfileSettings() {
   const [deleting, setDeleting] = useState(false);
 
   const [passwordDialogVisible, setPasswordDialogVisible] = useState(false);
+  const keyboardHeight = useKeyboardHeight();
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
@@ -312,6 +318,7 @@ export default function ProfileSettings() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={KEYBOARD_CTA_GAP}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <ScrollView
@@ -494,6 +501,14 @@ export default function ProfileSettings() {
         <Dialog
           visible={passwordDialogVisible}
           onDismiss={() => !changingPassword && setPasswordDialogVisible(false)}
+          // The Portal renders outside the screen's KeyboardAvoidingView, so
+          // the dialog must dodge the keyboard itself: reserving the keyboard's
+          // height (plus the CTA gap) below re-centers it in the visible area.
+          style={
+            keyboardHeight > 0
+              ? { marginBottom: keyboardHeight + KEYBOARD_CTA_GAP }
+              : undefined
+          }
         >
           <Dialog.Title>Change Password</Dialog.Title>
           <Dialog.Content>
