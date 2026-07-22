@@ -97,7 +97,11 @@ export default function NotificationsScreen() {
         style={[styles.notificationCard, !item.read && styles.unreadCard]}
         onPress={() => handleNotificationPress(item)}
       >
-        <BlurView intensity={20} style={styles.cardBlur} />
+        <BlurView
+          intensity={20}
+          experimentalBlurMethod="dimezisBlurView"
+          style={styles.cardBlur}
+        />
         <View
           style={[
             styles.iconContainer,
@@ -147,7 +151,11 @@ export default function NotificationsScreen() {
       <GradientBackground />
       <View style={styles.content}>
         <Pressable style={styles.mainCard}>
-          <BlurView intensity={20} style={styles.blurBackground} />
+          <BlurView
+            intensity={20}
+            experimentalBlurMethod="dimezisBlurView"
+            style={styles.blurBackground}
+          />
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <Text variant="headlineMedium" style={styles.title}>

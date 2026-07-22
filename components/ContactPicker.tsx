@@ -28,6 +28,7 @@ export default function ContactPicker({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
+      onRequestClose={onClose}
     >
       <View style={styles.container}>
         <View style={styles.header}>

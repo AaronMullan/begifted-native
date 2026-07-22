@@ -101,7 +101,7 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
     >
       <KeyboardAvoidingView
         style={styles.modalOverlay}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={KEYBOARD_CTA_GAP}
       >
         <Pressable style={styles.dismissArea} onPress={Keyboard.dismiss}>

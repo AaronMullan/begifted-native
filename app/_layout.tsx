@@ -10,6 +10,7 @@ import {
   Button,
 } from "react-native-paper";
 import { View, StyleSheet, LogBox } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Header from "../components/Header";
 import AnimatedSplash from "../components/AnimatedSplash";
@@ -215,6 +216,9 @@ export default Sentry.wrap(function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.root}>
+      {/* Explicit dark icons: Android edge-to-edge leaves the transparent
+          status bar's contrast to the OS theme, and the header beige is light. */}
+      <StatusBar style="dark" />
       <PersistQueryClientProvider
         client={queryClient}
         persistOptions={persistOptions}
