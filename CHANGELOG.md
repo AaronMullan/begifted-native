@@ -19,6 +19,37 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-07-22 — Build 55 (TestFlight)
+
+### App
+
+- Admin Playground: the Giver dropdown now labels every account with its email (name plus email when a name exists), so accounts without a profile name are identifiable and selectable. (DEV-288)
+- Web: signing out (or opening the site while signed out) now shows the sign-in form directly instead of stranding you on the touch-only intro slider. (DEV-289)
+- The gift feedback drawer no longer shows a "Keep this in the mix" option — the remaining options all ask a quick optional follow-up. (DEV-293)
+- The message box in the recipient chat screens ("Update <name>" and Add Person) now has a light beige fill so it stands out from the page, and the typing cursor is visible (DEV-295)
+- Importing device contacts to add people no longer fails outright when a contact photo can't be read — contacts load without the photo instead, and errors now show a clearer message (DEV-296)
+- If importing your contacts fails, a styled "Contacts Import Failed" pop-up now appears with Try Again and Add People Manually options, replacing the old system alert. (DEV-299)
+- Primary buttons (Sign In, Send message, and the add-recipient flow's Back/Continue) now share one standardized pill style — centered, teal, with animated loading dots — instead of each screen's own look. (DEV-301)
+- Drop shadows are gone from user-facing screens — the add-recipient success button, the profile settings card, and recipient occasion rows now render flat per the design's no-shadow rule. (DEV-302)
+- Avatar colors now follow one set of rules everywhere: white circle with dark-teal initials in the header and account settings (which now shows your initials instead of a camera icon before you add a photo), white with gold initials on the Home cards, and teal with white initials on people lists — the color rotation on "Next Up" cards applies to the card background only. (DEV-303)
+- Bottom drawers (gift feedback, beta check-in) no longer dim the screen behind them and stop above the bottom nav — the nav stays visible, and tapping a nav item closes the drawer and navigates. (DEV-304)
+- The keyboard no longer covers form fields or buttons: the Change Password dialog lifts above the keyboard, and all input screens keep a 24pt gap between content and the keyboard. (DEV-305)
+- Consistent spacing rhythm across forms and settings: 32pt screen margins on Profile and Add Person, 20pt between form fields (Contact Us, recipient forms and dialogs), 32pt before submit buttons, and even 32pt section gaps on person details. (DEV-306)
+- Form labels like "Name" and "Email" are now mixed-case instead of ALL-CAPS (recipient details, sign-in, sign-up), profile settings section headers use the standard all-caps section style, and text inputs and suggestion chips across the app fill with the warm beige tone instead of plain white. (DEV-307)
+- Long gift titles on the main gift card now wrap to two lines instead of being cut off with "…" after one. (DEV-308)
+- Admin screens (playground, prompts, searches, clicks, kill switch, AI model) now render flat cards with no drop shadows, matching the no-shadow rule applied to user-facing screens. (DEV-309)
+- "Also consider" occasion ideas now show their actual date on the chip, and tapping one adds it already dated — no more undated suggestions to fill in by hand (DEV-310).
+- Editing a person's details (name, relationship, birthday, emotional tone, address) now accepts spaces normally while typing, and text you're mid-way through typing no longer gets reverted while the profile refreshes in the background (DEV-311)
+
+### Backend
+
+- Fixed gift suggestions occasionally carrying a broken product photo (a garbage or insecure image address that could never load) — new suggestions now store only valid, secure image links (DEV-290).
+- Gift suggestions now aim for exactly 3 gifts per run, factor in today's date when timing occasion gifts, and avoid repeating the same gifting idea (not just the same product) on reruns (DEV-294)
+- Adding a new person or editing their profile once again produces fresh gift ideas within about a minute — since early July these on-the-spot suggestions had silently stopped, leaving the gifts list empty until the next daily run (DEV-297).
+- Occasion suggestions are now dependable: birthdays and Mother's/Father's Day always show up for the right relationships, wedding anniversaries appear for spouses (asking for the date when it's unknown), and the AI can no longer drop required occasions or make up dates — every discovery idea comes from an approved list with a real future date (DEV-310).
+- Gift suggestions can no longer appear without their "Why This Fits" explanation — a suggestion missing its write-up is now rejected and re-sourced instead of being shown blank (DEV-312).
+- Editing a person's profile (like their budget) now reliably produces fresh gift ideas — the generation step was frequently being cut off mid-run by a server time limit and silently producing nothing (DEV-313).
+
 ## 2026-07-14 — Build 54 (TestFlight)
 
 ### App
