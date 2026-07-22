@@ -1,12 +1,9 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Button, Chip, Snackbar, Text } from "react-native-paper";
-import {
-  BottomSheetBackdrop,
-  BottomSheetModal,
-  BottomSheetTextInput,
-  BottomSheetView,
-} from "@gorhom/bottom-sheet";
+import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
+import type { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { AppDrawer } from "../AppDrawer";
 import type { GiftSuggestion } from "../../types/recipient";
 import type { GiftFeedbackAction } from "../../lib/api";
 import { useSubmitGiftFeedback } from "../../hooks/use-submit-gift-feedback";
@@ -161,108 +158,93 @@ export default function GiftActionDrawer({
 
   return (
     <>
-      <BottomSheetModal
-        ref={sheetRef}
-        enableDynamicSizing
+      <AppDrawer
+        sheetRef={sheetRef}
         onDismiss={handleDismiss}
-        backdropComponent={(props) => (
-          <BottomSheetBackdrop
-            {...props}
-            appearsOnIndex={0}
-            disappearsOnIndex={-1}
-            pressBehavior="close"
-          />
-        )}
-        keyboardBehavior="interactive"
-        keyboardBlurBehavior="restore"
-        android_keyboardInputMode="adjustResize"
-        handleIndicatorStyle={styles.handle}
-        backgroundStyle={styles.background}
+        contentContainerStyle={styles.content}
       >
-        <BottomSheetView style={styles.content}>
-          {!activeRow ? (
-            <>
-              {state?.suggestion.title && (
-                <Text style={styles.title} numberOfLines={1}>
-                  {state.suggestion.title}
-                </Text>
-              )}
-              {ROWS.map((row) => (
-                <Pressable
-                  key={row.action}
-                  onPress={() => handleRowPress(row)}
-                  disabled={submit.isPending}
-                  style={({ pressed }) => [
-                    styles.row,
-                    pressed && styles.rowPressed,
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityLabel={row.label}
-                >
-                  <Text style={styles.rowLabel}>{row.label}</Text>
-                </Pressable>
-              ))}
-            </>
-          ) : (
-            <View style={styles.followUp}>
-              <Text style={styles.prompt}>{activeRow.followUp?.prompt}</Text>
-              {activeRow.followUp?.chips && (
-                <View style={styles.chips}>
-                  {activeRow.followUp.chips.map((chip) => (
-                    <Chip
-                      key={chip}
-                      selected={selectedChip === chip}
-                      onPress={() =>
-                        setSelectedChip((prev) => (prev === chip ? null : chip))
-                      }
-                      disabled={submit.isPending}
-                      showSelectedCheck={false}
-                      style={[
-                        styles.chip,
-                        selectedChip === chip && styles.chipSelected,
-                      ]}
-                      textStyle={[
-                        styles.chipText,
-                        selectedChip === chip && styles.chipTextSelected,
-                      ]}
-                    >
-                      {chip}
-                    </Chip>
-                  ))}
-                </View>
-              )}
-              <BottomSheetTextInput
-                value={note}
-                onChangeText={setNote}
-                placeholder={activeRow.followUp?.placeholder}
-                placeholderTextColor={Colors.brand.mediumTeal}
-                multiline
-                editable={!submit.isPending}
-                style={styles.notesField}
-              />
-              <View style={styles.actions}>
-                <Button
-                  mode="text"
-                  onPress={() => sheetRef.current?.dismiss()}
-                  disabled={submit.isPending}
-                  textColor={Colors.brand.mediumTeal}
-                >
-                  Skip
-                </Button>
-                <Button
-                  mode="contained"
-                  onPress={handleFollowUpDone}
-                  loading={submit.isPending}
-                  disabled={submit.isPending}
-                  buttonColor={Colors.brand.darkTeal}
-                >
-                  Done
-                </Button>
+        {!activeRow ? (
+          <>
+            {state?.suggestion.title && (
+              <Text style={styles.title} numberOfLines={1}>
+                {state.suggestion.title}
+              </Text>
+            )}
+            {ROWS.map((row) => (
+              <Pressable
+                key={row.action}
+                onPress={() => handleRowPress(row)}
+                disabled={submit.isPending}
+                style={({ pressed }) => [
+                  styles.row,
+                  pressed && styles.rowPressed,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={row.label}
+              >
+                <Text style={styles.rowLabel}>{row.label}</Text>
+              </Pressable>
+            ))}
+          </>
+        ) : (
+          <View style={styles.followUp}>
+            <Text style={styles.prompt}>{activeRow.followUp?.prompt}</Text>
+            {activeRow.followUp?.chips && (
+              <View style={styles.chips}>
+                {activeRow.followUp.chips.map((chip) => (
+                  <Chip
+                    key={chip}
+                    selected={selectedChip === chip}
+                    onPress={() =>
+                      setSelectedChip((prev) => (prev === chip ? null : chip))
+                    }
+                    disabled={submit.isPending}
+                    showSelectedCheck={false}
+                    style={[
+                      styles.chip,
+                      selectedChip === chip && styles.chipSelected,
+                    ]}
+                    textStyle={[
+                      styles.chipText,
+                      selectedChip === chip && styles.chipTextSelected,
+                    ]}
+                  >
+                    {chip}
+                  </Chip>
+                ))}
               </View>
+            )}
+            <BottomSheetTextInput
+              value={note}
+              onChangeText={setNote}
+              placeholder={activeRow.followUp?.placeholder}
+              placeholderTextColor={Colors.brand.mediumTeal}
+              multiline
+              editable={!submit.isPending}
+              style={styles.notesField}
+            />
+            <View style={styles.actions}>
+              <Button
+                mode="text"
+                onPress={() => sheetRef.current?.dismiss()}
+                disabled={submit.isPending}
+                textColor={Colors.brand.mediumTeal}
+              >
+                Skip
+              </Button>
+              <Button
+                mode="contained"
+                onPress={handleFollowUpDone}
+                loading={submit.isPending}
+                disabled={submit.isPending}
+                buttonColor={Colors.brand.darkTeal}
+              >
+                Done
+              </Button>
             </View>
-          )}
-        </BottomSheetView>
-      </BottomSheetModal>
+          </View>
+        )}
+      </AppDrawer>
       <Snackbar
         visible={errorVisible}
         onDismiss={() => setErrorVisible(false)}
@@ -279,15 +261,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 8,
     paddingBottom: 32,
-  },
-  handle: {
-    backgroundColor: Colors.brand.beige,
-    width: 58,
-    height: 5,
-    borderRadius: 4,
-  },
-  background: {
-    backgroundColor: Colors.white,
   },
   title: {
     ...Typography.subhead,
