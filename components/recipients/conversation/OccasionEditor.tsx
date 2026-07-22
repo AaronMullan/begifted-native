@@ -19,6 +19,7 @@ import {
 } from "react-native-paper";
 import { Colors } from "../../../lib/colors";
 import { getNextOccurrence } from "../../../utils/occasion-dates";
+import { KEYBOARD_CTA_GAP } from "@/lib/constants";
 
 interface OccasionEditorProps {
   occasion: {
@@ -234,6 +235,7 @@ export function OccasionEditor({
         <KeyboardAvoidingView
           style={styles.modalOverlay}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={KEYBOARD_CTA_GAP}
         >
           <Pressable style={styles.dismissArea} onPress={Keyboard.dismiss}>
             <View style={styles.modalContent}>

@@ -20,6 +20,7 @@ import { Session } from "@supabase/supabase-js";
 import { Colors } from "../lib/colors";
 import { Typography, Radii } from "../lib/typography";
 import { Spacing } from "../lib/spacing";
+import { KEYBOARD_CTA_GAP } from "@/lib/constants";
 
 type FormData = {
   email: string;
@@ -152,6 +153,7 @@ export default function Auth() {
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={KEYBOARD_CTA_GAP}
     >
       <ScrollView
         style={styles.flex}

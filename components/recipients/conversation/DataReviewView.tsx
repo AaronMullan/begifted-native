@@ -15,6 +15,7 @@ import {
   isInvalidBirthdayInput,
 } from "@/utils/birthday";
 import { Spacing } from "@/lib/spacing";
+import { KEYBOARD_CTA_GAP } from "@/lib/constants";
 
 interface DataReviewViewProps {
   extractedData: ExtractedData;
@@ -87,6 +88,7 @@ export function DataReviewView({
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={KEYBOARD_CTA_GAP}
     >
       {/* Header */}
       <View style={styles.header}>

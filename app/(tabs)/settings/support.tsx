@@ -12,7 +12,11 @@ import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../../../lib/supabase";
-import { HEADER_HEIGHT, BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
+import {
+  HEADER_HEIGHT,
+  BOTTOM_NAV_HEIGHT,
+  KEYBOARD_CTA_GAP,
+} from "../../../lib/constants";
 import { Colors } from "../../../lib/colors";
 import { Typography } from "../../../lib/typography";
 import { Spacing } from "../../../lib/spacing";
@@ -150,6 +154,7 @@ export default function SupportSettings() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={KEYBOARD_CTA_GAP}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={styles.flex}>
