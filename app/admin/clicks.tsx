@@ -42,7 +42,7 @@ const ClicksScreen: React.FC = () => {
       </Text>
 
       {clicksQuery.error && (
-        <Card style={styles.errorCard}>
+        <Card mode="contained" style={styles.errorCard}>
           <Card.Content>
             <Text variant="bodyMedium" style={styles.errorText}>
               {(clicksQuery.error as Error).message}
@@ -109,7 +109,7 @@ const ClickCard: React.FC<{ click: OutboundClickRow }> = ({ click }) => {
   const platform = click.platform ?? "—";
 
   return (
-    <Card style={styles.clickCard}>
+    <Card mode="contained" style={styles.clickCard}>
       <Card.Content>
         <View style={styles.cardHeader}>
           <Text variant="titleSmall" style={styles.cardTitle}>

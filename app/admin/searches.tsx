@@ -71,7 +71,7 @@ const SearchesScreen: React.FC = () => {
       </Text>
 
       {runsQuery.error && (
-        <Card style={styles.errorCard}>
+        <Card mode="contained" style={styles.errorCard}>
           <Card.Content>
             <Text variant="bodyMedium" style={styles.errorText}>
               {(runsQuery.error as Error).message}
@@ -273,7 +273,7 @@ const RunCard: React.FC<{
   const runIdShort = `${run.run_id.slice(0, 8)}…`;
 
   return (
-    <Card style={styles.runCard}>
+    <Card mode="contained" style={styles.runCard}>
       <Card.Content>
         <View style={styles.runHeader}>
           <Text variant="titleSmall" style={styles.runTitle}>
