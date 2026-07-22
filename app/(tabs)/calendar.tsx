@@ -24,7 +24,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
 import { Radii, Typography } from "../../lib/typography";
-import { BOTTOM_NAV_HEIGHT } from "../../lib/constants";
+import { BOTTOM_NAV_HEIGHT, KEYBOARD_CTA_GAP } from "../../lib/constants";
 import { recipientMarkerColor } from "../../lib/recipient-color";
 import { useAuth } from "../../hooks/use-auth";
 import { useAllOccasions } from "../../hooks/use-occasions";
@@ -558,6 +558,7 @@ export default function Calendar() {
         <KeyboardAvoidingView
           style={dialogStyles.modalOverlay}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={KEYBOARD_CTA_GAP}
         >
           <Pressable
             style={styles.keyboardDismissArea}

@@ -22,6 +22,7 @@ import {
 } from "../../utils/birthday";
 import { cleanRelationship } from "../../lib/format-name";
 import { dialogStyles as styles } from "./recipient-dialog-styles";
+import { KEYBOARD_CTA_GAP } from "@/lib/constants";
 
 type InformationDialogProps = {
   visible: boolean;
@@ -98,6 +99,7 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
       <KeyboardAvoidingView
         style={styles.modalOverlay}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={KEYBOARD_CTA_GAP}
       >
         <Pressable style={styles.dismissArea} onPress={Keyboard.dismiss}>
           <View style={styles.modalContent}>
