@@ -49,20 +49,17 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
   const [zipCode, setZipCode] = useState(recipient.zip_code ?? "");
   const [saving, setSaving] = useState(false);
 
-  // Re-seed the editable fields when the dialog opens or its inputs change.
-  // Done during render (not in an effect) via stored previous values.
+  // Re-seed the editable fields only when the dialog opens — never while it's
+  // open. The detail screen polls the recipient after a save, and a background
+  // refetch that swaps the recipient object mid-edit must not wipe in-progress
+  // typing. Done during render (not in an effect) via the stored previous
+  // value; the bumped seed key remounts the inputs so defaultValue re-reads.
+  const [seedKey, setSeedKey] = useState(0);
   const [prevVisible, setPrevVisible] = useState(visible);
-  const [prevRecipient, setPrevRecipient] = useState(recipient);
-  const [prevSeededTone, setPrevSeededTone] = useState(seededTone);
-  if (
-    visible !== prevVisible ||
-    recipient !== prevRecipient ||
-    seededTone !== prevSeededTone
-  ) {
+  if (visible !== prevVisible) {
     setPrevVisible(visible);
-    setPrevRecipient(recipient);
-    setPrevSeededTone(seededTone);
     if (visible) {
+      setSeedKey(seedKey + 1);
       setTone(seededTone);
       setMinBudget(
         recipient.gift_budget_min != null
@@ -126,11 +123,16 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
                 style={styles.modalClose}
               />
             </View>
-            <View style={styles.modalBody}>
+            {/* Uncontrolled inputs (defaultValue, keyed remount per open):
+                forcing `value` back onto the native field on every keystroke
+                races iOS autocorrect's commit-on-space and drops typed spaces.
+                Native text is authoritative while open; state only feeds
+                Save. */}
+            <View style={styles.modalBody} key={seedKey}>
               <TextInput
                 mode="outlined"
                 label="Emotional tone"
-                value={tone}
+                defaultValue={tone}
                 onChangeText={setTone}
                 multiline
                 style={styles.input}
@@ -139,7 +141,7 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
                 <TextInput
                   mode="outlined"
                   label="Min $"
-                  value={minBudget}
+                  defaultValue={minBudget}
                   onChangeText={setMinBudget}
                   keyboardType="number-pad"
                   style={[styles.input, styles.budgetInput]}
@@ -147,7 +149,7 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
                 <TextInput
                   mode="outlined"
                   label="Max $"
-                  value={maxBudget}
+                  defaultValue={maxBudget}
                   onChangeText={setMaxBudget}
                   keyboardType="number-pad"
                   style={[styles.input, styles.budgetInput]}
@@ -156,14 +158,14 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
               <TextInput
                 mode="outlined"
                 label="Address"
-                value={address}
+                defaultValue={address}
                 onChangeText={setAddress}
                 style={styles.input}
               />
               <TextInput
                 mode="outlined"
                 label="Address line 2"
-                value={addressLine2}
+                defaultValue={addressLine2}
                 onChangeText={setAddressLine2}
                 style={styles.input}
               />
@@ -171,14 +173,14 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
                 <TextInput
                   mode="outlined"
                   label="City"
-                  value={city}
+                  defaultValue={city}
                   onChangeText={setCity}
                   style={[styles.input, styles.budgetInput]}
                 />
                 <TextInput
                   mode="outlined"
                   label="State"
-                  value={state}
+                  defaultValue={state}
                   onChangeText={setState}
                   style={[styles.input, styles.budgetInput]}
                 />
@@ -186,7 +188,7 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
               <TextInput
                 mode="outlined"
                 label="ZIP code"
-                value={zipCode}
+                defaultValue={zipCode}
                 onChangeText={setZipCode}
                 style={styles.input}
               />

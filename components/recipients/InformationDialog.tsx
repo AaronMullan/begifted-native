@@ -52,14 +52,17 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
   const [birthday, setBirthday] = useState(seedBirthday(recipient.birthday));
   const [saving, setSaving] = useState(false);
 
-  // Re-seed the editable fields when the dialog opens or its recipient changes.
-  // Done during render (not in an effect) via stored previous values.
+  // Re-seed the editable fields only when the dialog opens — never while it's
+  // open. The detail screen polls the recipient after a save, and a background
+  // refetch that swaps the recipient object mid-edit must not wipe in-progress
+  // typing. Done during render (not in an effect) via the stored previous
+  // value; the bumped seed key remounts the inputs so defaultValue re-reads.
+  const [seedKey, setSeedKey] = useState(0);
   const [prevVisible, setPrevVisible] = useState(visible);
-  const [prevRecipient, setPrevRecipient] = useState(recipient);
-  if (visible !== prevVisible || recipient !== prevRecipient) {
+  if (visible !== prevVisible) {
     setPrevVisible(visible);
-    setPrevRecipient(recipient);
     if (visible) {
+      setSeedKey(seedKey + 1);
       setName(recipient.name);
       setRelationshipType(cleanRelationship(recipient.relationship_type));
       setBirthday(seedBirthday(recipient.birthday));
@@ -114,25 +117,30 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
                 style={styles.modalClose}
               />
             </View>
-            <View style={styles.modalBody}>
+            {/* Uncontrolled inputs (defaultValue, keyed remount per open):
+                forcing `value` back onto the native field on every keystroke
+                races iOS autocorrect's commit-on-space and drops typed spaces.
+                Native text is authoritative while open; state only feeds
+                Save and validation. */}
+            <View style={styles.modalBody} key={seedKey}>
               <TextInput
                 mode="outlined"
                 label="Name"
-                value={name}
+                defaultValue={name}
                 onChangeText={setName}
                 style={styles.input}
               />
               <TextInput
                 mode="outlined"
                 label="Relationship"
-                value={relationshipType}
+                defaultValue={relationshipType}
                 onChangeText={setRelationshipType}
                 style={styles.input}
               />
               <TextInput
                 mode="outlined"
                 label="Birthday"
-                value={birthday}
+                defaultValue={birthday}
                 onChangeText={setBirthday}
                 placeholder="August 18, 1985 or August 18"
                 style={styles.input}
