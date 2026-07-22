@@ -56,7 +56,7 @@ const KillSwitchScreen: React.FC = () => {
       )}
 
       {config && (
-        <Card style={styles.card}>
+        <Card mode="contained" style={styles.card}>
           <Card.Content>
             <KillSwitchRow
               label="Gift Recommendations"
@@ -191,6 +191,7 @@ const styles = StyleSheet.create({
   card: {
     marginBottom: 8,
     borderRadius: 8,
+    backgroundColor: Colors.white,
   },
   row: {
     flexDirection: "row",

@@ -12,6 +12,7 @@ import {
   Badge,
 } from "react-native-paper";
 import type { CISPreview } from "@/hooks/use-prompt-playground";
+import { Colors } from "@/lib/colors";
 
 type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
@@ -99,7 +100,7 @@ export const CisCard: React.FC<CisCardProps> = ({
   }
 
   return (
-    <Card style={styles.card}>
+    <Card mode="contained" style={styles.card}>
       <Card.Content>
         <View style={styles.cardTitleRow}>
           <View style={styles.cisTitleGroup}>
@@ -488,6 +489,7 @@ const styles = StyleSheet.create({
   card: {
     marginBottom: 12,
     borderRadius: 12,
+    backgroundColor: Colors.white,
   },
   cardTitleRow: {
     flexDirection: "row",

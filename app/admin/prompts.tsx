@@ -112,7 +112,7 @@ const PromptsScreen: React.FC = () => {
           <Text variant="titleMedium" style={styles.sectionTitle}>
             Active Version
           </Text>
-          <Card style={styles.activeCard}>
+          <Card mode="contained" style={styles.activeCard}>
             <Card.Content>
               <View style={styles.versionHeader}>
                 <Text variant="titleSmall">Version {active.version}</Text>
@@ -160,6 +160,7 @@ const PromptsScreen: React.FC = () => {
       {historyQuery.isLoading && <ActivityIndicator />}
       {versions.map((version: SystemPromptVersion) => (
         <Card
+          mode="contained"
           key={version.id}
           style={[
             styles.versionCard,
@@ -272,12 +273,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   activeCard: {
+    backgroundColor: Colors.white,
     marginBottom: 12,
     borderWidth: 2,
     borderColor: Colors.blues.teal,
     borderRadius: 8,
   },
   versionCard: {
+    backgroundColor: Colors.white,
     marginBottom: 8,
     borderRadius: 8,
   },
