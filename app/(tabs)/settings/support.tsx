@@ -7,7 +7,7 @@ import {
   Platform,
   TouchableWithoutFeedback,
 } from "react-native";
-import { Text, TextInput, IconButton, Button } from "react-native-paper";
+import { Text, TextInput, IconButton } from "react-native-paper";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,6 +18,7 @@ import { Typography } from "../../../lib/typography";
 import { Spacing } from "../../../lib/spacing";
 import type { Session } from "@supabase/supabase-js";
 import { showSnackbar } from "../../../components/GlobalSnackbar";
+import { PrimaryCta } from "../../../components/PrimaryCta";
 
 // v4 "input/text-field": label above the box, white fill, sharp corners, no
 // stroke — so the Paper input runs flat with its own label suppressed.
@@ -135,16 +136,11 @@ export default function SupportSettings() {
             Thanks — we received your message. We&apos;ll get back to you within
             3 business days.
           </Text>
-          <Button
-            mode="contained"
-            buttonColor={Colors.brand.darkTeal}
-            textColor={Colors.white}
+          <PrimaryCta
+            label="Done"
             onPress={() => router.back()}
             style={styles.sendButton}
-            labelStyle={styles.sendButtonText}
-          >
-            Done
-          </Button>
+          />
         </View>
       </View>
     );
@@ -194,18 +190,13 @@ export default function SupportSettings() {
                 multiline
               />
 
-              <Button
-                mode="contained"
-                buttonColor={Colors.brand.darkTeal}
-                textColor={Colors.white}
+              <PrimaryCta
+                label="Send message"
+                state={sending ? "loading" : "idle"}
                 disabled={!canSend}
-                loading={sending}
                 onPress={handleSend}
                 style={styles.sendButton}
-                labelStyle={styles.sendButtonText}
-              >
-                Send message
-              </Button>
+              />
             </View>
           </ScrollView>
         </View>
@@ -286,16 +277,7 @@ const styles = StyleSheet.create({
     ...Typography.subhead,
   },
   sendButton: {
-    alignSelf: "center",
-    width: 170,
-    height: 46,
-    borderRadius: 24,
-    justifyContent: "center",
     marginTop: Spacing.fieldToCta,
-  },
-  sendButtonText: {
-    ...Typography.largeCta,
-    color: Colors.white,
   },
   loadingText: {
     ...Typography.subhead,
