@@ -1,12 +1,9 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Button, Snackbar, Text } from "react-native-paper";
-import {
-  BottomSheetBackdrop,
-  BottomSheetModal,
-  BottomSheetScrollView,
-  BottomSheetTextInput,
-} from "@gorhom/bottom-sheet";
+import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
+import type { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { AppDrawer } from "../AppDrawer";
 import type { BetaCheckInScreen } from "../../lib/api";
 import { useSubmitBetaFeedback } from "../../hooks/use-submit-beta-feedback";
 import { Colors } from "../../lib/colors";
@@ -98,96 +95,82 @@ export default function BetaCheckInSheet({
 
   return (
     <>
-      <BottomSheetModal
-        ref={sheetRef}
-        enableDynamicSizing
+      <AppDrawer
+        sheetRef={sheetRef}
         onDismiss={handleDismiss}
-        backdropComponent={(props) => (
-          <BottomSheetBackdrop
-            {...props}
-            appearsOnIndex={0}
-            disappearsOnIndex={-1}
-            pressBehavior="close"
-          />
-        )}
-        keyboardBehavior="interactive"
-        keyboardBlurBehavior="restore"
-        android_keyboardInputMode="adjustResize"
-        handleIndicatorStyle={styles.handle}
         backgroundStyle={styles.background}
+        contentContainerStyle={styles.content}
       >
-        <BottomSheetScrollView contentContainerStyle={styles.content}>
-          {config && (
-            <>
-              <Text style={styles.eyebrow}>Quick beta check-in</Text>
-              <Text style={styles.heading}>{config.heading}</Text>
-              <Text style={styles.subtext}>{config.subtext}</Text>
+        {config && (
+          <>
+            <Text style={styles.eyebrow}>Quick beta check-in</Text>
+            <Text style={styles.heading}>{config.heading}</Text>
+            <Text style={styles.subtext}>{config.subtext}</Text>
 
-              {config.radios.map((question) => (
-                <View key={question.id} style={styles.question}>
-                  <Text style={styles.questionLabel}>{question.label}</Text>
-                  <View style={styles.pills}>
-                    {question.options.map((option) => {
-                      const selected = answers[question.id] === option.value;
-                      return (
-                        <Pressable
-                          key={option.value}
-                          onPress={() =>
-                            setAnswers((prev) => ({
-                              ...prev,
-                              [question.id]: option.value,
-                            }))
-                          }
-                          disabled={submit.isPending}
-                          accessibilityRole="radio"
-                          accessibilityState={{ selected }}
-                          accessibilityLabel={option.label}
-                          style={[styles.pill, selected && styles.pillSelected]}
-                        >
-                          <Text style={styles.pillLabel}>{option.label}</Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
+            {config.radios.map((question) => (
+              <View key={question.id} style={styles.question}>
+                <Text style={styles.questionLabel}>{question.label}</Text>
+                <View style={styles.pills}>
+                  {question.options.map((option) => {
+                    const selected = answers[question.id] === option.value;
+                    return (
+                      <Pressable
+                        key={option.value}
+                        onPress={() =>
+                          setAnswers((prev) => ({
+                            ...prev,
+                            [question.id]: option.value,
+                          }))
+                        }
+                        disabled={submit.isPending}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected }}
+                        accessibilityLabel={option.label}
+                        style={[styles.pill, selected && styles.pillSelected]}
+                      >
+                        <Text style={styles.pillLabel}>{option.label}</Text>
+                      </Pressable>
+                    );
+                  })}
                 </View>
-              ))}
+              </View>
+            ))}
 
-              {config.freeText && (
-                <View style={styles.question}>
-                  <Text style={styles.questionLabel}>
-                    {config.freeText.label}
-                  </Text>
-                  <BottomSheetTextInput
-                    value={freeText}
-                    onChangeText={setFreeText}
-                    placeholder={config.freeText.placeholder}
-                    placeholderTextColor={Colors.brand.beige}
-                    editable={!submit.isPending}
-                    style={styles.freeTextField}
-                  />
-                </View>
-              )}
+            {config.freeText && (
+              <View style={styles.question}>
+                <Text style={styles.questionLabel}>
+                  {config.freeText.label}
+                </Text>
+                <BottomSheetTextInput
+                  value={freeText}
+                  onChangeText={setFreeText}
+                  placeholder={config.freeText.placeholder}
+                  placeholderTextColor={Colors.brand.beige}
+                  editable={!submit.isPending}
+                  style={styles.freeTextField}
+                />
+              </View>
+            )}
 
-              <Button
-                mode="contained"
-                onPress={handleSend}
-                loading={submit.isPending}
-                disabled={submit.isPending}
-                buttonColor={Colors.brand.gold}
-                textColor={Colors.white}
-                style={styles.cta}
-                contentStyle={styles.ctaContent}
-                labelStyle={styles.ctaLabel}
-              >
-                Send feedback
-              </Button>
-              <Text style={styles.footnote}>
-                Answer this quick check-in to continue.
-              </Text>
-            </>
-          )}
-        </BottomSheetScrollView>
-      </BottomSheetModal>
+            <Button
+              mode="contained"
+              onPress={handleSend}
+              loading={submit.isPending}
+              disabled={submit.isPending}
+              buttonColor={Colors.brand.gold}
+              textColor={Colors.white}
+              style={styles.cta}
+              contentStyle={styles.ctaContent}
+              labelStyle={styles.ctaLabel}
+            >
+              Send feedback
+            </Button>
+            <Text style={styles.footnote}>
+              Answer this quick check-in to continue.
+            </Text>
+          </>
+        )}
+      </AppDrawer>
       <Snackbar
         visible={errorVisible}
         onDismiss={() => setErrorVisible(false)}
@@ -203,12 +186,6 @@ const styles = StyleSheet.create({
   // Dark card: the design fills the sheet body with near-black behind white text.
   background: {
     backgroundColor: Colors.black,
-  },
-  handle: {
-    backgroundColor: Colors.brand.beige,
-    width: 58,
-    height: 5,
-    borderRadius: 4,
   },
   content: {
     paddingHorizontal: 26,
