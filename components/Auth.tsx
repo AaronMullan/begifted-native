@@ -11,6 +11,7 @@ import { useForm, Controller } from "react-hook-form";
 import { supabase, EMAIL_CONFIRM_REDIRECT_URL } from "../lib/supabase";
 import { fetchAppConfig } from "../lib/api";
 import LegalAcceptanceCheckbox from "./LegalAcceptanceCheckbox";
+import { PrimaryCta } from "./PrimaryCta";
 import {
   markPendingLegalAcceptance,
   recordLegalAcceptance,
@@ -258,15 +259,12 @@ export default function Auth() {
 
           {/* Submit Button */}
           <View style={[styles.verticallySpaced, styles.mt20]}>
-            <Button
-              mode="contained"
-              disabled={loading || (isSignUp && !acceptedLegal)}
-              loading={loading}
+            <PrimaryCta
+              label={isSignUp ? "Create Account" : "Sign In"}
+              state={loading ? "loading" : "idle"}
+              disabled={isSignUp && !acceptedLegal}
               onPress={handleSubmit(isSignUp ? handleSignUp : handleSignIn)}
-              style={styles.button}
-            >
-              {isSignUp ? "Create Account" : "Sign In"}
-            </Button>
+            />
             <Button
               mode="text"
               disabled={loading}
