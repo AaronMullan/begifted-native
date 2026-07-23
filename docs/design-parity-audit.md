@@ -1,5 +1,9 @@
 # Design Parity Audit — Figma Dev Mode (DEV-161)
 
+> **See also:** [`design-parity-audit-2026-07.md`](./design-parity-audit-2026-07.md) — the
+> screen-level follow-up audit (DEV-315): which screens actually render the redesign vs
+> legacy styling. This document remains the token-level reference.
+
 **Date:** 2026-06-09
 **Canonical file:** `BeGifted pages_FINAL_for-dev` — `SUQTk93YAXlLo7NxkXC7Br`
 **Superseded file:** `vKruEWmOFcWGuYC8nHfsOU` ("BeGifted pages_2")
