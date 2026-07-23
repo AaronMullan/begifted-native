@@ -97,7 +97,7 @@ export function ManualDataEntry({
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={KEYBOARD_CTA_GAP}
     >
       <Pressable style={styles.container} onPress={Keyboard.dismiss}>

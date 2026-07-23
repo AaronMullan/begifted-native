@@ -13,11 +13,17 @@
       "ios": {
         "simulator": false,
         "autoIncrement": true
+      },
+      "android": {
+        "autoIncrement": true
       }
     },
     "production": {
       "distribution": "store",
       "ios": {
+        "autoIncrement": true
+      },
+      "android": {
         "autoIncrement": true
       }
     }

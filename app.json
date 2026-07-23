@@ -18,6 +18,8 @@
       }
     },
     "android": {
+      "package": "com.begifted.app",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -36,7 +38,10 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#7da4b0"
+          "backgroundColor": "#7da4b0",
+          "android": {
+            "image": "./assets/images/splash-blank.png"
+          }
         }
       ],
       "expo-font",

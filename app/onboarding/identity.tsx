@@ -81,7 +81,7 @@ export default function OnboardingIdentity() {
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={KEYBOARD_CTA_GAP}
     >
       <Pressable style={styles.flex} onPress={Keyboard.dismiss}>

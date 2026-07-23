@@ -76,22 +76,28 @@ export function ConversationView({
     const hideEvent =
       Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
 
+    // Manual padding is iOS-only: Android's adjustResize already shrinks the
+    // window, so adding keyboard-height padding there double-lifts the composer.
     const showSub = Keyboard.addListener(showEvent, (e) => {
       setIsKeyboardVisible(true);
-      Animated.timing(keyboardOffset, {
-        toValue: e.endCoordinates.height,
-        duration: e.duration || 250,
-        useNativeDriver: false,
-      }).start();
+      if (Platform.OS === "ios") {
+        Animated.timing(keyboardOffset, {
+          toValue: e.endCoordinates.height,
+          duration: e.duration || 250,
+          useNativeDriver: false,
+        }).start();
+      }
     });
 
     const hideSub = Keyboard.addListener(hideEvent, (e) => {
       setIsKeyboardVisible(false);
-      Animated.timing(keyboardOffset, {
-        toValue: 0,
-        duration: e.duration || 250,
-        useNativeDriver: false,
-      }).start();
+      if (Platform.OS === "ios") {
+        Animated.timing(keyboardOffset, {
+          toValue: 0,
+          duration: e.duration || 250,
+          useNativeDriver: false,
+        }).start();
+      }
     });
 
     return () => {

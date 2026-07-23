@@ -555,7 +555,7 @@ export default function Calendar() {
       >
         <KeyboardAvoidingView
           style={dialogStyles.modalOverlay}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
           keyboardVerticalOffset={KEYBOARD_CTA_GAP}
         >
           <Pressable

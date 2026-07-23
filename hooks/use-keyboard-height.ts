@@ -10,16 +10,16 @@ export function useKeyboardHeight(): number {
   const [height, setHeight] = useState(0);
 
   useEffect(() => {
-    // "will" events only fire on iOS; Android must use "did".
-    const showEvent =
-      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvent =
-      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    // Android's adjustResize resizes the whole window (Portals included), so
+    // JS-side compensation would double-count the keyboard; report 0 there.
+    if (Platform.OS !== "ios") {
+      return;
+    }
 
-    const showSub = Keyboard.addListener(showEvent, (e) => {
+    const showSub = Keyboard.addListener("keyboardWillShow", (e) => {
       setHeight(e.endCoordinates.height);
     });
-    const hideSub = Keyboard.addListener(hideEvent, () => {
+    const hideSub = Keyboard.addListener("keyboardWillHide", () => {
       setHeight(0);
     });
 

@@ -1,0 +1,1 @@
+- The app now builds and runs on Android: keyboard no longer double-lifts the chat composer or input screens, the hardware back button dismisses the contact picker, status bar icons stay legible, and the notifications screen renders its blur effect (android-support).
