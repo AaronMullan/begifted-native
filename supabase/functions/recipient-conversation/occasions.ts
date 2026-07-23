@@ -13,7 +13,9 @@ import {
   normalizeRelationship,
 } from "./relationships.ts";
 import { deriveCoreOccasions } from "./core-occasions.ts";
+import type { CoreOccasionCandidate } from "./core-occasions.ts";
 import { buildDiscoveryAnchors } from "./discovery-anchors.ts";
+import type { DiscoveryAnchor } from "./discovery-anchors.ts";
 import { finalizeOccasionRecommendations } from "./occasion-validation.ts";
 import type {
   OccasionRecommendation,
@@ -21,6 +23,37 @@ import type {
 } from "./occasion-validation.ts";
 
 export type { OccasionRecommendation, OccasionRecommendations };
+
+/**
+ * Deterministic run context echoed back on every response so playground runs
+ * persist their exact inputs (prompt_test_runs stores the whole response) and
+ * production runs can be reconstructed from edge logs. Custom-prompt failures
+ * are otherwise invisible: the required-candidate fallback masks them.
+ */
+export interface OccasionRunDebug {
+  promptSource: "custom" | "default";
+  /** {{tokens}} left unsubstituted in the final prompt — a custom-prompt contract mismatch. */
+  unresolvedPlaceholders: string[];
+  relationship: string;
+  knownRoles: string[];
+  coreOccasionCandidates: CoreOccasionCandidate[];
+  availableDiscoveryAnchors: DiscoveryAnchor[];
+  rawModelOutput: string | null;
+  fallbackReason: "ai_error" | "parse_error" | null;
+}
+
+/**
+ * Substitute a template token everywhere it appears. Custom prompts written
+ * against the DEV-310 Slack spec use different token names for the same data
+ * (e.g. {{coreOccasionCandidates}}), so each value may carry alias tokens.
+ */
+function substitute(template: string, tokens: Record<string, string>): string {
+  let result = template;
+  for (const [token, value] of Object.entries(tokens)) {
+    result = result.replaceAll(token, value);
+  }
+  return result;
+}
 
 /**
  * Recommend occasions for a recipient (DEV-310 architecture).
@@ -37,7 +70,7 @@ export async function recommendOccasions(
   extractedData: ExtractedData | RecipientData,
   customSystemPrompt?: string,
   aiOverride?: AIOverride
-): Promise<OccasionRecommendations> {
+): Promise<OccasionRecommendations & { debug: OccasionRunDebug }> {
   const aiConfig = await resolveAIConfig(aiOverride, "gpt-5.4-mini");
   const name = extractedData.name || "this person";
   const relationship = normalizeRelationship(
@@ -186,19 +219,48 @@ Return JSON only, no markdown:
     );
   }
 
-  const prompt = promptTemplate
-    .replace("{{today}}", today)
-    .replace("{{name}}", name)
-    .replace("{{relationship}}", relationship)
-    .replace("{{birthday}}", birthdayStr)
-    .replace("{{knownRoles}}", knownRolesStr)
-    .replace("{{householdContext}}", householdContextStr)
-    .replace("{{importantDates}}", importantDatesStr)
-    .replace("{{knownOccasions}}", knownOccasionsStr)
-    .replace("{{culturalContext}}", culturalContextStr)
-    .replace("{{interests}}", interestsStr)
-    .replace("{{coreCandidates}}", coreCandidatesStr)
-    .replace("{{availableDiscoveryAnchors}}", discoveryAnchorsStr);
+  const knownOccasionsJson = JSON.stringify(knownOccasions);
+
+  const prompt = substitute(promptTemplate, {
+    "{{today}}": today,
+    "{{name}}": name,
+    "{{relationship}}": relationship,
+    "{{birthday}}": birthdayStr,
+    "{{knownRoles}}": knownRolesStr,
+    "{{householdContext}}": householdContextStr,
+    "{{importantDates}}": importantDatesStr,
+    "{{knownOccasions}}": knownOccasionsStr,
+    "{{culturalContext}}": culturalContextStr,
+    "{{interests}}": interestsStr,
+    "{{coreCandidates}}": coreCandidatesStr,
+    // Aliases from the DEV-310 spec — custom prompts drafted against it use
+    // these names; leaving them unsubstituted starves the model of the
+    // candidate list and every run degrades to the required-only fallback.
+    "{{coreOccasionCandidates}}": coreCandidatesStr,
+    "{{existingOccasions}}": knownOccasionsJson,
+    "{{availableDiscoveryAnchors}}": discoveryAnchorsStr,
+  });
+
+  const unresolvedPlaceholders = [
+    ...new Set(prompt.match(/\{\{[a-zA-Z0-9_]+\}\}/g) ?? []),
+  ];
+  if (unresolvedPlaceholders.length > 0) {
+    console.warn(
+      "recommendOccasions unresolved placeholders:",
+      unresolvedPlaceholders.join(", ")
+    );
+  }
+
+  const debug: OccasionRunDebug = {
+    promptSource: customSystemPrompt ? "custom" : "default",
+    unresolvedPlaceholders,
+    relationship,
+    knownRoles,
+    coreOccasionCandidates: coreCandidates,
+    availableDiscoveryAnchors: discoveryAnchors,
+    rawModelOutput: null,
+    fallbackReason: null,
+  };
 
   let occasionsRaw: string;
   try {
@@ -218,26 +280,39 @@ Return JSON only, no markdown:
     // Deterministic fallback: required core candidates with stock copy, no
     // discovery. No generic-holiday filler (DEV-158) — required candidates
     // are relationship-derived, not padding.
-    return finalizeOccasionRecommendations(
-      coreCandidates.filter((c) => c.required),
-      discoveryAnchors,
-      {}
-    );
+    debug.fallbackReason = "ai_error";
+    return {
+      ...finalizeOccasionRecommendations(
+        coreCandidates.filter((c) => c.required),
+        discoveryAnchors,
+        {}
+      ),
+      debug,
+    };
   }
+
+  debug.rawModelOutput = occasionsRaw;
 
   try {
     const parsed = parseOpenAIJSON(occasionsRaw);
-    return finalizeOccasionRecommendations(
-      coreCandidates,
-      discoveryAnchors,
-      parsed
-    );
+    return {
+      ...finalizeOccasionRecommendations(
+        coreCandidates,
+        discoveryAnchors,
+        parsed
+      ),
+      debug,
+    };
   } catch (e) {
     console.error("recommendOccasions parse error:", e);
-    return finalizeOccasionRecommendations(
-      coreCandidates.filter((c) => c.required),
-      discoveryAnchors,
-      {}
-    );
+    debug.fallbackReason = "parse_error";
+    return {
+      ...finalizeOccasionRecommendations(
+        coreCandidates.filter((c) => c.required),
+        discoveryAnchors,
+        {}
+      ),
+      debug,
+    };
   }
 }
