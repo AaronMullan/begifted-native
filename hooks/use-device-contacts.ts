@@ -1,5 +1,7 @@
 import { useState } from "react";
-import * as Contacts from "expo-contacts";
+// SDK 57 turned the main entry's legacy methods (getContactsAsync, etc.) into
+// stubs that throw at runtime; the working implementations live under /legacy.
+import * as Contacts from "expo-contacts/legacy";
 import * as Sentry from "@sentry/react-native";
 import { Platform } from "react-native";
 
