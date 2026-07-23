@@ -455,7 +455,7 @@ export default function Calendar() {
             </Text>
           </Dialog.Title>
           <Dialog.Content>
-            <Text variant="headlineSmall">
+            <Text style={styles.dialogHeadline}>
               Delete{" "}
               {occasionToDelete ? formatOccasionTitle(occasionToDelete) : ""}?
             </Text>
@@ -470,8 +470,8 @@ export default function Calendar() {
             </Button>
             <Button
               mode="contained"
-              buttonColor="#cc0000"
-              textColor="#fff"
+              buttonColor={Colors.brand.destructiveRed}
+              textColor={Colors.white}
               onPress={handleConfirmDelete}
               loading={deleteOccasion.isPending}
               style={styles.dialogButton}
@@ -491,9 +491,7 @@ export default function Calendar() {
             </Text>
           </Dialog.Title>
           <Dialog.Content>
-            <Text variant="headlineSmall" style={styles.pickerHeadline}>
-              Choose a recipient
-            </Text>
+            <Text style={styles.pickerHeadline}>Choose a recipient</Text>
             {pickerRecipients.length === 0 ? (
               <Text variant="bodyMedium" style={styles.pickerEmpty}>
                 {recipients.length === 0
@@ -570,7 +568,7 @@ export default function Calendar() {
                   <Text variant="bodySmall" style={styles.dialogLabel}>
                     Add Occasion
                   </Text>
-                  <Text variant="headlineSmall" style={styles.pickerHeadline}>
+                  <Text style={styles.pickerHeadline}>
                     {occasionEntryRecipient?.name}
                     {occasionEntryDate
                       ? ` · ${formatOccasionDate(occasionEntryDate)}`
@@ -750,14 +748,18 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   loadingText: {
-    color: Colors.darks.black,
+    color: Colors.brand.darkTeal,
     opacity: 0.8,
   },
   dialog: {
     borderRadius: 16,
   },
   dialogLabel: {
-    color: "#595959",
+    color: Colors.brand.mediumTeal,
+  },
+  dialogHeadline: {
+    ...Typography.h2,
+    color: Colors.brand.darkTeal,
   },
   dialogActions: {
     flexDirection: "row",
@@ -783,6 +785,8 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   pickerHeadline: {
+    ...Typography.h2,
+    color: Colors.brand.darkTeal,
     marginBottom: 12,
   },
   occasionChips: {
@@ -799,7 +803,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   pickerEmpty: {
-    color: "#888",
+    color: Colors.brand.mediumTeal,
     textAlign: "center",
     paddingVertical: 16,
   },

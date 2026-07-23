@@ -45,8 +45,8 @@ export const dialogStyles = StyleSheet.create({
   },
   modalTitle: {
     flex: 1,
-    fontFamily: FontFamily.fraunces.semibold,
-    color: Colors.blues.dark,
+    fontFamily: FontFamily.serif.semibold,
+    color: Colors.brand.darkTeal,
   },
   modalBody: {
     paddingHorizontal: 16,
