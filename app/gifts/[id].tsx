@@ -92,7 +92,7 @@ export default function GiftIdeasPage() {
   if (isLoading && suggestions.length === 0) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.blues.dark} />
+        <ActivityIndicator size="large" color={Colors.brand.darkTeal} />
       </View>
     );
   }

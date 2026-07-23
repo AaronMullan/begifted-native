@@ -599,7 +599,7 @@ export default function RecipientEditPage() {
             <MaterialIcons
               name="chevron-left"
               size={28}
-              color={Colors.blues.dark}
+              color={Colors.brand.darkTeal}
             />
           </Pressable>
           <Text style={styles.heroTitle}>{shortName}&apos;s Gift Ideas</Text>
@@ -619,7 +619,7 @@ export default function RecipientEditPage() {
             icon="chevron-left"
             size={28}
             onPress={() => setActiveTab("gifts")}
-            iconColor={Colors.blues.dark}
+            iconColor={Colors.brand.darkTeal}
             accessibilityLabel="Back to Gift Ideas"
           />
         </View>
@@ -732,7 +732,7 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     ...Typography.h1,
-    color: Colors.blues.dark,
+    color: Colors.brand.darkTeal,
     marginBottom: 6,
   },
   aboutLink: {

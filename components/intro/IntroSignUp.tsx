@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   error: {
-    color: Colors.pinks.medium,
+    color: Colors.brand.rose,
     marginTop: 4,
   },
   info: {

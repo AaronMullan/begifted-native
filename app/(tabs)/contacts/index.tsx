@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   loadingText: {
     fontFamily: FontFamily.body.regular,
     textAlign: "center",
-    color: Colors.darks.black,
+    color: Colors.black,
     opacity: 0.7,
   },
   emptyState: {
@@ -196,11 +196,11 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     ...Typography.h3,
-    color: Colors.blues.dark,
+    color: Colors.brand.darkTeal,
   },
   emptySubtext: {
     ...Typography.subhead,
-    color: Colors.darks.black,
+    color: Colors.black,
     opacity: 0.7,
   },
   // Figma 4641:4554: 44pt from the CTA to the first row (content gap 20 +

@@ -3,6 +3,7 @@ import { View, ActivityIndicator, StyleSheet, Text } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "../../../hooks/use-auth";
 import { Typography } from "../../../lib/typography";
+import { Colors } from "../../../lib/colors";
 import { useAddRecipientFlow } from "../../../hooks/use-add-recipient-flow";
 import { ConversationView } from "../../../components/recipients/conversation/ConversationView";
 import AddRecipientLegalNotice from "../../../components/recipients/AddRecipientLegalNotice";
@@ -158,7 +159,7 @@ const AddRecipientFlow = ({ seed, onAddAnother }: AddRecipientFlowProps) => {
   if (authLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#000000" />
+        <ActivityIndicator size="large" color={Colors.black} />
         <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
@@ -243,7 +244,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     ...Typography.subhead,
-    color: "#666",
+    color: Colors.grays.text,
   },
   container: {
     padding: Spacing.marginStandard,

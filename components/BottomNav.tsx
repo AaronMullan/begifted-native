@@ -75,7 +75,7 @@ export default function BottomNav() {
         <View style={styles.navContent}>
           {NAV_ITEMS.map((item) => {
             const isActive = isRouteActive(item, pathname);
-            const tint = isActive ? Colors.blues.dark : Colors.white;
+            const tint = isActive ? Colors.brand.darkTeal : Colors.white;
             return (
               <Link key={item.key} href={item.href} asChild>
                 <Pressable
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
   container: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: "rgba(255,255,255,0.15)",
-    backgroundColor: Colors.blues.medium,
+    backgroundColor: Colors.brand.mediumTeal,
     // Center the nav row vertically in the full bar height (base + safe area).
     justifyContent: "center",
   },

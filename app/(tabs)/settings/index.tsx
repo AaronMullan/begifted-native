@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     textAlign: "center",
-    color: Colors.darks.black,
+    color: Colors.black,
     opacity: 0.7,
   },
 });
