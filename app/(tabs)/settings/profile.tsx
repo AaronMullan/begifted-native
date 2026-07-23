@@ -332,17 +332,15 @@ export default function ProfileSettings() {
               {/* Header section */}
               <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                  <Text variant="headlineMedium" style={styles.title}>
-                    Account Info
-                  </Text>
-                  <Text variant="bodyLarge" style={styles.subtitle}>
+                  <Text style={styles.title}>Account Info</Text>
+                  <Text style={styles.subtitle}>
                     Manage your personal information
                   </Text>
                 </View>
                 <IconButton
                   icon="arrow-left"
                   size={20}
-                  iconColor="#000000"
+                  iconColor={Colors.brand.darkTeal}
                   onPress={() => router.back()}
                   style={styles.backButton}
                 />
@@ -487,7 +485,7 @@ export default function ProfileSettings() {
 
               <Button
                 mode="text"
-                textColor={Colors.pinks.dark}
+                textColor={Colors.brand.destructiveRed}
                 onPress={() => setConfirmDeleteVisible(true)}
                 style={styles.deleteButton}
               >
@@ -566,7 +564,7 @@ export default function ProfileSettings() {
               Keep my account
             </Button>
             <Button
-              textColor={Colors.pinks.dark}
+              textColor={Colors.brand.destructiveRed}
               onPress={handleDeleteAccount}
               loading={deleting}
               disabled={deleting}
@@ -612,10 +610,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
+    ...Typography.h2,
+    color: Colors.brand.darkTeal,
     marginBottom: 8,
   },
   subtitle: {
-    color: "#666",
+    ...Typography.copyblock,
+    color: Colors.brand.mediumTeal,
   },
   // 44pt min tap target (HIG); transparent container, 20pt icon unchanged.
   backButton: {
@@ -646,7 +647,7 @@ const styles = StyleSheet.create({
   },
   photoHint: {
     marginTop: 8,
-    color: Colors.grays.text,
+    color: Colors.brand.mediumTeal,
   },
   section: {
     marginBottom: Spacing.formSectionGap,
@@ -662,14 +663,14 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sectionHeadToModule,
   },
   saveStatus: {
-    color: "#666",
+    color: Colors.brand.mediumTeal,
   },
   saveStatusError: {
-    color: Colors.pinks.dark,
+    color: Colors.brand.rose,
   },
   sectionSubtitle: {
     marginBottom: 20,
-    color: "#666",
+    color: Colors.brand.mediumTeal,
   },
   fieldContainer: {
     marginBottom: Spacing.fieldGap,
@@ -690,7 +691,7 @@ const styles = StyleSheet.create({
   },
   emailNote: {
     marginTop: 4,
-    color: "#999",
+    color: Colors.brand.mediumTeal,
   },
   changePasswordButton: {
     marginTop: 4,
@@ -703,6 +704,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     textAlign: "center",
-    color: "#666",
+    color: Colors.brand.mediumTeal,
   },
 });
