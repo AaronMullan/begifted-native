@@ -28,7 +28,7 @@ export default function Dashboard() {
       <View style={styles.container}>
         <GradientBackground />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.darks.black} />
+          <ActivityIndicator size="large" color={Colors.black} />
           <Text variant="bodyMedium" style={styles.loadingText}>
             Loading...
           </Text>
@@ -58,7 +58,7 @@ export default function Dashboard() {
       <View style={styles.container}>
         <GradientBackground />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.darks.black} />
+          <ActivityIndicator size="large" color={Colors.black} />
           <Text variant="bodyMedium" style={styles.loadingText}>
             Loading dashboard...
           </Text>
@@ -146,14 +146,14 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    color: "#666",
+    color: Colors.grays.text,
   },
   signInTitle: {
     marginBottom: 8,
-    color: Colors.darks.black,
+    color: Colors.black,
   },
   emptyText: {
-    color: Colors.darks.black,
+    color: Colors.black,
     opacity: 0.7,
     textAlign: "center",
     paddingVertical: 40,

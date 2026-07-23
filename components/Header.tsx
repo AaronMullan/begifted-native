@@ -52,11 +52,7 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
             style={styles.bugButton}
             onPress={() => openBugReport("header")}
           >
-            <MaterialIcons
-              name="bug-report"
-              size={24}
-              color={Colors.darks.black}
-            />
+            <MaterialIcons name="bug-report" size={24} color={Colors.black} />
           </Pressable>
           <Link href="/settings" asChild>
             <Pressable

@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
   loadingText: {
     ...Typography.subhead,
     textAlign: "center",
-    color: Colors.darks.black,
+    color: Colors.black,
     opacity: 0.9,
   },
 });
