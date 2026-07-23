@@ -134,17 +134,14 @@ export default function Auth() {
   if (session && session.user) {
     return (
       <View style={styles.container}>
-        <Text variant="titleLarge" style={styles.welcomeText}>
+        <Text style={[Typography.h2, styles.welcomeText]}>
           Welcome, {session.user.email}!
         </Text>
-        <Button
-          mode="contained"
-          buttonColor="#000000"
+        <PrimaryCta
+          label="Sign Out"
           onPress={signOut}
           style={styles.signOutButton}
-        >
-          Sign Out
-        </Button>
+        />
       </View>
     );
   }
@@ -162,10 +159,10 @@ export default function Auth() {
         keyboardDismissMode="on-drag"
       >
         <View style={styles.container}>
-          <Text variant="headlineSmall" style={styles.title}>
-            {isSignUp ? "Create Account" : "Sign In"}
+          <Text style={[Typography.h1, styles.title]}>
+            {isSignUp ? "Create an account" : "Welcome back"}
           </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
+          <Text style={[Typography.copyblock, styles.subtitle]}>
             {isSignUp
               ? "Enter your email and a password to get started"
               : "Sign in with your email and password"}
@@ -204,7 +201,7 @@ export default function Auth() {
               Email
             </Text>
             {errors.email && (
-              <Text variant="bodySmall" style={styles.errorText}>
+              <Text style={[Typography.caption, styles.errorText]}>
                 {errors.email.message}
               </Text>
             )}
@@ -242,7 +239,7 @@ export default function Auth() {
               Password (min 6 characters)
             </Text>
             {errors.password && (
-              <Text variant="bodySmall" style={styles.errorText}>
+              <Text style={[Typography.caption, styles.errorText]}>
                 {errors.password.message}
               </Text>
             )}
@@ -268,6 +265,7 @@ export default function Auth() {
             />
             <Button
               mode="text"
+              textColor={Colors.brand.darkTeal}
               disabled={loading}
               onPress={() => {
                 setIsSignUp((prev) => !prev);
@@ -290,8 +288,8 @@ export default function Auth() {
               ]}
             >
               <Text
-                variant="bodyMedium"
                 style={[
+                  Typography.copyblock,
                   styles.messageText,
                   message.includes("Error") && styles.errorMessageText,
                 ]}
@@ -321,11 +319,11 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   title: {
+    color: Colors.brand.darkTeal,
     marginBottom: 8,
-    textAlign: "center",
   },
   subtitle: {
-    textAlign: "center",
+    color: Colors.brand.darkTeal,
     marginBottom: 20,
   },
   verticallySpaced: {
@@ -347,7 +345,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   errorText: {
-    color: "#FF3B30",
+    color: Colors.brand.rose,
     marginTop: 4,
     marginLeft: 4,
   },
@@ -358,6 +356,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   welcomeText: {
+    color: Colors.brand.darkTeal,
     marginBottom: 20,
     textAlign: "center",
   },
@@ -368,21 +367,18 @@ const styles = StyleSheet.create({
   },
   messageContainer: {
     marginTop: 20,
-    padding: 12,
-    backgroundColor: "#E8F5E9",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#4CAF50",
+    padding: Spacing.fieldGapAuth,
+    backgroundColor: Colors.white,
+    borderRadius: Radii.md,
   },
   messageText: {
-    color: "#2E7D32",
+    color: Colors.brand.darkTeal,
     textAlign: "center",
   },
   errorContainer: {
-    backgroundColor: "#FFEBEE",
-    borderColor: "#FF3B30",
+    backgroundColor: Colors.white,
   },
   errorMessageText: {
-    color: "#FF3B30",
+    color: Colors.brand.rose,
   },
 });

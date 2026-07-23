@@ -11,6 +11,7 @@ import type { Href } from "expo-router";
 import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import Auth from "../components/Auth";
+import { Colors } from "../lib/colors";
 import GradientBackground from "../components/GradientBackground";
 import { hasSeenIntro, markIntroSeen } from "../lib/intro-storage";
 import { flushPendingLegalAcceptance } from "../lib/legal-acceptance";
@@ -114,7 +115,7 @@ export default function Index() {
       return (
         <View style={styles.loadingContainer}>
           <GradientBackground />
-          <ActivityIndicator size="large" color="#000000" />
+          <ActivityIndicator size="large" color={Colors.brand.darkTeal} />
         </View>
       );
     }
