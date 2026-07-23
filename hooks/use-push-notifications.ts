@@ -29,10 +29,11 @@ Notifications.setNotificationHandler({
 
 // Set up Android notification channel
 if (Platform.OS === "android") {
+  // No `sound` key: Android channels take a raw resource filename there, and
+  // omitting it selects the system default (passing "default" logs a warning).
   Notifications.setNotificationChannelAsync("gift-suggestions", {
     name: "Gift Suggestions",
     importance: Notifications.AndroidImportance.HIGH,
-    sound: "default",
   });
 }
 
