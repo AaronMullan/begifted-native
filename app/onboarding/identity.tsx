@@ -12,7 +12,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../lib/colors";
-import { FontFamily, Typography } from "../../lib/typography";
+import { Typography } from "../../lib/typography";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../hooks/use-auth";
 import { KEYBOARD_CTA_GAP } from "@/lib/constants";
@@ -95,9 +95,7 @@ export default function OnboardingIdentity() {
           keyboardDismissMode="interactive"
         >
           <View style={styles.content}>
-            <Text variant="headlineMedium" style={styles.headline}>
-              Tell us about yourself
-            </Text>
+            <Text style={styles.headline}>Tell us about yourself</Text>
             <Text variant="bodyLarge" style={styles.body}>
               Tell me a little about yourself — it helps BeGifted get a feel for
               your taste, your world, and the people you care about. A lot or a
@@ -161,12 +159,12 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   headline: {
-    color: Colors.darks.black,
+    ...Typography.h1,
+    color: Colors.brand.darkTeal,
     marginBottom: 12,
-    fontFamily: FontFamily.fraunces.regular,
   },
   body: {
-    color: Colors.darks.black,
+    color: Colors.brand.darkTeal,
     opacity: 0.8,
     lineHeight: 26,
     marginBottom: 24,
@@ -198,7 +196,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   skipLabel: {
-    color: Colors.darks.black,
+    color: Colors.brand.darkTeal,
     opacity: 0.6,
   },
 });

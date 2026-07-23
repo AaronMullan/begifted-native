@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
-import { FontFamily, Typography } from "../../lib/typography";
+import { Typography } from "../../lib/typography";
 import { upsertUserPreferences } from "../../lib/api";
 import { useAuth } from "../../hooks/use-auth";
 import { useQueryClient } from "@tanstack/react-query";
@@ -48,9 +48,7 @@ export default function OnboardingRecipient() {
   return (
     <View style={[styles.container, { paddingTop: insets.top + 60 }]}>
       <View style={styles.content}>
-        <Text variant="headlineMedium" style={styles.headline}>
-          Add your first person
-        </Text>
+        <Text style={styles.headline}>Add your first person</Text>
         <Text variant="bodyLarge" style={styles.body}>
           Who do you want to find gifts for? It can be anyone you care about —
           including yourself. Describe them in your own words or import from
@@ -104,12 +102,12 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   headline: {
-    color: Colors.darks.black,
+    ...Typography.h1,
+    color: Colors.brand.darkTeal,
     marginBottom: 12,
-    fontFamily: FontFamily.fraunces.regular,
   },
   body: {
-    color: Colors.darks.black,
+    color: Colors.brand.darkTeal,
     opacity: 0.8,
     lineHeight: 26,
   },
@@ -128,6 +126,6 @@ const styles = StyleSheet.create({
   },
   buttonLabelOutlined: {
     ...Typography.largeCta,
-    color: Colors.darks.black,
+    color: Colors.brand.darkTeal,
   },
 });

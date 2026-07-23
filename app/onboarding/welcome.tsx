@@ -3,7 +3,7 @@ import { Text, Button } from "react-native-paper";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../lib/colors";
-import { FontFamily, Typography } from "../../lib/typography";
+import { Typography } from "../../lib/typography";
 
 export default function OnboardingWelcome() {
   const router = useRouter();
@@ -12,9 +12,7 @@ export default function OnboardingWelcome() {
   return (
     <View style={[styles.container, { paddingTop: insets.top + 60 }]}>
       <View style={styles.content}>
-        <Text variant="displaySmall" style={styles.headline}>
-          Welcome to BeGifted
-        </Text>
+        <Text style={styles.headline}>Welcome to BeGifted</Text>
         <Text variant="bodyLarge" style={styles.body}>
           We&apos;ll help you find thoughtful gifts for the people you care
           about. Let&apos;s get to know you a little, then add your first
@@ -50,12 +48,12 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   headline: {
-    color: Colors.darks.black,
+    ...Typography.h1,
+    color: Colors.brand.darkTeal,
     marginBottom: 16,
-    fontFamily: FontFamily.fraunces.regular,
   },
   body: {
-    color: Colors.darks.black,
+    color: Colors.brand.darkTeal,
     opacity: 0.8,
     lineHeight: 26,
   },
