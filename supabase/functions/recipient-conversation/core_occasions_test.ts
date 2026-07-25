@@ -83,7 +83,7 @@ Deno.test(
     const anniversary = result.find((c) => c.key === "wedding_anniversary");
     assert(anniversary);
     assertEquals(anniversary.suggestedDate, null);
-    assertEquals(anniversary.required, false);
+    assertEquals(anniversary.required, true);
     assert(keys(result).includes("valentines_day"));
     assert(keys(result).includes("christmas"));
   }
