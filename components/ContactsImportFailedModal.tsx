@@ -1,4 +1,4 @@
-import { Modal, Pressable, StyleSheet, View } from "react-native";
+import { Linking, Modal, Pressable, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 import { Colors } from "../lib/colors";
 import { Typography } from "../lib/typography";
@@ -35,6 +35,22 @@ const ContactsImportFailedModal: React.FC<ContactsImportFailedModalProps> = ({
         </Text>
         <View style={styles.buttonRow}>
           <PrimaryCta label="Try Again" onPress={onRetry} />
+          <Pressable
+            // Lands on the app's own iOS settings page, which holds the
+            // Contacts toggle (and the iOS 18+ limited-access level), so the
+            // user isn't left hunting through Settings by hand.
+            onPress={() => {
+              Linking.openSettings().catch(() => {});
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Open iOS Settings"
+            style={({ pressed }) => [
+              styles.secondaryButton,
+              pressed && styles.secondaryPressed,
+            ]}
+          >
+            <Text style={styles.secondaryLabel}>Open Settings</Text>
+          </Pressable>
           <Pressable
             onPress={onAddManuallyPress}
             accessibilityRole="button"
