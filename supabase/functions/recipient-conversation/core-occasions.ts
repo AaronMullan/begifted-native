@@ -169,7 +169,9 @@ export function deriveCoreOccasions(
 
   // Wedding anniversary — spouse/married partner. Valid without a date:
   // stays a "date required" candidate (suggestedDate null) rather than
-  // being treated as trackable.
+  // being treated as trackable. Required so the validator's fallback to
+  // required-only candidates can't drop it for a spouse — the null date
+  // still reaches the user as a "needs your date" entry.
   if (
     SPOUSE_RELATIONSHIPS.has(relationship) &&
     !alreadyTracked(/anniversary/)
@@ -185,7 +187,7 @@ export function deriveCoreOccasions(
         ? extractFutureDate(anniversarySource)
         : null,
       isMilestone: false,
-      required: false,
+      required: true,
     });
   }
 
