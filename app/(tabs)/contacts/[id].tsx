@@ -17,7 +17,6 @@ import PastGiftsSection from "../../../components/gifts/PastGiftsSection";
 import { useBetaCheckIn } from "../../../components/beta/BetaCheckInProvider";
 import { useAuth } from "../../../hooks/use-auth";
 import { useRecipient } from "../../../hooks/use-recipient";
-import { useOccasion } from "../../../hooks/use-occasion";
 import { useGiftSuggestions } from "../../../hooks/use-gift-suggestions";
 import { useDeleteRecipient } from "../../../hooks/use-recipient-mutations";
 import { ConversationView } from "../../../components/recipients/conversation/ConversationView";
@@ -32,11 +31,7 @@ import {
   birthYearFromAge,
   normalizeBirthday,
 } from "../../../utils/birthday";
-import { formatOccasionType } from "../../../utils/home-occasions";
-import {
-  formatOccasionDate,
-  sanitizeExtractedOccasionDate,
-} from "../../../utils/occasion-dates";
+import { sanitizeExtractedOccasionDate } from "../../../utils/occasion-dates";
 
 // Apply an interests delta from an update conversation to the current list:
 // keep what's there, drop the removed ones, append the newly-liked ones —
@@ -302,16 +297,6 @@ export default function RecipientEditPage() {
       setGenBaseline({ count: 0, newest: 0, startedAt: 0 });
     }
   }
-
-  // Human-readable label ("Christmas · Dec 25") for the filtered occasion so
-  // the gifts header can name it without a second screen.
-  const { data: filteredOccasion } = useOccasion(occasionFilter);
-  const occasionLabel =
-    occasionFilter && filteredOccasion
-      ? `${formatOccasionType(
-          filteredOccasion.occasion_type
-        )} · ${formatOccasionDate(filteredOccasion.date, { month: "short" })}`
-      : "";
 
   const deleteRecipient = useDeleteRecipient();
 
@@ -664,7 +649,6 @@ export default function RecipientEditPage() {
                 recipientName={formatShortName(recipient.name)}
                 isGenerating={isGenerating}
                 occasionId={occasionFilter}
-                occasionLabel={occasionLabel}
                 onClearOccasionFilter={() => setOccasionFilter(null)}
               />
             </View>

@@ -18,8 +18,6 @@ type GiftSuggestionsListProps = {
   /** When set, only suggestions for this occasion are shown, and gift
    * feedback is attributed to it. */
   occasionId?: string | null;
-  /** Human-readable label for the filtered occasion, e.g. "Christmas · Dec 25". */
-  occasionLabel?: string;
   /** Clears the occasion filter to reveal every suggestion. */
   onClearOccasionFilter?: () => void;
   /** Scrolls a freshly-expanded card's root node to a predictable spot below
@@ -33,7 +31,6 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
   loading = false,
   isGenerating = false,
   occasionId = null,
-  occasionLabel,
   onClearOccasionFilter,
   onScrollCardIntoView,
 }) => {
@@ -93,18 +90,15 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
     );
   }
 
+  // The user always reaches a filtered list from a control that already named
+  // the occasion (notification tap, occasion card), so the filter surfaces only
+  // the affordance to clear it — a repeated title reads as tappable but isn't.
   const occasionHeader =
-    occasionId && occasionLabel ? (
+    occasionId && onClearOccasionFilter ? (
       <View style={styles.occasionHeader}>
-        <View style={styles.occasionHeaderText}>
-          <Text style={styles.occasionHeaderLabel}>Showing gifts for</Text>
-          <Text style={styles.occasionHeaderValue}>{occasionLabel}</Text>
-        </View>
-        {onClearOccasionFilter && (
-          <Pressable onPress={onClearOccasionFilter} hitSlop={6}>
-            <Text style={styles.viewAllLink}>View all gifts ›</Text>
-          </Pressable>
-        )}
+        <Pressable onPress={onClearOccasionFilter} hitSlop={6}>
+          <Text style={styles.viewAllLink}>View all gifts ›</Text>
+        </Pressable>
       </View>
     ) : null;
 
@@ -195,30 +189,8 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   occasionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "rgba(255,255,255,0.6)",
-    borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    alignItems: "flex-end",
     marginBottom: 16,
-  },
-  occasionHeaderText: {
-    flex: 1,
-    marginRight: 12,
-  },
-  occasionHeaderLabel: {
-    ...Typography.sectionHeadAc,
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
-    color: Colors.blues.dark,
-    opacity: 0.6,
-    marginBottom: 2,
-  },
-  occasionHeaderValue: {
-    ...Typography.h3,
-    color: Colors.blues.dark,
   },
   viewAllLink: {
     ...Typography.largeCta,
