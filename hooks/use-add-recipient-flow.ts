@@ -150,7 +150,8 @@ export function useAddRecipientFlow(
     Pick<ExtractedData, "address" | "city" | "state" | "zip_code" | "country">
   >,
   initialBirthday?: string,
-  initialPhotoUri?: string
+  initialPhotoUri?: string,
+  initialNote?: string
 ): UseAddRecipientFlowReturn {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -194,11 +195,15 @@ export function useAddRecipientFlow(
       });
   }, []);
 
-  const initialUserMessage = buildInitialUserMessage(
-    initialContactName,
-    initialBirthday,
-    initialAddress
-  );
+  // A free-form note (Moments "Tell BeGifted about them" drawer) becomes the
+  // whole first message; the contact-seed sentence only applies without one.
+  const initialUserMessage =
+    initialNote?.trim() ||
+    buildInitialUserMessage(
+      initialContactName,
+      initialBirthday,
+      initialAddress
+    );
 
   // Use the generic conversation flow hook
   const {
