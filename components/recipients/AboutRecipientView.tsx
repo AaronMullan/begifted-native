@@ -150,8 +150,7 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heroAbout}>About</Text>
-      <Text style={styles.heroName}>{recipient.name}</Text>
+      <Text style={styles.hero}>About {recipient.name}</Text>
 
       <Pressable
         onPress={handleChangePhoto}
@@ -455,11 +454,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 32,
   },
-  heroAbout: {
-    ...Typography.h1,
-    color: Colors.blues.dark,
-  },
-  heroName: {
+  hero: {
     ...Typography.h1,
     color: Colors.blues.dark,
     marginBottom: 24,
