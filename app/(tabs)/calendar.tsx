@@ -1,30 +1,11 @@
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import {
-  FlatList,
-  Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
-import {
-  Button,
-  Chip,
-  Dialog,
-  Divider,
-  Portal,
-  SegmentedButtons,
-  Text,
-  TextInput,
-} from "react-native-paper";
+import { useEffect, useRef, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Button, Dialog, Portal, Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
 import { Radii, Typography } from "../../lib/typography";
-import { BOTTOM_NAV_HEIGHT, KEYBOARD_CTA_GAP } from "../../lib/constants";
+import { BOTTOM_NAV_HEIGHT } from "../../lib/constants";
 import { recipientMarkerColor } from "../../lib/recipient-color";
 import { useAuth } from "../../hooks/use-auth";
 import { useAllOccasions } from "../../hooks/use-occasions";
@@ -35,15 +16,33 @@ import {
 } from "../../hooks/use-occasion-mutations";
 import { showSnackbar } from "../../components/GlobalSnackbar";
 import GradientBackground from "../../components/GradientBackground";
-import { dialogStyles } from "../../components/recipients/recipient-dialog-styles";
+import ExpandCircleIcon from "../../components/ExpandCircleIcon";
 import MomentsCalendar from "../../components/moments/MomentsCalendar";
-import MomentsYearGrid from "../../components/moments/MomentsYearGrid";
 import MomentsPersonCard from "../../components/moments/MomentsPersonCard";
+import MomentsWeekStrip from "../../components/moments/MomentsWeekStrip";
+import {
+  SelectPersonDrawer,
+  type SelectPersonDrawerHandle,
+  type SelectPersonRow,
+} from "../../components/moments/SelectPersonDrawer";
+import {
+  AddMomentDrawer,
+  type AddMomentDrawerHandle,
+} from "../../components/moments/AddMomentDrawer";
+import {
+  AddNewPersonDrawer,
+  type AddNewPersonDrawerHandle,
+} from "../../components/moments/AddNewPersonDrawer";
+import {
+  YearCalendarDrawer,
+  type YearCalendarDrawerHandle,
+} from "../../components/moments/YearCalendarDrawer";
 import { formatShortName } from "../../lib/format-name";
 import {
   formatOccasionType,
   stripRecipientName,
 } from "../../utils/home-occasions";
+import { getNextUpcomingOccasion } from "../../utils/upcoming-occasion";
 import {
   addMonths,
   dayKey,
@@ -58,6 +57,7 @@ interface Occasion {
   date: string | null;
   occasion_type: string;
   recipient_id: string;
+  is_annual?: boolean;
   recipient?: {
     name: string;
     relationship_type: string;
@@ -68,16 +68,6 @@ interface Occasion {
 function startOfMonth(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1);
 }
-
-// Quick-pick occasion types for the inline day-add entry. Stored lowercased to
-// match the occasion_type convention; formatOccasionType title-cases on display.
-const COMMON_OCCASION_TYPES = [
-  "birthday",
-  "anniversary",
-  "graduation",
-  "wedding",
-  "holiday",
-];
 
 export default function Calendar() {
   const router = useRouter();
@@ -90,21 +80,20 @@ export default function Calendar() {
   const today = new Date();
   const [viewMonth, setViewMonth] = useState(() => startOfMonth(new Date()));
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [showYear, setShowYear] = useState(false);
   const [occasionToDelete, setOccasionToDelete] = useState<Occasion | null>(
     null
   );
-  const [showRecipientPicker, setShowRecipientPicker] = useState(false);
-  // When a recipient is picked for a selected calendar day, we capture the
-  // occasion inline (seeded with that day) instead of routing to their profile,
-  // so the chosen date is never lost.
-  const [occasionEntryRecipient, setOccasionEntryRecipient] = useState<{
+  // The person picked in the Select Person drawer, awaiting a moment name in
+  // the Add Moment drawer (day-view flow only — a chosen date is required).
+  const [momentPerson, setMomentPerson] = useState<{
     id: string;
     name: string;
   } | null>(null);
-  const [occasionEntryDate, setOccasionEntryDate] = useState<Date | null>(null);
-  const [occasionTypeInput, setOccasionTypeInput] = useState("");
-  const [occasionIsAnnual, setOccasionIsAnnual] = useState(true);
+
+  const selectPersonRef = useRef<SelectPersonDrawerHandle | null>(null);
+  const addMomentRef = useRef<AddMomentDrawerHandle | null>(null);
+  const addNewPersonRef = useRef<AddNewPersonDrawerHandle | null>(null);
+  const yearDrawerRef = useRef<YearCalendarDrawerHandle | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -156,9 +145,32 @@ export default function Calendar() {
   const attachedRecipientIds = new Set(
     selectedOccasions.map((occasion) => occasion.recipient_id)
   );
-  const pickerRecipients = selectedDate
-    ? recipients.filter((recipient) => !attachedRecipientIds.has(recipient.id))
-    : recipients;
+  const occasionsByRecipient = new Map<string, Occasion[]>();
+  for (const occasion of occasions) {
+    const list = occasionsByRecipient.get(occasion.recipient_id);
+    if (list) list.push(occasion);
+    else occasionsByRecipient.set(occasion.recipient_id, [occasion]);
+  }
+  const pickerPeople: SelectPersonRow[] = recipients
+    .filter(
+      (recipient) => !selectedDate || !attachedRecipientIds.has(recipient.id)
+    )
+    .map((recipient) => {
+      const upcoming = getNextUpcomingOccasion(
+        recipient.birthday ?? undefined,
+        (occasionsByRecipient.get(recipient.id) ?? []) as never
+      );
+      return {
+        id: recipient.id,
+        name: recipient.name,
+        photoUrl: recipient.photo_url,
+        subtitle: upcoming
+          ? `${formatOccasionType(upcoming.occasionType)} • ${formatOccasionDate(
+              upcoming.date
+            )}`
+          : null,
+      };
+    });
 
   const monthLabel =
     viewMonth.getFullYear() === today.getFullYear()
@@ -206,60 +218,56 @@ export default function Calendar() {
   function handleSelectMonthFromYear(monthDate: Date) {
     setViewMonth(startOfMonth(monthDate));
     setSelectedDate(null);
-    setShowYear(false);
   }
 
-  function handleAddOccasionForRecipient(recipient: {
-    id: string;
-    name: string;
-  }) {
-    setShowRecipientPicker(false);
-    // With a day chosen, capture the occasion inline on that date. Routing to
-    // the profile's add-occasion chat here would discard the picked date and
-    // force the user to re-enter it. Without a chosen date (month-view
-    // "Add Moments"), fall back to that chat — it derives the date itself.
+  function handleSelectPerson(person: SelectPersonRow) {
+    selectPersonRef.current?.dismiss();
+    // With a day chosen, capture the moment in the Add Moment drawer on that
+    // date. Without one (month-view "Add Moments"), fall back to the profile's
+    // add-occasion chat — it derives the date itself.
     if (selectedDate) {
-      setOccasionEntryRecipient(recipient);
-      setOccasionEntryDate(selectedDate);
-      setOccasionTypeInput("");
-      setOccasionIsAnnual(true);
+      setMomentPerson({ id: person.id, name: person.name });
+      addMomentRef.current?.present();
       return;
     }
-    router.push(`/contacts/${recipient.id}?addOccasion=true`);
+    router.push(`/contacts/${person.id}?addOccasion=true`);
   }
 
-  function handleDismissOccasionEntry() {
-    setOccasionEntryRecipient(null);
-    setOccasionEntryDate(null);
-  }
-
-  function handleSaveInlineOccasion() {
-    if (!occasionEntryRecipient || !occasionEntryDate) return;
-    const occasionType = occasionTypeInput.trim().toLowerCase();
-    if (!occasionType) return;
-    createOccasion.mutate(
-      {
-        recipientId: occasionEntryRecipient.id,
-        date: dayKey(occasionEntryDate),
-        occasionType,
-        isAnnual: occasionIsAnnual,
-      },
-      {
-        // Failures surface via the shared mutation handler's snackbar.
-        onSuccess: () => {
-          showSnackbar("Occasion added");
-          handleDismissOccasionEntry();
-        },
-      }
-    );
-  }
-
-  // The day-add picker only listed existing recipients, dead-ending anyone whose
-  // person isn't in BeGifted yet. Route into the existing add-recipient flow,
-  // which captures the person and their occasions in one pass.
   function handleAddNewPerson() {
-    setShowRecipientPicker(false);
-    router.push("/contacts/add");
+    selectPersonRef.current?.dismiss();
+    addNewPersonRef.current?.present();
+  }
+
+  // The free-form note seeds the add-recipient conversation as its first user
+  // message, so the same extraction pipeline runs as in the chat flow.
+  function handleSendNewPersonNote(note: string) {
+    router.push({
+      pathname: "/contacts/add",
+      params: { initialNote: note },
+    });
+  }
+
+  async function handleSaveMoment(momentName: string): Promise<boolean> {
+    if (!momentPerson || !selectedDate) return false;
+    return new Promise((resolve) => {
+      createOccasion.mutate(
+        {
+          recipientId: momentPerson.id,
+          date: dayKey(selectedDate),
+          occasionType: momentName.toLowerCase(),
+          isAnnual: true,
+        },
+        {
+          // Failures surface via the shared mutation handler's snackbar.
+          onSuccess: () => {
+            showSnackbar("Moment added");
+            setMomentPerson(null);
+            resolve(true);
+          },
+          onError: () => resolve(false),
+        }
+      );
+    });
   }
 
   function handleOccasionPress(occasion: Occasion) {
@@ -317,114 +325,104 @@ export default function Calendar() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.content}>
-          {showYear && !selectedDate ? (
+          {selectedDate ? (
             <>
-              <View style={styles.yearHeader}>
-                <Text style={styles.title}>These are{"\n"}your moments.</Text>
+              <View style={styles.dayHeader}>
+                <Pressable
+                  style={styles.backRow}
+                  onPress={() => setSelectedDate(null)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Back to all moments"
+                >
+                  <Text style={styles.eyebrow}>MOMENTS</Text>
+                </Pressable>
+                <View style={styles.dayTitleRow}>
+                  <Text style={styles.title}>{dayTitle}</Text>
+                  <Pressable
+                    onPress={() => setSelectedDate(null)}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Collapse to month view"
+                  >
+                    <ExpandCircleIcon
+                      direction="down"
+                      color={Colors.brand.gold}
+                      size={24}
+                    />
+                  </Pressable>
+                </View>
               </View>
-              <MomentsYearGrid
-                year={viewMonth.getFullYear()}
-                markersByDay={markersByDay}
-                onSelectMonth={handleSelectMonthFromYear}
-                onCollapse={() => setShowYear(false)}
+
+              <MomentsWeekStrip
+                selectedDate={selectedDate}
+                onSelectDay={handleSelectDay}
               />
+
+              {selectedOccasions.length === 0 ? (
+                <View style={styles.emptyDay}>
+                  <Text style={styles.emptyTitle}>No moments here yet</Text>
+                  <Text style={styles.emptyBody}>
+                    Add one to remember what mattered on this day.
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.peopleList}>
+                  {selectedOccasions.map((occasion) => (
+                    <MomentsPersonCard
+                      key={occasion.id}
+                      name={occasion.recipient?.name || "Unknown"}
+                      occasionLabel={formatOccasionType(
+                        stripRecipientName(
+                          occasion.occasion_type,
+                          occasion.recipient?.name || ""
+                        )
+                      )}
+                      photoUrl={occasion.recipient?.photo_url}
+                      onPress={() => handleOccasionPress(occasion)}
+                      onLongPress={() => setOccasionToDelete(occasion)}
+                      onOverflow={() => setOccasionToDelete(occasion)}
+                    />
+                  ))}
+                </View>
+              )}
+
+              <Pressable
+                style={styles.addToDayPill}
+                onPress={() => selectPersonRef.current?.present()}
+                accessibilityRole="button"
+                accessibilityLabel="Add to this day"
+              >
+                <MaterialIcons name="add" size={16} color={Colors.brand.gold} />
+                <Text style={styles.addToDayLabel}>Add to this day</Text>
+              </Pressable>
             </>
           ) : (
             <>
-              {selectedDate ? (
-                <View style={styles.dayHeader}>
-                  {/* The Figma frames have no back affordance for the day view, so
-                  the eyebrow doubles as one: tapping it returns to the month
-                  ("These are your moments.") overview. */}
-                  <Pressable
-                    style={styles.backRow}
-                    onPress={() => setSelectedDate(null)}
-                    accessibilityRole="button"
-                    accessibilityLabel="Back to all moments"
-                  >
-                    <MaterialIcons
-                      name="chevron-left"
-                      size={18}
-                      color={Colors.brand.mediumTeal}
-                    />
-                    <Text style={styles.eyebrow}>MOMENTS</Text>
-                  </Pressable>
-                  <View style={styles.dayTitleRow}>
-                    <Text style={styles.title}>{dayTitle}</Text>
-                    <Pressable
-                      style={styles.addDayButton}
-                      onPress={() => setShowRecipientPicker(true)}
-                      accessibilityRole="button"
-                      accessibilityLabel="Add to this day"
-                    >
-                      <MaterialIcons
-                        name="add"
-                        size={16}
-                        color={Colors.brand.darkTeal}
-                      />
-                      <Text style={styles.addDayLabel}>Add to this day</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.monthHeader}>
-                  <Text style={styles.title}>These are{"\n"}your moments.</Text>
-                  <Text style={styles.subhead}>
-                    Add the moments that matter.{"\n"}We’ll keep track of
-                    them...
-                  </Text>
-                </View>
-              )}
+              <View style={styles.monthHeader}>
+                <Text style={styles.title}>These are{"\n"}your moments.</Text>
+                <Text style={styles.subhead}>
+                  Add the moments that matter.{"\n"}We’ll keep track of them...
+                </Text>
+              </View>
 
-              {selectedDate ? (
-                <View style={styles.peopleList}>
-                  {selectedOccasions.length === 0 ? (
-                    <Text style={styles.noPeople}>
-                      No moments on this day yet.
-                    </Text>
-                  ) : (
-                    selectedOccasions.map((occasion) => (
-                      <MomentsPersonCard
-                        key={occasion.id}
-                        name={occasion.recipient?.name || "Unknown"}
-                        photoUrl={occasion.recipient?.photo_url}
-                        onPress={() => handleOccasionPress(occasion)}
-                        onLongPress={() => setOccasionToDelete(occasion)}
-                        onOverflow={
-                          selectedOccasions.length > 1
-                            ? () => setOccasionToDelete(occasion)
-                            : undefined
-                        }
-                      />
-                    ))
-                  )}
-                </View>
-              ) : (
-                <Pressable
-                  style={styles.addMomentsButton}
-                  onPress={() => setShowRecipientPicker(true)}
-                  accessibilityRole="button"
-                  accessibilityLabel="Add moments"
-                >
-                  <MaterialIcons
-                    name="add"
-                    size={16}
-                    color={Colors.brand.darkTeal}
-                  />
-                  <Text style={styles.addMomentsLabel}>Add Moments</Text>
-                  <MaterialIcons
-                    name="chevron-right"
-                    size={14}
-                    color={Colors.white}
-                  />
-                </Pressable>
-              )}
-
-              {/* In the day view the design anchors the calendar low, with the
-              breathing room sitting above it (between the person cards and the
-              grid). This spacer reproduces that on devices taller than the
-              874pt design frame; the month view fills naturally like its frame. */}
-              {selectedDate && <View style={styles.daySpacer} />}
+              <Pressable
+                style={styles.addMomentsButton}
+                onPress={() => selectPersonRef.current?.present()}
+                accessibilityRole="button"
+                accessibilityLabel="Add moments"
+              >
+                <MaterialIcons
+                  name="add"
+                  size={16}
+                  color={Colors.brand.darkTeal}
+                />
+                <Text style={styles.addMomentsLabel}>Add Moments</Text>
+                <MaterialIcons
+                  name="chevron-right"
+                  size={14}
+                  color={Colors.white}
+                />
+              </Pressable>
 
               <MomentsCalendar
                 monthDate={viewMonth}
@@ -432,16 +430,38 @@ export default function Calendar() {
                 monthLabel={monthLabel}
                 today={today}
                 selectedDate={selectedDate}
-                variant={selectedDate ? "day" : "month"}
+                variant="month"
                 onSelectDay={handleSelectDay}
                 onPrevMonth={() => handleStepMonth(-1)}
                 onNextMonth={() => handleStepMonth(1)}
-                onExpandYear={() => setShowYear(true)}
+                onExpandYear={() =>
+                  yearDrawerRef.current?.present(viewMonth.getFullYear())
+                }
               />
             </>
           )}
         </View>
       </ScrollView>
+
+      <SelectPersonDrawer
+        people={pickerPeople}
+        onSelectPerson={handleSelectPerson}
+        onAddNewPerson={handleAddNewPerson}
+        handleRef={selectPersonRef}
+      />
+      <AddMomentDrawer
+        onSave={handleSaveMoment}
+        saving={createOccasion.isPending}
+        handleRef={addMomentRef}
+      />
+      <AddNewPersonDrawer
+        onSend={handleSendNewPersonNote}
+        handleRef={addNewPersonRef}
+      />
+      <YearCalendarDrawer
+        onSelectMonth={handleSelectMonthFromYear}
+        handleRef={yearDrawerRef}
+      />
 
       <Portal>
         <Dialog
@@ -480,162 +500,7 @@ export default function Calendar() {
             </Button>
           </View>
         </Dialog>
-        <Dialog
-          visible={showRecipientPicker}
-          onDismiss={() => setShowRecipientPicker(false)}
-          style={styles.dialog}
-        >
-          <Dialog.Title>
-            <Text variant="bodySmall" style={styles.dialogLabel}>
-              Add Occasion
-            </Text>
-          </Dialog.Title>
-          <Dialog.Content>
-            <Text style={styles.pickerHeadline}>Choose a recipient</Text>
-            {pickerRecipients.length === 0 ? (
-              <Text variant="bodyMedium" style={styles.pickerEmpty}>
-                {recipients.length === 0
-                  ? "No one in BeGifted yet — add your first person below."
-                  : "Everyone you know is already on this day — add someone new below."}
-              </Text>
-            ) : (
-              <FlatList
-                data={pickerRecipients}
-                keyExtractor={(item) => item.id}
-                style={styles.recipientList}
-                renderItem={({ item }) => (
-                  <Button
-                    mode="text"
-                    onPress={() =>
-                      handleAddOccasionForRecipient({
-                        id: item.id,
-                        name: item.name,
-                      })
-                    }
-                    contentStyle={styles.recipientItemContent}
-                    icon="account"
-                  >
-                    {item.name}
-                  </Button>
-                )}
-              />
-            )}
-            {/* Separate the create-new action from the recipient rows above so it
-            doesn't read as just another person in the list. */}
-            <Divider style={styles.pickerDivider} />
-            <Button
-              mode="text"
-              onPress={handleAddNewPerson}
-              contentStyle={styles.recipientItemContent}
-              icon="account-plus"
-            >
-              Add a new person
-            </Button>
-          </Dialog.Content>
-          <View style={styles.dialogActions}>
-            <Button
-              mode="outlined"
-              onPress={() => setShowRecipientPicker(false)}
-              style={styles.dialogButton}
-            >
-              Cancel
-            </Button>
-          </View>
-        </Dialog>
       </Portal>
-      {/* Plain RN Modal (not Paper Dialog) so the keyboard-avoiding wrapper can
-      lift the whole card above the keyboard — Paper's Dialog has no keyboard
-      handling, which left Save covered (see the Dialog exception in CLAUDE.md;
-      same pattern as InformationDialog). */}
-      <Modal
-        visible={!!occasionEntryRecipient}
-        transparent
-        animationType="fade"
-        onRequestClose={handleDismissOccasionEntry}
-      >
-        <KeyboardAvoidingView
-          style={dialogStyles.modalOverlay}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          keyboardVerticalOffset={KEYBOARD_CTA_GAP}
-        >
-          <Pressable
-            style={styles.keyboardDismissArea}
-            onPress={Keyboard.dismiss}
-          >
-            <View style={dialogStyles.dismissArea}>
-              <View style={dialogStyles.modalContent}>
-                <View style={styles.occasionEntryBody}>
-                  <Text variant="bodySmall" style={styles.dialogLabel}>
-                    Add Occasion
-                  </Text>
-                  <Text style={styles.pickerHeadline}>
-                    {occasionEntryRecipient?.name}
-                    {occasionEntryDate
-                      ? ` · ${formatOccasionDate(occasionEntryDate)}`
-                      : ""}
-                  </Text>
-                  <View style={styles.occasionChips}>
-                    {COMMON_OCCASION_TYPES.map((type) => (
-                      <Chip
-                        key={type}
-                        mode="outlined"
-                        selected={
-                          occasionTypeInput.trim().toLowerCase() === type
-                        }
-                        onPress={() =>
-                          setOccasionTypeInput(formatOccasionType(type))
-                        }
-                      >
-                        {formatOccasionType(type)}
-                      </Chip>
-                    ))}
-                  </View>
-                  <TextInput
-                    mode="outlined"
-                    label="Occasion"
-                    placeholder="e.g. Birthday"
-                    value={occasionTypeInput}
-                    onChangeText={setOccasionTypeInput}
-                    autoCapitalize="words"
-                    style={styles.occasionInput}
-                  />
-                  <SegmentedButtons
-                    value={occasionIsAnnual ? "annual" : "oneTime"}
-                    onValueChange={(value) =>
-                      setOccasionIsAnnual(value === "annual")
-                    }
-                    buttons={[
-                      { value: "annual", label: "Repeats yearly" },
-                      { value: "oneTime", label: "One-time" },
-                    ]}
-                    style={styles.occasionRecurrence}
-                  />
-                </View>
-                <View style={styles.dialogActions}>
-                  <Button
-                    mode="outlined"
-                    onPress={handleDismissOccasionEntry}
-                    style={styles.dialogButton}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    mode="contained"
-                    onPress={handleSaveInlineOccasion}
-                    loading={createOccasion.isPending}
-                    disabled={
-                      !occasionTypeInput.trim() || createOccasion.isPending
-                    }
-                    style={styles.dialogButton}
-                  >
-                    Save
-                  </Button>
-                </View>
-              </View>
-            </View>
-          </Pressable>
-        </KeyboardAvoidingView>
-      </Modal>
     </View>
   );
 }
@@ -672,17 +537,11 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 28,
   },
-  yearHeader: {
-    marginBottom: 28,
-  },
   dayHeader: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   backRow: {
-    flexDirection: "row",
-    alignItems: "center",
     alignSelf: "flex-start",
-    marginLeft: -4,
     marginBottom: 4,
   },
   eyebrow: {
@@ -692,8 +551,7 @@ const styles = StyleSheet.create({
   dayTitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
+    gap: 10,
   },
   title: {
     ...Typography.h1,
@@ -718,28 +576,38 @@ const styles = StyleSheet.create({
     ...Typography.largeCta,
     color: Colors.white,
   },
-  addDayButton: {
+  peopleList: {
+    gap: 22,
+    marginTop: 24,
+  },
+  emptyDay: {
+    marginTop: 24,
+    gap: 8,
+  },
+  emptyTitle: {
+    ...Typography.h2,
+    color: Colors.brand.gold,
+  },
+  emptyBody: {
+    ...Typography.subhead,
+    color: Colors.brand.darkTeal,
+  },
+  addToDayPill: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 40,
-    borderRadius: Radii.md,
-    borderWidth: 1,
+    gap: 8,
+    alignSelf: "center",
+    width: 204,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1.5,
     borderColor: Colors.brand.gold,
-    paddingHorizontal: 14,
-    gap: 6,
+    marginTop: 48,
   },
-  addDayLabel: {
+  addToDayLabel: {
     ...Typography.largeCta,
     color: Colors.brand.darkTeal,
-  },
-  peopleList: {
-    gap: 10,
-    marginBottom: 24,
-  },
-  daySpacer: {
-    flex: 1,
-    minHeight: 24,
   },
   noPeople: {
     ...Typography.subhead,
@@ -771,50 +639,5 @@ const styles = StyleSheet.create({
   },
   dialogButton: {
     minWidth: 100,
-  },
-  // Full-screen so a tap anywhere off the inputs (card or dim backdrop)
-  // dismisses the keyboard instead of leaving Enter as the only way out.
-  keyboardDismissArea: {
-    flex: 1,
-    width: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  occasionEntryBody: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
-  },
-  pickerHeadline: {
-    ...Typography.h2,
-    color: Colors.brand.darkTeal,
-    marginBottom: 12,
-  },
-  occasionChips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 16,
-  },
-  occasionInput: {
-    marginBottom: 16,
-    backgroundColor: Colors.brand.beigeLight,
-  },
-  occasionRecurrence: {
-    marginBottom: 4,
-  },
-  pickerEmpty: {
-    color: Colors.brand.mediumTeal,
-    textAlign: "center",
-    paddingVertical: 16,
-  },
-  recipientList: {
-    maxHeight: 300,
-  },
-  pickerDivider: {
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  recipientItemContent: {
-    justifyContent: "flex-start",
   },
 });
