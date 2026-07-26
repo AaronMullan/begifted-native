@@ -30,6 +30,15 @@ export const Colors = {
     light: ["#DBD1C0", "#E7E1D6", "#FFFFFF"] as const,
   },
 
+  // Dark-surface palette exclusive to the beta-feedback modal system
+  // (Beta_Feedback_Modals_Handoff.md). Not for general UI.
+  betaDark: {
+    cardBackground: "#090F14",
+    chipUnselected: "#111A1F",
+    surfaceDark: "#1A242B",
+    borderSubtle: "#2E3B42",
+  },
+
   // Neutrals - Card backgrounds, subtle elements
   neutrals: {
     light: "#f4e6dd",

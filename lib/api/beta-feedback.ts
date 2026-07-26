@@ -12,7 +12,8 @@ export type BetaCheckInScreen =
 export interface InsertBetaFeedbackInput {
   user_id: string;
   screen: BetaCheckInScreen;
-  responses: Record<string, string>;
+  // Single-select answers are strings; multi-select questions store arrays.
+  responses: Record<string, string | string[]>;
   free_text?: string | null;
 }
 

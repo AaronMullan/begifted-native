@@ -4,7 +4,9 @@ import { useAuth } from "./use-auth";
 
 type SubmitBetaFeedbackVars = {
   screen: BetaCheckInScreen;
-  responses: Record<string, string>;
+  // Single-select answers are strings; multi-select questions (gift_review
+  // "stronger_if") store arrays. Both land as-is in the responses jsonb.
+  responses: Record<string, string | string[]>;
   freeText?: string | null;
 };
 
