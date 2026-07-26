@@ -18,6 +18,9 @@ type InitialContactSeed = {
   name?: string;
   birthday?: string;
   photoUri?: string;
+  /** A free-form note (Moments "Tell BeGifted about them" drawer) sent as the
+   * first conversation message so extraction runs on it immediately. */
+  note?: string;
   address: Partial<
     Pick<ExtractedData, "address" | "city" | "state" | "zip_code" | "country">
   >;
@@ -33,6 +36,7 @@ const AddRecipient = () => {
     zip_code?: string;
     country?: string;
     photo_url?: string;
+    initialNote?: string;
   }>();
 
   // Capture device-contact prefill once at mount. On "Add another person",
@@ -43,6 +47,8 @@ const AddRecipient = () => {
     birthday: typeof params.birthday === "string" ? params.birthday : undefined,
     photoUri:
       typeof params.photo_url === "string" ? params.photo_url : undefined,
+    note:
+      typeof params.initialNote === "string" ? params.initialNote : undefined,
     address: {
       ...(typeof params.address === "string" && { address: params.address }),
       ...(typeof params.city === "string" && { city: params.city }),
@@ -60,6 +66,7 @@ const AddRecipient = () => {
       name: undefined,
       birthday: undefined,
       photoUri: undefined,
+      note: undefined,
       address: {},
     });
     setResetKey((k) => k + 1);
@@ -114,7 +121,8 @@ const AddRecipientFlow = ({ seed, onAddAnother }: AddRecipientFlowProps) => {
     seed.name,
     Object.keys(seed.address).length > 0 ? seed.address : undefined,
     seed.birthday,
-    seed.photoUri
+    seed.photoUri,
+    seed.note
   );
 
   // Enhanced finish conversation handler with proper error handling
