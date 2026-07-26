@@ -15,6 +15,7 @@ import { upsertUserPreferences } from "../../../lib/api";
 import { queryKeys } from "../../../lib/query-keys";
 import { supabase } from "../../../lib/supabase";
 import { showSnackbar } from "../../../components/GlobalSnackbar";
+import { ReviewSaveStep } from "../../../components/ReviewSaveStep";
 import { Colors } from "../../../lib/colors";
 import { Typography } from "../../../lib/typography";
 import { Spacing } from "../../../lib/spacing";
@@ -45,6 +46,9 @@ export default function AboutYou() {
     { role: "assistant", text: OPENER },
   ]);
   const [draft, setDraft] = useState("");
+  // A sent message parks here for review; nothing persists until the user
+  // confirms with Save Updates (the review step of the shared drawer pattern).
+  const [pendingReview, setPendingReview] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
@@ -53,17 +57,24 @@ export default function AboutYou() {
     }
   }, [authLoading, user, router]);
 
-  // Every message runs the same pipeline the old Gifting Style save used:
+  // Sending parks the message for review — persistence waits for an explicit
+  // Save Updates on the review step.
+  function handleSend() {
+    const text = draft.trim();
+    if (!text || !user || sending) return;
+    setDraft("");
+    setPendingReview(text);
+  }
+
+  // The confirmed save runs the same pipeline the old Gifting Style save used:
   // append to user_description (the canonical free-text store), re-extract the
   // structured user_summary, then re-synthesize the giver profile the card
   // shows — so gift generation consumes the new input exactly as before.
-  async function handleSend() {
-    const text = draft.trim();
+  async function handleSaveReviewed() {
+    const text = pendingReview?.trim();
     if (!text || !user || sending) return;
 
-    setDraft("");
     setSending(true);
-    setMessages((current) => [...current, { role: "user", text }]);
 
     try {
       const existing = preferences?.user_description?.trim() ?? "";
@@ -98,23 +109,20 @@ export default function AboutYou() {
         queryKey: queryKeys.userPreferences(user.id),
       });
 
+      // Back to the conversation with the saved note in the transcript.
       setMessages((current) => [
         ...current,
+        { role: "user", text },
         {
           role: "assistant",
           text: "Got it — we've updated what we know about you. What else should BeGifted know?",
         },
       ]);
+      setPendingReview(null);
     } catch (error) {
       console.error("Error saving about-you input:", error);
+      // Stay on the review step so the note isn't lost; the user can retry.
       showSnackbar("Couldn't save that — please try again.");
-      setMessages((current) => [
-        ...current,
-        {
-          role: "assistant",
-          text: "Something went wrong saving that — please try again.",
-        },
-      ]);
     } finally {
       setSending(false);
     }
@@ -195,47 +203,61 @@ export default function AboutYou() {
       <BottomSheetModal
         ref={sheetRef}
         snapPoints={["65%"]}
+        // v5 defaults dynamic sizing ON; it mis-measures this flex-based
+        // content and pins the sheet to ~title height instead of the 65% snap.
+        enableDynamicSizing={false}
         keyboardBehavior="interactive"
         keyboardBlurBehavior="restore"
         android_keyboardInputMode="adjustResize"
         handleIndicatorStyle={styles.sheetHandle}
         backgroundStyle={styles.sheetBackground}
+        onDismiss={() => setPendingReview(null)}
       >
         <View style={styles.sheetContent}>
           <Text style={styles.sheetTitle}>Tell us about you</Text>
-          <BottomSheetScrollView contentContainerStyle={styles.transcript}>
-            {messages.map((message, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.bubble,
-                  message.role === "assistant"
-                    ? styles.assistantBubble
-                    : styles.userBubble,
-                ]}
-              >
-                <Text
-                  style={
-                    message.role === "assistant"
-                      ? styles.assistantBubbleText
-                      : styles.userBubbleText
-                  }
-                >
-                  {message.text}
-                </Text>
-              </View>
-            ))}
-          </BottomSheetScrollView>
-          <BottomSheetTextInput
-            value={draft}
-            onChangeText={setDraft}
-            placeholder="Type your answer..."
-            placeholderTextColor={Colors.brand.mediumTeal}
-            editable={!sending}
-            returnKeyType="send"
-            onSubmitEditing={handleSend}
-            style={styles.input}
-          />
+          {pendingReview !== null ? (
+            <ReviewSaveStep
+              text={pendingReview}
+              saving={sending}
+              onSave={handleSaveReviewed}
+            />
+          ) : (
+            <>
+              <BottomSheetScrollView contentContainerStyle={styles.transcript}>
+                {messages.map((message, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.bubble,
+                      message.role === "assistant"
+                        ? styles.assistantBubble
+                        : styles.userBubble,
+                    ]}
+                  >
+                    <Text
+                      style={
+                        message.role === "assistant"
+                          ? styles.assistantBubbleText
+                          : styles.userBubbleText
+                      }
+                    >
+                      {message.text}
+                    </Text>
+                  </View>
+                ))}
+              </BottomSheetScrollView>
+              <BottomSheetTextInput
+                value={draft}
+                onChangeText={setDraft}
+                placeholder="Type your answer..."
+                placeholderTextColor={Colors.brand.mediumTeal}
+                editable={!sending}
+                returnKeyType="send"
+                onSubmitEditing={handleSend}
+                style={styles.input}
+              />
+            </>
+          )}
         </View>
       </BottomSheetModal>
     </View>

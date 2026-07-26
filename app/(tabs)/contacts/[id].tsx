@@ -20,8 +20,13 @@ import { useRecipient } from "../../../hooks/use-recipient";
 import { useGiftSuggestions } from "../../../hooks/use-gift-suggestions";
 import { useDeleteRecipient } from "../../../hooks/use-recipient-mutations";
 import { ConversationView } from "../../../components/recipients/conversation/ConversationView";
+import {
+  UpdateKnowledgeDrawer,
+  type UpdateKnowledgeDrawerHandle,
+} from "../../../components/recipients/UpdateKnowledgeDrawer";
 import { useAddOccasionFlow } from "../../../hooks/use-add-occasion-flow";
-import { useConversationFlow } from "../../../hooks/use-conversation-flow";
+import { invokeWithRetry } from "../../../lib/edge-retry";
+import type { ExtractedData } from "../../../hooks/use-conversation-flow";
 import { useUserPreferences } from "../../../hooks/use-user-preferences";
 import { formatShortName } from "../../../lib/format-name";
 import { showSnackbar } from "../../../components/GlobalSnackbar";
@@ -197,7 +202,6 @@ export default function RecipientEditPage() {
     flag === "true" ? true : (previous ?? false)
   );
 
-  const [showUpdateChat, setShowUpdateChat] = useState(false);
   const [confirmDeleteVisible, setConfirmDeleteVisible] = useState(false);
 
   // Baseline snapshot taken when a resynthesis kicks off; the recipient query
@@ -310,31 +314,9 @@ export default function RecipientEditPage() {
     },
   });
 
-  // Update-what-we-know chat flow
-  const updateFlow = useConversationFlow({
-    conversationType: "update_field",
-    existingData: recipient
-      ? {
-          id: recipient.id,
-          name: recipient.name,
-          relationship_type: recipient.relationship_type,
-          interests: recipient.interests,
-          birthday: recipient.birthday,
-          emotional_tone_preference: recipient.emotional_tone_preference,
-          gift_budget_min: recipient.gift_budget_min,
-          gift_budget_max: recipient.gift_budget_max,
-          address: recipient.address,
-          address_line_2: recipient.address_line_2,
-          city: recipient.city,
-          state: recipient.state,
-          zip_code: recipient.zip_code,
-          country: recipient.country,
-        }
-      : undefined,
-    initialMessage: recipient
-      ? `Let's update what we know about ${recipient.name}. What's new?`
-      : undefined,
-  });
+  // Two-step "Update what BeGifted knows" drawer (replaces the full-screen
+  // update chat). The note is extracted single-shot on Save.
+  const updateDrawerRef = useRef<UpdateKnowledgeDrawerHandle | null>(null);
 
   // Kick off a profile resynthesis and surface a "refreshing" state until the
   // edge function writes a new synopsis. Fire-and-forget on the network call —
@@ -355,12 +337,49 @@ export default function RecipientEditPage() {
       });
   };
 
-  const handleFinishUpdateChat = async () => {
-    if (!recipient || !user) return;
-    const extracted = await updateFlow.handleFinishConversation();
+  // Persist a reviewed update note: extract structured fields from the single
+  // free-form message, then apply them exactly as the old update chat did.
+  // Returns true when the drawer should close.
+  const handleSaveUpdateNote = async (text: string): Promise<boolean> => {
+    if (!recipient || !user || !text) return false;
+
+    let extracted: ExtractedData | null = null;
+    try {
+      const { data, error } = await invokeWithRetry<
+        ExtractedData & { extractedData?: ExtractedData }
+      >("recipient-conversation", {
+        body: {
+          action: "extract",
+          conversationType: "update_field",
+          messages: [{ role: "user", content: text }],
+          existingData: {
+            id: recipient.id,
+            name: recipient.name,
+            relationship_type: recipient.relationship_type,
+            interests: recipient.interests,
+            birthday: recipient.birthday,
+            emotional_tone_preference: recipient.emotional_tone_preference,
+            gift_budget_min: recipient.gift_budget_min,
+            gift_budget_max: recipient.gift_budget_max,
+            address: recipient.address,
+            address_line_2: recipient.address_line_2,
+            city: recipient.city,
+            state: recipient.state,
+            zip_code: recipient.zip_code,
+            country: recipient.country,
+          },
+        },
+      });
+      if (error) throw error;
+      extracted = data?.extractedData || data || null;
+    } catch (error) {
+      console.error("Failed to extract update note:", error);
+      showSnackbar("Couldn't save that — please try again.");
+      return false;
+    }
     if (!extracted) {
-      setShowUpdateChat(false);
-      return;
+      showSnackbar("Couldn't save that — please try again.");
+      return false;
     }
 
     const allowedKeys: (keyof Recipient)[] = [
@@ -480,7 +499,7 @@ export default function RecipientEditPage() {
     resynthesizeProfile(recipient.synthesized_profile ?? "");
 
     showSnackbar(`Updated ${recipient.name}'s profile.`);
-    setShowUpdateChat(false);
+    return true;
   };
 
   const handleConfirmDelete = () => {
@@ -543,27 +562,6 @@ export default function RecipientEditPage() {
           onRetry={addOccasionFlow.retryLastSend}
           title="Add Occasion"
           finishButtonLabel="Save Occasion"
-        />
-      </View>
-    );
-  }
-
-  if (showUpdateChat) {
-    return (
-      <View style={styles.container}>
-        <ConversationView
-          messages={updateFlow.messages}
-          isLoading={updateFlow.isLoading}
-          messagesEndRef={updateFlow.messagesEndRef}
-          onNavigateBack={() => setShowUpdateChat(false)}
-          onSendMessage={updateFlow.sendMessage}
-          onFinishConversation={handleFinishUpdateChat}
-          shouldShowNextStepButton={updateFlow.shouldShowNextStepButton}
-          conversationContext={updateFlow.conversationContext ?? ""}
-          canRetry={updateFlow.canRetrySend}
-          onRetry={updateFlow.retryLastSend}
-          title={`Update ${formatShortName(recipient.name)}`}
-          finishButtonLabel="Save Updates"
         />
       </View>
     );
@@ -634,10 +632,7 @@ export default function RecipientEditPage() {
                 queryKey: queryKeys.recipients(user.id),
               });
             }}
-            onOpenUpdateChat={() => {
-              updateFlow.resetConversation();
-              setShowUpdateChat(true);
-            }}
+            onOpenUpdateChat={() => updateDrawerRef.current?.present()}
             onDelete={() => setConfirmDeleteVisible(true)}
           />
         ) : (
@@ -662,6 +657,14 @@ export default function RecipientEditPage() {
           </>
         )}
       </ScrollView>
+      <UpdateKnowledgeDrawer
+        title="Update what BeGifted knows"
+        reviewTitle="Update what we know"
+        prompt={`What should BeGifted know about ${shortName}?`}
+        placeholder="e.g. loves architecture and modern design, gets excited about thoughtful, unexpected gifts rather than generic ones."
+        onSave={handleSaveUpdateNote}
+        handleRef={updateDrawerRef}
+      />
       <Portal>
         <Dialog
           visible={confirmDeleteVisible}
