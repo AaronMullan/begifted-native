@@ -138,7 +138,12 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
         style={styles.updateLink}
         accessibilityRole="link"
       >
-        <Text style={styles.updateLinkText}>Update what we know ›</Text>
+        <Text style={styles.updateLinkText}>Update what BeGifted knows</Text>
+        <MaterialIcons
+          name="chevron-right"
+          size={14}
+          color={Colors.brand.mediumTeal}
+        />
       </Pressable>
 
       <Text style={styles.sectionLabel}>OCCASIONS</Text>
@@ -419,12 +424,15 @@ const styles = StyleSheet.create({
   },
   updateLink: {
     alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     marginTop: 12,
     marginBottom: 8,
   },
   updateLinkText: {
-    ...Typography.largeCta,
-    color: Colors.darks.black,
+    ...Typography.smallCta,
+    color: Colors.brand.mediumTeal,
   },
   card: {
     backgroundColor: Colors.white,

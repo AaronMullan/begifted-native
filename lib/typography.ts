@@ -75,6 +75,20 @@ export const Typography = {
     fontFamily: FontFamily.sans.medium,
     fontSize: 16,
   } satisfies TextStyle,
+  // Bottom-drawer titles (Figma drawer frames 4959:2586 / 4883:6125:
+  // Poltawski Bold 20, normal leading).
+  drawerTitle: {
+    fontFamily: FontFamily.serif.bold,
+    fontSize: 20,
+    lineHeight: scaleLineHeight(26),
+  } satisfies TextStyle,
+  // Small body copy (Figma "body13": DM Sans 400 13/16) — drawer prompts,
+  // conversation answer text.
+  body13: {
+    fontFamily: FontFamily.sans.regular,
+    fontSize: 13,
+    lineHeight: scaleLineHeight(16),
+  } satisfies TextStyle,
   // Body copy ("copyblock" in the FINAL file): DM Sans 400 14/18. Intro
   // paragraphs and expanded FAQ answers.
   copyblock: {
