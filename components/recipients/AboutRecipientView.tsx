@@ -9,6 +9,10 @@ import {
   Text,
 } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
+import { showSnackbar } from "../GlobalSnackbar";
+import { uploadRecipientPhoto } from "../../lib/recipient-photo";
 import { Colors } from "../../lib/colors";
 import { Typography } from "../../lib/typography";
 import { supabase } from "../../lib/supabase";
@@ -72,6 +76,7 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
   );
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [informationOpen, setInformationOpen] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const handleSavePartial = async (
     fields: Partial<Recipient>,
@@ -97,6 +102,38 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
     }
   };
 
+  // Pick from the library, upload via the service_role edge function (direct
+  // client uploads to storage are RLS-rejected on this project), then persist
+  // the returned public URL. No resync — the synopsis doesn't depend on the
+  // photo.
+  const handleChangePhoto = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      showSnackbar("Allow photo access in Settings to add a photo.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (result.canceled || !result.assets[0]) return;
+
+    setUploadingPhoto(true);
+    try {
+      const url = await uploadRecipientPhoto(result.assets[0].uri);
+      if (!url) throw new Error("Upload failed");
+      await handleSavePartial({ photo_url: url }, false);
+      showSnackbar("Photo updated.");
+    } catch {
+      showSnackbar("Couldn't update the photo. Please try again.");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const handleConfirmDeleteOccasion = () => {
     if (!occasionToDelete) return;
     deleteOccasion.mutate(
@@ -115,6 +152,41 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
     <View style={styles.container}>
       <Text style={styles.heroAbout}>About</Text>
       <Text style={styles.heroName}>{recipient.name}</Text>
+
+      <Pressable
+        onPress={handleChangePhoto}
+        disabled={uploadingPhoto}
+        style={styles.photoSection}
+        accessibilityRole="button"
+        accessibilityLabel={
+          recipient.photo_url
+            ? `Update ${recipient.name}'s photo`
+            : `Add ${recipient.name}'s photo`
+        }
+      >
+        {uploadingPhoto ? (
+          <View style={styles.photoPlaceholder}>
+            <ActivityIndicator size={20} color={Colors.brand.mediumTeal} />
+          </View>
+        ) : recipient.photo_url ? (
+          <Image
+            source={{ uri: recipient.photo_url }}
+            style={styles.photoCircle}
+            contentFit="cover"
+          />
+        ) : (
+          <View style={styles.photoPlaceholder}>
+            <MaterialIcons
+              name="photo-camera"
+              size={26}
+              color={Colors.brand.mediumTeal}
+            />
+          </View>
+        )}
+        <Text style={styles.photoLabel}>
+          {recipient.photo_url ? "Update Photo" : "Add / Update Photo"}
+        </Text>
+      </Pressable>
 
       <Text style={styles.sectionLabel}>
         HOW BEGIFTED UNDERSTANDS {recipient.name.toUpperCase()}
@@ -391,6 +463,34 @@ const styles = StyleSheet.create({
     ...Typography.h1,
     color: Colors.blues.dark,
     marginBottom: 24,
+  },
+  photoSection: {
+    alignSelf: "flex-start",
+    alignItems: "center",
+    gap: 8,
+    // Matches the 10pt module bottom margin so the following section head's
+    // marginTop sums to the 32pt section gap.
+    marginBottom: 10,
+  },
+  photoCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+  },
+  photoPlaceholder: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Colors.white,
+    borderWidth: 2,
+    borderColor: Colors.brand.lightTeal,
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  photoLabel: {
+    ...Typography.smallCta,
+    color: Colors.brand.mediumTeal,
   },
   sectionLabel: {
     ...Typography.sectionHeadAc,

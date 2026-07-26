@@ -5,9 +5,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Alert, View } from "react-native";
-import { invokeWithRetry } from "../lib/edge-retry";
 import { queryKeys } from "../lib/query-keys";
 import { supabase } from "../lib/supabase";
+import { uploadRecipientPhoto } from "../lib/recipient-photo";
 import {
   backfillBirthdayFromAge,
   birthdayHasYear,
@@ -69,48 +69,6 @@ function buildInitialUserMessage(
     message += ` I already have ${joinWithAnd(known)} from my contacts.`;
   }
   return message;
-}
-
-// Direct supabase.storage.upload calls to `recipient-photos` get RLS-rejected
-// on this project even with permissive policies — likely a storage-api/plpgsql
-// plan cache issue we cannot fix from the client. Route through an edge
-// function (`upload-recipient-photo`) that uses service_role to do the upload,
-// while enforcing path scoping to the authenticated caller's user_id.
-async function uploadRecipientPhoto(photoUri: string): Promise<string | null> {
-  try {
-    const base64 = await FileSystem.readAsStringAsync(photoUri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-    // Cap at 2 attempts (one retry): a transient FetchError / 5xx gets a single
-    // jittered re-send, but the base64 image payload is large and the failing
-    // device is often thermally throttling with a saturated uplink — so we
-    // avoid the default 3-attempt hammering. Still falls back to null (DEV-177).
-    const { data, error } = await invokeWithRetry<{
-      publicUrl?: string;
-      error?: string;
-    }>(
-      "upload-recipient-photo",
-      {
-        body: { base64, contentType: "image/jpeg" },
-      },
-      2
-    );
-    if (error || !data?.publicUrl) {
-      const message = error?.message ?? data?.error ?? "Upload failed";
-      console.error("[photo] upload error:", message);
-      Sentry.captureException(new Error(message), {
-        tags: { flow: "add_recipient", step: "photo_upload" },
-      });
-      return null;
-    }
-    return data.publicUrl;
-  } catch (err) {
-    console.error("[photo] upload failed:", err);
-    Sentry.captureException(err, {
-      tags: { flow: "add_recipient", step: "photo_upload" },
-    });
-    return null;
-  }
 }
 
 interface UseAddRecipientFlowReturn {
