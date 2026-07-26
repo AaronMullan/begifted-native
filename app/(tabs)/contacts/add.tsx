@@ -10,7 +10,8 @@ import AddRecipientLegalNotice from "../../../components/recipients/AddRecipient
 import { DataReviewView } from "../../../components/recipients/conversation/DataReviewView";
 import { OccasionsSelectionView } from "../../../components/recipients/conversation/OccasionsSelectionView";
 import { ManualDataEntry } from "../../../components/recipients/conversation/ManualDataEntry";
-import { SuccessView } from "../../../components/recipients/conversation/SuccessView";
+import { ProfileReadyInterstitial } from "../../../components/ProfileReadyInterstitial";
+import { formatShortName } from "../../../lib/format-name";
 import type { ExtractedData } from "../../../hooks/use-conversation-flow";
 import { Spacing } from "../../../lib/spacing";
 
@@ -35,10 +36,8 @@ const AddRecipient = () => {
     photo_url?: string;
   }>();
 
-  // Capture device-contact prefill once at mount. On "Add another person",
-  // we reset to an empty seed so the second add doesn't reuse the first
-  // person's contact context.
-  const [seed, setSeed] = useState<InitialContactSeed>(() => ({
+  // Capture device-contact prefill once at mount.
+  const [seed] = useState<InitialContactSeed>(() => ({
     name: typeof params.name === "string" ? params.name : undefined,
     birthday: typeof params.birthday === "string" ? params.birthday : undefined,
     photoUri:
@@ -52,34 +51,14 @@ const AddRecipient = () => {
     },
   }));
 
-  // Bumping this key remounts AddRecipientFlow, fully resetting its hook state.
-  const [resetKey, setResetKey] = useState(0);
-
-  const handleAddAnother = () => {
-    setSeed({
-      name: undefined,
-      birthday: undefined,
-      photoUri: undefined,
-      address: {},
-    });
-    setResetKey((k) => k + 1);
-  };
-
-  return (
-    <AddRecipientFlow
-      key={resetKey}
-      seed={seed}
-      onAddAnother={handleAddAnother}
-    />
-  );
+  return <AddRecipientFlow seed={seed} />;
 };
 
 type AddRecipientFlowProps = {
   seed: InitialContactSeed;
-  onAddAnother: () => void;
 };
 
-const AddRecipientFlow = ({ seed, onAddAnother }: AddRecipientFlowProps) => {
+const AddRecipientFlow = ({ seed }: AddRecipientFlowProps) => {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [showManualEntry, setShowManualEntry] = useState(false);
@@ -171,13 +150,18 @@ const AddRecipientFlow = ({ seed, onAddAnother }: AddRecipientFlowProps) => {
     return null;
   }
 
-  // Show success screen when save completes
+  // Save complete → the "profile is ready" transition (Figma 5051:7621);
+  // auto-advances to the new person's gift ideas, no CTA.
   if (saveSuccess) {
+    const shortName = formatShortName(savedRecipientName || "Recipient");
+    const possessive = shortName.endsWith("s")
+      ? `${shortName}'`
+      : `${shortName}'s`;
     return (
-      <SuccessView
-        recipientName={savedRecipientName || "Recipient"}
-        onViewRecipients={handleViewRecipients}
-        onAddAnother={onAddAnother}
+      <ProfileReadyInterstitial
+        title={`${possessive} profile is ready`}
+        subtitle="We'll start finding thoughtful gift ideas for them. You can always add more later."
+        onDone={handleViewRecipients}
       />
     );
   }
