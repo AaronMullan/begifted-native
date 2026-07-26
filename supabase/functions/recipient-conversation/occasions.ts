@@ -9,9 +9,11 @@ import {
   supabaseServiceKey,
 } from "./data-extractor.ts";
 import {
-  inferRolesFromRelationship,
+  deriveGiftRelevantRoles,
   normalizeRelationship,
 } from "./relationships.ts";
+import type { FamilyFacts } from "./relationships.ts";
+import { fetchFamilyFacts } from "./family-facts.ts";
 import { deriveCoreOccasions } from "./core-occasions.ts";
 import type { CoreOccasionCandidate } from "./core-occasions.ts";
 import { buildDiscoveryAnchors } from "./discovery-anchors.ts";
@@ -36,6 +38,7 @@ export interface OccasionRunDebug {
   unresolvedPlaceholders: string[];
   relationship: string;
   knownRoles: string[];
+  familyFacts: FamilyFacts;
   coreOccasionCandidates: CoreOccasionCandidate[];
   availableDiscoveryAnchors: DiscoveryAnchor[];
   rawModelOutput: string | null;
@@ -69,7 +72,8 @@ function substitute(template: string, tokens: Record<string, string>): string {
 export async function recommendOccasions(
   extractedData: ExtractedData | RecipientData,
   customSystemPrompt?: string,
-  aiOverride?: AIOverride
+  aiOverride?: AIOverride,
+  userId?: string
 ): Promise<OccasionRecommendations & { debug: OccasionRunDebug }> {
   const aiConfig = await resolveAIConfig(aiOverride, "gpt-5.4-mini");
   const name = extractedData.name || "this person";
@@ -85,14 +89,26 @@ export async function recommendOccasions(
     (extractedData as ExtractedData).knownRoles ||
     (extractedData as RecipientData).knownRoles ||
     [];
-  const knownRoles =
-    explicitKnownRoles.length > 0
-      ? explicitKnownRoles
-      : inferRolesFromRelationship(relationship);
   const householdContext =
     (extractedData as ExtractedData).householdContext ||
     (extractedData as RecipientData).householdContext ||
     "";
+  // Family facts from the user's other recipients (excluding this one, when
+  // it already exists). No userId (or a failed read) degrades to no facts.
+  const familyFacts: FamilyFacts = userId
+    ? await fetchFamilyFacts(
+        supabaseUrl,
+        supabaseServiceKey,
+        userId,
+        (extractedData as RecipientData).id
+      )
+    : { userHasChildren: false };
+  const knownRoles = deriveGiftRelevantRoles({
+    relationship,
+    knownRoles: explicitKnownRoles,
+    householdContext,
+    familyFacts,
+  });
   const importantDates =
     (extractedData as ExtractedData).importantDates ||
     (extractedData as RecipientData).importantDates ||
@@ -256,6 +272,7 @@ Return JSON only, no markdown:
     unresolvedPlaceholders,
     relationship,
     knownRoles,
+    familyFacts,
     coreOccasionCandidates: coreCandidates,
     availableDiscoveryAnchors: discoveryAnchors,
     rawModelOutput: null,
