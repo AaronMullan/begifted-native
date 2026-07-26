@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Button, Chip, Snackbar, Text } from "react-native-paper";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
@@ -36,6 +36,10 @@ type RowDef = {
   // can Skip.
   followUp: FollowUp;
 };
+
+// Long enough to cover the sheet's present animation plus a rapid double-tap
+// interval; a deliberate first row tap comes well after this.
+const OPEN_GUARD_MS = 400;
 
 const ROWS: RowDef[] = [
   {
@@ -100,10 +104,25 @@ export default function GiftActionDrawer({
   const [errorVisible, setErrorVisible] = useState(false);
   const submit = useSubmitGiftFeedback();
 
+  // The sheet presents with no backdrop and the "Not for them" row lands under
+  // the trigger that opened it, so the second tap of a double-tap on the
+  // gift-card "..." would silently file feedback. Ignore row presses until the
+  // sheet has had time to settle.
+  const openGuardRef = useRef(false);
+  useEffect(() => {
+    if (!state) return;
+    openGuardRef.current = true;
+    const timer = setTimeout(() => {
+      openGuardRef.current = false;
+    }, OPEN_GUARD_MS);
+    return () => clearTimeout(timer);
+  }, [state]);
+
   // Save the base signal on tap, keep the sheet open, and switch to the row's
   // follow-up screen.
   const handleRowPress = (row: RowDef) => {
     if (!state) return;
+    if (openGuardRef.current) return;
     submit.mutate(
       {
         recipientId: state.suggestion.recipient_id,
