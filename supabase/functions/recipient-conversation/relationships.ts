@@ -22,6 +22,88 @@ export function inferRolesFromRelationship(relationship: string): string[] {
   return [...roles];
 }
 
+/** Facts derived from the user's other recipients (the relationship graph). */
+export interface FamilyFacts {
+  userHasChildren: boolean;
+}
+
+const GENDERED_SPOUSE_ROLE: Record<string, string> = {
+  wife: "mother",
+  husband: "father",
+};
+
+const UNGENDERED_PARTNERS = new Set([
+  "spouse",
+  "partner",
+  "fiancé",
+  "fiancée",
+  "fiance",
+  "fiancee",
+]);
+
+/**
+ * True when the recipient's own household description explicitly mentions
+ * children. The extractor only writes householdContext from explicit
+ * statements, so a match here is a captured fact, not an inference.
+ */
+export function householdMentionsChildren(householdContext: string): boolean {
+  return /\b(child|children|kid|kids|son|sons|daughter|daughters|baby|babies|toddler|toddlers)\b/i.test(
+    householdContext
+  );
+}
+
+/**
+ * Combine relationship, household, and family-graph facts into gift-relevant
+ * roles (DEV-335). Governing rule: derive occasion applicability from all
+ * compatible known facts, using the least specific defensible role — never
+ * invent biological, legal, marital, or custodial facts. Concretely:
+ *
+ * - Explicit knownRoles and relationship-derived roles are unioned, never
+ *   replaced (an explicit ["wife"] must not suppress other derivation).
+ * - Gendered spouse (wife/husband) + user has children → mother/father.
+ *   The role describes occasion applicability (Mother's/Father's Day), not
+ *   asserted biological parentage.
+ * - Ungendered partner (spouse/partner/fiancé(e)) + children → "parent"
+ *   only: gender is never guessed, so no gendered day unlocks.
+ * - User's parent or parent-in-law + user has children → grandparent role
+ *   (they are the children's grandmother/grandfather figure).
+ */
+export function deriveGiftRelevantRoles(input: {
+  relationship: string;
+  knownRoles: string[];
+  householdContext: string;
+  familyFacts: FamilyFacts;
+}): string[] {
+  const relationship = input.relationship.trim().toLowerCase();
+  const roles = new Set<string>(
+    [...input.knownRoles, ...inferRolesFromRelationship(relationship)].map(
+      (r) => r.toLowerCase()
+    )
+  );
+  const childrenKnown =
+    input.familyFacts.userHasChildren ||
+    householdMentionsChildren(input.householdContext);
+  if (!childrenKnown) return [...roles];
+
+  const genderedRole =
+    GENDERED_SPOUSE_ROLE[relationship] ??
+    [...roles].map((r) => GENDERED_SPOUSE_ROLE[r]).find(Boolean);
+  if (genderedRole) {
+    roles.add(genderedRole);
+  } else if (UNGENDERED_PARTNERS.has(relationship)) {
+    roles.add("parent");
+  }
+
+  // Grandparent derivation keys on the relationship being a parent type
+  // (mother/father, incl. in-laws) — not on roles derived above, so a
+  // spouse-turned-mother is never also marked a grandmother.
+  const relationshipRoles = inferRolesFromRelationship(relationship);
+  if (relationshipRoles.includes("mother")) roles.add("grandmother");
+  if (relationshipRoles.includes("father")) roles.add("grandfather");
+
+  return [...roles];
+}
+
 /**
  * Canonicalize common relationship nicknames to a consistent vocabulary before
  * the occasion prompt sees them (e.g. "hubby" → "husband", "mom" → "mother"),

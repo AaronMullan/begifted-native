@@ -149,6 +149,21 @@ export function nextFathersDay(): string {
   return nextNthWeekdayOfMonth(6, 0, 3);
 }
 
+// National Grandparents Day (US): first Sunday after Labor Day, i.e. the
+// first Monday of September + 6 days (not a fixed nth Sunday of the month).
+export function nextGrandparentsDay(): string {
+  const calc = (year: number): string => {
+    const laborDay = nthWeekdayOfMonth(year, 9, 1, 1);
+    const [y, m, d] = laborDay.split("-").map(Number);
+    return nextOrRecurse(
+      toISO(new Date(Date.UTC(y, m - 1, d + 6))),
+      calc,
+      year
+    );
+  };
+  return calc(new Date().getUTCFullYear());
+}
+
 // ── Equinox / Solstice (Meeus algorithm, accurate 1951-2050) ──────────
 
 function meeusISO(jde: number): string {
