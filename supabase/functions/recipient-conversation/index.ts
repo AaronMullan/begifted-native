@@ -137,7 +137,7 @@ serve(async (req) => {
     });
   }
   try {
-    const { errorResponse } = await requireUser(req, corsHeaders);
+    const { user, errorResponse } = await requireUser(req, corsHeaders);
     if (errorResponse) return errorResponse;
 
     // Parse request body
@@ -186,7 +186,8 @@ serve(async (req) => {
       const result = await recommendOccasions(
         data,
         customSystemPrompt,
-        aiOverride
+        aiOverride,
+        user?.id
       );
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

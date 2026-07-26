@@ -77,6 +77,46 @@ Deno.test("explicit knownRoles unlock Father's Day for a spouse", () => {
 });
 
 Deno.test(
+  "explicit non-parent roles don't suppress relationship-derived roles",
+  () => {
+    // knownRoles ["wife"] used to replace inference entirely; the union keeps
+    // relationship-derived roles alive alongside explicit ones.
+    const result = deriveCoreOccasions(
+      input({ relationship: "grandma", knownRoles: ["wife"] })
+    );
+    assert(keys(result).includes("mothers_day"));
+  }
+);
+
+Deno.test(
+  "grandparent role yields eligible (not required) Grandparents Day",
+  () => {
+    const result = deriveCoreOccasions(
+      input({ relationship: "mother", knownRoles: ["mother", "grandmother"] })
+    );
+    const gd = result.find((c) => c.key === "grandparents_day");
+    assert(gd);
+    assertEquals(gd.required, false);
+    assert(ISO.test(gd.suggestedDate ?? ""));
+    assert((gd.suggestedDate ?? "") >= todayISO);
+    // First Sunday after Labor Day always lands Sept 7–13.
+    const day = Number((gd.suggestedDate ?? "").slice(8, 10));
+    assert((gd.suggestedDate ?? "").slice(5, 7) === "09");
+    assert(day >= 7 && day <= 13);
+  }
+);
+
+Deno.test("already-tracked grandparents day is not re-suggested", () => {
+  const result = deriveCoreOccasions(
+    input({
+      relationship: "grandma",
+      knownOccasions: ["grandparents_day (2026-09-13)"],
+    })
+  );
+  assert(!keys(result).includes("grandparents_day"));
+});
+
+Deno.test(
   "spouse gets anniversary (date-required) + Valentine's + Christmas",
   () => {
     const result = deriveCoreOccasions(input({ relationship: "wife" }));
