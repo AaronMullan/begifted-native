@@ -12,6 +12,7 @@ import { inferRolesFromRelationship } from "./relationships.ts";
 import {
   extractFutureDate,
   nextFathersDay,
+  nextGrandparentsDay,
   nextHanukkah,
   nextDiwali,
   nextMothersDay,
@@ -106,11 +107,15 @@ export function deriveCoreOccasions(
 ): CoreOccasionCandidate[] {
   const candidates: CoreOccasionCandidate[] = [];
   const relationship = input.relationship.trim().toLowerCase();
-  const roles = (
-    input.knownRoles.length > 0
-      ? input.knownRoles
-      : inferRolesFromRelationship(relationship)
-  ).map((r) => r.toLowerCase());
+  // Union, never either/or: an explicit role list (e.g. ["wife"]) must not
+  // suppress roles derivable from the relationship itself.
+  const roles = [
+    ...new Set(
+      [...input.knownRoles, ...inferRolesFromRelationship(relationship)].map(
+        (r) => r.toLowerCase()
+      )
+    ),
+  ];
   const known = input.knownOccasions.map((k) => k.toLowerCase());
   const alreadyTracked = (pattern: RegExp) =>
     known.some((k) => pattern.test(k));
@@ -164,6 +169,23 @@ export function deriveCoreOccasions(
       suggestedDate: nextFathersDay(),
       isMilestone: false,
       required: true,
+    });
+  }
+
+  // Grandparents Day — grandparent roles (explicit, or derived from being
+  // the user's parent when the user has children). Eligible, not required:
+  // the model ranks whether it makes the cut for this recipient.
+  const isGrandparentRole = roles.some((r) =>
+    /\b(grandmother|grandfather|grandparent)\b/.test(r)
+  );
+  if (isGrandparentRole && !alreadyTracked(/grandparent/)) {
+    candidates.push({
+      key: "grandparents_day",
+      type: "relationship_based_occasion",
+      name: "Grandparents Day",
+      suggestedDate: nextGrandparentsDay(),
+      isMilestone: false,
+      required: false,
     });
   }
 
