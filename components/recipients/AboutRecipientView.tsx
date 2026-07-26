@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
@@ -19,7 +19,10 @@ import {
   useRecipientOccasions,
   useUpdateOccasion,
 } from "../../hooks/use-occasion-mutations";
-import { OccasionEditor } from "./conversation/OccasionEditor";
+import {
+  ManageMomentDrawer,
+  type ManageMomentDrawerHandle,
+} from "./ManageMomentDrawer";
 import { slugifyOccasionName } from "../../hooks/use-occasion-recommendations";
 import { GiftPreferencesDialog } from "./GiftPreferencesDialog";
 import { InformationDialog } from "./InformationDialog";
@@ -67,6 +70,7 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [editingOccasion, setEditingOccasion] = useState<Occasion | null>(null);
+  const manageMomentRef = useRef<ManageMomentDrawerHandle | null>(null);
   const [occasionToDelete, setOccasionToDelete] = useState<Occasion | null>(
     null
   );
@@ -188,8 +192,9 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
                 onPress={() => {
                   setOpenMenuId(null);
                   setEditingOccasion(occasion);
+                  manageMomentRef.current?.present();
                 }}
-                title="Edit"
+                title="Edit moment"
               />
               <Menu.Item
                 onPress={() => {
@@ -197,6 +202,7 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
                   setOccasionToDelete(occasion);
                 }}
                 title="Delete"
+                titleStyle={styles.deleteMenuItem}
               />
             </Menu>
           </View>
@@ -327,32 +333,29 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
         </Dialog>
       </Portal>
 
-      {editingOccasion && (
-        <OccasionEditor
-          occasion={editingOccasion}
-          visible={!!editingOccasion}
-          onClose={() => setEditingOccasion(null)}
-          editableName
-          onSave={(date, isAnnual, name) => {
-            // occasion_type doubles as the display name (there is no separate
-            // title column), so a rename is a slug update.
-            const slug = name ? slugifyOccasionName(name) : "";
-            updateOccasion.mutate({
-              occasionId: editingOccasion.id,
-              recipientId: recipient.id,
-              fields: {
-                // An empty date means "leave it alone": the date column
-                // rejects "", and a NULL would vanish from the calendar.
-                ...(date ? { date } : {}),
-                is_annual: isAnnual,
-                ...(slug && slug !== editingOccasion.occasion_type
-                  ? { occasion_type: slug }
-                  : {}),
-              },
-            });
-          }}
-        />
-      )}
+      <ManageMomentDrawer
+        occasion={editingOccasion}
+        handleRef={manageMomentRef}
+        onDelete={(occasion) => setOccasionToDelete(occasion)}
+        onSave={(date, name) => {
+          if (!editingOccasion) return;
+          // occasion_type doubles as the display name (there is no separate
+          // title column), so a rename is a slug update.
+          const slug = name ? slugifyOccasionName(name) : "";
+          updateOccasion.mutate({
+            occasionId: editingOccasion.id,
+            recipientId: recipient.id,
+            fields: {
+              // An empty date means "leave it alone": the date column
+              // rejects "", and a NULL would vanish from the calendar.
+              ...(date ? { date } : {}),
+              ...(slug && slug !== editingOccasion.occasion_type
+                ? { occasion_type: slug }
+                : {}),
+            },
+          });
+        }}
+      />
 
       <GiftPreferencesDialog
         visible={preferencesOpen}
@@ -465,6 +468,9 @@ const styles = StyleSheet.create({
   },
   overflowButton: {
     padding: 4,
+  },
+  deleteMenuItem: {
+    color: Colors.brand.rose,
   },
   fieldLabel: {
     ...Typography.fieldLabel,

@@ -19,12 +19,16 @@ import { useAuth } from "../../../hooks/use-auth";
 import { useRecipient } from "../../../hooks/use-recipient";
 import { useGiftSuggestions } from "../../../hooks/use-gift-suggestions";
 import { useDeleteRecipient } from "../../../hooks/use-recipient-mutations";
-import { ConversationView } from "../../../components/recipients/conversation/ConversationView";
 import {
   UpdateKnowledgeDrawer,
   type UpdateKnowledgeDrawerHandle,
 } from "../../../components/recipients/UpdateKnowledgeDrawer";
-import { useAddOccasionFlow } from "../../../hooks/use-add-occasion-flow";
+import {
+  AddMomentDrawer,
+  type AddMomentDrawerHandle,
+} from "../../../components/moments/AddMomentDrawer";
+import { useCreateOccasion } from "../../../hooks/use-occasion-mutations";
+import { slugifyOccasionName } from "../../../hooks/use-occasion-recommendations";
 import { invokeWithRetry } from "../../../lib/edge-retry";
 import type { ExtractedData } from "../../../hooks/use-conversation-flow";
 import { useUserPreferences } from "../../../hooks/use-user-preferences";
@@ -195,7 +199,7 @@ export default function RecipientEditPage() {
     string | null
   >(params.occasionId, (id) => id ?? null);
 
-  const [showAddOccasionChat, setShowAddOccasionChat] = useParamDrivenState<
+  const [addMomentRequested, setAddMomentRequested] = useParamDrivenState<
     string | undefined,
     boolean
   >(params.addOccasion, (flag, previous) =>
@@ -304,15 +308,41 @@ export default function RecipientEditPage() {
 
   const deleteRecipient = useDeleteRecipient();
 
-  // Add-occasion chat flow
-  const addOccasionFlow = useAddOccasionFlow({
-    recipientId: recipientId || "",
-    recipientName: recipient?.name || "",
-    onSuccess: () => {
-      setShowAddOccasionChat(false);
-      showSnackbar("Occasion added!");
-    },
-  });
+  // Navigating in with ?addOccasion=true (e.g. calendar's "Add Moments"
+  // without a day picked) opens the chip drawer. The flag is cleared on
+  // present so recipient refetches don't re-open a dismissed drawer.
+  const addMomentRef = useRef<AddMomentDrawerHandle | null>(null);
+  const createOccasion = useCreateOccasion();
+  useEffect(() => {
+    if (addMomentRequested && recipient) {
+      addMomentRef.current?.present();
+      setAddMomentRequested(false);
+    }
+  }, [addMomentRequested, recipient, setAddMomentRequested]);
+
+  const handleSaveMoment = async (momentName: string): Promise<boolean> => {
+    if (!recipientId) return false;
+    return new Promise((resolve) => {
+      createOccasion.mutate(
+        {
+          recipientId,
+          // The drawer carries no date field — the moment starts undated and
+          // gets its date in the Manage Moment drawer.
+          date: null,
+          occasionType: slugifyOccasionName(momentName),
+          isAnnual: true,
+        },
+        {
+          // Failures surface via the shared mutation handler's snackbar.
+          onSuccess: () => {
+            showSnackbar("Moment added");
+            resolve(true);
+          },
+          onError: () => resolve(false),
+        }
+      );
+    });
+  };
 
   // Two-step "Update what BeGifted knows" drawer (replaces the full-screen
   // update chat). The note is extracted single-shot on Save.
@@ -543,30 +573,6 @@ export default function RecipientEditPage() {
     );
   }
 
-  if (showAddOccasionChat) {
-    return (
-      <View style={styles.container}>
-        <ConversationView
-          messages={addOccasionFlow.messages}
-          isLoading={addOccasionFlow.isLoading}
-          messagesEndRef={addOccasionFlow.messagesEndRef}
-          onNavigateBack={() => {
-            setShowAddOccasionChat(false);
-            addOccasionFlow.resetConversation();
-          }}
-          onSendMessage={addOccasionFlow.sendMessage}
-          onFinishConversation={addOccasionFlow.handleFinishConversation}
-          shouldShowNextStepButton={addOccasionFlow.shouldShowNextStepButton}
-          conversationContext={addOccasionFlow.conversationContext}
-          canRetry={addOccasionFlow.canRetrySend}
-          onRetry={addOccasionFlow.retryLastSend}
-          title="Add Occasion"
-          finishButtonLabel="Save Occasion"
-        />
-      </View>
-    );
-  }
-
   const shortName = formatShortName(recipient.name);
   return (
     <View style={styles.container}>
@@ -664,6 +670,12 @@ export default function RecipientEditPage() {
         placeholder="e.g. loves architecture and modern design, gets excited about thoughtful, unexpected gifts rather than generic ones."
         onSave={handleSaveUpdateNote}
         handleRef={updateDrawerRef}
+      />
+      <AddMomentDrawer
+        recommendedLabel={`RECOMMENDED FOR ${shortName.toUpperCase()}`}
+        onSave={handleSaveMoment}
+        saving={createOccasion.isPending}
+        handleRef={addMomentRef}
       />
       <Portal>
         <Dialog
