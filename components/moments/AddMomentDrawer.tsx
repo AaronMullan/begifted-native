@@ -20,6 +20,8 @@ type AddMomentDrawerProps = {
   onSave: (momentName: string) => Promise<boolean>;
   saving: boolean;
   handleRef: React.MutableRefObject<AddMomentDrawerHandle | null>;
+  /** Section label above the recommended chips, e.g. "RECOMMENDED FOR ARNOLD". */
+  recommendedLabel?: string;
 };
 
 // Chip sets from the frame (5200:4525). Recommended chips render filled,
@@ -46,6 +48,7 @@ export const AddMomentDrawer: React.FC<AddMomentDrawerProps> = ({
   onSave,
   saving,
   handleRef,
+  recommendedLabel = "RECOMMENDED",
 }) => {
   const sheetRef = useRef<BottomSheetModal>(null);
   const [momentName, setMomentName] = useState("");
@@ -92,7 +95,7 @@ export const AddMomentDrawer: React.FC<AddMomentDrawerProps> = ({
         <Text style={styles.subtitle}>
           Pick from recommended occasions, common ones, or add your own.
         </Text>
-        <Text style={styles.sectionLabel}>RECOMMENDED</Text>
+        <Text style={styles.sectionLabel}>{recommendedLabel}</Text>
         <View style={styles.chipRow}>
           {RECOMMENDED_MOMENTS.map((label) => chip(label, true))}
         </View>
