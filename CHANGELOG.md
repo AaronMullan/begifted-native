@@ -19,10 +19,11 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
-## 2026-07-26 — OTA
+## 2026-07-26 — Build 57 (TestFlight)
 
 ### App
 
+- The app now notices when we ship an update: it downloads in the background and a small "Update ready" prompt offers a one-tap Restart Now — no more force-quitting twice to pick up fixes. (ota-update-prompt)
 - If importing from Contacts fails, the error dialog now has an "Open Settings" button that jumps straight to the iOS settings page where contacts access is granted. (DEV-324)
 - Opening gifts from a notification no longer shows the redundant "Showing gifts for …" banner; a small "View all gifts ›" link remains to clear the occasion filter. (DEV-325)
 - "Update what BeGifted knows" on a person's About page is now a quick bottom drawer instead of a full-screen chat: type one note, review it, and nothing saves until you tap Save Updates — with the profile synopsis still visible behind it. (DEV-326)
