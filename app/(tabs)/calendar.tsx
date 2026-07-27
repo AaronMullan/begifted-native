@@ -391,10 +391,18 @@ export default function Calendar() {
                 style={styles.addToDayPill}
                 onPress={() => selectPersonRef.current?.present()}
                 accessibilityRole="button"
-                accessibilityLabel="Add to this day"
+                accessibilityLabel={
+                  selectedOccasions.length > 0
+                    ? "Add another person to this day"
+                    : "Add to this day"
+                }
               >
                 <MaterialIcons name="add" size={16} color={Colors.brand.gold} />
-                <Text style={styles.addToDayLabel}>Add to this day</Text>
+                <Text style={styles.addToDayLabel}>
+                  {selectedOccasions.length > 0
+                    ? "Add another person to this day"
+                    : "Add to this day"}
+                </Text>
               </Pressable>
             </>
           ) : (

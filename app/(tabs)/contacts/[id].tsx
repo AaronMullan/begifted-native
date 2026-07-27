@@ -643,8 +643,15 @@ export default function RecipientEditPage() {
               queryClient.invalidateQueries({
                 queryKey: queryKeys.recipients(user.id),
               });
+              // Occasion rows embed recipient fields (photo_url, name) that the
+              // dashboard and calendar render from; without this the homepage
+              // avatar stays stale until the next background refetch.
+              queryClient.invalidateQueries({
+                queryKey: queryKeys.occasions(user.id),
+              });
             }}
             onOpenUpdateChat={() => updateDrawerRef.current?.present()}
+            onAddOccasion={() => addMomentRef.current?.present()}
             onDelete={() => setConfirmDeleteVisible(true)}
           />
         ) : (
