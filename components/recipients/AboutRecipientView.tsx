@@ -49,6 +49,7 @@ type AboutRecipientViewProps = {
   onResynthesize: () => void;
   onRecipientUpdated: (updated: Recipient) => void;
   onOpenUpdateChat: () => void;
+  onAddOccasion: () => void;
   onDelete: () => void;
 };
 
@@ -66,6 +67,7 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
   onResynthesize,
   onRecipientUpdated,
   onOpenUpdateChat,
+  onAddOccasion,
   onDelete,
 }) => {
   const { data: occasions = [] } = useRecipientOccasions(recipient.id);
@@ -279,6 +281,18 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
           </View>
         ))
       )}
+      <Pressable
+        onPress={onAddOccasion}
+        style={styles.updateLink}
+        accessibilityRole="link"
+      >
+        <Text style={styles.updateLinkText}>Add an occasion</Text>
+        <MaterialIcons
+          name="chevron-right"
+          size={14}
+          color={Colors.brand.mediumTeal}
+        />
+      </Pressable>
 
       <Text style={styles.sectionLabel}>GIFT PREFERENCES (OPTIONAL)</Text>
       <Pressable
