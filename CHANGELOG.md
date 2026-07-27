@@ -19,6 +19,15 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-07-27 — OTA
+
+### App
+
+- A person's page now has an "Add an occasion" link under their Occasions list, so you can add a moment right there instead of going through the Moments tab. (DEV-340)
+- The Add a Moment drawer's recommended chips are now specific to the person — popular occasions matched to their relationship (Mother's Day for your mom, Anniversary for a partner), hiding ones they already have. (DEV-341)
+- On the Moments day view, the add pill now reads "Add another person to this day" when the day already has moments. (DEV-342)
+- Changing a person's photo now updates it on the Home screen right away instead of up to an hour later. (DEV-343)
+
 ## 2026-07-26 — Build 57 (TestFlight)
 
 ### App
