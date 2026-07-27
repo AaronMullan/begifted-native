@@ -1,0 +1,1 @@
+- The "Update ready" pop-up now has the same gently rounded corners as the app's other dialogs instead of the overly round default. (ota-dialog-radius)
