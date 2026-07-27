@@ -27,7 +27,11 @@ import {
   AddMomentDrawer,
   type AddMomentDrawerHandle,
 } from "../../../components/moments/AddMomentDrawer";
-import { useCreateOccasion } from "../../../hooks/use-occasion-mutations";
+import {
+  useCreateOccasion,
+  useRecipientOccasions,
+} from "../../../hooks/use-occasion-mutations";
+import { recommendedMomentsFor } from "../../../utils/recommended-moments";
 import { slugifyOccasionName } from "../../../hooks/use-occasion-recommendations";
 import { invokeWithRetry } from "../../../lib/edge-retry";
 import type { ExtractedData } from "../../../hooks/use-conversation-flow";
@@ -313,6 +317,8 @@ export default function RecipientEditPage() {
   // present so recipient refetches don't re-open a dismissed drawer.
   const addMomentRef = useRef<AddMomentDrawerHandle | null>(null);
   const createOccasion = useCreateOccasion();
+  // Shares AboutRecipientView's query, so this adds no extra fetch.
+  const { data: recipientOccasions = [] } = useRecipientOccasions(recipientId);
   useEffect(() => {
     if (addMomentRequested && recipient) {
       addMomentRef.current?.present();
@@ -680,6 +686,10 @@ export default function RecipientEditPage() {
       />
       <AddMomentDrawer
         recommendedLabel={`RECOMMENDED FOR ${shortName.toUpperCase()}`}
+        recommendedMoments={recommendedMomentsFor(
+          recipient.relationship_type,
+          recipientOccasions.map((o) => o.occasion_type)
+        )}
         onSave={handleSaveMoment}
         saving={createOccasion.isPending}
         handleRef={addMomentRef}

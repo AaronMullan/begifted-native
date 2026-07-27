@@ -22,6 +22,11 @@ type AddMomentDrawerProps = {
   handleRef: React.MutableRefObject<AddMomentDrawerHandle | null>;
   /** Section label above the recommended chips, e.g. "RECOMMENDED FOR ARNOLD". */
   recommendedLabel?: string;
+  /**
+   * Person-specific chips (see utils/recommended-moments.ts). An empty array
+   * hides the recommended section entirely.
+   */
+  recommendedMoments?: string[];
 };
 
 // Chip sets from the frame (5200:4525). Recommended chips render filled,
@@ -49,6 +54,7 @@ export const AddMomentDrawer: React.FC<AddMomentDrawerProps> = ({
   saving,
   handleRef,
   recommendedLabel = "RECOMMENDED",
+  recommendedMoments = RECOMMENDED_MOMENTS,
 }) => {
   const sheetRef = useRef<BottomSheetModal>(null);
   const [momentName, setMomentName] = useState("");
@@ -95,10 +101,14 @@ export const AddMomentDrawer: React.FC<AddMomentDrawerProps> = ({
         <Text style={styles.subtitle}>
           Pick from recommended occasions, common ones, or add your own.
         </Text>
-        <Text style={styles.sectionLabel}>{recommendedLabel}</Text>
-        <View style={styles.chipRow}>
-          {RECOMMENDED_MOMENTS.map((label) => chip(label, true))}
-        </View>
+        {recommendedMoments.length > 0 && (
+          <>
+            <Text style={styles.sectionLabel}>{recommendedLabel}</Text>
+            <View style={styles.chipRow}>
+              {recommendedMoments.map((label) => chip(label, true))}
+            </View>
+          </>
+        )}
         <Text style={styles.sectionLabel}>COMMON MOMENTS</Text>
         <View style={styles.chipRow}>
           {COMMON_MOMENTS.map((label) => chip(label, false))}
