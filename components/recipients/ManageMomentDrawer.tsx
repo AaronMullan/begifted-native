@@ -28,7 +28,7 @@ type ManageMomentDrawerProps = {
    * Persist edits. `date` is ISO, or "" meaning "leave the stored date alone"
    * (the date column rejects "" and a NULL would vanish from the calendar).
    */
-  onSave: (date: string, name: string) => void;
+  onSave: (date: string, name: string, isAnnual: boolean) => void;
   onDelete: (occasion: Occasion) => void;
   handleRef: React.MutableRefObject<ManageMomentDrawerHandle | null>;
 };
@@ -73,9 +73,9 @@ function seedDateInput(occasion: Occasion): string {
 /**
  * "Manage Moment" bottom drawer (Figma 4909:6406): occasion name + date fields
  * with a Save Changes pill and a rose Delete Moment action. Replaces the
- * centered RN-Modal OccasionEditor on People Details. The design carries no
- * repeats-yearly/one-time control, so the stored is_annual is left untouched
- * and only drives the date entry format.
+ * centered RN-Modal OccasionEditor on People Details. The Figma frame carries
+ * no recurrence control, but repeats-yearly vs. one-time is a live product
+ * setting every moment stores, so the drawer keeps it editable as chips.
  */
 export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
   occasion,
@@ -86,14 +86,13 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
   const sheetRef = useRef<BottomSheetModal>(null);
   const [nameInput, setNameInput] = useState("");
   const [dateInput, setDateInput] = useState("");
+  const [isAnnual, setIsAnnual] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
   useImperativeHandle(handleRef, () => ({
     present: () => sheetRef.current?.present(),
     dismiss: () => sheetRef.current?.dismiss(),
   }));
-
-  const isAnnual = occasion?.is_annual ?? true;
 
   // Seed the fields whenever a different occasion arrives; prevOccasion is
   // nulled on dismiss so re-opening the same row re-seeds over stale edits.
@@ -103,9 +102,28 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
     if (occasion) {
       setNameInput(formatOccasionType(occasion.occasion_type));
       setDateInput(seedDateInput(occasion));
+      setIsAnnual(occasion.is_annual ?? true);
       setErrorMessage("");
     }
   }
+
+  const handleModeChange = (nextAnnual: boolean) => {
+    if (nextAnnual === isAnnual) return;
+    setErrorMessage("");
+
+    // Convert the current input so the user doesn't lose their entry.
+    const trimmed = dateInput.trim();
+    if (nextAnnual && MDY_RE.test(trimmed)) {
+      setDateInput(trimmed.slice(0, 5)); // MM-DD-YYYY -> MM-DD
+    } else if (!nextAnnual && MONTH_DAY_RE.test(trimmed)) {
+      // MM-DD -> next occurrence as a full editable date
+      setDateInput(isoToMDY(getNextOccurrence(`--${trimmed}`)));
+    } else if (nextAnnual && !MONTH_DAY_RE.test(trimmed)) {
+      setDateInput("");
+    }
+
+    setIsAnnual(nextAnnual);
+  };
 
   const handleDateChange = (text: string) => {
     const digits = text.replace(/\D/g, "");
@@ -141,7 +159,7 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
     }
 
     if (!trimmed) {
-      onSave("", name);
+      onSave("", name, isAnnual);
       sheetRef.current?.dismiss();
       return;
     }
@@ -151,7 +169,7 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
         const [month, day] = trimmed.split("-").map(Number);
         if (isValidMonthDay(month, day)) {
           // Year is optional for annual occasions — resolve the next occurrence.
-          onSave(getNextOccurrence(`--${trimmed}`), name);
+          onSave(getNextOccurrence(`--${trimmed}`), name, isAnnual);
           sheetRef.current?.dismiss();
           return;
         }
@@ -163,7 +181,7 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
     if (MDY_RE.test(trimmed)) {
       const [month, day, year] = trimmed.split("-").map(Number);
       if (year >= 1900 && isValidMonthDay(month, day)) {
-        onSave(mdyToISO(trimmed), name);
+        onSave(mdyToISO(trimmed), name, isAnnual);
         sheetRef.current?.dismiss();
         return;
       }
@@ -182,6 +200,28 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
       ? `${formatOccasionType(occasion.occasion_type)} — ${formatOccasionDate(occasion.date)}`
       : formatOccasionType(occasion.occasion_type)
     : "";
+
+  const recurrenceChip = (label: string, annual: boolean) => {
+    const selected = isAnnual === annual;
+    return (
+      <Pressable
+        onPress={() => handleModeChange(annual)}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ selected }}
+        style={[
+          styles.chip,
+          selected ? styles.chipFilled : styles.chipOutlined,
+        ]}
+      >
+        <Text
+          style={selected ? styles.chipLabelFilled : styles.chipLabelOutlined}
+        >
+          {label}
+        </Text>
+      </Pressable>
+    );
+  };
 
   return (
     <BottomSheetModal
@@ -212,6 +252,12 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
           autoCapitalize="words"
           style={styles.input}
         />
+        <View style={styles.fieldGap} />
+        <Text style={styles.fieldLabel}>Repeats</Text>
+        <View style={styles.chipRow}>
+          {recurrenceChip("Repeats yearly", true)}
+          {recurrenceChip("One-time", false)}
+        </View>
         <View style={styles.fieldGap} />
         <Text style={styles.fieldLabel}>Date</Text>
         <BottomSheetTextInput
@@ -291,6 +337,33 @@ const styles = StyleSheet.create({
   },
   fieldGap: {
     height: 12,
+  },
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  chip: {
+    height: 32,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    justifyContent: "center",
+  },
+  chipFilled: {
+    backgroundColor: Colors.brand.darkTeal,
+  },
+  chipOutlined: {
+    borderWidth: 1,
+    borderColor: Colors.brand.lightTeal,
+    backgroundColor: Colors.white,
+  },
+  chipLabelFilled: {
+    ...Typography.tagLabel,
+    color: Colors.white,
+  },
+  chipLabelOutlined: {
+    ...Typography.tagLabel,
+    color: Colors.brand.darkTeal,
   },
   errorText: {
     ...Typography.fieldLabel,

@@ -337,7 +337,7 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
         occasion={editingOccasion}
         handleRef={manageMomentRef}
         onDelete={(occasion) => setOccasionToDelete(occasion)}
-        onSave={(date, name) => {
+        onSave={(date, name, isAnnual) => {
           if (!editingOccasion) return;
           // occasion_type doubles as the display name (there is no separate
           // title column), so a rename is a slug update.
@@ -351,6 +351,9 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
               ...(date ? { date } : {}),
               ...(slug && slug !== editingOccasion.occasion_type
                 ? { occasion_type: slug }
+                : {}),
+              ...(isAnnual !== (editingOccasion.is_annual ?? true)
+                ? { is_annual: isAnnual }
                 : {}),
             },
           });

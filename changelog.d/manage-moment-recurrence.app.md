@@ -1,0 +1,1 @@
+- The Manage Moment drawer got back the repeats-yearly / one-time setting as a chip toggle, so a moment's recurrence stays editable after the drawer redesign (manage-moment-recurrence)
