@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { AppState } from "react-native";
+import { AppState, StyleSheet } from "react-native";
 import { Button, Dialog, Portal, Text } from "react-native-paper";
 import * as Updates from "expo-updates";
 
@@ -54,7 +54,7 @@ const OtaUpdateGate: React.FC = () => {
 
   return (
     <Portal>
-      <Dialog visible={dialogVisible} onDismiss={dismiss}>
+      <Dialog visible={dialogVisible} onDismiss={dismiss} style={styles.dialog}>
         <Dialog.Title>Update ready</Dialog.Title>
         <Dialog.Content>
           <Text variant="bodyMedium">
@@ -72,5 +72,12 @@ const OtaUpdateGate: React.FC = () => {
     </Portal>
   );
 };
+
+const styles = StyleSheet.create({
+  // Paper's MD3 default is 28; the app's dialogs use 16.
+  dialog: {
+    borderRadius: 16,
+  },
+});
 
 export default OtaUpdateGate;
