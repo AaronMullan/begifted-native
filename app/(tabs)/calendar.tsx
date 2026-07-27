@@ -43,6 +43,7 @@ import {
   stripRecipientName,
 } from "../../utils/home-occasions";
 import { getNextUpcomingOccasion } from "../../utils/upcoming-occasion";
+import { recommendedMomentsFor } from "../../utils/recommended-moments";
 import {
   addMonths,
   dayKey,
@@ -453,6 +454,22 @@ export default function Calendar() {
         onSave={handleSaveMoment}
         saving={createOccasion.isPending}
         handleRef={addMomentRef}
+        recommendedLabel={
+          momentPerson
+            ? `RECOMMENDED FOR ${formatShortName(momentPerson.name).toUpperCase()}`
+            : undefined
+        }
+        recommendedMoments={recommendedMomentsFor(
+          momentPerson
+            ? recipients.find((r) => r.id === momentPerson.id)
+                ?.relationship_type
+            : undefined,
+          momentPerson
+            ? (occasionsByRecipient.get(momentPerson.id) ?? []).map(
+                (o) => o.occasion_type
+              )
+            : []
+        )}
       />
       <AddNewPersonDrawer
         onSend={handleSendNewPersonNote}
