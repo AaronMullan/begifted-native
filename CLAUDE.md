@@ -90,12 +90,12 @@ All interactive UI must use React Native Paper components. This is strictly enfo
 - **Buttons:** `Button` from `react-native-paper` (modes: contained, outlined, text, elevated). Never use `TouchableOpacity`.
 - **Text:** `Text` from `react-native-paper` with `variant` prop. Never style text with raw StyleSheet.
 - **Inputs:** `TextInput` from `react-native-paper`. Never use RN's `TextInput`.
-- **Dialogs:** `Dialog` from `react-native-paper`. Never use `Alert.alert()`. **Exception:** when precise centering/layout is required, use a plain RN `Modal` instead of Paper's `Dialog`.
+- **Dialogs:** `Dialog` from `react-native-paper`. Never use `Alert.alert()`. Always pass `style={{ borderRadius: 16 }}` — Paper's MD3 default is 28, far rounder than the app's dialogs; a bare `<Dialog>` ships off-brand corners. **Exception:** when precise centering/layout is required, use a plain RN `Modal` instead of Paper's `Dialog`.
 - **Icons:** `MaterialIcons` from `@expo/vector-icons`. Never use Ionicons.
 
 Core RN components (`View`, `ScrollView`, `FlatList`, `Image`) are allowed for layout only.
 
-**Icon-button exception:** small icon-only press targets (overflow `...`, bell, avatar) may use `Pressable` + `MaterialIcons`. Existing patterns: `components/Header.tsx`, `components/home/OccasionOverflowButton.tsx`. The Paper rule above is for actual buttons.
+**Icon-button exception:** small icon-only press targets (overflow `...`, bug-report, avatar) may use `Pressable` + `MaterialIcons`. Existing patterns: `components/Header.tsx`, `components/home/OccasionOverflowButton.tsx`. The Paper rule above is for actual buttons.
 
 ### Implementing from Designs (Figma/PDF)
 
