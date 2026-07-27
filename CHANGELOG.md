@@ -19,6 +19,46 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-07-26 — OTA
+
+### App
+
+- If importing from Contacts fails, the error dialog now has an "Open Settings" button that jumps straight to the iOS settings page where contacts access is granted. (DEV-324)
+- Opening gifts from a notification no longer shows the redundant "Showing gifts for …" banner; a small "View all gifts ›" link remains to clear the occasion filter. (DEV-325)
+- "Update what BeGifted knows" on a person's About page is now a quick bottom drawer instead of a full-screen chat: type one note, review it, and nothing saves until you tap Save Updates — with the profile synopsis still visible behind it. (DEV-326)
+- Adding a moment from a person's page is now a quick drawer — tap a suggested chip (Birthday, Wedding, New Baby, …) or type your own name — instead of a chat conversation, and editing a moment opens a matching drawer where you can change its name and date or delete it. (DEV-327)
+- Adding a moment now starts with a "Who's this moment for?" drawer showing your people (with their next moment), and adding someone new happens in a quick "Tell BeGifted about them" note drawer instead of jumping into the full chat. (DEV-328)
+- The Moments day view got its redesign: a single-week strip with the picked day highlighted, richer person cards ("Birthday Gift Ideas ›"), a friendlier empty state, an "Add to this day" pill, plus new drawers for picking a moment (recommended/common chips or your own) and jumping across months in a year view. (DEV-329)
+- The About You conversation no longer saves every message instantly — your note is shown back with a Save Updates button first, and the drawer now opens to its full height reliably. (DEV-330)
+- Finishing the about-you intake or adding a person now shows a brief "profile is ready" transition that moves you along by itself — no more "Got it." stop screen or success buttons. (DEV-331)
+- The quick beta check-ins are now proper centered dark cards over a dimmed screen (instead of a bottom sheet), closed by tapping Send Feedback; the gift-ideas check-in adds a "What would have made them stronger?" multi-pick. All answers stay optional. (DEV-332)
+- A person's detail page now shows their photo at the top — tap it to add or change a picture from your library. (DEV-338)
+- Accidentally double-tapping the "..." button on a gift card no longer silently records "Not for them" feedback — the gift options drawer now ignores taps for a moment while it opens. (DEV-339)
+- The Manage Moment drawer got back the repeats-yearly / one-time setting as a chip toggle, so a moment's recurrence stays editable after the drawer redesign (manage-moment-recurrence)
+
+### Backend
+
+- Daily gift generation no longer comes up empty when a single slow AI call eats the whole run — a hung call now fails fast and gets retried within the same run (DEV-323)
+- Gift suggestions now run on Gift Protocol v2.6.12: descriptions read more like an editor with taste and less like AI copy, and marking a gift "not for them" now steers future ideas away from near-identical items too, not just that exact product (DEV-333)
+- Gift ideas can no longer repeat something already suggested for another person in your circle in the last 90 days — the duplicate block is now enforced by the backend instead of asked of the AI (DEV-334)
+- Occasion suggestions now connect the dots across your people: a spouse gets Mother's/Father's Day suggested when you have kids in your list, and your parents get Grandparents Day — without you having to spell out those roles. (DEV-335)
+- Spouses' Wedding Anniversary now always appears in occasion suggestions (asking for the date when unknown), even when AI output can't be parsed. (DEV-336)
+
+## 2026-07-23 — Build 56 (TestFlight)
+
+### App
+
+- Sign-in / Create Account screen now matches the new design: serif headline ("Welcome back" / "Create an account"), teal Sign Out button, and rose error text instead of the old black-and-red look (DEV-317)
+- Settings → Account Info now matches the other settings pages: serif title, teal back arrow and helper text, and the brand red on Delete My Account (DEV-318)
+- Onboarding headlines now use the new serif face (Poltawski Nowy) in brand teal instead of the old Fraunces black text (DEV-319)
+- The add/delete-occasion dialogs on the Moments calendar now use the new serif headings and brand colors, including a softer brand red on the Delete button (DEV-320)
+- Internal color-token cleanup across nav, dashboard, contacts, and settings — nothing should look different (DEV-321)
+- Importing contacts to add people works again — in build 55 every import attempt failed immediately with the "Contacts Import Failed" pop-up (DEV-322)
+
+### Backend
+
+- Playground occasion runs now save exactly what the model was given (core occasion candidates, discovery anchors, prompt source) and why a run fell back to stock copy, and custom prompts using the spec's placeholder names (`{{coreOccasionCandidates}}`, `{{existingOccasions}}`) now receive the real data instead of silently degrading to birthday-only results (DEV-314)
+
 ## 2026-07-22 — Build 55 (TestFlight)
 
 ### App
