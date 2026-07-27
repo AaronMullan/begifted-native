@@ -645,6 +645,7 @@ export default function RecipientEditPage() {
               });
             }}
             onOpenUpdateChat={() => updateDrawerRef.current?.present()}
+            onAddOccasion={() => addMomentRef.current?.present()}
             onDelete={() => setConfirmDeleteVisible(true)}
           />
         ) : (
