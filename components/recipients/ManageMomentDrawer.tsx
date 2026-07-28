@@ -14,6 +14,7 @@ import { formatOccasionType } from "../../utils/home-occasions";
 import {
   formatOccasionDate,
   getNextOccurrence,
+  isValidMonthDay,
 } from "../../utils/occasion-dates";
 
 export type ManageMomentDrawerHandle = {
@@ -46,14 +47,6 @@ function mdyToISO(mdy: string): string {
 function isoToMDY(iso: string): string {
   const [year, month, day] = iso.split("-");
   return `${month}-${day}-${year}`;
-}
-
-/** True if the given 1-based month and day form a real calendar date. */
-function isValidMonthDay(month: number, day: number): boolean {
-  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
-  // Use a leap year so Feb 29 is accepted for annual occasions.
-  const probe = new Date(2024, month - 1, day);
-  return probe.getMonth() === month - 1 && probe.getDate() === day;
 }
 
 function seedDateInput(occasion: Occasion): string {

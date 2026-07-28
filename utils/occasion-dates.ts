@@ -30,6 +30,14 @@ export function parseISODateLocal(isoDate: string): Date | null {
   return new Date(year, month - 1, day);
 }
 
+/** True if the given 1-based month and day form a real calendar date. */
+export function isValidMonthDay(month: number, day: number): boolean {
+  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+  // Use a leap year so Feb 29 is accepted for annual occasions.
+  const probe = new Date(2024, month - 1, day);
+  return probe.getMonth() === month - 1 && probe.getDate() === day;
+}
+
 /**
  * Display formatting for occasion dates: "July 7" (default) or "Jul 7".
  * Accepts a YYYY-MM-DD string or an already-parsed Date. An unparseable
