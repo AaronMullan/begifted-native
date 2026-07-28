@@ -121,7 +121,7 @@ export const SelectPersonDrawer: React.FC<SelectPersonDrawerProps> = ({
 // rows extend to a 20pt gutter.
 const styles = StyleSheet.create({
   sheetBackground: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.brand.beigeLight,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
   },

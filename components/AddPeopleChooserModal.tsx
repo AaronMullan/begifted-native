@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   card: {
     width: 320,
     borderRadius: 16,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.brand.beigeLight,
     paddingHorizontal: 24,
     paddingTop: 28,
     paddingBottom: 16,

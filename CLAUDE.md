@@ -41,6 +41,12 @@ eas build --profile production --platform ios    # Production
 eas update --branch production                    # OTA update
 ```
 
+### User-facing copy voice
+
+Any copy shown to users in the app — the What's New card (`app_config.whats_new`), changelog fragments in `changelog.d/`, snackbars, empty states, dialogs — is written in the Gift Protocol's voice. The canonical rules are the "VOICE AND REASON QUALITY" section of the active `gift_generation_system` prompt in `system_prompt_versions`; read it before composing, since it evolves with protocol versions. If a future prompt version drops or renames that section, this convention does **not** lapse — the distilled core below remains binding on its own. The core that doesn't change: calm, specific, understated, editorial — written by a person with taste. Begin with the substance, not setup. Make every sentence necessary. Demonstrate understanding instead of announcing it. No marketing language, empty superlatives, or clichés ("perfect", "great choice", "you'll love", "sure to delight"), no generic enthusiasm, no text that could fit any app. (Slack messages written as Aaron follow his own voice instead — see memory.)
+
+When publishing an OTA, update `app_config.whats_new` (`{ "date": "YYYY-MM-DD", "sections": [{ "title", "body" }] }`) to describe that release in this voice; the What's New card shows it when the update downloads.
+
 Tests use Jest + React Native Testing Library (`npm test`); Deno tests cover edge functions.
 
 ### Node toolchain — pin to Node 20
@@ -90,7 +96,7 @@ All interactive UI must use React Native Paper components. This is strictly enfo
 - **Buttons:** `Button` from `react-native-paper` (modes: contained, outlined, text, elevated). Never use `TouchableOpacity`.
 - **Text:** `Text` from `react-native-paper` with `variant` prop. Never style text with raw StyleSheet.
 - **Inputs:** `TextInput` from `react-native-paper`. Never use RN's `TextInput`.
-- **Dialogs:** `Dialog` from `react-native-paper`. Never use `Alert.alert()`. Always pass `style={{ borderRadius: 16 }}` — Paper's MD3 default is 28, far rounder than the app's dialogs; a bare `<Dialog>` ships off-brand corners. **Exception:** when precise centering/layout is required, use a plain RN `Modal` instead of Paper's `Dialog`.
+- **Dialogs:** `Dialog` from `react-native-paper`. Never use `Alert.alert()`. Always pass `style={{ borderRadius: 16 }}` — Paper v5 computes MD3 Dialog radius as `7 × theme.roundness` (126 with the app's roundness 18), so a bare `<Dialog>` ships pill-shaped corners. **Exception:** when precise centering/layout is required, use a plain RN `Modal` instead of Paper's `Dialog`.
 - **Icons:** `MaterialIcons` from `@expo/vector-icons`. Never use Ionicons.
 
 Core RN components (`View`, `ScrollView`, `FlatList`, `Image`) are allowed for layout only.

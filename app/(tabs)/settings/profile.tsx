@@ -503,11 +503,12 @@ export default function ProfileSettings() {
           // The Portal renders outside the screen's KeyboardAvoidingView, so
           // the dialog must dodge the keyboard itself: reserving the keyboard's
           // height (plus the CTA gap) below re-centers it in the visible area.
-          style={
+          style={[
+            styles.dialog,
             keyboardHeight > 0
               ? { marginBottom: keyboardHeight + KEYBOARD_CTA_GAP }
-              : undefined
-          }
+              : null,
+          ]}
         >
           <Dialog.Title>Change Password</Dialog.Title>
           <Dialog.Content>
@@ -550,6 +551,7 @@ export default function ProfileSettings() {
         <Dialog
           visible={confirmDeleteVisible}
           onDismiss={() => !deleting && setConfirmDeleteVisible(false)}
+          style={styles.dialog}
         >
           <Dialog.Title>Delete your account?</Dialog.Title>
           <Dialog.Content>
@@ -579,6 +581,9 @@ export default function ProfileSettings() {
 }
 
 const styles = StyleSheet.create({
+  dialog: {
+    borderRadius: 16,
+  },
   container: {
     flex: 1,
     backgroundColor: "transparent",

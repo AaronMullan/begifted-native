@@ -166,6 +166,14 @@ const customTheme = {
     onSurface: Colors.brand.darkTeal,
     onError: Colors.white,
     outline: Colors.brand.darkTeal,
+    // Paper reads overlay surfaces from the elevation palette: Menu defaults to
+    // level2, Dialog to level3. Brand spec maps modal/dropdown surfaces to
+    // beigeLight, not MD3's tinted white.
+    elevation: {
+      ...MD3LightTheme.colors.elevation,
+      level2: Colors.brand.beigeLight,
+      level3: Colors.brand.beigeLight,
+    },
   },
 };
 
