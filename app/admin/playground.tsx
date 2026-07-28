@@ -1240,6 +1240,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
         <Dialog
           visible={showDeployDialog}
           onDismiss={() => setShowDeployDialog(false)}
+          style={styles.dialog}
         >
           <Dialog.Title>Deploy to Production</Dialog.Title>
           <Dialog.Content>
@@ -1274,6 +1275,9 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
 };
 
 const styles = StyleSheet.create({
+  dialog: {
+    borderRadius: 16,
+  },
   container: {
     flex: 1,
     backgroundColor: "#f8f8f8",

@@ -227,6 +227,7 @@ const PromptsScreen: React.FC = () => {
         <Dialog
           visible={!!rollbackTarget}
           onDismiss={() => setRollbackTarget(null)}
+          style={styles.dialog}
         >
           <Dialog.Title>Rollback Prompt</Dialog.Title>
           <Dialog.Content>
@@ -254,6 +255,9 @@ const PromptsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  dialog: {
+    borderRadius: 16,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.white,

@@ -156,6 +156,7 @@ export default function Settings() {
         <Dialog
           visible={signOutVisible}
           onDismiss={() => setSignOutVisible(false)}
+          style={styles.dialog}
         >
           <Dialog.Title>Sign Out?</Dialog.Title>
           <Dialog.Content>
@@ -184,6 +185,9 @@ export default function Settings() {
 // groups of plain text rows ("Label >") inset to x=50 on the 402pt frame,
 // with Sign Out as a bare row pinned near the bottom nav.
 const styles = StyleSheet.create({
+  dialog: {
+    borderRadius: 16,
+  },
   container: {
     flex: 1,
     backgroundColor: "transparent",
