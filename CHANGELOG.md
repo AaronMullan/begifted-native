@@ -19,9 +19,17 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-07-28 — OTA
+
+### App
+
+- The update prompt is now a "What's New" card matching the new design — a date chip and short highlights of what changed, with a Let's Go button that restarts into the update. Highlights are set per-release; tapping outside still defers the restart to the next app start. (whats-new-update-card)
+
 ## 2026-07-27 — OTA
 
 ### App
+
+- The "Update ready" pop-up now has the same gently rounded corners as the app's other dialogs instead of the overly round default. (ota-dialog-radius, second OTA that day)
 
 - A person's page now has an "Add an occasion" link under their Occasions list, so you can add a moment right there instead of going through the Moments tab. (DEV-340)
 - The Add a Moment drawer's recommended chips are now specific to the person — popular occasions matched to their relationship (Mother's Day for your mom, Anniversary for a partner), hiding ones they already have. (DEV-341)

@@ -1,1 +1,0 @@
-- The update prompt is now a "What's New" card matching the new design — a date chip and short highlights of what changed, with a Let's Go button that restarts into the update. Highlights are set per-release; tapping outside still defers the restart to the next app start. (whats-new-update-card)
