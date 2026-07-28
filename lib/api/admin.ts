@@ -200,6 +200,17 @@ export async function deployNewPromptVersion(
 
 // ─── App Config (Kill Switch) ───────────────────────────────────────────────
 
+export interface WhatsNewSection {
+  title: string;
+  body: string;
+}
+
+export interface WhatsNewContent {
+  /** ISO date (YYYY-MM-DD) shown as the card's date chip. */
+  date?: string;
+  sections: WhatsNewSection[];
+}
+
 export interface AppConfig {
   id: number;
   recommendations_enabled: boolean;
@@ -207,6 +218,7 @@ export interface AppConfig {
   signups_enabled: boolean;
   ai_provider: "openai" | "anthropic" | "google";
   ai_model: string;
+  whats_new: WhatsNewContent | null;
   updated_at: string;
   updated_by: string | null;
 }
