@@ -9,6 +9,13 @@ import {
 import { Colors } from "../../lib/colors";
 import { Typography } from "../../lib/typography";
 import { Spacing } from "../../lib/spacing";
+import { slugifyOccasionName } from "../../hooks/use-occasion-recommendations";
+import {
+  formatOccasionDate,
+  getNextOccurrence,
+  isValidMonthDay,
+  lookupOccasionDate,
+} from "../../utils/occasion-dates";
 
 export type AddMomentDrawerHandle = {
   present: () => void;
@@ -16,8 +23,11 @@ export type AddMomentDrawerHandle = {
 };
 
 type AddMomentDrawerProps = {
-  /** Persist the chosen moment name; resolve true to dismiss. */
-  onSave: (momentName: string) => Promise<boolean>;
+  /**
+   * Persist the chosen moment; resolve true to dismiss. `date` is ISO, or
+   * null when the drawer isn't capturing dates (`captureDate` off).
+   */
+  onSave: (momentName: string, date: string | null) => Promise<boolean>;
   saving: boolean;
   handleRef: React.MutableRefObject<AddMomentDrawerHandle | null>;
   /** Section label above the recommended chips, e.g. "RECOMMENDED FOR ARNOLD". */
@@ -27,7 +37,25 @@ type AddMomentDrawerProps = {
    * hides the recommended section entirely.
    */
   recommendedMoments?: string[];
+  /**
+   * Capture a date with the moment: known holidays resolve automatically
+   * (Mother's Day → next 2nd Sunday of May), anything else requires an MM-DD
+   * entry before saving. Off for entry points that already picked a day
+   * (the calendar).
+   */
+  captureDate?: boolean;
 };
+
+const MONTH_DAY_RE = /^\d{2}-\d{2}$/;
+
+/** ISO date for a valid MM-DD entry (rolled to its next occurrence), else null. */
+function parseEnteredMonthDay(input: string): string | null {
+  const trimmed = input.trim();
+  if (!MONTH_DAY_RE.test(trimmed)) return null;
+  const [month, day] = trimmed.split("-").map(Number);
+  if (!isValidMonthDay(month, day)) return null;
+  return getNextOccurrence(`--${trimmed}`);
+}
 
 // Chip sets from the frame (5200:4525). Recommended chips render filled,
 // common ones outlined; tapping either drops the label into the Moment Name
@@ -44,6 +72,47 @@ const COMMON_MOMENTS = [
   "Retirement",
 ];
 
+type MomentDateSectionProps = {
+  momentName: string;
+  dateInput: string;
+  dateError: string;
+  onDateChange: (text: string) => void;
+};
+
+// Date capture under the Moment Name field: a name matching a known holiday
+// (fixed or floating) shows its auto-resolved next occurrence; anything else
+// gets a required MM-DD entry.
+const MomentDateSection: React.FC<MomentDateSectionProps> = ({
+  momentName,
+  dateInput,
+  dateError,
+  onDateChange,
+}) => {
+  const knownDate = lookupOccasionDate(slugifyOccasionName(momentName));
+  return (
+    <>
+      <View style={styles.fieldGap} />
+      <Text style={styles.fieldLabel}>Date</Text>
+      {knownDate ? (
+        <Text style={styles.resolvedDate}>
+          {formatOccasionDate(knownDate)} — set automatically
+        </Text>
+      ) : (
+        <BottomSheetTextInput
+          value={dateInput}
+          onChangeText={onDateChange}
+          placeholder="MM-DD"
+          placeholderTextColor={Colors.brand.mediumTeal}
+          keyboardType="number-pad"
+          maxLength={5}
+          style={styles.input}
+        />
+      )}
+      {!!dateError && <Text style={styles.errorText}>{dateError}</Text>}
+    </>
+  );
+};
+
 /**
  * "Add a Moment" drawer for a picked person + day (Figma 5200:4525):
  * recommended/common occasion chips plus a free-form Moment Name, saved with
@@ -55,26 +124,53 @@ export const AddMomentDrawer: React.FC<AddMomentDrawerProps> = ({
   handleRef,
   recommendedLabel = "RECOMMENDED",
   recommendedMoments = RECOMMENDED_MOMENTS,
+  captureDate = false,
 }) => {
   const sheetRef = useRef<BottomSheetModal>(null);
   const [momentName, setMomentName] = useState("");
+  const [dateInput, setDateInput] = useState("");
+  const [dateError, setDateError] = useState("");
 
   useImperativeHandle(handleRef, () => ({
     present: () => sheetRef.current?.present(),
     dismiss: () => sheetRef.current?.dismiss(),
   }));
 
+  const trimmedName = momentName.trim();
+
+  const handleNameChange = (text: string) => {
+    setMomentName(text);
+    setDateError("");
+  };
+
+  const handleDateChange = (text: string) => {
+    const digits = text.replace(/\D/g, "").slice(0, 4);
+    setDateInput(
+      digits.length > 2 ? `${digits.slice(0, 2)}-${digits.slice(2)}` : digits
+    );
+    setDateError("");
+  };
+
   const handleSave = async () => {
-    const name = momentName.trim();
-    if (!name || saving) return;
-    const saved = await onSave(name);
+    if (!trimmedName || saving) return;
+    let date: string | null = null;
+    if (captureDate) {
+      date =
+        lookupOccasionDate(slugifyOccasionName(trimmedName)) ??
+        parseEnteredMonthDay(dateInput);
+      if (!date) {
+        setDateError("Please enter the month and day in MM-DD format");
+        return;
+      }
+    }
+    const saved = await onSave(trimmedName, date);
     if (saved) sheetRef.current?.dismiss();
   };
 
   const chip = (label: string, filled: boolean) => (
     <Pressable
       key={label}
-      onPress={() => setMomentName(label)}
+      onPress={() => handleNameChange(label)}
       accessibilityRole="button"
       accessibilityLabel={`Use ${label}`}
       style={[styles.chip, filled ? styles.chipFilled : styles.chipOutlined]}
@@ -94,7 +190,11 @@ export const AddMomentDrawer: React.FC<AddMomentDrawerProps> = ({
       android_keyboardInputMode="adjustResize"
       handleIndicatorStyle={styles.sheetHandle}
       backgroundStyle={styles.sheetBackground}
-      onDismiss={() => setMomentName("")}
+      onDismiss={() => {
+        setMomentName("");
+        setDateInput("");
+        setDateError("");
+      }}
     >
       <BottomSheetView style={styles.content}>
         <Text style={styles.title}>Add a Moment</Text>
@@ -117,12 +217,20 @@ export const AddMomentDrawer: React.FC<AddMomentDrawerProps> = ({
         <Text style={styles.fieldLabel}>Moment Name</Text>
         <BottomSheetTextInput
           value={momentName}
-          onChangeText={setMomentName}
+          onChangeText={handleNameChange}
           placeholder="e.g. New Job, Anniversary..."
           placeholderTextColor={Colors.brand.mediumTeal}
           autoCapitalize="words"
           style={styles.input}
         />
+        {captureDate && !!trimmedName && (
+          <MomentDateSection
+            momentName={trimmedName}
+            dateInput={dateInput}
+            dateError={dateError}
+            onDateChange={handleDateChange}
+          />
+        )}
         <Button
           mode="contained"
           buttonColor={Colors.brand.darkTeal}
@@ -213,6 +321,19 @@ const styles = StyleSheet.create({
     minHeight: 42,
     ...Typography.copyblock,
     color: Colors.brand.darkTeal,
+  },
+  fieldGap: {
+    height: 12,
+  },
+  resolvedDate: {
+    ...Typography.copyblock,
+    color: Colors.brand.darkTeal,
+    paddingVertical: 12,
+  },
+  errorText: {
+    ...Typography.fieldLabel,
+    color: Colors.brand.rose,
+    marginTop: 8,
   },
   cta: {
     alignSelf: "center",

@@ -326,15 +326,18 @@ export default function RecipientEditPage() {
     }
   }, [addMomentRequested, recipient, setAddMomentRequested]);
 
-  const handleSaveMoment = async (momentName: string): Promise<boolean> => {
+  const handleSaveMoment = async (
+    momentName: string,
+    date: string | null
+  ): Promise<boolean> => {
     if (!recipientId) return false;
     return new Promise((resolve) => {
       createOccasion.mutate(
         {
           recipientId,
-          // The drawer carries no date field — the moment starts undated and
-          // gets its date in the Manage Moment drawer.
-          date: null,
+          // The drawer resolves known holidays and requires an MM-DD entry
+          // otherwise, so every moment added here lands dated.
+          date,
           occasionType: slugifyOccasionName(momentName),
           isAnnual: true,
         },
@@ -693,6 +696,7 @@ export default function RecipientEditPage() {
         onSave={handleSaveMoment}
         saving={createOccasion.isPending}
         handleRef={addMomentRef}
+        captureDate
       />
       <Portal>
         <Dialog
