@@ -51,7 +51,10 @@ import {
   isSameDay,
   occasionDayKey,
 } from "../../utils/moments-calendar";
-import { formatOccasionDate } from "../../utils/occasion-dates";
+import {
+  formatOccasionDate,
+  lookupOccasionDate,
+} from "../../utils/occasion-dates";
 
 interface Occasion {
   id: string;
@@ -117,12 +120,20 @@ export default function Calendar() {
     const canonical = occasionDayKey(occasion.date);
     let key = canonical;
     if (occasion.is_annual) {
-      const monthDay = canonical.slice(5); // "MM-DD"
-      // A common year has no Feb 29 cell, so clamp leap-day occasions to Feb 28
-      // rather than dropping their marker for three years out of four.
-      const clamped =
-        monthDay === "02-29" && !isLeapYear(viewYear) ? "02-28" : monthDay;
-      key = `${viewYear}-${clamped}`;
+      // Floating holidays (Mother's Day, Easter…) land on a different date
+      // each year — resolve known types to the viewed year's actual date
+      // instead of projecting the stored month/day.
+      const holidayDate = lookupOccasionDate(occasion.occasion_type, viewYear);
+      if (holidayDate?.startsWith(`${viewYear}-`)) {
+        key = holidayDate;
+      } else {
+        const monthDay = canonical.slice(5); // "MM-DD"
+        // A common year has no Feb 29 cell, so clamp leap-day occasions to Feb 28
+        // rather than dropping their marker for three years out of four.
+        const clamped =
+          monthDay === "02-29" && !isLeapYear(viewYear) ? "02-28" : monthDay;
+        key = `${viewYear}-${clamped}`;
+      }
     }
     const list = occasionsByDay.get(key);
     if (list) list.push(occasion);

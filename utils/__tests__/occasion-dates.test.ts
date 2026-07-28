@@ -117,6 +117,20 @@ describe("lookupOccasionDate", () => {
     expect(lookupOccasionDate("christmas", 2030)).toBe("2030-12-25");
   });
 
+  it("returns the exact date for an explicit year on floating holidays", () => {
+    // Mother's Day 2026 (May 10) has passed on the pinned clock, but an
+    // explicit year must not roll forward — the calendar projects past days.
+    expect(lookupOccasionDate("mothers_day", 2026)).toBe("2026-05-10");
+    expect(lookupOccasionDate("mothers_day", 2028)).toBe("2028-05-14");
+    expect(lookupOccasionDate("easter", 2026)).toBe("2026-04-05");
+    expect(lookupOccasionDate("thanksgiving", 2027)).toBe("2027-11-25");
+    expect(lookupOccasionDate("diwali", 2025)).toBe("2025-10-20");
+  });
+
+  it("normalizes curly apostrophes from iOS keyboards", () => {
+    expect(lookupOccasionDate("Mother’s Day")).toBe("2027-05-09");
+  });
+
   it("computes Thanksgiving as the 4th Thursday of November", () => {
     expect(lookupOccasionDate("thanksgiving")).toBe("2026-11-26");
   });

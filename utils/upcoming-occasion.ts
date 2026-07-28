@@ -1,5 +1,5 @@
 import type { Occasion } from "../lib/api";
-import { getNextOccurrence } from "./occasion-dates";
+import { getNextOccurrence, lookupOccasionDate } from "./occasion-dates";
 import { daysUntil } from "./home-occasions";
 
 /** A recipient's soonest upcoming occasion, ready for display. */
@@ -35,7 +35,11 @@ export function getNextUpcomingOccasion(
   for (const occasion of occasions) {
     if (!occasion.date) continue;
     if (occasion.is_annual) {
-      const next = getNextOccurrence(occasion.date);
+      // Floating holidays land on a different date each year, so known types
+      // resolve from the holiday rule; the stored date only rolls unknowns.
+      const next =
+        lookupOccasionDate(occasion.occasion_type) ??
+        getNextOccurrence(occasion.date);
       if (ISO_DATE_ONLY.test(next)) {
         candidates.push({ occasionType: occasion.occasion_type, date: next });
       }

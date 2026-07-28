@@ -132,17 +132,19 @@ export function sanitizeExtractedOccasionDate(
  * and variable holidays (Easter, Thanksgiving, Kwanzaa, etc.)
  *
  * @param occasionType - The occasion type (e.g., "easter", "thanksgiving", "kwanzaa", "anniversary")
- * @param year - Optional year, defaults to current year or next year if date has passed
+ * @param year - Optional. When given, returns that year's exact date (even in
+ *   the past); when omitted, returns the next occurrence from today.
  * @returns ISO date string (YYYY-MM-DD) or null if occasion type is unknown/user-specific
  */
 export function lookupOccasionDate(
   occasionType: string,
   year?: number
 ): string | null {
+  // Strip curly apostrophes too — iOS keyboards type "Mother’s Day".
   const normalized = occasionType
     .toLowerCase()
     .trim()
-    .replace(/'/g, "")
+    .replace(/['’]/g, "")
     .replace(/\s+/g, "_");
   const currentYear = new Date().getFullYear();
   const targetYear = year || currentYear;
@@ -179,52 +181,44 @@ export function lookupOccasionDate(
     return toISO(new Date(targetYearToUse, month - 1, day));
   }
 
-  // Variable holidays that need calculation
-  switch (normalized) {
-    case "easter":
-      return calculateEasterDate(targetYear);
-    case "thanksgiving":
-      return calculateThanksgivingDate(targetYear);
-    case "mothers_day":
-    case "mothersday":
-      return calculateMothersDayDate(targetYear);
-    case "fathers_day":
-    case "fathersday":
-      return calculateFathersDayDate(targetYear);
-    case "spring_equinox":
-    case "vernal_equinox":
-      return calculateSpringEquinox(targetYear);
-    case "autumn_equinox":
-    case "fall_equinox":
-      return calculateAutumnEquinox(targetYear);
-    case "summer_solstice":
-      return calculateSummerSolstice(targetYear);
-    case "winter_solstice":
-      return calculateWinterSolstice(targetYear);
-    case "diwali":
-      return calculateDiwaliDate(targetYear);
-    case "holi":
-      return calculateHoliDate(targetYear);
-    case "hanukkah":
-    case "chanukah":
-      return calculateHanukkahDate(targetYear);
-    case "record_store_day":
-      return calculateThirdSaturdayOfMonth(targetYear, 4);
-    default:
-      return null;
+  // Variable holidays that need calculation. Calculators are exact for the
+  // requested year; only a today-relative lookup (no explicit year) rolls a
+  // passed date forward to the next year's occurrence.
+  const calculator = VARIABLE_HOLIDAY_CALCULATORS[normalized];
+  if (!calculator) return null;
+  const resolved = calculator(targetYear);
+  if (!year) {
+    const parsed = parseISODateLocal(resolved);
+    if (parsed && hasPassed(parsed)) return calculator(targetYear + 1);
   }
+  return resolved;
 }
+
+const VARIABLE_HOLIDAY_CALCULATORS: Record<string, (year: number) => string> = {
+  easter: calculateEasterDate,
+  thanksgiving: calculateThanksgivingDate,
+  mothers_day: calculateMothersDayDate,
+  mothersday: calculateMothersDayDate,
+  fathers_day: calculateFathersDayDate,
+  fathersday: calculateFathersDayDate,
+  spring_equinox: calculateSpringEquinox,
+  vernal_equinox: calculateSpringEquinox,
+  autumn_equinox: calculateAutumnEquinox,
+  fall_equinox: calculateAutumnEquinox,
+  summer_solstice: calculateSummerSolstice,
+  winter_solstice: calculateWinterSolstice,
+  diwali: calculateDiwaliDate,
+  holi: calculateHoliDate,
+  hanukkah: calculateHanukkahDate,
+  chanukah: calculateHanukkahDate,
+  record_store_day: (year) => calculateThirdSaturdayOfMonth(year, 4),
+};
 
 // ── Variable holiday calculators ──────────────────────────────────────
-
-/** Compute a variable-date holiday; if it has passed, recurse to next year. */
-function nextOrRecurse(
-  date: Date,
-  calculator: (y: number) => string,
-  year: number
-): string {
-  return hasPassed(date) ? calculator(year + 1) : toISO(date);
-}
+// Each calculator returns the exact date for the requested year; rolling a
+// passed date to next year happens centrally in lookupOccasionDate so an
+// explicit-year request (e.g. the calendar projecting a viewed year) stays
+// exact.
 
 // Easter (Anonymous Gregorian algorithm, works 1900-2099)
 function calculateEasterDate(year: number): string {
@@ -242,11 +236,7 @@ function calculateEasterDate(year: number): string {
   const m = Math.floor((a + 11 * h + 22 * l) / 451);
   const month = Math.floor((h + l - 7 * m + 114) / 31);
   const day = ((h + l - 7 * m + 114) % 31) + 1;
-  return nextOrRecurse(
-    new Date(year, month - 1, day),
-    calculateEasterDate,
-    year
-  );
+  return toISO(new Date(year, month - 1, day));
 }
 
 // Thanksgiving (4th Thursday of November)
@@ -254,43 +244,28 @@ function calculateThanksgivingDate(year: number): string {
   const nov1 = new Date(year, 10, 1);
   const dow = nov1.getDay();
   const daysToAdd = dow <= 4 ? 4 - dow : 11 - dow;
-  return nextOrRecurse(
-    new Date(year, 10, 1 + daysToAdd + 21),
-    calculateThanksgivingDate,
-    year
-  );
+  return toISO(new Date(year, 10, 1 + daysToAdd + 21));
 }
 
 // Nth Saturday of a month (e.g. Record Store Day = 3rd Saturday of April)
 function calculateThirdSaturdayOfMonth(year: number, month: number): string {
   const first = new Date(year, month - 1, 1);
   const daysToFirstSat = (6 - first.getDay() + 7) % 7;
-  const date = new Date(year, month - 1, 1 + daysToFirstSat + 14);
-  return hasPassed(date)
-    ? calculateThirdSaturdayOfMonth(year + 1, month)
-    : toISO(date);
+  return toISO(new Date(year, month - 1, 1 + daysToFirstSat + 14));
 }
 
 // Mother's Day (2nd Sunday of May)
 function calculateMothersDayDate(year: number): string {
   const may1 = new Date(year, 4, 1);
   const daysToAdd = (7 - may1.getDay()) % 7;
-  return nextOrRecurse(
-    new Date(year, 4, 1 + daysToAdd + 7),
-    calculateMothersDayDate,
-    year
-  );
+  return toISO(new Date(year, 4, 1 + daysToAdd + 7));
 }
 
 // Father's Day (3rd Sunday of June)
 function calculateFathersDayDate(year: number): string {
   const jun1 = new Date(year, 5, 1);
   const daysToAdd = (7 - jun1.getDay()) % 7;
-  return nextOrRecurse(
-    new Date(year, 5, 1 + daysToAdd + 14),
-    calculateFathersDayDate,
-    year
-  );
+  return toISO(new Date(year, 5, 1 + daysToAdd + 14));
 }
 
 // ── Equinox / Solstice (Meeus algorithm, accurate 1951-2050) ──────────
@@ -307,7 +282,7 @@ function calculateSpringEquinox(year: number): string {
     0.05169 * y * y -
     0.00411 * y ** 3 -
     0.00057 * y ** 4;
-  return nextOrRecurse(meeusDate(jde), calculateSpringEquinox, year);
+  return toISO(meeusDate(jde));
 }
 
 function calculateAutumnEquinox(year: number): string {
@@ -318,7 +293,7 @@ function calculateAutumnEquinox(year: number): string {
     0.11575 * y * y +
     0.00337 * y ** 3 +
     0.00078 * y ** 4;
-  return nextOrRecurse(meeusDate(jde), calculateAutumnEquinox, year);
+  return toISO(meeusDate(jde));
 }
 
 function calculateSummerSolstice(year: number): string {
@@ -329,7 +304,7 @@ function calculateSummerSolstice(year: number): string {
     0.00325 * y * y +
     0.00888 * y ** 3 -
     0.0003 * y ** 4;
-  return nextOrRecurse(meeusDate(jde), calculateSummerSolstice, year);
+  return toISO(meeusDate(jde));
 }
 
 function calculateWinterSolstice(year: number): string {
@@ -340,7 +315,7 @@ function calculateWinterSolstice(year: number): string {
     0.06223 * y * y -
     0.00823 * y ** 3 +
     0.00032 * y ** 4;
-  return nextOrRecurse(meeusDate(jde), calculateWinterSolstice, year);
+  return toISO(meeusDate(jde));
 }
 
 // ── Lunar-calendar holidays (lookup tables + approximation fallback) ──
@@ -349,18 +324,13 @@ function lookupOrApproximate(
   year: number,
   table: Record<number, string>,
   fallbackMonth: number,
-  fallbackDay: number,
-  recalculate: (y: number) => string
+  fallbackDay: number
 ): string {
-  if (table[year]) {
-    const date = new Date(table[year]);
-    if (!hasPassed(date)) return table[year];
-    return table[year + 1] ?? recalculate(year + 1);
-  }
+  if (table[year]) return table[year];
   const baseDate = new Date(year, fallbackMonth, fallbackDay);
   const daysOffset = (year - 2024) * 11;
   const approx = new Date(baseDate.getTime() + daysOffset * 86400000);
-  return hasPassed(approx) ? recalculate(year + 1) : toISO(approx);
+  return toISO(approx);
 }
 
 function calculateDiwaliDate(year: number): string {
@@ -376,8 +346,7 @@ function calculateDiwaliDate(year: number): string {
       2030: "2030-10-26",
     },
     9,
-    15,
-    calculateDiwaliDate
+    15
   );
 }
 
@@ -394,8 +363,7 @@ function calculateHoliDate(year: number): string {
       2030: "2030-03-20",
     },
     2,
-    15,
-    calculateHoliDate
+    15
   );
 }
 
@@ -412,7 +380,6 @@ function calculateHanukkahDate(year: number): string {
       2030: "2030-12-20",
     },
     11,
-    10,
-    calculateHanukkahDate
+    10
   );
 }
