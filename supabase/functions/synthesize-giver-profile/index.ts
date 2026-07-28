@@ -27,7 +27,7 @@ Draw from ALL available signals:
 - Gifting style text: their stated approach, priorities, and budget philosophy
 - Gift history patterns: types of gifts they've given and price points
 
-Write in third person (e.g. "Aaron is..."). Be specific and concrete — avoid generic labels like "thoughtful" unless the source text uses them. Preserve the user's distinctive voice and values.
+Write in third person, referring to the user by their first name from the Name field (e.g. "Aaron is..."). Never write "this user" or "the user". Be specific and concrete — avoid generic labels like "thoughtful" unless the source text uses them. Preserve the user's distinctive voice and values.
 
 Return ONLY valid JSON:
 {
@@ -85,12 +85,26 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch user preferences
-    const { data: prefs } = await supabase
-      .from("user_preferences")
-      .select("user_description, user_summary")
-      .eq("user_id", userId)
-      .maybeSingle();
+    // Fetch user preferences and the user's name. Without the name the model
+    // has nothing to satisfy the prompt's third-person instruction and falls
+    // back to "This user is..." in the About You card.
+    const [{ data: prefs }, { data: profileRow }] = await Promise.all([
+      supabase
+        .from("user_preferences")
+        .select("user_description, user_summary")
+        .eq("user_id", userId)
+        .maybeSingle(),
+      supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", userId)
+        .maybeSingle(),
+    ]);
+
+    const fullName =
+      typeof profileRow?.full_name === "string"
+        ? profileRow.full_name.trim()
+        : "";
 
     const userDescription = prefs?.user_description ?? "";
     const userSummary =
@@ -178,6 +192,7 @@ serve(async (req) => {
       : "";
 
     const userContext = [
+      fullName && `Name: ${fullName}`,
       userDescription && `Self-description: ${userDescription}`,
       giftingContext && `Gifting style:\n${giftingContext}`,
       historyContext,
