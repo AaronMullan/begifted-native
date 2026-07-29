@@ -45,7 +45,8 @@ const GiftGenerationWaiting: React.FC = () => {
     closeImportFailed,
     continueWithAccess,
     retryImport,
-    selectContact,
+    addSelectedContacts,
+    isAddingContacts,
   } = useContactImportFlow();
 
   useEffect(() => {
@@ -130,8 +131,9 @@ const GiftGenerationWaiting: React.FC = () => {
       <ContactPicker
         visible={pickerVisible}
         contacts={deviceContacts}
-        onSelect={selectContact}
+        onAdd={addSelectedContacts}
         onClose={closePicker}
+        isAdding={isAddingContacts}
       />
       <ContactsImportFailedModal
         visible={importFailedVisible}

@@ -20,6 +20,7 @@ interface CreateRecipientData {
   state?: string | null;
   zip_code?: string | null;
   country?: string | null;
+  photo_url?: string | null;
 }
 
 interface UpdateRecipientData {
@@ -82,6 +83,44 @@ export function useCreateRecipient() {
         queryKeys.recipients(variables.user_id),
         queryKeys.occasions(variables.user_id),
       ],
+    }),
+  });
+}
+
+/**
+ * Hook to create several recipients in one insert (multi-select contact
+ * import). Rows carry only what the device contact provides;
+ * relationship_type stays "" until the user fills the profile in.
+ */
+export function useBulkCreateRecipients() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (rows: CreateRecipientData[]): Promise<Recipient[]> => {
+      const safeRows = rows.map((row) =>
+        "birthday" in row
+          ? { ...row, birthday: normalizeBirthday(row.birthday) }
+          : row
+      );
+      const { data: recipients, error } = await supabase
+        .from("recipients")
+        .insert(safeRows)
+        .select();
+
+      if (error) throw error;
+      return recipients;
+    },
+    ...makeMutationHandlers<Recipient[], CreateRecipientData[]>({
+      queryClient,
+      label: "useBulkCreateRecipients",
+      errorMessage: "Couldn't add these people. Please try again.",
+      invalidateKeys: (_, rows) =>
+        rows.length > 0
+          ? [
+              queryKeys.recipients(rows[0].user_id),
+              queryKeys.occasions(rows[0].user_id),
+            ]
+          : [],
     }),
   });
 }
