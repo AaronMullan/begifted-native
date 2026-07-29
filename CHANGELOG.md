@@ -24,6 +24,11 @@ running. Earlier builds (≤ 44) are not backfilled here.
 ### App
 
 - The update prompt is now a "What's New" card matching the new design — a date chip and short highlights of what changed, with a Let's Go button that restarts into the update. Highlights are set per-release; tapping outside still defers the restart to the next app start. (whats-new-update-card)
+- Adding a moment from a person's page now fills in the date automatically for known holidays (Mother's Day, Easter, Thanksgiving, etc.) and asks for a month/day for anything else — custom moments no longer land without a date. (DEV-347)
+- Moving holidays like Mother's Day, Easter, and Thanksgiving now show up on the right day every year — upcoming-occasion lists and the calendar compute each year's actual date instead of repeating the date the moment was saved with. (DEV-348)
+- Pop-ups, menus, and the person-picker drawer now use the brand's warm off-white (beigeLight) background instead of plain white, matching the design palette. (DEV-350)
+- Several confirmation pop-ups (sign out, change password, delete account, admin dialogs) no longer render with exaggerated pill-shaped corners — all dialogs now use the app's standard 16pt corner radius. (DEV-350)
+- The notification and contacts permission intros now appear as compact confirmation cards in the app's dialog style, rather than full-screen pages. (DEV-351)
 
 ## 2026-07-27 — OTA
 
