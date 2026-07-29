@@ -1,4 +1,3 @@
-import { PixelRatio } from "react-native";
 import type { TextStyle } from "react-native";
 
 /**
@@ -42,34 +41,32 @@ export const FontFamily = {
 } as const;
 
 /**
- * A numeric lineHeight does not track the OS accessibility text size the way
- * fontSize does, so at large Dynamic Type a tight line box clips the scaled
- * glyph. Multiplying the pin by the font scale keeps the box proportional to the
- * glyph. Read once at module load, so a live text-size change reflows on the next
- * launch; at the default scale it returns the design value, leaving normal-size
- * layouts unchanged. Apply only to tight glyph-height pins — not line-heights
- * used to vertically center text inside a fixed-height container.
+ * lineHeight values are the raw design points. React Native already multiplies
+ * a numeric lineHeight by the OS font scale natively (both platforms, when
+ * allowFontScaling is on — the default), exactly like fontSize, so a pinned
+ * line box stays proportional to the glyph at every Dynamic Type size. Never
+ * re-multiply by PixelRatio.getFontScale() in JS: that double-scales the box —
+ * phantom leading at large text sizes and, at below-default sizes, a box
+ * smaller than the glyph, which vertically clips the text.
  */
-export const scaleLineHeight = (lineHeight: number): number =>
-  lineHeight * PixelRatio.getFontScale();
 
 export const Typography = {
   h1: {
     fontFamily: FontFamily.serif.semibold,
     fontSize: 32,
-    lineHeight: scaleLineHeight(33),
+    lineHeight: 33,
   } satisfies TextStyle,
   h2: {
     fontFamily: FontFamily.serif.bold,
     fontSize: 22,
     // Fixed 28px line box (published token): 22/23 clipped Poltawski
     // descenders on subpage titles.
-    lineHeight: scaleLineHeight(28),
+    lineHeight: 28,
   } satisfies TextStyle,
   h3: {
     fontFamily: FontFamily.serif.bold,
     fontSize: 16,
-    lineHeight: scaleLineHeight(17),
+    lineHeight: 17,
   } satisfies TextStyle,
   subhead: {
     fontFamily: FontFamily.sans.medium,
@@ -80,21 +77,21 @@ export const Typography = {
   drawerTitle: {
     fontFamily: FontFamily.serif.bold,
     fontSize: 20,
-    lineHeight: scaleLineHeight(26),
+    lineHeight: 26,
   } satisfies TextStyle,
   // Small body copy (Figma "body13": DM Sans 400 13/16) — drawer prompts,
   // conversation answer text.
   body13: {
     fontFamily: FontFamily.sans.regular,
     fontSize: 13,
-    lineHeight: scaleLineHeight(16),
+    lineHeight: 16,
   } satisfies TextStyle,
   // Body copy ("copyblock" in the FINAL file): DM Sans 400 14/18. Intro
   // paragraphs and expanded FAQ answers.
   copyblock: {
     fontFamily: FontFamily.sans.regular,
     fontSize: 14,
-    lineHeight: scaleLineHeight(18),
+    lineHeight: 18,
   } satisfies TextStyle,
   eyebrow: {
     fontFamily: FontFamily.sans.regular,
@@ -104,13 +101,13 @@ export const Typography = {
   caption: {
     fontFamily: FontFamily.sans.regular,
     fontSize: 12,
-    lineHeight: scaleLineHeight(15),
+    lineHeight: 15,
   } satisfies TextStyle,
   // Form field labels (Figma "fieldLabel": DM Sans 500 12/15).
   fieldLabel: {
     fontFamily: FontFamily.sans.medium,
     fontSize: 12,
-    lineHeight: scaleLineHeight(15),
+    lineHeight: 15,
   } satisfies TextStyle,
   // Chip/tag text (Figma "tagLabel": DM Sans 500 13).
   tagLabel: {
@@ -121,19 +118,19 @@ export const Typography = {
   planName: {
     fontFamily: FontFamily.sans.semibold,
     fontSize: 20,
-    lineHeight: scaleLineHeight(24),
+    lineHeight: 24,
   } satisfies TextStyle,
   largeCta: {
     fontFamily: FontFamily.sans.semibold,
     // The published Figma token is 14/18, not the 16/20 in DEV-243's table —
     // both redesign frames (4305:1504, 4170:15802) report largeCta 14/18.
     fontSize: 14,
-    lineHeight: scaleLineHeight(18),
+    lineHeight: 18,
   } satisfies TextStyle,
   smallCta: {
     fontFamily: FontFamily.sans.semibold,
     fontSize: 12,
-    lineHeight: scaleLineHeight(16),
+    lineHeight: 16,
   } satisfies TextStyle,
   sectionHeadAc: {
     fontFamily: FontFamily.sans.semibold,
@@ -144,21 +141,21 @@ export const Typography = {
     // Spacing.sectionHeadToContent below); an inflated lineHeight here
     // double-counted it and pushed the heads ~8pt too far from both the
     // preceding module and the cards.
-    lineHeight: scaleLineHeight(12),
+    lineHeight: 12,
     textTransform: "uppercase",
   } satisfies TextStyle,
   // Title-case top copy (Figma "BG top copy": Poltawski Nowy 600 12/14)
   topCopy: {
     fontFamily: FontFamily.serif.semibold,
     fontSize: 12,
-    lineHeight: scaleLineHeight(14),
+    lineHeight: 14,
     textTransform: "capitalize",
   } satisfies TextStyle,
   // Primary module headline (Figma "module: primary")
   moduleHeadline: {
     fontFamily: FontFamily.serif.medium,
     fontSize: 32,
-    lineHeight: scaleLineHeight(33),
+    lineHeight: 33,
   } satisfies TextStyle,
   // Avatar initials. No lineHeight: the avatar container centers the glyph;
   // Figma's 50 line box is the pill height, not a text metric.
