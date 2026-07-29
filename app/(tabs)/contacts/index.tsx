@@ -38,6 +38,7 @@ export default function Contacts() {
     pickerVisible,
     accessIntroVisible,
     importFailedVisible,
+    isAddingContacts,
     deviceContacts,
     openAccessIntro,
     closeAccessIntro,
@@ -46,7 +47,7 @@ export default function Contacts() {
     continueWithAccess,
     retryImport,
     importFromFile,
-    selectContact,
+    addSelectedContacts,
   } = useContactImportFlow();
 
   const [chooserVisible, setChooserVisible] = useState(false);
@@ -139,8 +140,9 @@ export default function Contacts() {
         <ContactPicker
           visible={pickerVisible}
           contacts={deviceContacts}
-          onSelect={selectContact}
+          onAdd={addSelectedContacts}
           onClose={closePicker}
+          isAdding={isAddingContacts}
         />
         <ContactsImportFailedModal
           visible={importFailedVisible}

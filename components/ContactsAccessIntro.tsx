@@ -11,11 +11,11 @@ type ContactsAccessIntroProps = {
   isLoading?: boolean;
 };
 
-// Shown before requesting contacts permission. Explains that import never
-// reads the whole address book. A denied permission lands in
-// ContactsImportFailedModal, which owns the Open Settings path. Figma
-// Modal/Confirmation (4685:4745); plain RN Modal for exact centering (the
-// documented Paper Dialog exception).
+// Shown before requesting contacts permission. Title-only — the iOS system
+// permission dialog explains the access, so the card carries no sub-copy. A
+// denied permission lands in ContactsImportFailedModal, which owns the Open
+// Settings path. Figma Modal/Confirmation (4685:4745); plain RN Modal for
+// exact centering (the documented Paper Dialog exception).
 export default function ContactsAccessIntro({
   visible,
   onContinue,
@@ -32,11 +32,6 @@ export default function ContactsAccessIntro({
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={styles.card} onPress={() => {}}>
           <Text style={styles.title}>Access Your Contacts</Text>
-          <Text style={styles.body}>
-            We&apos;ll ask for permission to read your contacts so you can add
-            people from your address book. Only the people you pick are imported
-            — never your whole contact list.
-          </Text>
           <View style={styles.buttonRow}>
             <PrimaryCta
               label="Continue"
@@ -80,10 +75,6 @@ const styles = StyleSheet.create({
   title: {
     ...Typography.h2,
     color: Colors.brand.darkTeal,
-  },
-  body: {
-    ...Typography.copyblock,
-    color: Colors.brand.mediumTeal,
   },
   buttonRow: {
     alignItems: "center",

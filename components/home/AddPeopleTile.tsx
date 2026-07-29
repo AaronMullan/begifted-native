@@ -23,7 +23,8 @@ export default function AddPeopleTile() {
     closeImportFailed,
     continueWithAccess,
     retryImport,
-    selectContact,
+    addSelectedContacts,
+    isAddingContacts,
   } = useContactImportFlow();
 
   const goToAddManually = () => {
@@ -69,8 +70,9 @@ export default function AddPeopleTile() {
       <ContactPicker
         visible={pickerVisible}
         contacts={deviceContacts}
-        onSelect={selectContact}
+        onAdd={addSelectedContacts}
         onClose={closePicker}
+        isAdding={isAddingContacts}
       />
       <ContactsImportFailedModal
         visible={importFailedVisible}

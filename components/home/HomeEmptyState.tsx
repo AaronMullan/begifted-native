@@ -32,7 +32,8 @@ export default function HomeEmptyState() {
     closeImportFailed,
     continueWithAccess,
     retryImport,
-    selectContact,
+    addSelectedContacts,
+    isAddingContacts,
   } = useContactImportFlow();
 
   const handleImportPress = () => {
@@ -108,8 +109,9 @@ export default function HomeEmptyState() {
       <ContactPicker
         visible={pickerVisible}
         contacts={deviceContacts}
-        onSelect={selectContact}
+        onAdd={addSelectedContacts}
         onClose={closePicker}
+        isAdding={isAddingContacts}
       />
       <ContactsImportFailedModal
         visible={importFailedVisible}
