@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { Animated, Platform, Pressable, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -21,6 +21,7 @@ const MESSAGES = [
 ];
 
 const ROTATE_MS = 7000;
+const FADE_MS = 450;
 
 /**
  * Full waiting state for a recipient whose first gift set is still
@@ -30,6 +31,7 @@ const ROTATE_MS = 7000;
 const GiftGenerationWaiting: React.FC = () => {
   const router = useRouter();
   const [messageIndex, setMessageIndex] = useState(0);
+  const [messageOpacity] = useState(() => new Animated.Value(1));
   const [chooserVisible, setChooserVisible] = useState(false);
   const {
     contactsLoading,
@@ -47,12 +49,27 @@ const GiftGenerationWaiting: React.FC = () => {
   } = useContactImportFlow();
 
   useEffect(() => {
-    const timer = setInterval(
-      () => setMessageIndex((i) => (i + 1) % MESSAGES.length),
-      ROTATE_MS
-    );
-    return () => clearInterval(timer);
-  }, []);
+    const timer = setInterval(() => {
+      // Fade out, swap the message while invisible, fade back in.
+      Animated.timing(messageOpacity, {
+        toValue: 0,
+        duration: FADE_MS,
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (!finished) return;
+        setMessageIndex((i) => (i + 1) % MESSAGES.length);
+        Animated.timing(messageOpacity, {
+          toValue: 1,
+          duration: FADE_MS,
+          useNativeDriver: true,
+        }).start();
+      });
+    }, ROTATE_MS);
+    return () => {
+      clearInterval(timer);
+      messageOpacity.stopAnimation();
+    };
+  }, [messageOpacity]);
 
   const goToAddManually = () => {
     setChooserVisible(false);
@@ -78,7 +95,9 @@ const GiftGenerationWaiting: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.messageBlock}>
-        <Text style={styles.message}>{MESSAGES[messageIndex]}</Text>
+        <Animated.View style={{ opacity: messageOpacity }}>
+          <Text style={styles.message}>{MESSAGES[messageIndex]}</Text>
+        </Animated.View>
       </View>
       <Text style={styles.notification}>
         {
