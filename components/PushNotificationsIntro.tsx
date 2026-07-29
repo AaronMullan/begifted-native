@@ -1,17 +1,18 @@
-import { Modal, View, StyleSheet } from "react-native";
-import { Text, Button } from "react-native-paper";
+import { Modal, Pressable, StyleSheet, View } from "react-native";
+import { Text } from "react-native-paper";
 import { Colors } from "../lib/colors";
+import { Typography } from "../lib/typography";
+import { PrimaryCta } from "./PrimaryCta";
 
-interface PushNotificationsIntroProps {
+type PushNotificationsIntroProps = {
   visible: boolean;
   onContinue: () => void;
   onClose: () => void;
-}
+};
 
-/**
- * Shown before requesting push-notification permission so the OS prompt never
- * fires unexplained. Mirrors the ContactsAccessIntro pattern.
- */
+// Shown before requesting push-notification permission so the OS prompt never
+// fires unexplained. Figma Modal/Confirmation (4685:4745); plain RN Modal for
+// exact centering (the documented Paper Dialog exception).
 export default function PushNotificationsIntro({
   visible,
   onContinue,
@@ -20,63 +21,82 @@ export default function PushNotificationsIntro({
   return (
     <Modal
       visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
+      transparent
+      animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.container}>
-        <View style={styles.content}>
-          <Text variant="headlineSmall" style={styles.title}>
-            Turn on notifications
-          </Text>
-          <Text variant="bodyLarge" style={styles.body}>
+      <Pressable style={styles.backdrop} onPress={onClose}>
+        <Pressable style={styles.card} onPress={() => {}}>
+          <Text style={styles.title}>Turn On Notifications</Text>
+          <Text style={styles.body}>
             We&apos;ll ask for permission to send notifications so you hear
             about new gift ideas and get reminders before the occasions
             you&apos;re tracking. You can change this anytime in Settings.
           </Text>
-
-          <Button
-            mode="contained"
-            onPress={onContinue}
-            style={styles.continueButton}
-          >
-            Continue
-          </Button>
-          <Button mode="text" onPress={onClose} style={styles.cancelButton}>
-            Not now
-          </Button>
-        </View>
-      </View>
+          <View style={styles.buttonRow}>
+            <PrimaryCta label="Continue" onPress={onContinue} />
+            <Pressable
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="Not now"
+              style={({ pressed }) => [
+                styles.secondaryButton,
+                pressed && styles.secondaryPressed,
+              ]}
+            >
+              <Text style={styles.secondaryLabel}>Not Now</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  backdrop: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(0,0,0,0.35)",
     justifyContent: "center",
-    padding: 24,
+    alignItems: "center",
   },
-  content: {
-    maxWidth: 400,
-    alignSelf: "center",
-    width: "100%",
+  card: {
+    width: 320,
+    borderRadius: 16,
+    backgroundColor: Colors.brand.beigeLight,
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 24,
+    gap: 16,
   },
   title: {
-    marginBottom: 16,
-    color: Colors.darks.black,
+    ...Typography.h2,
+    color: Colors.brand.darkTeal,
   },
   body: {
-    color: Colors.darks.black,
-    opacity: 0.9,
-    lineHeight: 24,
-    marginBottom: 16,
+    ...Typography.copyblock,
+    color: Colors.brand.mediumTeal,
   },
-  continueButton: {
-    marginBottom: 8,
+  buttonRow: {
+    alignItems: "center",
+    gap: 10,
   },
-  cancelButton: {
-    marginBottom: 24,
+  // Figma Button/Secondary (4674:4696): fixed 170x46 pill, 2px lightTeal
+  // border, darkTeal largeCta label.
+  secondaryButton: {
+    width: 170,
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 2,
+    borderColor: Colors.brand.lightTeal,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  secondaryPressed: {
+    opacity: 0.7,
+  },
+  secondaryLabel: {
+    ...Typography.largeCta,
+    color: Colors.brand.darkTeal,
   },
 });

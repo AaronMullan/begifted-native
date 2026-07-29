@@ -1,125 +1,110 @@
-import { Modal, View, StyleSheet, Pressable } from "react-native";
-import { Text, Button } from "react-native-paper";
-import * as Linking from "expo-linking";
+import { Modal, Pressable, StyleSheet, View } from "react-native";
+import { Text } from "react-native-paper";
 import { Colors } from "../lib/colors";
+import { Typography } from "../lib/typography";
+import { PrimaryCta } from "./PrimaryCta";
 
-interface ContactsAccessIntroProps {
+type ContactsAccessIntroProps = {
   visible: boolean;
   onContinue: () => void;
   onClose: () => void;
   isLoading?: boolean;
-}
+};
 
-/**
- * Shown before requesting contacts permission. Explains that "all" does not
- * import the whole address book and provides a way to open Settings.
- */
+// Shown before requesting contacts permission. Explains that import never
+// reads the whole address book. A denied permission lands in
+// ContactsImportFailedModal, which owns the Open Settings path. Figma
+// Modal/Confirmation (4685:4745); plain RN Modal for exact centering (the
+// documented Paper Dialog exception).
 export default function ContactsAccessIntro({
   visible,
   onContinue,
   onClose,
   isLoading = false,
 }: ContactsAccessIntroProps) {
-  function handleOpenSettings() {
-    Linking.openSettings();
-  }
-
   return (
     <Modal
       visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
+      transparent
+      animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.container}>
-        <View style={styles.content}>
-          <Text variant="headlineSmall" style={styles.title}>
-            Access your contacts
-          </Text>
-          <Text variant="bodyLarge" style={styles.body}>
+      <Pressable style={styles.backdrop} onPress={onClose}>
+        <Pressable style={styles.card} onPress={() => {}}>
+          <Text style={styles.title}>Access Your Contacts</Text>
+          <Text style={styles.body}>
             We&apos;ll ask for permission to read your contacts so you can add
             people from your address book. Only the people you pick are imported
             — never your whole contact list.
           </Text>
-
-          <Button
-            mode="contained"
-            onPress={onContinue}
-            loading={isLoading}
-            disabled={isLoading}
-            style={styles.continueButton}
-          >
-            Continue
-          </Button>
-          <Button mode="text" onPress={onClose} style={styles.cancelButton}>
-            Cancel
-          </Button>
-
-          <Pressable
-            onPress={handleOpenSettings}
-            style={({ pressed }) => [
-              styles.settingsLink,
-              pressed && styles.settingsLinkPressed,
-            ]}
-          >
-            <Text variant="bodySmall" style={styles.settingsLinkText}>
-              Open Settings to change contacts permission
-            </Text>
-          </Pressable>
-        </View>
-      </View>
+          <View style={styles.buttonRow}>
+            <PrimaryCta
+              label="Continue"
+              onPress={onContinue}
+              state={isLoading ? "loading" : "idle"}
+            />
+            <Pressable
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel"
+              style={({ pressed }) => [
+                styles.secondaryButton,
+                pressed && styles.secondaryPressed,
+              ]}
+            >
+              <Text style={styles.secondaryLabel}>Cancel</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  backdrop: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(0,0,0,0.35)",
     justifyContent: "center",
-    padding: 24,
+    alignItems: "center",
   },
-  content: {
-    maxWidth: 400,
-    alignSelf: "center",
-    width: "100%",
+  card: {
+    width: 320,
+    borderRadius: 16,
+    backgroundColor: Colors.brand.beigeLight,
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 24,
+    gap: 16,
   },
   title: {
-    marginBottom: 16,
-    color: Colors.darks.black,
+    ...Typography.h2,
+    color: Colors.brand.darkTeal,
   },
   body: {
-    color: Colors.darks.black,
-    opacity: 0.9,
-    lineHeight: 24,
-    marginBottom: 16,
+    ...Typography.copyblock,
+    color: Colors.brand.mediumTeal,
   },
-  disclaimer: {
-    backgroundColor: Colors.neutrals.light + "80",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 24,
+  buttonRow: {
+    alignItems: "center",
+    gap: 10,
   },
-  disclaimerText: {
-    color: Colors.darks.black,
-    lineHeight: 22,
-    opacity: 0.9,
+  // Figma Button/Secondary (4674:4696): fixed 170x46 pill, 2px lightTeal
+  // border, darkTeal largeCta label.
+  secondaryButton: {
+    width: 170,
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 2,
+    borderColor: Colors.brand.lightTeal,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  continueButton: {
-    marginBottom: 8,
-  },
-  cancelButton: {
-    marginBottom: 24,
-  },
-  settingsLink: {
-    alignSelf: "center",
-    paddingVertical: 8,
-  },
-  settingsLinkPressed: {
+  secondaryPressed: {
     opacity: 0.7,
   },
-  settingsLinkText: {
-    color: Colors.blues.teal,
-    textDecorationLine: "underline",
+  secondaryLabel: {
+    ...Typography.largeCta,
+    color: Colors.brand.darkTeal,
   },
 });
