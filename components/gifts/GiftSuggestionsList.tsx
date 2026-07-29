@@ -7,6 +7,7 @@ import { Typography } from "../../lib/typography";
 import type { GiftSuggestion } from "../../types/recipient";
 import PrimaryGiftCard from "./PrimaryGiftCard";
 import CollapsedGiftCard from "./CollapsedGiftCard";
+import GiftGenerationWaiting from "./GiftGenerationWaiting";
 import { partitionSuggestions } from "./partition";
 
 type GiftSuggestionsListProps = {
@@ -102,23 +103,27 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
       </View>
     ) : null;
 
-  if (visibleSuggestions.length === 0 && !isGenerating) {
+  if (visibleSuggestions.length === 0) {
     return (
       <View>
         {occasionHeader}
-        <View style={styles.emptyContainer}>
-          <MaterialIcons name="card-giftcard" size={64} color="#ccc" />
-          <Text variant="titleLarge" style={styles.emptyTitle}>
-            No Gift Ideas Yet
-          </Text>
-          <Text variant="bodyMedium" style={styles.emptyText}>
-            {occasionId
-              ? "No gift suggestions for this occasion yet."
-              : `Gift suggestions will appear here once they're generated for ${
-                  recipientName || "this recipient"
-                }.`}
-          </Text>
-        </View>
+        {isGenerating ? (
+          <GiftGenerationWaiting />
+        ) : (
+          <View style={styles.emptyContainer}>
+            <MaterialIcons name="card-giftcard" size={64} color="#ccc" />
+            <Text variant="titleLarge" style={styles.emptyTitle}>
+              No Gift Ideas Yet
+            </Text>
+            <Text variant="bodyMedium" style={styles.emptyText}>
+              {occasionId
+                ? "No gift suggestions for this occasion yet."
+                : `Gift suggestions will appear here once they're generated for ${
+                    recipientName || "this recipient"
+                  }.`}
+            </Text>
+          </View>
+        )}
       </View>
     );
   }
