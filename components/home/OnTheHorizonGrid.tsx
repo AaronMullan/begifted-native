@@ -112,10 +112,8 @@ function HorizonCard({
 const styles = StyleSheet.create({
   section: {
     gap: Spacing.sectionHeadToContent,
-    // The dashboard column's gap is the smaller hero → section-head value;
-    // top it up to the card-group → section-head gap the frame gives this
-    // section (4302:1538: 41pt).
-    marginTop: Spacing.sectionGap - Spacing.heroToSectionGap,
+    // The card-group → section-head gap above (4302:1538: 41pt) is owned by
+    // the dashboard's flexible spacer, not a margin here.
   },
   sectionLabel: {
     ...Typography.sectionHeadAc,

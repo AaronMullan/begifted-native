@@ -14,6 +14,18 @@ import AddPeopleTile from "../../components/home/AddPeopleTile";
 import HomeEmptyState from "../../components/home/HomeEmptyState";
 import GradientBackground from "../../components/GradientBackground";
 
+/**
+ * Flexible vertical gap for the anchored home column (DEV-358 direction from
+ * Erik's "No Clip" comp, 5782:5544). Starts at its compressed floor and grows
+ * with leftover screen height; the grow weights are the floor→design deltas,
+ * so when the column fits its reference frame each gap lands near its design
+ * value, taller screens keep expanding, and shorter screens sit at the floor —
+ * where the surrounding ScrollView takes over.
+ */
+function FlexGap({ min, design }: { min: number; design: number }) {
+  return <View style={{ flexBasis: min, flexGrow: design - min }} />;
+}
+
 export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
   const { data: recipients = [], isLoading: loadingRecipients } =
@@ -89,12 +101,34 @@ export default function Dashboard() {
         bounces={false}
       >
         <View style={styles.content}>
-          <View style={styles.heroBlock}>
-            {groups.hero && <HomeHeroCard occasion={groups.hero} />}
-            <AddPeopleTile />
-          </View>
-          <NextUpCarousel occasions={groups.nextUp} />
-          <OnTheHorizonGrid occasions={groups.horizon} />
+          {groups.hero && (
+            <>
+              <HomeHeroCard occasion={groups.hero} />
+              <FlexGap
+                min={Spacing.moduleStackGapMin}
+                design={Spacing.moduleStackGap}
+              />
+            </>
+          )}
+          <AddPeopleTile />
+          {groups.nextUp.length > 0 && (
+            <>
+              <FlexGap
+                min={Spacing.heroToSectionGapMin}
+                design={Spacing.heroToSectionGap}
+              />
+              <NextUpCarousel occasions={groups.nextUp} />
+            </>
+          )}
+          {groups.horizon.length > 0 && (
+            <>
+              <FlexGap
+                min={Spacing.sectionGapMin}
+                design={Spacing.sectionGap}
+              />
+              <OnTheHorizonGrid occasions={groups.horizon} />
+            </>
+          )}
           {!groups.hero && (
             <Text variant="bodyLarge" style={styles.emptyText}>
               No upcoming occasions yet.
@@ -124,19 +158,15 @@ const styles = StyleSheet.create({
   content: {
     maxWidth: 800,
     width: "100%",
+    // Stretch to the viewport so the FlexGap spacers can distribute leftover
+    // height (top/bottom-anchored column); vertical gaps live in the spacers,
+    // not a column `gap`.
+    flexGrow: 1,
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: 32,
+    paddingBottom: Spacing.homeBottomInset,
     backgroundColor: "transparent",
     alignSelf: "stretch",
-    // Hero/add-people stack → "NEXT UP" head (frame 4302:1538: 31pt). The
-    // horizon section tops this up to the larger card-group → section-head
-    // gap itself.
-    gap: Spacing.heroToSectionGap,
-  },
-  heroBlock: {
-    // Hero module → "Add More People" row.
-    gap: Spacing.moduleStackGap,
   },
   loadingContainer: {
     flex: 1,

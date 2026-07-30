@@ -26,6 +26,17 @@ export const Spacing = {
   sectionGap: 41,
   /** Gap between the hero/add-people stack and the first section head. */
   heroToSectionGap: 31,
+  // Compressed floors for the home column's flexible gaps, measured from the
+  // "iPhone 13 / 14 — No Clip" comp (5782:5544). The gaps flex between these
+  // floors and their design values above; below the floors the column scrolls.
+  /** Floor for `moduleStackGap` when the home column compresses. */
+  moduleStackGapMin: 12,
+  /** Floor for `heroToSectionGap` when the home column compresses. */
+  heroToSectionGapMin: 25,
+  /** Floor for `sectionGap` when the home column compresses. */
+  sectionGapMin: 24,
+  /** Home column's bottom inset above the nav clearance (comp 5782:5544). */
+  homeBottomInset: 14,
   /** Bottom-nav bar height (full-bleed, flush to the bottom edge). */
   bottomNavHeight: 55,
 
