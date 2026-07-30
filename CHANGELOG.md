@@ -19,6 +19,19 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-07-30 — OTA
+
+### App
+
+- While a new person's first gift ideas are being generated, the screen now explains that it can take a few minutes, that a notification will arrive when they're ready, and offers an "Add More People" button instead of a bare spinner (DEV-353).
+- Adding people from your contacts now opens a bottom drawer that lists everyone up front — search narrows the list, checkboxes select several at once, and Add All takes whatever the list is showing. Picking a single person still walks through the usual conversation; picking several adds them directly, ready to fill in later. The contacts-permission card is down to its title, since the iOS permission dialog explains the rest (DEV-354).
+- The app now builds and runs on Android: keyboard no longer double-lifts the chat composer or input screens, the hardware back button dismisses the contact picker, status bar icons stay legible, and the notifications screen renders its blur effect (android-support).
+
+### Backend (live since merge)
+
+- The "What we've learned so far" summary in About You now calls you by name ("Greg is…") instead of "This user is…" — you'll see it the next time you save something new about yourself. (DEV-345)
+- Moving holidays like Mother's Day and Easter now keep the correct date year over year in the daily gift pipeline — the server recomputes each year's actual date instead of repeating last year's month/day, so Home dates and gift timing stay accurate. (DEV-349)
+
 ## 2026-07-28 — OTA
 
 ### App
