@@ -1,5 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import { AppState, Modal, Pressable, StyleSheet, View } from "react-native";
+import {
+  AppState,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { Button, Text } from "react-native-paper";
 import * as Updates from "expo-updates";
 import { useAppConfig } from "../hooks/use-app-config";
@@ -118,14 +125,18 @@ const OtaUpdateGate: React.FC = () => {
               <Text style={styles.chipLabel}>{chipDate}</Text>
             </View>
           )}
-          <View style={styles.sections}>
-            {sections.map((section) => (
-              <View key={section.title} style={styles.section}>
-                <Text style={styles.sectionTitle}>{section.title}</Text>
-                <Text style={styles.sectionBody}>{section.body}</Text>
-              </View>
-            ))}
-          </View>
+          {/* Shrinkable, so a long release list scrolls instead of pushing
+              the restart CTA off screen. */}
+          <ScrollView style={styles.sectionsScroll}>
+            <View style={styles.sections}>
+              {sections.map((section) => (
+                <View key={section.title} style={styles.section}>
+                  <Text style={styles.sectionTitle}>{section.title}</Text>
+                  <Text style={styles.sectionBody}>{section.body}</Text>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
           <Button
             mode="contained"
             buttonColor={Colors.brand.darkTeal}
@@ -156,6 +167,7 @@ const styles = StyleSheet.create({
     borderRadius: 36,
     paddingVertical: 36,
     paddingHorizontal: 28,
+    maxHeight: "80%",
   },
   title: {
     ...Typography.h1,
@@ -174,8 +186,14 @@ const styles = StyleSheet.create({
     ...Typography.tagLabel,
     color: Colors.brand.mediumTeal,
   },
-  sections: {
+  // RN defaults flexShrink to 0; without it the list overflows the capped
+  // card instead of scrolling.
+  sectionsScroll: {
+    flexGrow: 0,
+    flexShrink: 1,
     marginTop: 28,
+  },
+  sections: {
     gap: 20,
   },
   section: {},
