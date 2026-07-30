@@ -19,6 +19,13 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-07-30 — OTA (fourth follow-up)
+
+### App
+
+- The home screen now adapts its spacing to your screen height — sections breathe on taller phones and tighten on smaller ones, so On The Horizon no longer hides behind the nav. It only scrolls when it truly has to. (DEV-358)
+- The "What's New" update card now scrolls its notes when the list runs long, so the Let's Go button always stays on screen. (DEV-357)
+
 ## 2026-07-30 — OTA (third follow-up)
 
 ### App
