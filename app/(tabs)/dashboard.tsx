@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import { Text, ActivityIndicator } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,21 +17,23 @@ import HomeEmptyState from "../../components/home/HomeEmptyState";
 import GradientBackground from "../../components/GradientBackground";
 
 /**
- * Flexible vertical gap for the anchored home column. Never renders below its
- * design value: a ScrollView gives children unbounded height, so a column that
- * overflows the screen renders spacers at their flex basis — a compressed
- * basis would cram the gaps precisely on the accounts that scroll anyway,
- * without buying a fit. Fit-by-compression (Erik's comp floors, `min`) needs a
- * measured layout, not flexbox alone; `min` here only sizes the stretch band.
- * With room to spare the gap grows to a cap symmetric to the comp floor,
- * anchoring the column top and bottom; past the cap the column top-anchors.
+ * Flexible vertical gap for the anchored home column, sized by which of the
+ * dashboard's three layout modes is active. In the unbounded scroll mode the
+ * basis holds: the gap renders at its design value (compressing a column that
+ * overflows anyway would cram it without buying a fit). When the dashboard
+ * bounds the container to the viewport — only after measuring that compression
+ * achieves a no-scroll fit — the negative free space engages flexShrink and
+ * the gap compresses toward the comp floor (Erik's "No Clip" comp, 5782:5544).
+ * With room to spare it grows to a cap symmetric to that floor, anchoring the
+ * column top and bottom; past the cap the column top-anchors.
  */
 function FlexGap({ min, design }: { min: number; design: number }) {
   return (
     <View
       style={{
         flexBasis: design,
-        minHeight: design,
+        flexShrink: 1,
+        minHeight: min,
         flexGrow: design - min,
         maxHeight: 2 * design - min,
       }}
@@ -52,6 +55,33 @@ export default function Dashboard() {
 
   const isLoading = loadingRecipients || loadingOccasions;
   const groups = groupHomeOccasions(occasions);
+
+  // Measured fit-by-compression: the column renders at design gaps first;
+  // once its natural height and the viewport are known, a column that
+  // overflows at design gaps but fits at the comp floors is bounded to the
+  // viewport so the FlexGaps genuinely compress (and scrolling turns off).
+  // The natural-height cache is keyed to the occasion set so any data change
+  // triggers a fresh measure pass at design gaps.
+  const [viewportH, setViewportH] = useState(0);
+  const [measured, setMeasured] = useState<{
+    sig: string;
+    naturalH: number;
+  } | null>(null);
+  const sig = occasions.map((o) => o.id).join(",");
+  const naturalH = measured?.sig === sig ? measured.naturalH : null;
+  const compressibleBy =
+    (groups.hero ? Spacing.moduleStackGap - Spacing.moduleStackGapMin : 0) +
+    (groups.nextUp.length > 0
+      ? Spacing.heroToSectionGap - Spacing.heroToSectionGapMin
+      : 0) +
+    (groups.horizon.length > 0
+      ? Spacing.sectionGap - Spacing.sectionGapMin
+      : 0);
+  const fitsCompressed =
+    naturalH !== null &&
+    viewportH > 0 &&
+    naturalH > viewportH &&
+    naturalH - compressibleBy <= viewportH;
 
   if (authLoading) {
     return (
@@ -116,7 +146,18 @@ export default function Dashboard() {
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: navClearance },
+          // Bounding the container to the viewport is what turns compression
+          // on: it creates the negative free space the FlexGaps shrink into.
+          // Unbounded (flexGrow) rendering measures the natural height first.
+          fitsCompressed ? { height: viewportH } : { flexGrow: 1 },
         ]}
+        onLayout={(e) => setViewportH(e.nativeEvent.layout.height)}
+        onContentSizeChange={(_, h) => {
+          // In the bounded mode the reported height is the viewport, not the
+          // column's natural height — keep the cached measurement instead.
+          if (!fitsCompressed) setMeasured({ sig, naturalH: h });
+        }}
+        scrollEnabled={!fitsCompressed}
         showsVerticalScrollIndicator={false}
         contentInsetAdjustmentBehavior="never"
         bounces={false}
@@ -171,7 +212,6 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   scrollContent: {
-    flexGrow: 1,
     backgroundColor: "transparent",
     alignItems: "center",
   },
