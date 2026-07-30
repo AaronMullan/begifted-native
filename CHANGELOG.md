@@ -19,6 +19,12 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-07-30 — OTA (third follow-up)
+
+### App
+
+- The Select Contacts drawer no longer offers "Add All" or the fine print beneath it — check the people you want and tap Add. (DEV-356)
+
 ## 2026-07-30 — OTA (second follow-up)
 
 ### App
