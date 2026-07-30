@@ -19,6 +19,12 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-07-30 — OTA (fifth follow-up)
+
+### App
+
+- Home spacing is back to its full rhythm — the last update over-tightened the gaps between sections when the list runs long enough to scroll. Taller screens keep the roomier, anchored layout. (DEV-358)
+
 ## 2026-07-30 — OTA (fourth follow-up)
 
 ### App
