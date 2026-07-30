@@ -24,11 +24,12 @@ type ContactPickerProps = {
 };
 
 /**
- * Select Contacts bottom drawer (Figma 5732:4449). The full contact list
- * shows before any typing and the search field narrows it live. Rows toggle
- * checkboxes; Add creates the checked contacts, Add All everything currently
- * shown. No Cancel — swiping the drawer down closes it, and per the hand-off
- * drawer rules the sheet stops flush above the bottom nav.
+ * Select Contacts bottom drawer (Figma 5732:4449, minus the comp's Add All —
+ * removed by product decision so adding stays deliberate, one person at a
+ * time). The full contact list shows before any typing and the search field
+ * narrows it live. Rows toggle checkboxes; Add creates the checked contacts.
+ * No Cancel — swiping the drawer down closes it, and per the hand-off drawer
+ * rules the sheet stops flush above the bottom nav.
  */
 export default function ContactPicker({
   visible,
@@ -188,28 +189,6 @@ export default function ContactPicker({
             state={isAdding ? "loading" : "idle"}
             disabled={selectedContacts.length === 0}
           />
-          <Pressable
-            onPress={() => onAdd(filteredContacts)}
-            accessibilityRole="button"
-            accessibilityLabel="Add all contacts shown"
-            disabled={isAdding || filteredContacts.length === 0}
-            style={({ pressed }) => [
-              styles.addAllRow,
-              pressed && styles.secondaryPressed,
-            ]}
-          >
-            <Text style={styles.addAllLabel}>Add All</Text>
-            <MaterialIcons
-              name="chevron-right"
-              size={16}
-              color={Colors.brand.darkTeal}
-            />
-          </Pressable>
-          <Text style={styles.disclaimerText}>
-            Choose one contact to add as a recipient. If you select
-            &quot;all,&quot; you&apos;re only adding the contacts shown in this
-            list — we don&apos;t import your entire address book.
-          </Text>
         </View>
       </View>
     </BottomSheetModal>
@@ -306,19 +285,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 16,
     paddingBottom: 24,
-  },
-  addAllRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  addAllLabel: {
-    ...Typography.largeCta,
-    color: Colors.brand.darkTeal,
-  },
-  disclaimerText: {
-    ...Typography.body13,
-    color: Colors.brand.mediumTeal,
-    alignSelf: "stretch",
   },
 });
