@@ -19,6 +19,12 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-07-30 — OTA (second follow-up)
+
+### App
+
+- The beta check-in card no longer gets stuck behind the keyboard — while typing, the card scrolls so Send Feedback stays reachable, and tapping outside the field puts the keyboard away. The first-recipient question also drops a leftover answer option. (DEV-355)
+
 ## 2026-07-30 — OTA (follow-up)
 
 ### App
