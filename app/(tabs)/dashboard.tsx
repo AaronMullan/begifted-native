@@ -16,18 +16,21 @@ import HomeEmptyState from "../../components/home/HomeEmptyState";
 import GradientBackground from "../../components/GradientBackground";
 
 /**
- * Flexible vertical gap for the anchored home column (Erik's "No Clip" comp,
- * 5782:5544). Flexes in a band symmetric around the design value: compresses
- * to the comp floor on short screens (below which the surrounding ScrollView
- * takes over) and stretches by the same amount on tall ones. The cap keeps
- * sparse content (e.g. no horizon section) from ballooning the gaps into
- * voids — past it the column simply top-anchors.
+ * Flexible vertical gap for the anchored home column. Never renders below its
+ * design value: a ScrollView gives children unbounded height, so a column that
+ * overflows the screen renders spacers at their flex basis — a compressed
+ * basis would cram the gaps precisely on the accounts that scroll anyway,
+ * without buying a fit. Fit-by-compression (Erik's comp floors, `min`) needs a
+ * measured layout, not flexbox alone; `min` here only sizes the stretch band.
+ * With room to spare the gap grows to a cap symmetric to the comp floor,
+ * anchoring the column top and bottom; past the cap the column top-anchors.
  */
 function FlexGap({ min, design }: { min: number; design: number }) {
   return (
     <View
       style={{
-        flexBasis: min,
+        flexBasis: design,
+        minHeight: design,
         flexGrow: design - min,
         maxHeight: 2 * design - min,
       }}
