@@ -19,6 +19,12 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-07-30 — OTA (sixth follow-up)
+
+### App
+
+- When the home content just barely overruns your screen, the sections now tighten their spacing so everything fits above the nav — no scrolling needed. Lists too long for that scroll at full spacing, and taller screens keep the roomier anchored layout. (DEV-358)
+
 ## 2026-07-30 — OTA (fifth follow-up)
 
 ### App
