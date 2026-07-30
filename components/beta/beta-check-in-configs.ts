@@ -47,7 +47,6 @@ export const BETA_CHECK_IN_CONFIGS: Record<BetaCheckInScreen, CheckInConfig> = {
         options: [
           { value: "yes", label: "Yes" },
           { value: "no", label: "No" },
-          { value: "no_might_next_time", label: "No, but I might next time" },
         ],
       },
     ],

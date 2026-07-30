@@ -1,5 +1,14 @@
 import { useState } from "react";
-import { Modal, Pressable, StyleSheet, TextInput, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
 import { Snackbar, Text } from "react-native-paper";
 import type { BetaCheckInScreen } from "../../lib/api";
 import { useSubmitBetaFeedback } from "../../hooks/use-submit-beta-feedback";
@@ -135,71 +144,80 @@ export default function BetaFeedbackModal({
       // Blocking by design: Android back does not dismiss.
       onRequestClose={() => {}}
     >
-      <View style={styles.scrim}>
+      <KeyboardAvoidingView
+        style={styles.scrim}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
         {config && (
-          <View style={styles.card}>
-            <Text style={styles.eyebrow}>QUICK BETA CHECK-IN</Text>
-            <Text style={styles.heading}>{config.heading}</Text>
-            <Text style={styles.subtext}>{config.subtext}</Text>
+          <ScrollView
+            style={styles.scroll}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.card}>
+              <Text style={styles.eyebrow}>QUICK BETA CHECK-IN</Text>
+              <Text style={styles.heading}>{config.heading}</Text>
+              <Text style={styles.subtext}>{config.subtext}</Text>
 
-            {config.chips.map((question) => (
-              <View key={question.id} style={styles.question}>
-                <Text style={styles.questionLabel}>{question.label}</Text>
-                {question.layout === "grid2" ? (
-                  <View style={styles.chipGrid}>
-                    <View style={styles.chipGridRow}>
-                      {question.options
-                        .slice(0, Math.ceil(question.options.length / 2))
-                        .map((option) => renderChip(question, option))}
+              {config.chips.map((question) => (
+                <View key={question.id} style={styles.question}>
+                  <Text style={styles.questionLabel}>{question.label}</Text>
+                  {question.layout === "grid2" ? (
+                    <View style={styles.chipGrid}>
+                      <View style={styles.chipGridRow}>
+                        {question.options
+                          .slice(0, Math.ceil(question.options.length / 2))
+                          .map((option) => renderChip(question, option))}
+                      </View>
+                      <View style={styles.chipGridRow}>
+                        {question.options
+                          .slice(Math.ceil(question.options.length / 2))
+                          .map((option) => renderChip(question, option))}
+                      </View>
                     </View>
-                    <View style={styles.chipGridRow}>
-                      {question.options
-                        .slice(Math.ceil(question.options.length / 2))
-                        .map((option) => renderChip(question, option))}
+                  ) : (
+                    <View style={styles.chipWrap}>
+                      {question.options.map((option) =>
+                        renderChip(question, option)
+                      )}
                     </View>
-                  </View>
-                ) : (
-                  <View style={styles.chipWrap}>
-                    {question.options.map((option) =>
-                      renderChip(question, option)
-                    )}
-                  </View>
-                )}
-              </View>
-            ))}
+                  )}
+                </View>
+              ))}
 
-            {config.freeText && (
-              <View style={styles.question}>
-                <Text style={styles.questionLabel}>
-                  {config.freeText.label}
-                </Text>
-                <TextInput
-                  value={freeText}
-                  onChangeText={setFreeText}
-                  placeholder={config.freeText.placeholder}
-                  placeholderTextColor={Colors.brand.lightTeal}
-                  editable={!submit.isPending}
-                  maxLength={200}
-                  style={styles.freeTextField}
-                />
-              </View>
-            )}
+              {config.freeText && (
+                <View style={styles.question}>
+                  <Text style={styles.questionLabel}>
+                    {config.freeText.label}
+                  </Text>
+                  <TextInput
+                    value={freeText}
+                    onChangeText={setFreeText}
+                    placeholder={config.freeText.placeholder}
+                    placeholderTextColor={Colors.brand.lightTeal}
+                    editable={!submit.isPending}
+                    maxLength={200}
+                    style={styles.freeTextField}
+                  />
+                </View>
+              )}
 
-            <Pressable
-              onPress={handleSend}
-              disabled={submit.isPending}
-              accessibilityRole="button"
-              accessibilityLabel="Send feedback"
-              style={[styles.cta, submit.isPending && styles.ctaPending]}
-            >
-              <Text style={styles.ctaLabel}>SEND FEEDBACK</Text>
-            </Pressable>
-            <Text style={styles.footnote}>
-              Answer this quick check-in to continue.
-            </Text>
-          </View>
+              <Pressable
+                onPress={handleSend}
+                disabled={submit.isPending}
+                accessibilityRole="button"
+                accessibilityLabel="Send feedback"
+                style={[styles.cta, submit.isPending && styles.ctaPending]}
+              >
+                <Text style={styles.ctaLabel}>SEND FEEDBACK</Text>
+              </Pressable>
+              <Text style={styles.footnote}>
+                Answer this quick check-in to continue.
+              </Text>
+            </View>
+          </ScrollView>
         )}
-      </View>
+      </KeyboardAvoidingView>
       <Snackbar
         visible={errorVisible}
         onDismiss={() => setErrorVisible(false)}
@@ -220,6 +238,12 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.6)",
     justifyContent: "center",
     paddingHorizontal: 16,
+  },
+  // flexGrow 0 keeps the card centered when it fits; with the keyboard up the
+  // ScrollView hits the shrunken viewport and the CTA stays reachable by
+  // scrolling.
+  scroll: {
+    flexGrow: 0,
   },
   card: {
     backgroundColor: Colors.betaDark.cardBackground,
