@@ -1,0 +1,1 @@
+- The Select Contacts drawer now scrolls through the full contact list, and the Add / Add All buttons stay visible below it.
