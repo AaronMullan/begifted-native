@@ -1,8 +1,9 @@
 import { View, StyleSheet, ScrollView } from "react-native";
 import { Text, ActivityIndicator } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../lib/colors";
 import { Spacing } from "../../lib/spacing";
-import { BOTTOM_NAV_HEIGHT } from "../../lib/constants";
+import { NAV_CONTENT_HEIGHT } from "../../components/BottomNav";
 import { useAuth } from "../../hooks/use-auth";
 import { useRecipients } from "../../hooks/use-recipients";
 import { useOccasions } from "../../hooks/use-occasions";
@@ -15,19 +16,33 @@ import HomeEmptyState from "../../components/home/HomeEmptyState";
 import GradientBackground from "../../components/GradientBackground";
 
 /**
- * Flexible vertical gap for the anchored home column (DEV-358 direction from
- * Erik's "No Clip" comp, 5782:5544). Starts at its compressed floor and grows
- * with leftover screen height; the grow weights are the floor→design deltas,
- * so when the column fits its reference frame each gap lands near its design
- * value, taller screens keep expanding, and shorter screens sit at the floor —
- * where the surrounding ScrollView takes over.
+ * Flexible vertical gap for the anchored home column (Erik's "No Clip" comp,
+ * 5782:5544). Flexes in a band symmetric around the design value: compresses
+ * to the comp floor on short screens (below which the surrounding ScrollView
+ * takes over) and stretches by the same amount on tall ones. The cap keeps
+ * sparse content (e.g. no horizon section) from ballooning the gaps into
+ * voids — past it the column simply top-anchors.
  */
 function FlexGap({ min, design }: { min: number; design: number }) {
-  return <View style={{ flexBasis: min, flexGrow: design - min }} />;
+  return (
+    <View
+      style={{
+        flexBasis: min,
+        flexGrow: design - min,
+        maxHeight: 2 * design - min,
+      }}
+    />
+  );
 }
 
 export default function Dashboard() {
+  const insets = useSafeAreaInsets();
   const { user, loading: authLoading } = useAuth();
+  // The rendered nav bar is taller than its 55pt base — it absorbs the
+  // home-indicator inset (see BottomNav's container minHeight). Clear the real
+  // height so the bottom-anchored column lands exactly homeBottomInset above
+  // the nav, not behind it.
+  const navClearance = NAV_CONTENT_HEIGHT + Math.max(insets.bottom, 12);
   const { data: recipients = [], isLoading: loadingRecipients } =
     useRecipients();
   const { data: occasions = [], isLoading: loadingOccasions } = useOccasions();
@@ -95,7 +110,10 @@ export default function Dashboard() {
       <GradientBackground />
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: navClearance },
+        ]}
         showsVerticalScrollIndicator={false}
         contentInsetAdjustmentBehavior="never"
         bounces={false}
@@ -153,7 +171,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     backgroundColor: "transparent",
     alignItems: "center",
-    paddingBottom: BOTTOM_NAV_HEIGHT,
   },
   content: {
     maxWidth: 800,
