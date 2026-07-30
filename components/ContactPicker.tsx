@@ -6,7 +6,6 @@ import {
   BottomSheetFlatList,
   BottomSheetModal,
   BottomSheetTextInput,
-  BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NAV_CONTENT_HEIGHT } from "@/components/BottomNav";
@@ -112,7 +111,10 @@ export default function ContactPicker({
       handleIndicatorStyle={styles.sheetHandle}
       backgroundStyle={styles.sheetBackground}
     >
-      <BottomSheetView style={styles.container}>
+      {/* Deliberately a plain View: BottomSheetView re-registers the sheet's
+          scrollable as a non-scrolling VIEW after the nested BottomSheetFlatList
+          registers, which kills list scrolling. */}
+      <View style={styles.container}>
         <Text style={styles.title}>Select Contacts</Text>
         <BottomSheetTextInput
           value={searchQuery}
@@ -209,7 +211,7 @@ export default function ContactPicker({
             list — we don&apos;t import your entire address book.
           </Text>
         </View>
-      </BottomSheetView>
+      </View>
     </BottomSheetModal>
   );
 }
