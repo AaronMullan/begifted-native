@@ -1,8 +1,9 @@
 import { View, StyleSheet, ScrollView } from "react-native";
 import { Text, ActivityIndicator } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../lib/colors";
 import { Spacing } from "../../lib/spacing";
-import { BOTTOM_NAV_HEIGHT } from "../../lib/constants";
+import { NAV_CONTENT_HEIGHT } from "../../components/BottomNav";
 import { useAuth } from "../../hooks/use-auth";
 import { useRecipients } from "../../hooks/use-recipients";
 import { useOccasions } from "../../hooks/use-occasions";
@@ -14,8 +15,34 @@ import AddPeopleTile from "../../components/home/AddPeopleTile";
 import HomeEmptyState from "../../components/home/HomeEmptyState";
 import GradientBackground from "../../components/GradientBackground";
 
+/**
+ * Flexible vertical gap for the anchored home column (Erik's "No Clip" comp,
+ * 5782:5544). Flexes in a band symmetric around the design value: compresses
+ * to the comp floor on short screens (below which the surrounding ScrollView
+ * takes over) and stretches by the same amount on tall ones. The cap keeps
+ * sparse content (e.g. no horizon section) from ballooning the gaps into
+ * voids — past it the column simply top-anchors.
+ */
+function FlexGap({ min, design }: { min: number; design: number }) {
+  return (
+    <View
+      style={{
+        flexBasis: min,
+        flexGrow: design - min,
+        maxHeight: 2 * design - min,
+      }}
+    />
+  );
+}
+
 export default function Dashboard() {
+  const insets = useSafeAreaInsets();
   const { user, loading: authLoading } = useAuth();
+  // The rendered nav bar is taller than its 55pt base — it absorbs the
+  // home-indicator inset (see BottomNav's container minHeight). Clear the real
+  // height so the bottom-anchored column lands exactly homeBottomInset above
+  // the nav, not behind it.
+  const navClearance = NAV_CONTENT_HEIGHT + Math.max(insets.bottom, 12);
   const { data: recipients = [], isLoading: loadingRecipients } =
     useRecipients();
   const { data: occasions = [], isLoading: loadingOccasions } = useOccasions();
@@ -83,18 +110,43 @@ export default function Dashboard() {
       <GradientBackground />
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: navClearance },
+        ]}
         showsVerticalScrollIndicator={false}
         contentInsetAdjustmentBehavior="never"
         bounces={false}
       >
         <View style={styles.content}>
-          <View style={styles.heroBlock}>
-            {groups.hero && <HomeHeroCard occasion={groups.hero} />}
-            <AddPeopleTile />
-          </View>
-          <NextUpCarousel occasions={groups.nextUp} />
-          <OnTheHorizonGrid occasions={groups.horizon} />
+          {groups.hero && (
+            <>
+              <HomeHeroCard occasion={groups.hero} />
+              <FlexGap
+                min={Spacing.moduleStackGapMin}
+                design={Spacing.moduleStackGap}
+              />
+            </>
+          )}
+          <AddPeopleTile />
+          {groups.nextUp.length > 0 && (
+            <>
+              <FlexGap
+                min={Spacing.heroToSectionGapMin}
+                design={Spacing.heroToSectionGap}
+              />
+              <NextUpCarousel occasions={groups.nextUp} />
+            </>
+          )}
+          {groups.horizon.length > 0 && (
+            <>
+              <FlexGap
+                min={Spacing.sectionGapMin}
+                design={Spacing.sectionGap}
+              />
+              <OnTheHorizonGrid occasions={groups.horizon} />
+            </>
+          )}
           {!groups.hero && (
             <Text variant="bodyLarge" style={styles.emptyText}>
               No upcoming occasions yet.
@@ -119,24 +171,19 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     backgroundColor: "transparent",
     alignItems: "center",
-    paddingBottom: BOTTOM_NAV_HEIGHT,
   },
   content: {
     maxWidth: 800,
     width: "100%",
+    // Stretch to the viewport so the FlexGap spacers can distribute leftover
+    // height (top/bottom-anchored column); vertical gaps live in the spacers,
+    // not a column `gap`.
+    flexGrow: 1,
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: 32,
+    paddingBottom: Spacing.homeBottomInset,
     backgroundColor: "transparent",
     alignSelf: "stretch",
-    // Hero/add-people stack → "NEXT UP" head (frame 4302:1538: 31pt). The
-    // horizon section tops this up to the larger card-group → section-head
-    // gap itself.
-    gap: Spacing.heroToSectionGap,
-  },
-  heroBlock: {
-    // Hero module → "Add More People" row.
-    gap: Spacing.moduleStackGap,
   },
   loadingContainer: {
     flex: 1,
