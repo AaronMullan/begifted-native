@@ -23,7 +23,7 @@ type NavItem = {
  * that total (see the container style). Exported so overlays like the Past
  * Gifts drawer can pin flush above the nav: their bottom offset is this plus
  * the same safe-area inset. */
-export const NAV_CONTENT_HEIGHT = 55;
+export const NAV_CONTENT_HEIGHT = 35;
 
 const NAV_ITEMS: NavItem[] = [
   {
