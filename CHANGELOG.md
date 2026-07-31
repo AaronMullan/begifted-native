@@ -19,6 +19,12 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-07-31 — OTA
+
+### App
+
+- The bottom navigation bar is shorter. Its content band tightened from 55 to 35 points, with the icons centered across the bar's full height. (DEV-360)
+
 ## 2026-07-30 — OTA (sixth follow-up)
 
 ### App
