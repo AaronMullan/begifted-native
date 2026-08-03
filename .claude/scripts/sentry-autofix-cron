@@ -59,6 +59,23 @@ run_claude() {
   return "$status"
 }
 
+# API connections can drop mid-response, killing a pass within seconds; one
+# retry absorbs that. Exit 143 is the watchdog's SIGTERM — the pass wedged
+# rather than hit a transient error, so retrying would just double the wall
+# time. The passes dedup against Jira/Slack state, so a rerun after a
+# partial pass can't double-file.
+run_claude_retry() {
+  local status=0
+  run_claude "$@" || status=$?
+  if [ "$status" -ne 0 ] && [ "$status" -ne 143 ]; then
+    echo "exit $status — retrying once in 30s"
+    sleep 30
+    status=0
+    run_claude "$@" || status=$?
+  fi
+  return "$status"
+}
+
 # mkdir is atomic: a second run while one is in flight skips instead of
 # stacking git resets and claude sessions on the same clones.
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
@@ -76,7 +93,7 @@ fail() {
   if [ -z "${DM_SENT:-}" ]; then
     local dm_dir="$AUTOFIX_ROOT/begifted-native"
     [ -d "$dm_dir/.git" ] || dm_dir="$MAIN_CHECKOUT"
-    (cd "$dm_dir" && run_claude "The overnight triage run FAILED before completing: $1. The log is at $LOG. Send a Slack DM to myself — the authenticated Slack user — with one short line saying the overnight triage failed and why. Use slack_send_message to my own DM channel; a real send (not a draft) is explicitly authorized for this self-notification. Do not message anyone else or post in any channel." "$NOTIFY_TIMEOUT_SECS" "failure DM") || echo "failure DM failed (non-fatal)"
+    (cd "$dm_dir" && run_claude_retry "The overnight triage run FAILED before completing: $1. The log is at $LOG. Send a Slack DM to myself — the authenticated Slack user — with one short line saying the overnight triage failed and why. Use slack_send_message to my own DM channel; a real send (not a draft) is explicitly authorized for this self-notification. Do not message anyone else or post in any channel." "$NOTIFY_TIMEOUT_SECS" "failure DM") || echo "failure DM failed (non-fatal)"
   fi
   exit 1
 }
@@ -110,11 +127,11 @@ cd "$AUTOFIX_ROOT/begifted-native"
 # The passes are independent — a wedged pass must not starve the others —
 # so run all of them unconditionally and report failures together.
 AUTOFIX_STATUS=0
-run_claude "/sentry-autofix" "$AUTOFIX_TIMEOUT_SECS" || AUTOFIX_STATUS=$?
+run_claude_retry "/sentry-autofix" "$AUTOFIX_TIMEOUT_SECS" || AUTOFIX_STATUS=$?
 FEEDBACK_STATUS=0
-run_claude "/sentry-feedback-to-jira headless" "$FEEDBACK_TIMEOUT_SECS" || FEEDBACK_STATUS=$?
+run_claude_retry "/sentry-feedback-to-jira headless" "$FEEDBACK_TIMEOUT_SECS" || FEEDBACK_STATUS=$?
 SWEEP_STATUS=0
-run_claude "/slack-to-jira sweep #bugs" "$SWEEP_TIMEOUT_SECS" || SWEEP_STATUS=$?
+run_claude_retry "/slack-to-jira sweep #bugs" "$SWEEP_TIMEOUT_SECS" || SWEEP_STATUS=$?
 
 find "$LOG_DIR" -name '*.log' -mtime +30 -delete || true
 
@@ -134,7 +151,7 @@ fi
 # surfaces in Slack; the DM itself failing must not fail the run.
 OUTCOME="${FAILURES:-all passes completed}"
 NOTIFY_PROMPT="Read today's overnight triage log at $LOG. Then send a Slack DM to myself — the authenticated Slack user — summarizing the run: one short line per pass (sentry-autofix, sentry-feedback-to-jira, #bugs sweep) saying what was filed/opened/archived or that it was quiet, and lead with any failures. Overall outcome: $OUTCOME. Use slack_send_message to my own DM channel; a real send (not a draft) is explicitly authorized for this self-notification. Do not message anyone else or post in any channel."
-run_claude "$NOTIFY_PROMPT" "$NOTIFY_TIMEOUT_SECS" "slack DM notification" || echo "slack notify failed (non-fatal)"
+run_claude_retry "$NOTIFY_PROMPT" "$NOTIFY_TIMEOUT_SECS" "slack DM notification" || echo "slack notify failed (non-fatal)"
 # The summary DM above already led with any failures — don't double-DM from fail().
 DM_SENT=1
 
