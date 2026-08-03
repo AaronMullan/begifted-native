@@ -19,6 +19,12 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-08-03 — OTA
+
+### App
+
+- Home screen text no longer gets cut off vertically when your iPhone text size is set below or above the default — section headers like NEXT UP and card titles now render in full at every text size. (DEV-352)
+
 ## 2026-07-31 — OTA
 
 ### App
