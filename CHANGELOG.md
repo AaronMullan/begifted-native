@@ -19,6 +19,16 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-08-07 — OTA
+
+### App
+
+- The signup verification email now lands on a BeGifted page with a button that returns you to the app and finishes signing you in — previously the link could dead-end in the browser with the app never opening. (DEV-364)
+- Forgot your password? The sign-in screen now has a "Forgot password?" link that emails you a reset link; it returns you to the app to choose a new password. (DEV-362)
+- The "…" button on gift cards opens its menu again — it had stopped responding entirely — and the "…" controls on gift and occasion cards are easier to hit. (DEV-363)
+- Bug reports and crash details sent from the app reach the team again. For about a week they were lost before leaving the phone — if you reported something recently and heard nothing, send it once more. Live now via app update. (DEV-361)
+- New app icon: the teal BG monogram on warm parchment, and the home-screen label now reads "BeGifted" instead of "begifted". Requires the next TestFlight build. (DEV-359)
+
 ## 2026-08-03 — OTA
 
 ### App
