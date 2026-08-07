@@ -11,6 +11,9 @@ type AppDrawerProps = {
   sheetRef: React.RefObject<BottomSheetModal | null>;
   onDismiss: () => void;
   children: React.ReactNode;
+  /** Forwarded to the sheet; index >= 0 confirms it actually reached the
+   * screen (see GiftActionDrawerProvider's wedge recovery). */
+  onChange?: (index: number) => void;
   contentContainerStyle?: StyleProp<ViewStyle>;
   backgroundStyle?: StyleProp<ViewStyle>;
   handleIndicatorStyle?: StyleProp<ViewStyle>;
@@ -28,6 +31,7 @@ export const AppDrawer: React.FC<AppDrawerProps> = ({
   sheetRef,
   onDismiss,
   children,
+  onChange,
   contentContainerStyle,
   backgroundStyle,
   handleIndicatorStyle,
@@ -48,6 +52,7 @@ export const AppDrawer: React.FC<AppDrawerProps> = ({
       ref={sheetRef}
       enableDynamicSizing
       onDismiss={onDismiss}
+      onChange={onChange}
       // Total nav height = content height + home-indicator inset.
       bottomInset={NAV_CONTENT_HEIGHT + Math.max(insets.bottom, 0)}
       keyboardBehavior="interactive"

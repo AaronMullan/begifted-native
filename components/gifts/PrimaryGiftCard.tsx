@@ -318,5 +318,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "flex-end",
     alignItems: "center",
+    // The "..." button's hitSlop is clipped to this row's bounds, so the row
+    // itself must own a finger-sized height; without it the effective target
+    // is the bare 22pt glyph, which testers repeatedly failed to hit. The
+    // negative margins cancel the added height so the glyph keeps its Figma
+    // position and the card's overall height is unchanged.
+    minHeight: 44,
+    marginVertical: -11,
   },
 });

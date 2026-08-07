@@ -44,8 +44,26 @@ const GiftActionDrawerProvider: React.FC<ProviderProps> = ({ children }) => {
   // present() synchronously inside openDrawer races the setState, so the sheet
   // would render and (with enableDynamicSizing) measure against the previous
   // gift — showing the wrong gift's title and breaking subsequent opens.
+  //
+  // present() can also wedge: the modal registers as presented but never
+  // reaches the screen, and every later present() no-ops — the drawer then
+  // looks permanently dead. Same failure ContactPicker recovers from: confirm
+  // the sheet actually opened via onChange, and if it hasn't after a beat,
+  // force a dismiss and re-present.
+  const openedRef = useRef(false);
   useEffect(() => {
-    if (state) sheetRef.current?.present();
+    if (!state) return;
+    openedRef.current = false;
+    sheetRef.current?.present();
+    const retry = setInterval(() => {
+      if (openedRef.current) {
+        clearInterval(retry);
+        return;
+      }
+      sheetRef.current?.dismiss();
+      sheetRef.current?.present();
+    }, 800);
+    return () => clearInterval(retry);
   }, [state]);
 
   const value: GiftActionDrawerContextValue = {
@@ -65,6 +83,9 @@ const GiftActionDrawerProvider: React.FC<ProviderProps> = ({ children }) => {
           sheetRef={sheetRef}
           state={state}
           onDismiss={() => setState(null)}
+          onChange={(index) => {
+            if (index >= 0) openedRef.current = true;
+          }}
         />
       </BottomSheetModalProvider>
     </GiftActionDrawerContext.Provider>

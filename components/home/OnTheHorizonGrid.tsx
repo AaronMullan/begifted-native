@@ -154,6 +154,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    // The overflow dots' hitSlop is clipped to this row's bounds; a
+    // finger-sized row keeps the target usable. The negative margins cancel
+    // the added height so the 80pt card and its centered content don't move.
+    minHeight: 44,
+    marginVertical: -12,
   },
   dateRow: {
     flexDirection: "row",

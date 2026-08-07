@@ -19,6 +19,9 @@ type GiftActionDrawerProps = {
   sheetRef: React.RefObject<BottomSheetModal | null>;
   state: GiftActionDrawerState | null;
   onDismiss: () => void;
+  /** Sheet position reports, forwarded so the provider can verify the sheet
+   * actually opened (wedge recovery). */
+  onChange?: (index: number) => void;
 };
 
 type FollowUp = {
@@ -95,6 +98,7 @@ export default function GiftActionDrawer({
   sheetRef,
   state,
   onDismiss,
+  onChange,
 }: GiftActionDrawerProps) {
   // Once a base action with a follow-up is saved, the drawer stays open on its
   // follow-up screen; `activeRow` is the row whose follow-up is showing.
@@ -180,6 +184,7 @@ export default function GiftActionDrawer({
       <AppDrawer
         sheetRef={sheetRef}
         onDismiss={handleDismiss}
+        onChange={onChange}
         contentContainerStyle={styles.content}
       >
         {!activeRow ? (
