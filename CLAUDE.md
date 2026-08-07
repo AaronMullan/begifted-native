@@ -38,8 +38,10 @@ Builds & OTA (EAS):
 eas build --profile development --platform ios   # Dev client
 eas build --profile preview --platform ios       # TestFlight/store
 eas build --profile production --platform ios    # Production
-eas update --branch production                    # OTA update
+npm run update                                    # OTA update (preflight, then eas update)
 ```
+
+**Always publish OTAs via `npm run update`, not bare `eas update`.** The wrapper runs `scripts/assert-ota-env.mjs` first: `eas update` exports the bundle locally, inlining `EXPO_PUBLIC_*` from the shell/.env files — EAS-hosted secrets are not readable there. A missing `EXPO_PUBLIC_SENTRY_DSN` (it lives in untracked `.env.local`) ships a bundle with Sentry silently disabled: no crash reports, and feedback-widget submissions are discarded while showing the user a success message. If the DSN value ever changes, publish once with `--clear-cache` — Metro's transform cache re-inlines the stale value otherwise.
 
 ### User-facing copy voice
 
