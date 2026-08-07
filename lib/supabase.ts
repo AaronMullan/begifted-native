@@ -15,6 +15,15 @@ const supabaseAnonKey = "sb_publishable_zQoX48Kvts7b8XOViU-JXg_QNpr35lp";
 // web Site URL, stranding the user in the browser.
 export const EMAIL_CONFIRM_REDIRECT_URL = "begifted://auth/callback";
 
+// Where the password-reset email returns the user. An https URL for the same
+// reason as above: email clients won't follow the verify redirect into a
+// custom scheme, so the link lands on the hosted web app's reset page, which
+// hands the one-time ?code= into the native app via a tapped begifted:// link
+// (see app/auth/reset-password.tsx). Covered by the
+// https://begifted.vercel.app/* entry in the Supabase redirect allowlist.
+export const PASSWORD_RESET_REDIRECT_URL =
+  "https://begifted.vercel.app/auth/reset-password";
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     ...(Platform.OS !== "web" ? { storage: AsyncStorage } : {}),
