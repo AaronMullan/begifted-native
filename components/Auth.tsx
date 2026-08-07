@@ -8,7 +8,11 @@ import {
 } from "react-native";
 import { TextInput, Button, Text } from "react-native-paper";
 import { useForm, Controller } from "react-hook-form";
-import { supabase, EMAIL_CONFIRM_REDIRECT_URL } from "../lib/supabase";
+import {
+  supabase,
+  EMAIL_CONFIRM_REDIRECT_URL,
+  PASSWORD_RESET_REDIRECT_URL,
+} from "../lib/supabase";
 import { fetchAppConfig } from "../lib/api";
 import LegalAcceptanceCheckbox from "./LegalAcceptanceCheckbox";
 import { PrimaryCta } from "./PrimaryCta";
@@ -39,6 +43,8 @@ export default function Auth() {
     handleSubmit,
     formState: { errors },
     reset,
+    getValues,
+    trigger,
   } = useForm<FormData>({
     defaultValues: {
       email: "",
@@ -123,6 +129,26 @@ export default function Auth() {
       );
     }
 
+    setLoading(false);
+  }
+
+  async function handleForgotPassword() {
+    // Only the email field matters here; validating it inline surfaces the
+    // usual field error instead of a detached message.
+    const emailValid = await trigger("email");
+    if (!emailValid) return;
+
+    setLoading(true);
+    setMessage("");
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      getValues("email"),
+      { redirectTo: PASSWORD_RESET_REDIRECT_URL }
+    );
+    setMessage(
+      error
+        ? `Error: ${error.message}`
+        : "Check your inbox for a link to set a new password."
+    );
     setLoading(false);
   }
 
@@ -243,6 +269,21 @@ export default function Auth() {
                 {errors.password.message}
               </Text>
             )}
+            {/* Native only: the reset link finishes in the app via a
+                begifted:// handoff. The web client uses the implicit flow,
+                whose recovery tokens the web app doesn't parse. */}
+            {!isSignUp && Platform.OS !== "web" && (
+              <Button
+                mode="text"
+                compact
+                textColor={Colors.brand.darkTeal}
+                disabled={loading}
+                onPress={handleForgotPassword}
+                style={styles.forgotButton}
+              >
+                Forgot password?
+              </Button>
+            )}
           </View>
 
           {isSignUp && (
@@ -351,6 +392,10 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 8,
+  },
+  forgotButton: {
+    alignSelf: "flex-end",
+    marginTop: 4,
   },
   signOutButton: {
     marginTop: 20,
