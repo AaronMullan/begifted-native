@@ -9,11 +9,15 @@ import { createClient, processLock } from "@supabase/supabase-js";
 const supabaseUrl = "https://qgcyndtymegkobgfcpdh.supabase.co";
 const supabaseAnonKey = "sb_publishable_zQoX48Kvts7b8XOViU-JXg_QNpr35lp";
 
-// Where the verification email returns the user (handled by app/auth/callback.tsx).
-// Must be listed in the Supabase dashboard's auth Redirect URLs allowlist —
-// otherwise emailRedirectTo is silently ignored and the link falls back to the
-// web Site URL, stranding the user in the browser.
-export const EMAIL_CONFIRM_REDIRECT_URL = "begifted://auth/callback";
+// Where the verification email returns the user. Must be an https URL: email
+// clients refuse to follow the verify endpoint's redirect into a custom
+// scheme, so the link lands on the hosted web app's /auth/callback page,
+// which hands the one-time ?code= into the native app via a tapped
+// begifted:// link (see app/auth/callback.tsx). Must stay within the Supabase
+// dashboard's auth Redirect URLs allowlist (https://begifted.vercel.app/* is
+// listed) — an unlisted URL is silently replaced with the Site URL.
+export const EMAIL_CONFIRM_REDIRECT_URL =
+  "https://begifted.vercel.app/auth/callback";
 
 // Where the password-reset email returns the user. An https URL for the same
 // reason as above: email clients won't follow the verify redirect into a
