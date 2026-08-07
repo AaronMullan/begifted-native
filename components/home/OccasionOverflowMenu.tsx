@@ -43,7 +43,11 @@ export default function OccasionOverflowMenu({
       anchor={
         <Pressable
           onPress={() => setVisible(true)}
-          hitSlop={12}
+          // The dots are a 15x3 mark, so the touch target is all slop. 20pt
+          // of slop needs a host row at least ~44pt tall to be effective —
+          // hitSlop never extends past the parent's bounds (see the hosts'
+          // footer minHeight).
+          hitSlop={20}
           accessibilityRole="button"
           accessibilityLabel={`More options for ${name}`}
           style={styles.dots}

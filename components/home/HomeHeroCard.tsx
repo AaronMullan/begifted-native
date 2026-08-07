@@ -103,6 +103,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "space-between",
+    // The overflow dots' hitSlop is clipped to this row's bounds; a
+    // finger-sized row keeps the target usable. The extra height grows into
+    // the card's space-between slack, so nothing moves visually.
+    minHeight: 44,
   },
   cta: {
     flexDirection: "row",
