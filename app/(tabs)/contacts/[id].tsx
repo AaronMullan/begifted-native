@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Text, Button, Dialog, IconButton, Portal } from "react-native-paper";
+import { Text, Button, Dialog, Portal } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Redirect, useRouter, useLocalSearchParams } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../../lib/supabase";
 import { queryKeys } from "../../../lib/query-keys";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
+import GradientBackground from "../../../components/GradientBackground";
 import { Colors } from "../../../lib/colors";
 import { Typography } from "../../../lib/typography";
 import type { Recipient, GiftSuggestion } from "../../../types/recipient";
@@ -562,6 +563,7 @@ export default function RecipientEditPage() {
   if (recipientPending && !recipientError) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={styles.loadingPlaceholder}>
           <Text>Loading...</Text>
         </View>
@@ -572,6 +574,7 @@ export default function RecipientEditPage() {
   if (!recipient) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={styles.loadingPlaceholder}>
           <Text>Recipient not found</Text>
           <Button mode="text" onPress={() => router.back()}>
@@ -585,6 +588,7 @@ export default function RecipientEditPage() {
   const shortName = formatShortName(recipient.name);
   return (
     <View style={styles.container}>
+      <GradientBackground />
       {activeTab === "gifts" ? (
         <View style={styles.hero}>
           <Pressable
@@ -613,13 +617,20 @@ export default function RecipientEditPage() {
         </View>
       ) : (
         <View style={styles.detailsHeader}>
-          <IconButton
-            icon="chevron-left"
-            size={28}
+          <Pressable
             onPress={() => setActiveTab("gifts")}
-            iconColor={Colors.brand.darkTeal}
+            style={styles.detailsBackLink}
+            accessibilityRole="button"
             accessibilityLabel="Back to Gift Ideas"
-          />
+            hitSlop={8}
+          >
+            <MaterialIcons
+              name="chevron-left"
+              size={20}
+              color={Colors.brand.darkTeal}
+            />
+            <Text style={styles.detailsBackText}>Gift Ideas</Text>
+          </Pressable>
         </View>
       )}
 
@@ -655,6 +666,11 @@ export default function RecipientEditPage() {
             }}
             onOpenUpdateChat={() => updateDrawerRef.current?.present()}
             onAddOccasion={() => addMomentRef.current?.present()}
+            onViewGiftIdeas={(occasionId) => {
+              setOccasionFilter(occasionId);
+              setActiveTab("gifts");
+              scrollRef.current?.scrollTo({ y: 0, animated: false });
+            }}
             onDelete={() => setConfirmDeleteVisible(true)}
           />
         ) : (
@@ -765,8 +781,22 @@ const styles = StyleSheet.create({
   detailsHeader: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 4,
+    paddingHorizontal: 20,
     paddingBottom: 4,
+  },
+  detailsBackLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    padding: 4,
+    gap: 4,
+    // Cancel the chevron glyph's internal inset so it aligns with the
+    // gifts-tab back chevron at the 20pt gutter.
+    marginLeft: -4,
+  },
+  detailsBackText: {
+    ...Typography.h2,
+    color: Colors.brand.darkTeal,
   },
   content: {
     flex: 1,

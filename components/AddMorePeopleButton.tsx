@@ -6,21 +6,26 @@ import { Radii, Typography } from "../lib/typography";
 
 type AddMorePeopleButtonProps = {
   onPress: () => void;
+  label?: string;
+  accessibilityLabel?: string;
 };
 
 // Figma "Button / Add More People" (4588:4384): full-width mediumTeal bar,
-// darkTeal plus, white largeCta label + chevron.
+// darkTeal plus, white largeCta label + chevron. The same standardized bar
+// serves other add actions (e.g. "Add Moment") via the label prop.
 const AddMorePeopleButton: React.FC<AddMorePeopleButtonProps> = ({
   onPress,
+  label = "Add More People",
+  accessibilityLabel = "Add more people",
 }) => (
   <Pressable
     onPress={onPress}
     accessibilityRole="button"
-    accessibilityLabel="Add more people"
+    accessibilityLabel={accessibilityLabel}
     style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
   >
     <MaterialIcons name="add" size={16} color={Colors.brand.darkTeal} />
-    <Text style={styles.label}>Add More People</Text>
+    <Text style={styles.label}>{label}</Text>
     <MaterialIcons name="chevron-right" size={14} color={Colors.white} />
   </Pressable>
 );

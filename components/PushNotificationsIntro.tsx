@@ -27,7 +27,7 @@ export default function PushNotificationsIntro({
     >
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={styles.card} onPress={() => {}}>
-          <Text style={styles.title}>Turn On Notifications</Text>
+          <Text style={styles.title}>Turn on notifications</Text>
           <Text style={styles.body}>
             We&apos;ll ask for permission to send notifications so you hear
             about new gift ideas and get reminders before the occasions
@@ -44,7 +44,7 @@ export default function PushNotificationsIntro({
                 pressed && styles.secondaryPressed,
               ]}
             >
-              <Text style={styles.secondaryLabel}>Not Now</Text>
+              <Text style={styles.secondaryLabel}>Not now</Text>
             </Pressable>
           </View>
         </Pressable>
