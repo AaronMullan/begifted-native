@@ -31,7 +31,7 @@ export default function ContactsAccessIntro({
     >
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={styles.card} onPress={() => {}}>
-          <Text style={styles.title}>Access Your Contacts</Text>
+          <Text style={styles.title}>Access your contacts</Text>
           <View style={styles.buttonRow}>
             <PrimaryCta
               label="Continue"

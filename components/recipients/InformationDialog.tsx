@@ -50,6 +50,13 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
     cleanRelationship(recipient.relationship_type)
   );
   const [birthday, setBirthday] = useState(seedBirthday(recipient.birthday));
+  const [address, setAddress] = useState(recipient.address ?? "");
+  const [addressLine2, setAddressLine2] = useState(
+    recipient.address_line_2 ?? ""
+  );
+  const [city, setCity] = useState(recipient.city ?? "");
+  const [state, setState] = useState(recipient.state ?? "");
+  const [zipCode, setZipCode] = useState(recipient.zip_code ?? "");
   const [saving, setSaving] = useState(false);
 
   // Re-seed the editable fields only when the dialog opens — never while it's
@@ -66,6 +73,11 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
       setName(recipient.name);
       setRelationshipType(cleanRelationship(recipient.relationship_type));
       setBirthday(seedBirthday(recipient.birthday));
+      setAddress(recipient.address ?? "");
+      setAddressLine2(recipient.address_line_2 ?? "");
+      setCity(recipient.city ?? "");
+      setState(recipient.state ?? "");
+      setZipCode(recipient.zip_code ?? "");
     }
   }
 
@@ -88,6 +100,11 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
         trimmedBirthday === ""
           ? undefined
           : (normalizeBirthday(trimmedBirthday) ?? undefined),
+      address: address.trim() || undefined,
+      address_line_2: addressLine2.trim() || undefined,
+      city: city.trim() || undefined,
+      state: state.trim() || undefined,
+      zip_code: zipCode.trim() || undefined,
     });
     setSaving(false);
   };
@@ -150,6 +167,43 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
                   ? "Use a date like August 18, 1985, or August 18 if you don't know the year."
                   : "Year optional — add it so we can show their age accurately."}
               </HelperText>
+              <TextInput
+                mode="outlined"
+                label="Address"
+                defaultValue={address}
+                onChangeText={setAddress}
+                style={styles.input}
+              />
+              <TextInput
+                mode="outlined"
+                label="Address line 2"
+                defaultValue={addressLine2}
+                onChangeText={setAddressLine2}
+                style={styles.input}
+              />
+              <View style={styles.row}>
+                <TextInput
+                  mode="outlined"
+                  label="City"
+                  defaultValue={city}
+                  onChangeText={setCity}
+                  style={[styles.input, styles.budgetInput]}
+                />
+                <TextInput
+                  mode="outlined"
+                  label="State"
+                  defaultValue={state}
+                  onChangeText={setState}
+                  style={[styles.input, styles.budgetInput]}
+                />
+              </View>
+              <TextInput
+                mode="outlined"
+                label="ZIP code"
+                defaultValue={zipCode}
+                onChangeText={setZipCode}
+                style={styles.input}
+              />
             </View>
             <View style={styles.modalFooter}>
               <Button

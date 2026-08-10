@@ -12,6 +12,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { showSnackbar } from "../GlobalSnackbar";
+import { PrimaryCta } from "../PrimaryCta";
 import { uploadRecipientPhoto } from "../../lib/recipient-photo";
 import { Colors } from "../../lib/colors";
 import { Typography } from "../../lib/typography";
@@ -50,6 +51,8 @@ type AboutRecipientViewProps = {
   onRecipientUpdated: (updated: Recipient) => void;
   onOpenUpdateChat: () => void;
   onAddOccasion: () => void;
+  /** Jump to the Gift Ideas tab filtered to this moment. */
+  onViewGiftIdeas: (occasionId: string) => void;
   onDelete: () => void;
 };
 
@@ -68,6 +71,7 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
   onRecipientUpdated,
   onOpenUpdateChat,
   onAddOccasion,
+  onViewGiftIdeas,
   onDelete,
 }) => {
   const { data: occasions = [] } = useRecipientOccasions(recipient.id);
@@ -223,9 +227,9 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
         />
       </Pressable>
 
-      <Text style={styles.sectionLabel}>OCCASIONS</Text>
+      <Text style={styles.sectionLabel}>MOMENTS</Text>
       {occasions.length === 0 ? (
-        <Text style={styles.emptyText}>No occasions yet.</Text>
+        <Text style={styles.emptyText}>No moments yet.</Text>
       ) : (
         occasions.map((occasion) => (
           <View key={occasion.id} style={styles.card}>
@@ -241,6 +245,17 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
               <Text style={styles.occasionRecurrence}>
                 {occasion.is_annual ? "Repeats yearly" : "One-time"}
               </Text>
+              <Pressable
+                onPress={() => onViewGiftIdeas(occasion.id)}
+                style={styles.giftIdeasLink}
+                accessibilityRole="link"
+                accessibilityLabel={`Gift ideas for ${formatOccasionType(
+                  occasion.occasion_type
+                )}`}
+                hitSlop={6}
+              >
+                <Text style={styles.giftIdeasLinkText}>Gift Ideas ›</Text>
+              </Pressable>
             </View>
             <Menu
               visible={openMenuId === occasion.id}
@@ -281,18 +296,12 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
           </View>
         ))
       )}
-      <Pressable
+      <PrimaryCta
+        label="+ Add Moment"
         onPress={onAddOccasion}
-        style={styles.updateLink}
-        accessibilityRole="link"
-      >
-        <Text style={styles.updateLinkText}>Add an occasion</Text>
-        <MaterialIcons
-          name="chevron-right"
-          size={14}
-          color={Colors.brand.mediumTeal}
-        />
-      </Pressable>
+        fullWidth
+        style={styles.addMomentButton}
+      />
 
       <Text style={styles.sectionLabel}>GIFT PREFERENCES (OPTIONAL)</Text>
       <Pressable
@@ -330,9 +339,6 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
                 <Text style={styles.fieldValue}>{budgetMax}</Text>
               </View>
             </View>
-
-            <Text style={styles.fieldLabel}>Shipping Address</Text>
-            <Text style={styles.fieldValue}>{addressBlock || "—"}</Text>
           </View>
         </View>
       </Pressable>
@@ -362,6 +368,9 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
             <Text style={styles.fieldValue}>
               {formatBirthdayDisplay(recipient.birthday) || "—"}
             </Text>
+
+            <Text style={styles.fieldLabel}>Shipping Address</Text>
+            <Text style={styles.fieldValue}>{addressBlock || "—"}</Text>
           </View>
         </View>
       </Pressable>
@@ -384,7 +393,7 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
         >
           <Dialog.Title>
             <Text variant="bodySmall" style={styles.dialogLabel}>
-              Delete Occasion
+              Delete Moment
             </Text>
           </Dialog.Title>
           <Dialog.Content>
@@ -570,13 +579,27 @@ const styles = StyleSheet.create({
   },
   occasionDate: {
     ...Typography.subhead,
-    color: Colors.yellows.orange,
+    color: Colors.brand.gold,
     marginTop: 2,
   },
   occasionRecurrence: {
     ...Typography.eyebrow,
     color: Colors.blues.medium,
     marginTop: 2,
+  },
+  giftIdeasLink: {
+    alignSelf: "flex-start",
+    marginTop: 6,
+  },
+  giftIdeasLinkText: {
+    ...Typography.smallCta,
+    color: Colors.brand.gold,
+  },
+  addMomentButton: {
+    // Card above carries 10pt bottom margin; end with 10pt so the next
+    // section head's marginTop sums to the 32pt section gap.
+    marginTop: 2,
+    marginBottom: 10,
   },
   overflowButton: {
     padding: 4,
