@@ -19,6 +19,15 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-08-10 — OTA
+
+### App
+
+- The person details screen now matches the comps: beige gradient background (both tabs — it was flat gray), a serif Gift Ideas back link, and a Moments card where each moment shows its date in gold next to a Gift Ideas link that jumps straight to that moment's gift ideas (DEV-366).
+- Adding a moment is the same full-width teal bar used on the People screen (DEV-366).
+- Shipping address moved from Gift Preferences to Information, where you edit the rest of a person's details (DEV-366).
+- The contacts and notifications permission prompts use sentence case (DEV-366).
+
 ## 2026-08-07 — OTA
 
 ### App
