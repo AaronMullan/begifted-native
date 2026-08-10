@@ -12,10 +12,10 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { showSnackbar } from "../GlobalSnackbar";
-import { PrimaryCta } from "../PrimaryCta";
+import AddMorePeopleButton from "../AddMorePeopleButton";
 import { uploadRecipientPhoto } from "../../lib/recipient-photo";
 import { Colors } from "../../lib/colors";
-import { Typography } from "../../lib/typography";
+import { Radii, Typography } from "../../lib/typography";
 import { supabase } from "../../lib/supabase";
 import type { Occasion } from "../../lib/api";
 import type { Recipient } from "../../types/recipient";
@@ -222,88 +222,101 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
         <Text style={styles.updateLinkText}>Update what BeGifted knows</Text>
         <MaterialIcons
           name="chevron-right"
-          size={14}
+          size={12}
           color={Colors.brand.mediumTeal}
         />
       </Pressable>
 
-      <Text style={styles.sectionLabel}>MOMENTS</Text>
+      <Text style={[styles.sectionLabel, styles.sectionLabelInset]}>
+        MOMENTS
+      </Text>
       {occasions.length === 0 ? (
         <Text style={styles.emptyText}>No moments yet.</Text>
       ) : (
-        occasions.map((occasion) => (
-          <View key={occasion.id} style={styles.card}>
-            <View style={styles.occasionTextBlock}>
-              <Text style={styles.occasionTitle}>
-                {formatOccasionType(occasion.occasion_type)}
-              </Text>
-              <Text style={styles.occasionDate}>
-                {occasion.date
-                  ? formatOccasionDate(occasion.date)
-                  : "No date set"}
-              </Text>
-              <Text style={styles.occasionRecurrence}>
-                {occasion.is_annual ? "Repeats yearly" : "One-time"}
-              </Text>
-              <Pressable
-                onPress={() => onViewGiftIdeas(occasion.id)}
-                style={styles.giftIdeasLink}
-                accessibilityRole="link"
-                accessibilityLabel={`Gift ideas for ${formatOccasionType(
-                  occasion.occasion_type
-                )}`}
-                hitSlop={6}
-              >
-                <Text style={styles.giftIdeasLinkText}>Gift Ideas ›</Text>
-              </Pressable>
-            </View>
-            <Menu
-              visible={openMenuId === occasion.id}
-              onDismiss={() => setOpenMenuId(null)}
-              anchor={
-                <Pressable
-                  onPress={() => setOpenMenuId(occasion.id)}
-                  hitSlop={12}
-                  accessibilityRole="button"
-                  accessibilityLabel="Occasion options"
-                  style={styles.overflowButton}
+        <View style={styles.momentsCard}>
+          {occasions.map((occasion, index) => (
+            <React.Fragment key={occasion.id}>
+              {index > 0 && <View style={styles.hairline} />}
+              <View style={styles.momentRow}>
+                <View style={styles.occasionTextBlock}>
+                  <Text style={styles.occasionTitle}>
+                    {formatOccasionType(occasion.occasion_type)}
+                  </Text>
+                  <View style={styles.momentMetaRow}>
+                    <Text style={styles.occasionDate}>
+                      {occasion.date
+                        ? formatOccasionDate(occasion.date)
+                        : "No date set"}
+                    </Text>
+                    <Pressable
+                      onPress={() => onViewGiftIdeas(occasion.id)}
+                      style={styles.giftIdeasLink}
+                      accessibilityRole="link"
+                      accessibilityLabel={`Gift ideas for ${formatOccasionType(
+                        occasion.occasion_type
+                      )}`}
+                      hitSlop={8}
+                    >
+                      <Text style={styles.giftIdeasLinkText}>Gift Ideas</Text>
+                      <MaterialIcons
+                        name="chevron-right"
+                        size={14}
+                        color={Colors.brand.gold}
+                      />
+                    </Pressable>
+                  </View>
+                </View>
+                <Menu
+                  visible={openMenuId === occasion.id}
+                  onDismiss={() => setOpenMenuId(null)}
+                  anchor={
+                    <Pressable
+                      onPress={() => setOpenMenuId(occasion.id)}
+                      hitSlop={12}
+                      accessibilityRole="button"
+                      accessibilityLabel="Moment options"
+                    >
+                      <MaterialIcons
+                        name="more-horiz"
+                        size={18}
+                        color={Colors.brand.mediumTeal}
+                      />
+                    </Pressable>
+                  }
                 >
-                  <MaterialIcons
-                    name="more-horiz"
-                    size={22}
-                    color={Colors.blues.dark}
+                  <Menu.Item
+                    onPress={() => {
+                      setOpenMenuId(null);
+                      setEditingOccasion(occasion);
+                      manageMomentRef.current?.present();
+                    }}
+                    title="Edit moment"
                   />
-                </Pressable>
-              }
-            >
-              <Menu.Item
-                onPress={() => {
-                  setOpenMenuId(null);
-                  setEditingOccasion(occasion);
-                  manageMomentRef.current?.present();
-                }}
-                title="Edit moment"
-              />
-              <Menu.Item
-                onPress={() => {
-                  setOpenMenuId(null);
-                  setOccasionToDelete(occasion);
-                }}
-                title="Delete"
-                titleStyle={styles.deleteMenuItem}
-              />
-            </Menu>
-          </View>
-        ))
+                  <Menu.Item
+                    onPress={() => {
+                      setOpenMenuId(null);
+                      setOccasionToDelete(occasion);
+                    }}
+                    title="Delete"
+                    titleStyle={styles.deleteMenuItem}
+                  />
+                </Menu>
+              </View>
+            </React.Fragment>
+          ))}
+        </View>
       )}
-      <PrimaryCta
-        label="+ Add Moment"
-        onPress={onAddOccasion}
-        fullWidth
-        style={styles.addMomentButton}
-      />
+      <View style={styles.addMomentButton}>
+        <AddMorePeopleButton
+          label="Add Moment"
+          accessibilityLabel="Add moment"
+          onPress={onAddOccasion}
+        />
+      </View>
 
-      <Text style={styles.sectionLabel}>GIFT PREFERENCES (OPTIONAL)</Text>
+      <Text style={[styles.sectionLabel, styles.sectionLabelInset]}>
+        GIFT PREFERENCES (OPTIONAL)
+      </Text>
       <Pressable
         onPress={() => setPreferencesOpen(true)}
         accessibilityRole="button"
@@ -311,39 +324,45 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
       >
         <View style={styles.card}>
           <View style={styles.cardInner}>
-            <Text style={styles.fieldLabel}>Emotional Tone</Text>
-            {recipient.emotional_tone_preference?.trim() ? (
-              <Text style={styles.fieldValue}>
-                {recipient.emotional_tone_preference.trim()}
+            <View>
+              <Text style={styles.fieldLabel}>
+                Emotional Tone (How you like to show up)
               </Text>
-            ) : defaultEmotionalTone?.trim() ? (
-              <>
+              {recipient.emotional_tone_preference?.trim() ? (
                 <Text style={styles.fieldValue}>
-                  {defaultEmotionalTone.trim()}
+                  {recipient.emotional_tone_preference.trim()}
                 </Text>
-                <Text style={styles.fieldHint}>
-                  Default from your profile · tap to change
-                </Text>
-              </>
-            ) : (
-              <Text style={styles.fieldValue}>—</Text>
-            )}
+              ) : defaultEmotionalTone?.trim() ? (
+                <>
+                  <Text style={styles.fieldValue}>
+                    {defaultEmotionalTone.trim()}
+                  </Text>
+                  <Text style={styles.fieldHint}>
+                    Default from your profile · tap to change
+                  </Text>
+                </>
+              ) : (
+                <Text style={styles.fieldValue}>—</Text>
+              )}
+            </View>
 
-            <View style={styles.row}>
-              <View style={styles.col}>
-                <Text style={styles.fieldLabel}>Min $ Budget</Text>
-                <Text style={styles.fieldValue}>{budgetMin}</Text>
+            <View style={styles.budgetRow}>
+              <View>
+                <Text style={styles.fieldLabel}>Min. Budget</Text>
+                <Text style={styles.fieldValueEmphasis}>{budgetMin}</Text>
               </View>
-              <View style={styles.col}>
-                <Text style={styles.fieldLabel}>Max $ Budget</Text>
-                <Text style={styles.fieldValue}>{budgetMax}</Text>
+              <View>
+                <Text style={styles.fieldLabel}>Max. Budget</Text>
+                <Text style={styles.fieldValueEmphasis}>{budgetMax}</Text>
               </View>
             </View>
           </View>
         </View>
       </Pressable>
 
-      <Text style={styles.sectionLabel}>INFORMATION</Text>
+      <Text style={[styles.sectionLabel, styles.sectionLabelInset]}>
+        INFORMATION
+      </Text>
       <Pressable
         onPress={() => setInformationOpen(true)}
         accessibilityRole="button"
@@ -351,12 +370,12 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
       >
         <View style={styles.card}>
           <View style={styles.cardInner}>
-            <View style={styles.row}>
-              <View style={styles.col}>
+            <View style={styles.splitRow}>
+              <View style={styles.splitRowLead}>
                 <Text style={styles.fieldLabel}>Name</Text>
-                <Text style={styles.fieldValue}>{recipient.name}</Text>
+                <Text style={styles.fieldValueEmphasis}>{recipient.name}</Text>
               </View>
-              <View style={styles.col}>
+              <View style={styles.splitRowTrail}>
                 <Text style={styles.fieldLabel}>Relationship</Text>
                 <Text style={styles.fieldValue}>
                   {cleanRelationship(recipient.relationship_type) || "—"}
@@ -364,13 +383,18 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
               </View>
             </View>
 
-            <Text style={styles.fieldLabel}>Birthday</Text>
-            <Text style={styles.fieldValue}>
-              {formatBirthdayDisplay(recipient.birthday) || "—"}
-            </Text>
-
-            <Text style={styles.fieldLabel}>Shipping Address</Text>
-            <Text style={styles.fieldValue}>{addressBlock || "—"}</Text>
+            <View style={styles.splitRow}>
+              <View style={styles.splitRowLead}>
+                <Text style={styles.fieldLabel}>Shipping Address</Text>
+                <Text style={styles.fieldValue}>{addressBlock || "—"}</Text>
+              </View>
+              <View style={styles.splitRowTrail}>
+                <Text style={styles.fieldLabel}>Birthday</Text>
+                <Text style={styles.fieldValue}>
+                  {formatBirthdayDisplay(recipient.birthday) || "—"}
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
       </Pressable>
@@ -519,16 +543,20 @@ const styles = StyleSheet.create({
   sectionLabel: {
     ...Typography.sectionHeadAc,
     letterSpacing: 0.8,
-    color: Colors.blues.dark,
+    color: Colors.brand.mediumTeal,
     // Modules above carry a 10pt bottom margin; together they make the 32pt
     // section gap.
     marginTop: Spacing.formSectionGap - 10,
     marginBottom: Spacing.sectionHeadToModule,
   },
+  // Card-section heads sit at the 32pt head inset; the insight eyebrow stays
+  // on the 20pt gutter (frame 5651:15202).
+  sectionLabelInset: {
+    marginLeft: Spacing.sectionHeadInset - Spacing.screenGutter,
+  },
   narrative: {
-    ...Typography.subhead,
-    lineHeight: 22,
-    color: Colors.darks.black,
+    ...Typography.copyblock,
+    color: Colors.brand.darkTeal,
     // Match the cards' 10pt bottom margin so every section gap sums to 32.
     marginBottom: 10,
   },
@@ -560,49 +588,63 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: Colors.white,
-    borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    borderRadius: Radii.md,
+    padding: 16,
     marginBottom: 10,
     flexDirection: "row",
     alignItems: "center",
   },
   cardInner: {
     flex: 1,
+    gap: 16,
+  },
+  momentsCard: {
+    backgroundColor: Colors.white,
+    borderRadius: Radii.md,
+    padding: 16,
+    marginBottom: 10,
+  },
+  momentRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+  },
+  hairline: {
+    height: 1,
+    backgroundColor: Colors.brand.lightTeal,
   },
   occasionTextBlock: {
     flex: 1,
   },
   occasionTitle: {
-    ...Typography.h3,
-    color: Colors.blues.dark,
+    ...Typography.subhead,
+    color: Colors.brand.darkTeal,
+  },
+  momentMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 4,
   },
   occasionDate: {
-    ...Typography.subhead,
+    ...Typography.fieldLabel,
     color: Colors.brand.gold,
-    marginTop: 2,
-  },
-  occasionRecurrence: {
-    ...Typography.eyebrow,
-    color: Colors.blues.medium,
-    marginTop: 2,
   },
   giftIdeasLink: {
-    alignSelf: "flex-start",
-    marginTop: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
   },
   giftIdeasLinkText: {
-    ...Typography.smallCta,
+    ...Typography.fieldLabel,
     color: Colors.brand.gold,
   },
   addMomentButton: {
-    // Card above carries 10pt bottom margin; end with 10pt so the next
-    // section head's marginTop sums to the 32pt section gap.
-    marginTop: 2,
+    // Moments card bottom (10) + this top = the frame's 26pt card→button gap;
+    // end with 10pt so the next section head's marginTop sums to 32.
+    marginTop: 16,
     marginBottom: 10,
-  },
-  overflowButton: {
-    padding: 4,
   },
   deleteMenuItem: {
     color: Colors.brand.rose,
@@ -610,13 +652,15 @@ const styles = StyleSheet.create({
   fieldLabel: {
     ...Typography.fieldLabel,
     color: Colors.blues.medium,
-    marginTop: 10,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   fieldValue: {
+    ...Typography.copyblock,
+    color: Colors.brand.darkTeal,
+  },
+  fieldValueEmphasis: {
     ...Typography.subhead,
-    lineHeight: 22,
-    color: Colors.blues.dark,
+    color: Colors.brand.darkTeal,
   },
   fieldHint: {
     ...Typography.eyebrow,
@@ -624,11 +668,20 @@ const styles = StyleSheet.create({
     color: Colors.blues.medium,
     marginTop: 2,
   },
-  row: {
+  budgetRow: {
     flexDirection: "row",
-    gap: 16,
+    gap: 24,
   },
-  col: {
+  // Two-column field rows: trailing column starts at x=230 within the card
+  // content (frame 5651:15232), aligned across rows.
+  splitRow: {
+    flexDirection: "row",
+  },
+  splitRowLead: {
+    width: 230,
+    paddingRight: 16,
+  },
+  splitRowTrail: {
     flex: 1,
   },
   emptyText: {
