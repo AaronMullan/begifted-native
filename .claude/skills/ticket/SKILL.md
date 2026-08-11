@@ -1,6 +1,6 @@
 ---
 name: ticket
-description: Take a Jira ticket end-to-end — read it, branch, implement the narrowest fix, typecheck/lint, open a PR, resolve any merge conflicts with main, transition to Done, and draft a Slack summary. Use when the user hands off one or more Jira ticket IDs (e.g. "/ticket DEV-110" or "/ticket DEV-110 DEV-112").
+description: Take a Jira ticket end-to-end — read it, branch, implement the narrowest fix, typecheck/lint, open a PR, resolve any merge conflicts with main, wait for CI and merge, transition to Done, and draft a Slack summary. Use when the user hands off one or more Jira ticket IDs (e.g. "/ticket DEV-110" or "/ticket DEV-110 DEV-112").
 ---
 
 # Implement Jira Ticket
@@ -52,21 +52,30 @@ Take a Jira ticket from investigation to merged-ready PR. The ticket ID is passe
    git fetch origin main && git merge origin/main --no-edit
    ```
 
-   If it merges cleanly, you're done. If it conflicts, resolve by hand, re-run `npm run typecheck && npm run lint` (the incoming `main` changes may touch files you edited), commit the merge (`git commit --no-edit`), `git push`, then confirm the PR is conflict-free. (Changelog fragments are one file per ticket, so they never conflict — a conflict means real code overlap.)
+   If it merges cleanly, proceed. If it conflicts, resolve by hand, re-run `npm run typecheck && npm run lint` (the incoming `main` changes may touch files you edited), commit the merge (`git commit --no-edit`), `git push`, then confirm the PR is conflict-free. (Changelog fragments are one file per ticket, so they never conflict — a conflict means real code overlap.)
 
-9. **Transition the ticket to Done** with `jira_transition_issue` (do NOT pass a `comment` argument — it requires ADF, not plain text; add any note separately via `jira_add_comment`).
+9. **Wait for CI, then merge the PR.** Nobody else reviews or merges these PRs — an open PR is stranded work that everyone believes shipped (this exact failure left four Done-ticket PRs unmerged for weeks):
 
-10. **Draft a Slack summary.** Write a clipboard-ready, plain-English summary of what changed and why for the team. **Don't mention the PR or code review** — nobody reviews the PRs. Do say whether it's **live now** (backend changes deploy on merge) or **waiting for the next build/OTA** (app changes), and tell testers **what to look for** once it's live. Offer to send it via the Slack MCP as a _draft_ (always `slack_send_message_draft`, never send) — in the original report thread when the ticket links one — or print it for the user to copy.
+   ```bash
+   gh pr checks <pr#> --watch --interval 15
+   gh pr merge <pr#> --merge
+   ```
+
+   If CI fails, fix it before moving on. If the merge is blocked for a reason you can't resolve, transition the ticket to **Ready for Deploy** (not Done) and surface the blocker in the final report.
+
+10. **Transition the ticket to Done** — only after confirming the merge landed (`gh pr view <pr#> --json state` shows `MERGED`). Use `jira_transition_issue` (do NOT pass a `comment` argument — it requires ADF, not plain text; add any note separately via `jira_add_comment`). Done means merged: never transition to Done on the strength of an open PR.
+
+11. **Draft a Slack summary.** Write a clipboard-ready, plain-English summary of what changed and why for the team. **Don't mention the PR or code review** — nobody reviews the PRs. Do say whether it's **live now** (backend changes deploy on merge) or **waiting for the next build/OTA** (app changes), and tell testers **what to look for** once it's live. Offer to send it via the Slack MCP as a _draft_ (always `slack_send_message_draft`, never send) — in the original report thread when the ticket links one — or print it for the user to copy.
 
 ## Autonomous mode
 
-Run the whole pipeline end-to-end without stopping between steps. The done-state is: a PR open in each affected repo (with the changelog updated) that is **conflict-free against `main`**, the Jira ticket transitioned to Done, and a Slack summary drafted. **Pause only when:**
+Run the whole pipeline end-to-end without stopping between steps. The done-state is: the PR in each affected repo (with the changelog updated) **merged to `main` with CI green**, the Jira ticket transitioned to Done, and a Slack summary drafted. A PR left open is not a done-state — it is the failure mode this pipeline exists to prevent. **Pause only when:**
 
 - Scope is ambiguous or the ticket is underspecified (ask a focused question, don't guess).
 - A change is destructive or hard to reverse (schema drop, prod data mutation, edge-function deploy) — surface it for sign-off first.
 - Typecheck/lint can't be made clean with a narrow fix (report what's blocking instead of expanding scope).
 
-Otherwise keep going. Do not stop at "wrote the code" — commit, PR, transition, and draft the summary.
+Otherwise keep going. Do not stop at "wrote the code" — commit, PR, merge, transition, and draft the summary.
 
 ## Multiple tickets
 
@@ -75,8 +84,8 @@ If given several ticket IDs (space- or comma-separated), run them **sequentially
 - **Triage first.** Fetch all tickets before implementing any. Flag duplicates, already-Done tickets, and overlap (two tickets wanting the same change → propose one PR). Order: dependencies first, then the order given. Print the planned order with a one-line scope note per ticket before starting.
 - **Run each ticket in autonomous mode**, starting from a clean, freshly pulled `main`.
 - **Skip, don't stall.** If a ticket hits a pause condition (ambiguous scope, destructive change), record the blocking question, leave that ticket untouched, and move to the next — never guess to keep the batch moving. Surface all deferred questions in the final report.
-- **One combined Slack draft** at the end instead of per-ticket drafts, plus a status table: ticket → PR link / skipped+why → live-on-merge vs next-build.
-- Changelog fragments keep sibling PRs from conflicting on release notes, but batch PRs can still conflict on shared code files as they merge. If the user starts merging, offer to re-run step 8 on the remaining open branches after each merge.
+- **One combined Slack draft** at the end instead of per-ticket drafts, plus a status table: ticket → merged PR link / skipped+why → live-on-merge vs next-build.
+- Because each ticket merges before the next begins, every run branches off a `main` that already contains the previous tickets' changes — batch PRs can no longer conflict with each other.
 
 ## Notes
 
