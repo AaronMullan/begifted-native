@@ -46,33 +46,7 @@ import {
   normalizeBirthday,
 } from "../../../utils/birthday";
 import { sanitizeExtractedOccasionDate } from "../../../utils/occasion-dates";
-
-// Apply an interests delta from an update conversation to the current list:
-// keep what's there, drop the removed ones, append the newly-liked ones —
-// case-insensitive, order-preserving. Reconciling (rather than overwriting with
-// the extractor's freshly-mentioned interests) is what prevents an update like
-// "she likes jewelry" from wiping everything else we know (DEV-119).
-function reconcileInterests(
-  current: string[],
-  added: string[],
-  removed: string[]
-): string[] {
-  const norm = (s: string) => s.trim().toLowerCase();
-  const removedSet = new Set(
-    removed.filter((i): i is string => typeof i === "string").map(norm)
-  );
-  const seen = new Set<string>();
-  const merged: string[] = [];
-  for (const raw of [...current, ...added]) {
-    if (typeof raw !== "string") continue;
-    const value = raw.trim();
-    const key = norm(value);
-    if (!value || removedSet.has(key) || seen.has(key)) continue;
-    seen.add(key);
-    merged.push(value);
-  }
-  return merged;
-}
+import { reconcileInterests } from "../../../utils/interests";
 
 // Insert occasions captured by the general "Update what we know" chat into the
 // occasions table, de-duplicating against the recipient's existing occasions by

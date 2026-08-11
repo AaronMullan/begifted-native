@@ -293,8 +293,18 @@ serve(async (req) => {
             );
           } else if (conversationType === "update_field") {
             // Free-form "Update what we know" flow: user can mention any field.
-            // Run full extraction so whatever they said gets picked up.
-            result = await extractFullRecipient(messages, aiOverride);
+            // Run full extraction so whatever they said gets picked up. Stored
+            // interests ride along so a negation ("he does not fish") can be
+            // mapped to the stored wording it should remove.
+            result = await extractFullRecipient(
+              messages,
+              aiOverride,
+              Array.isArray(existingData?.interests)
+                ? existingData.interests.filter(
+                    (i: unknown): i is string => typeof i === "string"
+                  )
+                : undefined
+            );
           } else {
             // Extract based on conversation type
             const fieldMap = {

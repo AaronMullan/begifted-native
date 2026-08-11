@@ -97,10 +97,13 @@ function normalizeBudgetRange(data: {
     `Budget collapsed to single value ${anchor}; expanded to ${data.gift_budget_min}-${data.gift_budget_max}`
   );
 }
-// Full recipient extraction (for adding new recipients)
+// Full recipient extraction (for adding new recipients, and for the free-form
+// "Update what we know" flow — which passes existingInterests so removals can
+// be matched against the stored wording).
 export async function extractFullRecipient(
   messages: Message[],
-  aiOverride?: AIOverride
+  aiOverride?: AIOverride,
+  existingInterests?: string[]
 ): Promise<ExtractionResponse> {
   const aiConfig = await resolveAIConfig(aiOverride);
   console.log("=== FULL RECIPIENT EXTRACTION ===");
@@ -161,16 +164,31 @@ Return ONLY valid JSON (no markdown formatting):
     criticalFields.relationship_type
   );
   // PASS 2: Full extraction with critical fields as context
+  // The stored-interests block exists so removals land: the client deletes an
+  // interest only when interests_removed contains the stored string, so a
+  // removal phrased in the user's own words ("he doesn't fish") must be mapped
+  // to the stored wording ("fly fishing occasionally") here, where both are
+  // visible.
+  const storedInterestsBlock =
+    existingInterests && existingInterests.length > 0
+      ? `
+CURRENTLY STORED INTERESTS for this recipient:
+${JSON.stringify(existingInterests)}
+
+REMOVALS: when the conversation says the recipient is NOT interested in, no longer into, dislikes, or wants to drop a topic, "interests_removed" must include EVERY stored interest above that relates to that topic, copied VERBATIM from the stored list — e.g. if the user says "he does not fish" and the stored list contains "fly fishing occasionally" and "gifts related to fish", interests_removed must include both exact strings. Also include the user's own wording for the dropped topic.
+`
+      : "";
   const fullExtractionPrompt = `COMPREHENSIVE RECIPIENT DATA EXTRACTION
 
 Based on this conversation, extract all available information about the gift recipient.
 
-PRIORITY FIELDS (use these if found): 
+PRIORITY FIELDS (use these if found):
 - Name: "${criticalFields.name}"
 - Relationship: "${criticalFields.relationship_type}"
 
 Conversation:
 ${conversationHistory}
+${storedInterestsBlock}
 
 Look for birthday mentions like: "her birthday is...", "she was born on...", "he turns [age] on..."
 Look for holidays, occasions, and special events like: "we celebrate Christmas", "Mother's Day", "anniversaries", "Valentine's Day", "New Year's", "Spring Equinox", "Autumn Equinox", "our anniversary", or any other special dates mentioned.
@@ -185,8 +203,8 @@ Extract and return valid JSON (no markdown formatting) with this exact structure
   },
   "birthday": "Birthday or null. Use YYYY-MM-DD only when the year is explicit; use MM-DD when only month and day are known. Never use placeholder years like 0000.",
   "age": "The recipient's CURRENT age in whole years as a number, but ONLY when the user explicitly states it (e.g. \"he's 47\", \"she just turned 30\", \"my 8 year old\"). Do NOT infer age from relationship, life stage, grade, graduation, hobbies, or occasion. null if not explicitly stated.",
-  "interests": ["array of interests the recipient LIKES / is into, as expressed in this conversation"],
-  "interests_removed": ["array of interests the user says the recipient is NO LONGER into, dislikes, or wants removed (e.g. \"not into pokemon anymore\", \"she's over hiking\"). Use the same wording the user/recipient used for the dropped interest. Empty array if no interest was dropped — never put a newly-liked interest here."],
+  "interests": ["array of interests the recipient LIKES / is into, as expressed in this conversation. NEVER include a topic the conversation negates ('does not', 'not interested in', 'no interest in', 'hates') — a statement like 'he is not interested in fish' must never produce a fishing-related interest here."],
+  "interests_removed": ["array of interests the user says the recipient is NO LONGER into, dislikes, or wants removed (e.g. \"not into pokemon anymore\", \"she's over hiking\"). When a CURRENTLY STORED INTERESTS list is provided above, every stored entry matching the dropped topic must appear here verbatim; also include the user's own wording. Empty array if no interest was dropped — never put a newly-liked interest here."],
   "gift_budget_min": "Lower end of the gift budget range as a number, or null. RULES: (a) explicit range like \"$50-$75\" -> 50. (b) single anchor like \"around $150\"/\"$150\" -> about 0.8x the anchor (e.g. 120). (c) upper-limit only like \"under $150\"/\"up to $250\" -> null. (d) vague answer like \"flexible\"/\"nothing too expensive\" -> null. NEVER set min equal to max for a single anchor; a single amount must become a range.",
   "gift_budget_max": "Upper end of the gift budget range as a number, or null. RULES: (a) explicit range like \"$50-$75\" -> 75. (b) single anchor like \"around $150\"/\"$150\" -> about 1.25x the anchor (e.g. 190). (c) upper-limit only like \"under $150\"/\"up to $250\" -> that number (150 / 250). (d) vague answer -> null.",
   "emotional_tone_preference": "string or null",
