@@ -1,6 +1,7 @@
 import { View, ScrollView, StyleSheet, Pressable } from "react-native";
-import { Text, IconButton } from "react-native-paper";
+import { Text, IconButton, Snackbar } from "react-native-paper";
 import { useState, useEffect } from "react";
+import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -20,11 +21,15 @@ import type { Session } from "@supabase/supabase-js";
 type LegalRowProps = {
   label: string;
   url: string;
+  onOpenFailed: (url: string) => void;
 };
 
-const LegalRow: React.FC<LegalRowProps> = ({ label, url }) => (
+const LegalRow: React.FC<LegalRowProps> = ({ label, url, onOpenFailed }) => (
   <Pressable
-    onPress={() => void openLink(url)}
+    onPress={async () => {
+      const opened = await openLink(url);
+      if (!opened) onOpenFailed(url);
+    }}
     accessibilityRole="link"
     accessibilityLabel={label}
     style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
@@ -41,7 +46,14 @@ export default function LegalSettings() {
   const headerSpacerHeight = Math.max(HEADER_HEIGHT, insets.top + 60);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const router = useRouter();
+
+  const handleCopyLink = async () => {
+    if (!failedUrl) return;
+    await Clipboard.setStringAsync(failedUrl);
+    setFailedUrl(null);
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -96,11 +108,20 @@ export default function LegalSettings() {
 
           <View style={styles.list}>
             <Divider />
-            <LegalRow label="Terms of Service" url={TERMS_OF_SERVICE_URL} />
-            <LegalRow label="Privacy Policy" url={PRIVACY_POLICY_URL} />
+            <LegalRow
+              label="Terms of Service"
+              url={TERMS_OF_SERVICE_URL}
+              onOpenFailed={setFailedUrl}
+            />
+            <LegalRow
+              label="Privacy Policy"
+              url={PRIVACY_POLICY_URL}
+              onOpenFailed={setFailedUrl}
+            />
             <LegalRow
               label="App License (EULA)"
               url={APPLE_STANDARD_EULA_URL}
+              onOpenFailed={setFailedUrl}
             />
             <Divider />
           </View>
@@ -111,6 +132,15 @@ export default function LegalSettings() {
           </Text>
         </View>
       </ScrollView>
+
+      <Snackbar
+        visible={failedUrl !== null}
+        onDismiss={() => setFailedUrl(null)}
+        duration={6000}
+        action={{ label: "Copy link", onPress: handleCopyLink }}
+      >
+        We couldn&apos;t open this document. Try copying the link instead.
+      </Snackbar>
     </View>
   );
 }
