@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
+import { logProductEvent, logProductEvents } from "../lib/api";
 import { queryKeys } from "../lib/query-keys";
 import { makeMutationHandlers } from "../lib/mutation-handlers";
 import type { Recipient } from "../types/recipient";
@@ -83,6 +84,12 @@ export function useCreateRecipient() {
         queryKeys.recipients(variables.user_id),
         queryKeys.occasions(variables.user_id),
       ],
+      afterSuccess: (recipient, variables) => {
+        logProductEvent(variables.user_id, "person_added", {
+          recipient_id: recipient.id,
+          source: "create",
+        });
+      },
     }),
   });
 }
@@ -121,6 +128,19 @@ export function useBulkCreateRecipients() {
               queryKeys.occasions(rows[0].user_id),
             ]
           : [],
+      afterSuccess: (recipients, rows) => {
+        if (rows.length === 0) return;
+        logProductEvents(
+          rows[0].user_id,
+          recipients.map((recipient) => ({
+            name: "person_added" as const,
+            properties: {
+              recipient_id: recipient.id,
+              source: "contact_import",
+            },
+          }))
+        );
+      },
     }),
   });
 }

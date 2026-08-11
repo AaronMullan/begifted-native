@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Alert, View } from "react-native";
+import { logProductEvent, logProductEvents } from "../lib/api";
 import { queryKeys } from "../lib/query-keys";
 import { supabase } from "../lib/supabase";
 import { uploadRecipientPhoto } from "../lib/recipient-photo";
@@ -273,6 +274,11 @@ export function useAddRecipientFlow(
 
       if (recipientError) throw recipientError;
 
+      logProductEvent(userId, "person_added", {
+        recipient_id: recipient.id,
+        source: "add_flow",
+      });
+
       // Create occasions if provided (includes birthday if it was extracted as an occasion)
       if (data.occasions && data.occasions.length > 0 && recipient) {
         const occasionsData = data.occasions.map((occasion) => ({
@@ -289,6 +295,18 @@ export function useAddRecipientFlow(
         if (occasionsError) {
           console.error("Error creating occasions:", occasionsError);
           // Don't fail the whole operation if occasions fail
+        } else {
+          logProductEvents(
+            userId,
+            occasionsData.map((occasion) => ({
+              name: "occasion_added" as const,
+              properties: {
+                recipient_id: recipient.id,
+                occasion_type: occasion.occasion_type,
+                source: "add_flow",
+              },
+            }))
+          );
         }
       }
 
