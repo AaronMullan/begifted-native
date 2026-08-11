@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import * as Clipboard from "expo-clipboard";
 import {
   Image,
   StyleSheet,
@@ -8,12 +7,13 @@ import {
   type ImageLoadEventData,
   type NativeSyntheticEvent,
 } from "react-native";
-import { Button, Snackbar, Text } from "react-native-paper";
+import { Button, Text } from "react-native-paper";
 import { Colors } from "../../lib/colors";
 import { Typography, FontFamily, Radii } from "../../lib/typography";
-import { openLink } from "../../lib/open-link";
 import { logGiftImageOutcome } from "../../lib/gift-image-telemetry";
 import { useLogOutboundClick } from "../../hooks/use-log-outbound-click";
+import { useOpenLinkWithFallback } from "../../hooks/use-open-link-with-fallback";
+import LinkFallbackSnackbar from "../LinkFallbackSnackbar";
 import type { GiftSuggestion } from "../../types/recipient";
 import GiftCardActionButton from "./GiftCardActionButton";
 import GiftCardExpandButton from "./GiftCardExpandButton";
@@ -70,7 +70,8 @@ export default function PrimaryGiftCard({
   const [imageState, setImageState] = useState<
     "pending" | "visible" | "hidden"
   >(suggestion.image_url ? "pending" : "hidden");
-  const [openFailed, setOpenFailed] = useState(false);
+  const { open, failedUrl, copyFailedLink, dismiss } =
+    useOpenLinkWithFallback();
   const logClick = useLogOutboundClick();
 
   const cardRef = useRef<View>(null);
@@ -148,14 +149,7 @@ export default function PrimaryGiftCard({
       occasionId: occasionId ?? suggestion.occasion_id ?? null,
       productUrl: suggestion.link,
     });
-    const opened = await openLink(suggestion.link);
-    if (!opened) setOpenFailed(true);
-  };
-
-  const handleCopyLink = async () => {
-    if (!suggestion.link) return;
-    await Clipboard.setStringAsync(suggestion.link);
-    setOpenFailed(false);
+    await open(suggestion.link);
   };
 
   return (
@@ -221,14 +215,12 @@ export default function PrimaryGiftCard({
         </View>
       </View>
 
-      <Snackbar
-        visible={openFailed}
-        onDismiss={() => setOpenFailed(false)}
-        duration={6000}
-        action={{ label: "Copy link", onPress: handleCopyLink }}
-      >
-        We couldn&apos;t open this product page. Try copying the link instead.
-      </Snackbar>
+      <LinkFallbackSnackbar
+        visible={failedUrl !== null}
+        message="We couldn't open this product page. Try copying the link instead."
+        onCopyLink={copyFailedLink}
+        onDismiss={dismiss}
+      />
     </>
   );
 }

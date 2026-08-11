@@ -2,8 +2,9 @@ import { StyleSheet, View } from "react-native";
 import { Checkbox, Text } from "react-native-paper";
 import { Colors } from "../lib/colors";
 import { Typography } from "../lib/typography";
-import { openLink } from "../lib/open-link";
+import { useOpenLinkWithFallback } from "../hooks/use-open-link-with-fallback";
 import { TERMS_OF_SERVICE_URL, PRIVACY_POLICY_URL } from "../lib/legal";
+import LinkFallbackSnackbar from "./LinkFallbackSnackbar";
 
 type LegalAcceptanceCheckboxProps = {
   accepted: boolean;
@@ -21,37 +22,51 @@ const LegalAcceptanceCheckbox: React.FC<LegalAcceptanceCheckboxProps> = ({
   accepted,
   onToggle,
   disabled = false,
-}) => (
-  <View style={styles.row}>
-    <Checkbox.Android
-      status={accepted ? "checked" : "unchecked"}
-      onPress={() => onToggle(!accepted)}
-      disabled={disabled}
-      color={Colors.brand.darkTeal}
-      uncheckedColor={Colors.brand.mediumTeal}
-      accessibilityLabel="I agree to the Terms of Service and acknowledge the Privacy Policy"
-    />
-    <Text style={styles.label}>
-      I agree to the{" "}
-      <Text
-        style={styles.link}
-        onPress={() => void openLink(TERMS_OF_SERVICE_URL)}
-        accessibilityRole="link"
-      >
-        Terms of Service
-      </Text>{" "}
-      and acknowledge the{" "}
-      <Text
-        style={styles.link}
-        onPress={() => void openLink(PRIVACY_POLICY_URL)}
-        accessibilityRole="link"
-      >
-        Privacy Policy
-      </Text>
-      .
-    </Text>
-  </View>
-);
+}) => {
+  const { open, failedUrl, copyFailedLink, dismiss } =
+    useOpenLinkWithFallback();
+
+  return (
+    <>
+      <View style={styles.row}>
+        <Checkbox.Android
+          status={accepted ? "checked" : "unchecked"}
+          onPress={() => onToggle(!accepted)}
+          disabled={disabled}
+          color={Colors.brand.darkTeal}
+          uncheckedColor={Colors.brand.mediumTeal}
+          accessibilityLabel="I agree to the Terms of Service and acknowledge the Privacy Policy"
+        />
+        <Text style={styles.label}>
+          I agree to the{" "}
+          <Text
+            style={styles.link}
+            onPress={() => void open(TERMS_OF_SERVICE_URL)}
+            accessibilityRole="link"
+          >
+            Terms of Service
+          </Text>{" "}
+          and acknowledge the{" "}
+          <Text
+            style={styles.link}
+            onPress={() => void open(PRIVACY_POLICY_URL)}
+            accessibilityRole="link"
+          >
+            Privacy Policy
+          </Text>
+          .
+        </Text>
+      </View>
+
+      <LinkFallbackSnackbar
+        visible={failedUrl !== null}
+        message="We couldn't open this document. Try copying the link instead."
+        onCopyLink={copyFailedLink}
+        onDismiss={dismiss}
+      />
+    </>
+  );
+};
 
 export default LegalAcceptanceCheckbox;
 

@@ -9,7 +9,8 @@ import { HEADER_HEIGHT, BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { Colors } from "../../../lib/colors";
 import { Typography } from "../../../lib/typography";
 import { Spacing } from "../../../lib/spacing";
-import { openLink } from "../../../lib/open-link";
+import { useOpenLinkWithFallback } from "../../../hooks/use-open-link-with-fallback";
+import LinkFallbackSnackbar from "../../../components/LinkFallbackSnackbar";
 import {
   TERMS_OF_SERVICE_URL,
   PRIVACY_POLICY_URL,
@@ -20,11 +21,12 @@ import type { Session } from "@supabase/supabase-js";
 type LegalRowProps = {
   label: string;
   url: string;
+  onOpen: (url: string) => Promise<boolean>;
 };
 
-const LegalRow: React.FC<LegalRowProps> = ({ label, url }) => (
+const LegalRow: React.FC<LegalRowProps> = ({ label, url, onOpen }) => (
   <Pressable
-    onPress={() => void openLink(url)}
+    onPress={() => void onOpen(url)}
     accessibilityRole="link"
     accessibilityLabel={label}
     style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
@@ -41,6 +43,8 @@ export default function LegalSettings() {
   const headerSpacerHeight = Math.max(HEADER_HEIGHT, insets.top + 60);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const { open, failedUrl, copyFailedLink, dismiss } =
+    useOpenLinkWithFallback();
   const router = useRouter();
 
   useEffect(() => {
@@ -96,11 +100,20 @@ export default function LegalSettings() {
 
           <View style={styles.list}>
             <Divider />
-            <LegalRow label="Terms of Service" url={TERMS_OF_SERVICE_URL} />
-            <LegalRow label="Privacy Policy" url={PRIVACY_POLICY_URL} />
+            <LegalRow
+              label="Terms of Service"
+              url={TERMS_OF_SERVICE_URL}
+              onOpen={open}
+            />
+            <LegalRow
+              label="Privacy Policy"
+              url={PRIVACY_POLICY_URL}
+              onOpen={open}
+            />
             <LegalRow
               label="App License (EULA)"
               url={APPLE_STANDARD_EULA_URL}
+              onOpen={open}
             />
             <Divider />
           </View>
@@ -111,6 +124,13 @@ export default function LegalSettings() {
           </Text>
         </View>
       </ScrollView>
+
+      <LinkFallbackSnackbar
+        visible={failedUrl !== null}
+        message="We couldn't open this document. Try copying the link instead."
+        onCopyLink={copyFailedLink}
+        onDismiss={dismiss}
+      />
     </View>
   );
 }
