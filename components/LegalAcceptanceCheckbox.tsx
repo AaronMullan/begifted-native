@@ -1,11 +1,10 @@
-import { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { Checkbox, Snackbar, Text } from "react-native-paper";
-import * as Clipboard from "expo-clipboard";
+import { Checkbox, Text } from "react-native-paper";
 import { Colors } from "../lib/colors";
 import { Typography } from "../lib/typography";
-import { openLink } from "../lib/open-link";
+import { useOpenLinkWithFallback } from "../hooks/use-open-link-with-fallback";
 import { TERMS_OF_SERVICE_URL, PRIVACY_POLICY_URL } from "../lib/legal";
+import LinkFallbackSnackbar from "./LinkFallbackSnackbar";
 
 type LegalAcceptanceCheckboxProps = {
   accepted: boolean;
@@ -24,18 +23,8 @@ const LegalAcceptanceCheckbox: React.FC<LegalAcceptanceCheckboxProps> = ({
   onToggle,
   disabled = false,
 }) => {
-  const [failedUrl, setFailedUrl] = useState<string | null>(null);
-
-  const openDocument = async (url: string) => {
-    const opened = await openLink(url);
-    if (!opened) setFailedUrl(url);
-  };
-
-  const handleCopyLink = async () => {
-    if (!failedUrl) return;
-    await Clipboard.setStringAsync(failedUrl);
-    setFailedUrl(null);
-  };
+  const { open, failedUrl, copyFailedLink, dismiss } =
+    useOpenLinkWithFallback();
 
   return (
     <>
@@ -52,7 +41,7 @@ const LegalAcceptanceCheckbox: React.FC<LegalAcceptanceCheckboxProps> = ({
           I agree to the{" "}
           <Text
             style={styles.link}
-            onPress={() => void openDocument(TERMS_OF_SERVICE_URL)}
+            onPress={() => void open(TERMS_OF_SERVICE_URL)}
             accessibilityRole="link"
           >
             Terms of Service
@@ -60,7 +49,7 @@ const LegalAcceptanceCheckbox: React.FC<LegalAcceptanceCheckboxProps> = ({
           and acknowledge the{" "}
           <Text
             style={styles.link}
-            onPress={() => void openDocument(PRIVACY_POLICY_URL)}
+            onPress={() => void open(PRIVACY_POLICY_URL)}
             accessibilityRole="link"
           >
             Privacy Policy
@@ -69,14 +58,12 @@ const LegalAcceptanceCheckbox: React.FC<LegalAcceptanceCheckboxProps> = ({
         </Text>
       </View>
 
-      <Snackbar
+      <LinkFallbackSnackbar
         visible={failedUrl !== null}
-        onDismiss={() => setFailedUrl(null)}
-        duration={6000}
-        action={{ label: "Copy link", onPress: handleCopyLink }}
-      >
-        We couldn&apos;t open this document. Try copying the link instead.
-      </Snackbar>
+        message="We couldn't open this document. Try copying the link instead."
+        onCopyLink={copyFailedLink}
+        onDismiss={dismiss}
+      />
     </>
   );
 };

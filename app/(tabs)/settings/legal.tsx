@@ -1,7 +1,6 @@
 import { View, ScrollView, StyleSheet, Pressable } from "react-native";
-import { Text, IconButton, Snackbar } from "react-native-paper";
+import { Text, IconButton } from "react-native-paper";
 import { useState, useEffect } from "react";
-import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -10,7 +9,8 @@ import { HEADER_HEIGHT, BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import { Colors } from "../../../lib/colors";
 import { Typography } from "../../../lib/typography";
 import { Spacing } from "../../../lib/spacing";
-import { openLink } from "../../../lib/open-link";
+import { useOpenLinkWithFallback } from "../../../hooks/use-open-link-with-fallback";
+import LinkFallbackSnackbar from "../../../components/LinkFallbackSnackbar";
 import {
   TERMS_OF_SERVICE_URL,
   PRIVACY_POLICY_URL,
@@ -21,15 +21,12 @@ import type { Session } from "@supabase/supabase-js";
 type LegalRowProps = {
   label: string;
   url: string;
-  onOpenFailed: (url: string) => void;
+  onOpen: (url: string) => Promise<boolean>;
 };
 
-const LegalRow: React.FC<LegalRowProps> = ({ label, url, onOpenFailed }) => (
+const LegalRow: React.FC<LegalRowProps> = ({ label, url, onOpen }) => (
   <Pressable
-    onPress={async () => {
-      const opened = await openLink(url);
-      if (!opened) onOpenFailed(url);
-    }}
+    onPress={() => void onOpen(url)}
     accessibilityRole="link"
     accessibilityLabel={label}
     style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
@@ -46,14 +43,9 @@ export default function LegalSettings() {
   const headerSpacerHeight = Math.max(HEADER_HEIGHT, insets.top + 60);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const { open, failedUrl, copyFailedLink, dismiss } =
+    useOpenLinkWithFallback();
   const router = useRouter();
-
-  const handleCopyLink = async () => {
-    if (!failedUrl) return;
-    await Clipboard.setStringAsync(failedUrl);
-    setFailedUrl(null);
-  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -111,17 +103,17 @@ export default function LegalSettings() {
             <LegalRow
               label="Terms of Service"
               url={TERMS_OF_SERVICE_URL}
-              onOpenFailed={setFailedUrl}
+              onOpen={open}
             />
             <LegalRow
               label="Privacy Policy"
               url={PRIVACY_POLICY_URL}
-              onOpenFailed={setFailedUrl}
+              onOpen={open}
             />
             <LegalRow
               label="App License (EULA)"
               url={APPLE_STANDARD_EULA_URL}
-              onOpenFailed={setFailedUrl}
+              onOpen={open}
             />
             <Divider />
           </View>
@@ -133,14 +125,12 @@ export default function LegalSettings() {
         </View>
       </ScrollView>
 
-      <Snackbar
+      <LinkFallbackSnackbar
         visible={failedUrl !== null}
-        onDismiss={() => setFailedUrl(null)}
-        duration={6000}
-        action={{ label: "Copy link", onPress: handleCopyLink }}
-      >
-        We couldn&apos;t open this document. Try copying the link instead.
-      </Snackbar>
+        message="We couldn't open this document. Try copying the link instead."
+        onCopyLink={copyFailedLink}
+        onDismiss={dismiss}
+      />
     </View>
   );
 }
