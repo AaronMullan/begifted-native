@@ -27,6 +27,24 @@ notify() {
   /usr/bin/osascript -e "display notification \"$1\" with title \"Sentry autofix\"" || true
 }
 
+# The Slack DMs below go through claude -p, so an expired Claude OAuth session
+# kills the alert together with the passes it should be reporting on — the run
+# fails silently. A bare incoming webhook needs no Claude session; it is the
+# alert path of last resort, called only when a Slack DM could not be sent.
+# The URL lives in the human checkout's untracked .env.local (SLACK_WEBHOOK_URL).
+SLACK_WEBHOOK_URL=$(grep '^SLACK_WEBHOOK_URL=' "$MAIN_CHECKOUT/.env.local" 2>/dev/null | cut -d= -f2- | tr -d '"') || true
+
+webhook_alert() {
+  if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+    echo "no SLACK_WEBHOOK_URL in .env.local — skipping webhook alert"
+    return 0
+  fi
+  local text=${1//\\/\\\\}
+  text=${text//\"/\\\"}
+  retry 3 curl -sS -m 10 -o /dev/null -X POST -H 'Content-type: application/json' \
+    --data "{\"text\":\"$text\"}" "$SLACK_WEBHOOK_URL" || echo "webhook alert failed (non-fatal)"
+}
+
 # launchd fires runs missed during sleep immediately on wake, when Wi-Fi may
 # not be back yet — retry network operations instead of dying on the first
 # refused connection.
@@ -93,7 +111,10 @@ fail() {
   if [ -z "${DM_SENT:-}" ]; then
     local dm_dir="$AUTOFIX_ROOT/begifted-native"
     [ -d "$dm_dir/.git" ] || dm_dir="$MAIN_CHECKOUT"
-    (cd "$dm_dir" && run_claude_retry "The overnight triage run FAILED before completing: $1. The log is at $LOG. Send a Slack DM to myself — the authenticated Slack user — with one short line saying the overnight triage failed and why. Use slack_send_message to my own DM channel; a real send (not a draft) is explicitly authorized for this self-notification. Do not message anyone else or post in any channel." "$NOTIFY_TIMEOUT_SECS" "failure DM") || echo "failure DM failed (non-fatal)"
+    (cd "$dm_dir" && run_claude_retry "The overnight triage run FAILED before completing: $1. The log is at $LOG. Send a Slack DM to myself — the authenticated Slack user — with one short line saying the overnight triage failed and why. Use slack_send_message to my own DM channel; a real send (not a draft) is explicitly authorized for this self-notification. Do not message anyone else or post in any channel." "$NOTIFY_TIMEOUT_SECS" "failure DM") || {
+      echo "failure DM failed (non-fatal)"
+      webhook_alert "Overnight triage FAILED: $1 — and the Claude-sent failure DM also failed (likely expired OAuth session; run claude /login). Log: $(basename "$LOG")"
+    }
   fi
   exit 1
 }
@@ -151,7 +172,10 @@ fi
 # surfaces in Slack; the DM itself failing must not fail the run.
 OUTCOME="${FAILURES:-all passes completed}"
 NOTIFY_PROMPT="Read today's overnight triage log at $LOG. Then send a Slack DM to myself — the authenticated Slack user — summarizing the run: one short line per pass (sentry-autofix, sentry-feedback-to-jira, #bugs sweep) saying what was filed/opened/archived or that it was quiet, and lead with any failures. Overall outcome: $OUTCOME. Use slack_send_message to my own DM channel; a real send (not a draft) is explicitly authorized for this self-notification. Do not message anyone else or post in any channel."
-run_claude_retry "$NOTIFY_PROMPT" "$NOTIFY_TIMEOUT_SECS" "slack DM notification" || echo "slack notify failed (non-fatal)"
+run_claude_retry "$NOTIFY_PROMPT" "$NOTIFY_TIMEOUT_SECS" "slack DM notification" || {
+  echo "slack notify failed (non-fatal)"
+  webhook_alert "Overnight triage: summary DM could not be sent (likely expired OAuth session; run claude /login). Outcome: $OUTCOME. Log: $(basename "$LOG")"
+}
 # The summary DM above already led with any failures — don't double-DM from fail().
 DM_SENT=1
 
