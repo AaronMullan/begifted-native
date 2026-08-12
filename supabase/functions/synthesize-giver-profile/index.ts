@@ -4,6 +4,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAI, getApiKey, CONVERSATION_MODEL } from "../_shared/ai-client.ts";
 import { internalErrorResponse } from "../_shared/error-response.ts";
+import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { requireUser } from "../_shared/require-user.ts";
 
 const corsHeaders = {
@@ -18,7 +19,7 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 // @ts-ignore - Deno environment variables are resolved at runtime
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
-const SYSTEM_PROMPT = `You are a gift-giver profile synthesizer for a personalized gift app.
+const SYSTEM_PROMPT_BODY = `You are a gift-giver profile synthesizer for a personalized gift app.
 
 Given information about a user — their self-description, their stated gifting style, and patterns from their gift history — write a 3-5 sentence natural-language profile that captures who they are as a gift-giver.
 
@@ -27,12 +28,30 @@ Draw from ALL available signals:
 - Gifting style text: their stated approach, priorities, and budget philosophy
 - Gift history patterns: types of gifts they've given and price points
 
-Write in third person, referring to the user by their first name from the Name field (e.g. "Aaron is..."). Never write "this user" or "the user". Be specific and concrete — avoid generic labels like "thoughtful" unless the source text uses them. Preserve the user's distinctive voice and values.
+Write in third person, referring to the user by their first name from the Name field (e.g. "Aaron is..."). Never write "this user" or "the user". Be specific and concrete — avoid generic labels like "thoughtful" unless the source text uses them. Preserve the user's distinctive voice and values.`;
 
-Return ONLY valid JSON:
+const JSON_INSTRUCTION = `Return ONLY valid JSON:
 {
   "synthesized_giver_profile": "3-5 sentence profile here"
 }`;
+
+const VOICE_HEADING = "BEGIFTED VOICE PRINCIPLE:";
+
+/**
+ * The brand voice is maintained in the active add_recipient_conversation
+ * prompt (edited through the admin playground), so it must be referenced at
+ * runtime — copying it into this file would let the two drift apart. The
+ * section runs from the VOICE_HEADING line to the next all-caps heading;
+ * returns "" if the heading is gone so the caller can synthesize without it.
+ */
+function extractVoicePrinciple(promptText: string): string {
+  const start = promptText.indexOf(VOICE_HEADING);
+  if (start === -1) return "";
+  const rest = promptText.slice(start + VOICE_HEADING.length);
+  const nextHeading = rest.match(/^[A-Z][A-Z0-9 &'/-]*:\s*$/m);
+  const body = nextHeading ? rest.slice(0, nextHeading.index) : rest;
+  return body.trim();
+}
 
 type SynthesizeGiverProfileRequest = { userId?: unknown };
 
@@ -88,18 +107,25 @@ serve(async (req) => {
     // Fetch user preferences and the user's name. Without the name the model
     // has nothing to satisfy the prompt's third-person instruction and falls
     // back to "This user is..." in the About You card.
-    const [{ data: prefs }, { data: profileRow }] = await Promise.all([
-      supabase
-        .from("user_preferences")
-        .select("user_description, user_summary")
-        .eq("user_id", userId)
-        .maybeSingle(),
-      supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", userId)
-        .maybeSingle(),
-    ]);
+    const [{ data: prefs }, { data: profileRow }, conversationPrompt] =
+      await Promise.all([
+        supabase
+          .from("user_preferences")
+          .select("user_description, user_summary")
+          .eq("user_id", userId)
+          .maybeSingle(),
+        supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", userId)
+          .maybeSingle(),
+        loadActivePrompt(
+          supabaseUrl,
+          supabaseServiceKey,
+          "add_recipient_conversation",
+          ""
+        ),
+      ]);
 
     const fullName =
       typeof profileRow?.full_name === "string"
@@ -200,12 +226,32 @@ serve(async (req) => {
       .filter(Boolean)
       .join("\n\n");
 
+    const voicePrinciple = extractVoicePrinciple(conversationPrompt);
+    if (!voicePrinciple) {
+      console.warn(
+        `synthesize-giver-profile: "${VOICE_HEADING}" section not found in the active add_recipient_conversation prompt; synthesizing without voice guidance`
+      );
+    }
+
+    // The voice section is written for conversational UI, so frame it as
+    // writing guidance and let the model discard the chat-only parts.
+    const systemPrompt = [
+      SYSTEM_PROMPT_BODY,
+      voicePrinciple &&
+        `Write the profile in this voice. The guidance below is shared with BeGifted's conversational UI — apply the writing principles; ignore anything that only applies to chat interactions:
+
+${voicePrinciple}`,
+      JSON_INSTRUCTION,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
     const provider = "openai" as const;
     const model = CONVERSATION_MODEL;
     const apiKey = getApiKey(provider);
     const rawContent = await callAI(provider, model, apiKey, {
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt },
         { role: "user", content: userContext },
       ],
       maxTokens: 1024,
