@@ -106,7 +106,7 @@
     "prettier"
   ],
   "lint-staged": {
-    "{app,components}/**/*.{ts,tsx}": "eslint --fix",
+    "{app,components,hooks,lib,types,utils,supabase/functions}/**/*.{ts,tsx}": "eslint --fix",
     "*.{ts,tsx,js,jsx,json}": "prettier --write"
   },
   "private": true
