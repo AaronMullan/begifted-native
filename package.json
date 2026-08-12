@@ -9,7 +9,7 @@
     "android": "EXPO_OFFLINE=0 expo start --android",
     "ios": "EXPO_OFFLINE=0 expo start --ios",
     "web": "EXPO_OFFLINE=0 expo start --web",
-    "lint": "expo lint",
+    "lint": "expo lint app components hooks lib types utils supabase/functions",
     "format": "npx prettier --write \"**/*.{ts,tsx,js,jsx,json}\"",
     "format:check": "npx prettier --check \"**/*.{ts,tsx,js,jsx,json}\"",
     "export": "expo export --platform web",
