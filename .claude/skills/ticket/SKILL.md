@@ -1,6 +1,6 @@
 ---
 name: ticket
-description: Take a Jira ticket end-to-end — read it, branch, implement the narrowest fix, typecheck/lint, open a PR, resolve any merge conflicts with main, wait for CI and merge, transition to Done, and draft a Slack summary. Use when the user hands off one or more Jira ticket IDs (e.g. "/ticket DEV-110" or "/ticket DEV-110 DEV-112").
+description: Take a Jira ticket end-to-end — read it, branch, implement the narrowest fix, typecheck/lint, open a PR, resolve any merge conflicts with main, run a fresh-context code review, wait for CI and merge, transition to Done, and draft a Slack summary. Use when the user hands off one or more Jira ticket IDs (e.g. "/ticket DEV-110" or "/ticket DEV-110 DEV-112").
 ---
 
 # Implement Jira Ticket
@@ -54,18 +54,25 @@ Take a Jira ticket from investigation to merged-ready PR. The ticket ID is passe
 
    If it merges cleanly, proceed. If it conflicts, resolve by hand, re-run `npm run typecheck && npm run lint` (the incoming `main` changes may touch files you edited), commit the merge (`git commit --no-edit`), `git push`, then confirm the PR is conflict-free. (Changelog fragments are one file per ticket, so they never conflict — a conflict means real code overlap.)
 
-9. **Wait for CI, then merge the PR.** Nobody else reviews or merges these PRs — an open PR is stranded work that everyone believes shipped (this exact failure left four Done-ticket PRs unmerged for weeks):
+9. **Fresh-context code review.** These PRs self-merge — this step is the only review they get. Do **not** review the diff yourself: the context that wrote the code carries the assumptions that produced any bug in it. Spawn a subagent via the Agent tool with a prompt containing (a) the ticket summary and acceptance criteria, (b) an instruction to run `git diff origin/main...HEAD` and adversarially review it for defects. The reviewer must report **only findings that change behavior** — bugs, broken edge cases, violated repo invariants (Paper-only UI, the `react-native-url-polyfill` import rules, reasoning-model token budgets, GradientBackground placement, migration idempotency) — never style nits or refactor suggestions; each finding needs a concrete failure scenario, not a hunch.
 
-   ```bash
-   gh pr checks <pr#> --watch --interval 15
-   gh pr merge <pr#> --merge
-   ```
+   Then:
+   - **Confirmed behavior-level findings:** fix them, re-run `npm run typecheck && npm run lint`, push. At most **one** re-review, scoped to the fix itself — then proceed to merge regardless. No open-ended review-fix loops.
+   - **Findings that would expand scope beyond the ticket:** don't fix them; record them in the final report (or propose a follow-up ticket).
+   - **No findings:** proceed.
 
-   If CI fails, fix it before moving on. If the merge is blocked for a reason you can't resolve, transition the ticket to **Ready for Deploy** (not Done) and surface the blocker in the final report.
+10. **Wait for CI, then merge the PR.** Nobody else reviews or merges these PRs — an open PR is stranded work that everyone believes shipped (this exact failure left four Done-ticket PRs unmerged for weeks):
 
-10. **Transition the ticket to Done** — only after confirming the merge landed (`gh pr view <pr#> --json state` shows `MERGED`). Use `jira_transition_issue` (do NOT pass a `comment` argument — it requires ADF, not plain text; add any note separately via `jira_add_comment`). Done means merged: never transition to Done on the strength of an open PR.
+    ```bash
+    gh pr checks <pr#> --watch --interval 15
+    gh pr merge <pr#> --merge
+    ```
 
-11. **Draft a Slack summary.** Write a clipboard-ready, plain-English summary of what changed and why for the team. **Don't mention the PR or code review** — nobody reviews the PRs. Do say whether it's **live now** (backend changes deploy on merge) or **waiting for the next build/OTA** (app changes), and tell testers **what to look for** once it's live. Offer to send it via the Slack MCP as a _draft_ (always `slack_send_message_draft`, never send) — in the original report thread when the ticket links one — or print it for the user to copy.
+    If CI fails, fix it before moving on. If the merge is blocked for a reason you can't resolve, transition the ticket to **Ready for Deploy** (not Done) and surface the blocker in the final report.
+
+11. **Transition the ticket to Done** — only after confirming the merge landed (`gh pr view <pr#> --json state` shows `MERGED`). Use `jira_transition_issue` (do NOT pass a `comment` argument — it requires ADF, not plain text; add any note separately via `jira_add_comment`). Done means merged: never transition to Done on the strength of an open PR.
+
+12. **Draft a Slack summary.** Write a clipboard-ready, plain-English summary of what changed and why for the team. **Don't mention the PR or code review** — the fresh-context review is an internal quality gate, and no human on the team reviews these PRs. Do say whether it's **live now** (backend changes deploy on merge) or **waiting for the next build/OTA** (app changes), and tell testers **what to look for** once it's live. Offer to send it via the Slack MCP as a _draft_ (always `slack_send_message_draft`, never send) — in the original report thread when the ticket links one — or print it for the user to copy.
 
 ## Autonomous mode
 
@@ -75,7 +82,7 @@ Run the whole pipeline end-to-end without stopping between steps. The done-state
 - A change is destructive or hard to reverse (schema drop, prod data mutation, edge-function deploy) — surface it for sign-off first.
 - Typecheck/lint can't be made clean with a narrow fix (report what's blocking instead of expanding scope).
 
-Otherwise keep going. Do not stop at "wrote the code" — commit, PR, merge, transition, and draft the summary.
+Otherwise keep going. Do not stop at "wrote the code" — commit, PR, review, merge, transition, and draft the summary. Review findings are handled inline per step 9 (fix behavior-level findings, defer scope-expanding ones to the report) — they are not a pause condition.
 
 ## Multiple tickets
 
