@@ -10,3 +10,4 @@ export * from "./api/occasions";
 export * from "./api/gifts";
 export * from "./api/admin";
 export * from "./api/beta-feedback";
+export * from "./api/product-events";

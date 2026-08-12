@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { ActivityIndicator, Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -6,6 +6,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Colors } from "../../lib/colors";
 import { Typography } from "../../lib/typography";
 import { BOTTOM_NAV_HEIGHT } from "../../lib/constants";
+import { logProductEvent } from "../../lib/api";
+import { useAuth } from "../../hooks/use-auth";
 import { useRecipient } from "../../hooks/use-recipient";
 import { useGiftSuggestions } from "../../hooks/use-gift-suggestions";
 import GiftSuggestionsList from "../../components/gifts/GiftSuggestionsList";
@@ -56,8 +58,23 @@ export default function GiftIdeasPage() {
   const { data: recipient, isLoading: loadingRecipient } = useRecipient(id);
   const { data: suggestions = [], isLoading: loadingSuggestions } =
     useGiftSuggestions(id);
+  const { user } = useAuth();
   const scrollRef = useRef<ScrollView>(null);
   const contentRef = useRef<View>(null);
+
+  // Log recommendations_viewed once per screen visit, when suggestions have
+  // actually loaded and there is something to view.
+  const loggedViewRef = useRef(false);
+  useEffect(() => {
+    if (loggedViewRef.current) return;
+    if (!user || !id || loadingSuggestions || suggestions.length === 0) return;
+    loggedViewRef.current = true;
+    logProductEvent(user.id, "recommendations_viewed", {
+      recipient_id: id,
+      suggestion_count: suggestions.length,
+      screen: "gift_ideas",
+    });
+  }, [user, id, loadingSuggestions, suggestions.length]);
 
   const isLoading = loadingRecipient || loadingSuggestions;
   const name = firstName(recipient?.name);

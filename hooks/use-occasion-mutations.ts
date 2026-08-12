@@ -4,6 +4,7 @@ import {
   updateOccasion,
   createOccasion,
   fetchRecipientOccasions,
+  logProductEvent,
 } from "../lib/api";
 import { queryKeys } from "../lib/query-keys";
 import { makeMutationHandlers } from "../lib/mutation-handlers";
@@ -84,6 +85,15 @@ export function useCreateOccasion() {
         ...(user ? [queryKeys.occasions(user.id)] : []),
         queryKeys.recipientOccasions(variables.recipientId),
       ],
+      afterSuccess: (_, variables) => {
+        if (user) {
+          logProductEvent(user.id, "occasion_added", {
+            recipient_id: variables.recipientId,
+            occasion_type: variables.occasionType,
+            source: "manual",
+          });
+        }
+      },
     }),
   });
 }

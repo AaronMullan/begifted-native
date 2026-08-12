@@ -6,6 +6,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { Redirect, useRouter, useLocalSearchParams } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../../lib/supabase";
+import { logProductEvent, logProductEvents } from "../../../lib/api";
 import { queryKeys } from "../../../lib/query-keys";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import GradientBackground from "../../../components/GradientBackground";
@@ -107,6 +108,17 @@ async function persistUpdateChatOccasions(
       console.error("Failed to persist occasions from update chat:", error);
       return 0;
     }
+    logProductEvents(
+      userId,
+      rows.map((row) => ({
+        name: "occasion_added" as const,
+        properties: {
+          recipient_id: recipientId,
+          occasion_type: row.occasion_type,
+          source: "update_chat",
+        },
+      }))
+    );
     return rows.length;
   } catch (error) {
     console.error("Failed to persist occasions from update chat:", error);
@@ -267,9 +279,21 @@ export default function RecipientEditPage() {
   // a single showing per user.
   const giftsReady =
     activeTab === "gifts" && !isGenerating && suggestions.length > 0;
+  const loggedRecommendationsViewRef = useRef(false);
   useEffect(() => {
-    if (giftsReady) triggerCheckIn("first_gift_set");
-  }, [giftsReady, triggerCheckIn]);
+    if (!giftsReady) return;
+    triggerCheckIn("first_gift_set");
+    // Log recommendations_viewed once per screen visit, when the gifts tab
+    // actually shows a settled set — not merely on mount.
+    if (user && recipientId && !loggedRecommendationsViewRef.current) {
+      loggedRecommendationsViewRef.current = true;
+      logProductEvent(user.id, "recommendations_viewed", {
+        recipient_id: recipientId,
+        suggestion_count: suggestions.length,
+        screen: "recipient_detail",
+      });
+    }
+  }, [giftsReady, triggerCheckIn, user, recipientId, suggestions.length]);
 
   // Start generation tracking when navigated from the add flow with
   // generating=true (only when there is nothing to show yet).
