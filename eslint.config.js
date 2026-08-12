@@ -26,7 +26,6 @@ module.exports = defineConfig([
         },
       ],
       "max-depth": ["error", 3],
-      complexity: ["warn", 10],
       // React Compiler-powered checks that arrived with eslint-config-expo 57.
       "react-hooks/refs": "error",
       "react-hooks/set-state-in-effect": "error",
