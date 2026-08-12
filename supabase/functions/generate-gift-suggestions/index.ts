@@ -95,6 +95,49 @@ ${JSON.stringify(cis, null, 2)}
 `;
 }
 
+async function loadActivePromptText(
+  supabaseUrl: string,
+  serviceRoleKey: string
+): Promise<string | null> {
+  try {
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const { data: activePrompt, error } = await supabase
+      .from("system_prompt_versions")
+      .select("prompt_text")
+      .eq("prompt_key", "gift_generation_system")
+      .eq("is_active", true)
+      .single();
+    if (error) throw error;
+    return activePrompt?.prompt_text ?? null;
+  } catch (err) {
+    console.error(
+      "[generate-gift-suggestions] Failed to load active gift_generation_system prompt:",
+      err
+    );
+    return null;
+  }
+}
+
+function parseSuggestionsResponse(cleanText: string | undefined): {
+  status: string;
+  suggestions: unknown[];
+} {
+  try {
+    return cleanText
+      ? JSON.parse(cleanText)
+      : { status: "no_results", suggestions: [] };
+  } catch {
+    // Salvage a truncated/wrapped response by extracting the suggestions array.
+    const match = cleanText?.match(/"suggestions":\s*\[([\s\S]*?)\]/);
+    if (!match) return { status: "no_results", suggestions: [] };
+    try {
+      return { status: "ok", suggestions: JSON.parse(`[${match[1]}]`) };
+    } catch {
+      return { status: "no_results", suggestions: [] };
+    }
+  }
+}
+
 // @ts-ignore - Deno serve
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -156,23 +199,10 @@ Deno.serve(async (req: Request) => {
     if (customSystemPrompt) {
       protocolPrompt = customSystemPrompt;
     } else {
-      let activePromptText: string | null = null;
-      try {
-        const supabase = createClient(supabaseUrl, serviceRoleKey);
-        const { data: activePrompt, error } = await supabase
-          .from("system_prompt_versions")
-          .select("prompt_text")
-          .eq("prompt_key", "gift_generation_system")
-          .eq("is_active", true)
-          .single();
-        if (error) throw error;
-        activePromptText = activePrompt?.prompt_text ?? null;
-      } catch (err) {
-        console.error(
-          "[generate-gift-suggestions] Failed to load active gift_generation_system prompt:",
-          err
-        );
-      }
+      const activePromptText = await loadActivePromptText(
+        supabaseUrl,
+        serviceRoleKey
+      );
 
       if (!activePromptText) {
         console.error(
@@ -208,23 +238,7 @@ Deno.serve(async (req: Request) => {
 
     const cleanText = rawText?.replace(/```json\n?|\n?```/g, "").trim();
 
-    let parsed: { status: string; suggestions: unknown[] };
-    try {
-      parsed = cleanText
-        ? JSON.parse(cleanText)
-        : { status: "no_results", suggestions: [] };
-    } catch {
-      const match = cleanText?.match(/"suggestions":\s*\[([\s\S]*?)\]/);
-      if (match) {
-        try {
-          parsed = { status: "ok", suggestions: JSON.parse(`[${match[1]}]`) };
-        } catch {
-          parsed = { status: "no_results", suggestions: [] };
-        }
-      } else {
-        parsed = { status: "no_results", suggestions: [] };
-      }
-    }
+    const parsed = parseSuggestionsResponse(cleanText);
 
     const result: Record<string, unknown> = {
       status: parsed.suggestions.length > 0 ? "ok" : "no_results",
