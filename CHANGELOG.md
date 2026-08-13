@@ -19,6 +19,23 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-08-13 — OTA
+
+### App
+
+- If the Terms of Service or Privacy Policy can't open in your browser, the app now says so and offers to copy the link instead of doing nothing (DEV-367).
+- Telling BeGifted someone is no longer into something now actually removes it — "he doesn't fish" clears fishing from the profile and the next round of gift ideas, instead of the old interest lingering no matter how many times you saved (DEV-368).
+- The app now records core milestones — adding a person, adding an occasion, viewing gift ideas — to the product-event store. No visible change (DEV-378).
+- When importing from your phone's contacts, the picker now lists everyone alphabetically instead of in whatever order the phone returns (DEV-379).
+
+### Backend
+
+- The About You profile summary now follows BeGifted's house voice — calmer and more natural, less like a chatbot wrote it. Regenerates the next time your profile is synthesized (DEV-346).
+- Groundwork for trial, attribution, subscription, and email-preference tracking on user accounts. No visible change yet (DEV-371).
+- Internal: cleaned up gift-suggestion parsing code and retired an unused lint rule — no visible change (DEV-375).
+- Internal: lint now runs in CI and pre-commit covers the whole repo — no visible change (DEV-376).
+- New product-event store records sign-ups server-side; the source stream for future lifecycle emails. No visible change (DEV-378).
+
 ## 2026-08-10 — OTA
 
 ### App
