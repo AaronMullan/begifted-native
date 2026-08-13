@@ -21,6 +21,13 @@ export interface DeviceContact {
   imageUri?: string;
 }
 
+// Case-insensitive name comparator shared by every path that fills the
+// contact picker (device fetch and web file import), so the list is
+// alphabetical regardless of source.
+export function compareContactsByName(a: DeviceContact, b: DeviceContact) {
+  return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+}
+
 export function useDeviceContacts() {
   const [loading, setLoading] = useState(false);
 
@@ -124,6 +131,10 @@ export function useDeviceContacts() {
               normalizeContactImageUri(contact.rawImage?.uri))
             : undefined,
         }));
+      // The OS returns contacts in unspecified order; sort here (not via the
+      // getContactsAsync sort option) so both fetch paths and all platforms
+      // agree, and the picker lists names alphabetically.
+      filteredContacts.sort(compareContactsByName);
       return filteredContacts;
     } catch (error) {
       console.error("Error fetching contacts:", error);
