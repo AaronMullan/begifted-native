@@ -124,6 +124,12 @@ export function useDeviceContacts() {
               normalizeContactImageUri(contact.rawImage?.uri))
             : undefined,
         }));
+      // The OS returns contacts in unspecified order; sort here (not via the
+      // getContactsAsync sort option) so both fetch paths and all platforms
+      // agree, and the picker lists names alphabetically.
+      filteredContacts.sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+      );
       return filteredContacts;
     } catch (error) {
       console.error("Error fetching contacts:", error);
