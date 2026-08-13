@@ -4,7 +4,11 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { uploadRecipientPhoto } from "../lib/recipient-photo";
 import { useAuth } from "./use-auth";
-import { DeviceContact, useDeviceContacts } from "./use-device-contacts";
+import {
+  compareContactsByName,
+  DeviceContact,
+  useDeviceContacts,
+} from "./use-device-contacts";
 import { useBulkCreateRecipients } from "./use-recipient-mutations";
 
 // iOS contacts can omit the year. Emit the vCard partial form (--MM-DD) so we
@@ -53,7 +57,9 @@ export function useContactImportFlow() {
   };
 
   const importFromFile = (contacts: DeviceContact[]) => {
-    setDeviceContacts(contacts);
+    // File/browser imports bypass getDeviceContacts, so sort here too — the
+    // picker must be alphabetical regardless of source.
+    setDeviceContacts([...contacts].sort(compareContactsByName));
     if (contacts.length > 0) {
       setPickerVisible(true);
     }
