@@ -91,17 +91,23 @@ export function useInterestMomentSuggestions(
       return {
         names: discovery.map((s) => s.name),
         dateBySlug: Object.fromEntries(
-          // Roll forward at consumption: a suggestion fetched on the
-          // occasion's own day is served from cache into tomorrow, where
-          // the raw date would save a past occasion.
-          discovery.map((s) => [
-            slugifyOccasionName(s.name),
-            getNextOccurrence(s.suggestedDate),
-          ])
+          discovery.map((s) => [slugifyOccasionName(s.name), s.suggestedDate])
         ),
       };
     },
   });
 
-  return data ?? EMPTY;
+  if (!data) return EMPTY;
+  return {
+    names: data.names,
+    // Roll forward at read time, not in queryFn: a suggestion fetched on
+    // the occasion's own day is served from cache into tomorrow, where the
+    // stored date would save a past occasion.
+    dateBySlug: Object.fromEntries(
+      Object.entries(data.dateBySlug).map(([slug, date]) => [
+        slug,
+        getNextOccurrence(date),
+      ])
+    ),
+  };
 }
