@@ -34,6 +34,7 @@ import {
   useRecipientOccasions,
 } from "../../../hooks/use-occasion-mutations";
 import { recommendedMomentsFor } from "../../../utils/recommended-moments";
+import { useInterestMomentSuggestions } from "../../../hooks/use-interest-moment-suggestions";
 import { slugifyOccasionName } from "../../../hooks/use-occasion-recommendations";
 import { invokeWithRetry } from "../../../lib/edge-retry";
 import type { ExtractedData } from "../../../hooks/use-conversation-flow";
@@ -318,6 +319,10 @@ export default function RecipientEditPage() {
   const createOccasion = useCreateOccasion();
   // Shares AboutRecipientView's query, so this adds no extra fetch.
   const { data: recipientOccasions = [] } = useRecipientOccasions(recipientId);
+  const interestSuggestions = useInterestMomentSuggestions(
+    recipient,
+    recipientOccasions
+  );
   useEffect(() => {
     if (addMomentRequested && recipient) {
       addMomentRef.current?.present();
@@ -705,8 +710,10 @@ export default function RecipientEditPage() {
         recommendedLabel={`RECOMMENDED FOR ${shortName.toUpperCase()}`}
         recommendedMoments={recommendedMomentsFor(
           recipient.relationship_type,
-          recipientOccasions.map((o) => o.occasion_type)
+          recipientOccasions.map((o) => o.occasion_type),
+          interestSuggestions.names
         )}
+        suggestionDates={interestSuggestions.dateBySlug}
         onSave={handleSaveMoment}
         saving={createOccasion.isPending}
         handleRef={addMomentRef}

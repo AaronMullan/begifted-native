@@ -44,6 +44,7 @@ import {
 } from "../../utils/home-occasions";
 import { getNextUpcomingOccasion } from "../../utils/upcoming-occasion";
 import { recommendedMomentsFor } from "../../utils/recommended-moments";
+import { useInterestMomentSuggestions } from "../../hooks/use-interest-moment-suggestions";
 import {
   addMonths,
   dayKey,
@@ -163,6 +164,15 @@ export default function Calendar() {
     if (list) list.push(occasion);
     else occasionsByRecipient.set(occasion.recipient_id, [occasion]);
   }
+  // Fetch kicks off when a person is picked, so chips are usually ready by
+  // the time the Add Moment drawer settles; they fill in live otherwise.
+  const momentRecipient = momentPerson
+    ? recipients.find((r) => r.id === momentPerson.id)
+    : null;
+  const interestSuggestions = useInterestMomentSuggestions(
+    momentRecipient,
+    momentPerson ? (occasionsByRecipient.get(momentPerson.id) ?? []) : []
+  );
   const pickerPeople: SelectPersonRow[] = recipients
     .filter(
       (recipient) => !selectedDate || !attachedRecipientIds.has(recipient.id)
@@ -479,15 +489,13 @@ export default function Calendar() {
             : undefined
         }
         recommendedMoments={recommendedMomentsFor(
-          momentPerson
-            ? recipients.find((r) => r.id === momentPerson.id)
-                ?.relationship_type
-            : undefined,
+          momentRecipient?.relationship_type,
           momentPerson
             ? (occasionsByRecipient.get(momentPerson.id) ?? []).map(
                 (o) => o.occasion_type
               )
-            : []
+            : [],
+          interestSuggestions.names
         )}
       />
       <AddNewPersonDrawer
