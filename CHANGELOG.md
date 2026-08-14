@@ -19,6 +19,14 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-08-14 — Build 59 (TestFlight)
+
+### App
+
+- The Add a Moment drawer's "Recommended for" row now includes occasions drawn from the person's interests — a music collector sees Record Store Day alongside the usual birthday and holiday chips, with the date filled in automatically. (DEV-344)
+- Drawers and pickers — the gift card "…" menu, Moments actions, the contact picker, the gifting-preferences sheet — now open on the first tap instead of occasionally needing a retry (DEV-365).
+- Adding a moment someone already has now says so, instead of failing with a generic "try again" error. (DEV-380)
+
 ## 2026-08-14 — OTA
 
 ### App
