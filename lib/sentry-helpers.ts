@@ -77,6 +77,10 @@ export function captureMutationError(
   mutationKey: readonly unknown[] | undefined
 ): void {
   if (isExpectedTransientError(error)) return;
+  // Re-adding an existing moment trips the occasions unique index by design;
+  // the UI explains it, so it isn't a defect worth paging on. Name check
+  // (not instanceof) keeps this file free of an api-layer import.
+  if (toError(error).name === "DuplicateOccasionError") return;
   const err = toError(error);
   Sentry.captureException(err, {
     tags: { source: "react_query", kind: "mutation" },

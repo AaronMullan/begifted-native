@@ -179,6 +179,19 @@ export async function updateOccasion(
 }
 
 /**
+ * The occasions table enforces one occasion per recipient per type
+ * (occasions_recipient_type_idx), so re-adding an existing moment is an
+ * expected user action, not a defect. Callers show this message and Sentry
+ * capture is skipped for it.
+ */
+export class DuplicateOccasionError extends Error {
+  constructor() {
+    super("They already have this moment.");
+    this.name = "DuplicateOccasionError";
+  }
+}
+
+/**
  * Create a new occasion for a recipient
  */
 export async function createOccasion(
@@ -200,7 +213,10 @@ export async function createOccasion(
     .select("id, date, occasion_type, recipient_id, is_annual")
     .single();
 
-  if (error) throw error;
+  if (error) {
+    if (error.code === "23505") throw new DuplicateOccasionError();
+    throw error;
+  }
   return {
     ...data,
     occasion_type: data.occasion_type || occasionType,

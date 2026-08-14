@@ -5,6 +5,7 @@ import {
   createOccasion,
   fetchRecipientOccasions,
   logProductEvent,
+  DuplicateOccasionError,
 } from "../lib/api";
 import { queryKeys } from "../lib/query-keys";
 import { makeMutationHandlers } from "../lib/mutation-handlers";
@@ -80,7 +81,12 @@ export function useCreateOccasion() {
     ...makeMutationHandlers<unknown, CreateOccasionVariables>({
       queryClient,
       label: "useCreateOccasion",
-      errorMessage: "Couldn't add the occasion. Please try again.",
+      // "Try again" would be a lie for a duplicate — the same insert can
+      // never succeed while the moment exists.
+      errorMessage: (error) =>
+        error instanceof DuplicateOccasionError
+          ? error.message
+          : "Couldn't add the occasion. Please try again.",
       invalidateKeys: (_, variables) => [
         ...(user ? [queryKeys.occasions(user.id)] : []),
         queryKeys.recipientOccasions(variables.recipientId),

@@ -17,7 +17,7 @@ export function makeMutationHandlers<TData, TVariables>(options: {
   /** Hook name used in the console breadcrumb. */
   label: string;
   /** User-facing failure message shown in the snackbar. */
-  errorMessage: string;
+  errorMessage: string | ((error: unknown) => string);
   /** Cache keys to invalidate after a successful write. */
   invalidateKeys?: (data: TData, variables: TVariables) => QueryKey[];
   /** Follow-on success work (e.g. background profile re-synthesis). */
@@ -39,7 +39,9 @@ export function makeMutationHandlers<TData, TVariables>(options: {
       showSnackbar(
         isNetworkError
           ? "Network request failed. Check your internet connection and try again."
-          : errorMessage
+          : typeof errorMessage === "function"
+            ? errorMessage(error)
+            : errorMessage
       );
     },
   };
