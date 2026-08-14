@@ -19,6 +19,12 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-08-14 — OTA
+
+### App
+
+- Selecting several people from Contacts now sets each one up in turn — the same conversation you'd get adding them alone, with progress shown along the way. Leaving partway keeps the people you finished; no one lands in your list half-added (DEV-381).
+
 ## 2026-08-13 — OTA
 
 ### App
