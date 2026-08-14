@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import * as Sentry from "@sentry/react-native";
 import { invokeWithRetry } from "../lib/edge-retry";
 import { queryKeys } from "../lib/query-keys";
+import { getNextOccurrence } from "../utils/occasion-dates";
 import type { Recipient } from "../types/recipient";
 import {
   slugifyOccasionName,
@@ -27,10 +27,19 @@ const EMPTY: InterestMomentSuggestions = { names: [], dateBySlug: {} };
  * (server-validated names with real future dates), cached per recipient.
  * The deterministic relationship-gated chips (utils/recommended-moments.ts)
  * stay client-side; this adds the AI half on top.
+ *
+ * Pass `existingOccasions` as undefined while the occasions query is still
+ * loading: the server derives its don't-re-suggest list from this array, so
+ * firing with a premature [] would burn the capped discovery slots on
+ * occasions the person already has — and cache that degraded result for a
+ * day. `requested` gates the call on actual add-a-moment intent so browsing
+ * recipient profiles doesn't spend AI calls.
  */
 export function useInterestMomentSuggestions(
   recipient: Recipient | null | undefined,
-  existingOccasions: { occasion_type: string; date: string | null }[]
+  existingOccasions:
+    { occasion_type: string; date: string | null }[] | undefined,
+  requested: boolean = true
 ): InterestMomentSuggestions {
   // Discovery anchors are matched against interests / the synthesized
   // profile; without either signal the call can only return noise, so
@@ -41,9 +50,13 @@ export function useInterestMomentSuggestions(
 
   const { data } = useQuery({
     queryKey: queryKeys.momentSuggestions(recipient?.id ?? "none"),
-    enabled: hasSignal,
+    enabled: hasSignal && requested && existingOccasions !== undefined,
     staleTime: SUGGESTIONS_STALE_MS,
     gcTime: SUGGESTIONS_STALE_MS,
+    // invokeWithRetry already retries transient failures with backoff;
+    // stacking TanStack's default 3 retries on top would mean up to 12
+    // invocations per persistent outage.
+    retry: false,
     queryFn: async (): Promise<InterestMomentSuggestions> => {
       const { data: response, error } =
         await invokeWithRetry<OccasionRecommendations>(
@@ -58,7 +71,7 @@ export function useInterestMomentSuggestions(
                 interests: recipient!.interests ?? [],
                 knownRoles: recipient!.known_roles ?? [],
                 householdContext: recipient!.household_context ?? "",
-                occasions: existingOccasions.map((o) => ({
+                occasions: (existingOccasions ?? []).map((o) => ({
                   occasion_type: o.occasion_type,
                   date: o.date,
                 })),
@@ -70,22 +83,21 @@ export function useInterestMomentSuggestions(
             },
           }
         );
-      if (error) {
-        Sentry.captureException(error, {
-          tags: {
-            edge_function: "recipient-conversation",
-            action: "recommend_occasions",
-          },
-        });
-        // Throw instead of caching an empty result: a transient failure
-        // must not suppress suggestions for the full staleTime window.
-        throw error;
-      }
+      // Throw instead of caching an empty result: a transient failure must
+      // not suppress suggestions for the full staleTime window. The global
+      // QueryCache onError reports it to Sentry.
+      if (error) throw error;
       const discovery = response?.discoverySuggestions ?? [];
       return {
         names: discovery.map((s) => s.name),
         dateBySlug: Object.fromEntries(
-          discovery.map((s) => [slugifyOccasionName(s.name), s.suggestedDate])
+          // Roll forward at consumption: a suggestion fetched on the
+          // occasion's own day is served from cache into tomorrow, where
+          // the raw date would save a past occasion.
+          discovery.map((s) => [
+            slugifyOccasionName(s.name),
+            getNextOccurrence(s.suggestedDate),
+          ])
         ),
       };
     },

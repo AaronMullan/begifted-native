@@ -77,7 +77,8 @@ function startOfMonth(date: Date): Date {
 export default function Calendar() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { data: occasions = [] } = useAllOccasions();
+  const { data: occasions = [], isSuccess: occasionsLoaded } =
+    useAllOccasions();
   const { data: recipients = [] } = useRecipients();
   const deleteOccasion = useDeleteOccasion();
   const createOccasion = useCreateOccasion();
@@ -164,14 +165,17 @@ export default function Calendar() {
     if (list) list.push(occasion);
     else occasionsByRecipient.set(occasion.recipient_id, [occasion]);
   }
-  // Fetch kicks off when a person is picked, so chips are usually ready by
-  // the time the Add Moment drawer settles; they fill in live otherwise.
+  // Fetch kicks off when a person is picked (that pick is the add-a-moment
+  // intent), so chips are usually ready by the time the Add Moment drawer
+  // settles; they fill in live otherwise.
   const momentRecipient = momentPerson
     ? recipients.find((r) => r.id === momentPerson.id)
     : null;
   const interestSuggestions = useInterestMomentSuggestions(
     momentRecipient,
-    momentPerson ? (occasionsByRecipient.get(momentPerson.id) ?? []) : []
+    occasionsLoaded && momentPerson
+      ? (occasionsByRecipient.get(momentPerson.id) ?? [])
+      : undefined
   );
   const pickerPeople: SelectPersonRow[] = recipients
     .filter(

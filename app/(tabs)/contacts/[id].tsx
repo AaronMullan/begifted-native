@@ -318,10 +318,22 @@ export default function RecipientEditPage() {
   const addMomentRef = useRef<AddMomentDrawerHandle | null>(null);
   const createOccasion = useCreateOccasion();
   // Shares AboutRecipientView's query, so this adds no extra fetch.
-  const { data: recipientOccasions = [] } = useRecipientOccasions(recipientId);
+  const { data: recipientOccasions = [], isSuccess: occasionsLoaded } =
+    useRecipientOccasions(recipientId);
+  // Latches on the first drawer open so browsing profiles never spends an
+  // AI call; the per-recipient cache makes later opens free anyway. The
+  // param-driven path latches during render (adjust-state pattern), not in
+  // the effect below, so the effect stays free of setState.
+  const [momentDrawerOpened, setMomentDrawerOpened] = useState(false);
+  if (addMomentRequested && !momentDrawerOpened) setMomentDrawerOpened(true);
+  const presentAddMoment = () => {
+    setMomentDrawerOpened(true);
+    addMomentRef.current?.present();
+  };
   const interestSuggestions = useInterestMomentSuggestions(
     recipient,
-    recipientOccasions
+    occasionsLoaded ? recipientOccasions : undefined,
+    momentDrawerOpened
   );
   useEffect(() => {
     if (addMomentRequested && recipient) {
@@ -668,7 +680,7 @@ export default function RecipientEditPage() {
               });
             }}
             onOpenUpdateChat={() => updateDrawerRef.current?.present()}
-            onAddOccasion={() => addMomentRef.current?.present()}
+            onAddOccasion={presentAddMoment}
             onViewGiftIdeas={(occasionId) => {
               setOccasionFilter(occasionId);
               setActiveTab("gifts");
