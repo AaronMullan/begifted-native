@@ -1,6 +1,8 @@
-import { useState } from "react";
-import { View, ActivityIndicator, StyleSheet, Text } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useEffect, useRef, useState } from "react";
+import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { useRouter, useLocalSearchParams, useNavigation } from "expo-router";
+import { Button, Dialog, Portal, Text } from "react-native-paper";
+import type { NavigationAction } from "@react-navigation/native";
 import { useAuth } from "../../../hooks/use-auth";
 import { Typography } from "../../../lib/typography";
 import { Colors } from "../../../lib/colors";
@@ -11,23 +13,21 @@ import { DataReviewView } from "../../../components/recipients/conversation/Data
 import { OccasionsSelectionView } from "../../../components/recipients/conversation/OccasionsSelectionView";
 import { ManualDataEntry } from "../../../components/recipients/conversation/ManualDataEntry";
 import { ProfileReadyInterstitial } from "../../../components/ProfileReadyInterstitial";
+import { showSnackbar } from "../../../components/GlobalSnackbar";
 import { formatShortName } from "../../../lib/format-name";
-import type { ExtractedData } from "../../../hooks/use-conversation-flow";
+import { takePendingContactQueue } from "../../../lib/pending-contact-queue";
+import type { PendingContactSeed } from "../../../lib/pending-contact-queue";
 import { Spacing } from "../../../lib/spacing";
 
-type InitialContactSeed = {
-  name?: string;
-  birthday?: string;
-  photoUri?: string;
+type InitialContactSeed = PendingContactSeed & {
   /** A free-form note (Moments "Tell BeGifted about them" drawer) sent as the
    * first conversation message so extraction runs on it immediately. */
   note?: string;
-  address: Partial<
-    Pick<ExtractedData, "address" | "city" | "state" | "zip_code" | "country">
-  >;
 };
 
 const AddRecipient = () => {
+  const router = useRouter();
+  const navigation = useNavigation();
   const params = useLocalSearchParams<{
     name?: string;
     birthday?: string;
@@ -40,8 +40,16 @@ const AddRecipient = () => {
     initialNote?: string;
   }>();
 
+  // A multi-select contact import parks its queue in module memory right
+  // before navigating here; claim it once at mount.
+  const [queue] = useState(() => takePendingContactQueue());
+  const [queueIndex, setQueueIndex] = useState(0);
+  const [confirmStopVisible, setConfirmStopVisible] = useState(false);
+  const pendingLeaveAction = useRef<NavigationAction | null>(null);
+  const allowLeave = useRef(false);
+
   // Capture device-contact prefill once at mount.
-  const [seed] = useState<InitialContactSeed>(() => ({
+  const [paramSeed] = useState<InitialContactSeed>(() => ({
     name: typeof params.name === "string" ? params.name : undefined,
     birthday: typeof params.birthday === "string" ? params.birthday : undefined,
     photoUri:
@@ -57,18 +65,103 @@ const AddRecipient = () => {
     },
   }));
 
-  return <AddRecipientFlow seed={seed} />;
+  // Leaving mid-queue must be deliberate: pending contacts silently vanish
+  // (they were never written to the DB), so intercept any removal — back
+  // button, gesture, tab pop — and confirm first.
+  useEffect(() => {
+    if (!queue) return;
+    return navigation.addListener("beforeRemove", (e) => {
+      if (allowLeave.current) return;
+      e.preventDefault();
+      pendingLeaveAction.current = e.data.action;
+      setConfirmStopVisible(true);
+    });
+  }, [navigation, queue]);
+
+  if (!queue) {
+    return <AddRecipientFlow seed={paramSeed} />;
+  }
+
+  const total = queue.length;
+  const completed = queueIndex;
+  const remaining = total - completed;
+
+  const handleRecipientSaved = () => {
+    if (queueIndex + 1 < total) {
+      setQueueIndex(queueIndex + 1);
+      return;
+    }
+    allowLeave.current = true;
+    showSnackbar(`${total} people added`);
+    router.replace("/contacts");
+  };
+
+  const handleKeepAdding = () => {
+    pendingLeaveAction.current = null;
+    setConfirmStopVisible(false);
+  };
+
+  const handleStop = () => {
+    setConfirmStopVisible(false);
+    allowLeave.current = true;
+    const action = pendingLeaveAction.current;
+    if (action) {
+      navigation.dispatch(action);
+    } else {
+      router.replace("/contacts");
+    }
+  };
+
+  return (
+    <View style={styles.queueContainer}>
+      <Text style={styles.progressLabel}>
+        {queueIndex + 1} of {total}
+      </Text>
+      <AddRecipientFlow
+        key={queueIndex}
+        seed={queue[queueIndex]}
+        onSaved={handleRecipientSaved}
+      />
+      <Portal>
+        <Dialog
+          visible={confirmStopVisible}
+          onDismiss={handleKeepAdding}
+          style={{ borderRadius: 16 }}
+        >
+          <Dialog.Title>Stop adding people?</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">
+              {completed} of {total} {completed === 1 ? "has" : "have"} been
+              added.{" "}
+              {remaining === 1
+                ? "The remaining person"
+                : `The remaining ${remaining}`}{" "}
+              won&apos;t be added.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={handleKeepAdding}>Keep Adding</Button>
+            <Button onPress={handleStop}>Stop</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+    </View>
+  );
 };
 
 type AddRecipientFlowProps = {
   seed: InitialContactSeed;
+  /** Batch mode: called once after this recipient saves; suppresses the
+   * profile-ready interstitial so the queue advances directly. */
+  onSaved?: () => void;
 };
 
-const AddRecipientFlow = ({ seed }: AddRecipientFlowProps) => {
+const AddRecipientFlow = ({ seed, onSaved }: AddRecipientFlowProps) => {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [partialData, setPartialData] = useState<any>(null);
+  const savedNotified = useRef(false);
 
   const {
     messages,
@@ -102,6 +195,15 @@ const AddRecipientFlow = ({ seed }: AddRecipientFlowProps) => {
     seed.photoUri,
     seed.note
   );
+
+  // saveSuccess flips exactly once per mounted flow (the queue remounts via
+  // key), but the ref still guards against re-runs from a changing onSaved
+  // identity — advancing twice would skip a queued person.
+  useEffect(() => {
+    if (!saveSuccess || !onSaved || savedNotified.current) return;
+    savedNotified.current = true;
+    onSaved();
+  }, [saveSuccess, onSaved]);
 
   // Enhanced finish conversation handler with proper error handling
   const handleFinishConversationWithFallback = async () => {
@@ -160,6 +262,15 @@ const AddRecipientFlow = ({ seed }: AddRecipientFlowProps) => {
   // Save complete → the "profile is ready" transition (Figma 5051:7621);
   // auto-advances to the new person's gift ideas, no CTA.
   if (saveSuccess) {
+    // Batch mode skips the interstitial: the parent advances the queue (or
+    // returns to People) as soon as the save lands.
+    if (onSaved) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.black} />
+        </View>
+      );
+    }
     const shortName = formatShortName(savedRecipientName || "Recipient");
     const possessive = shortName.endsWith("s")
       ? `${shortName}'`
@@ -239,6 +350,15 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: Spacing.marginStandard,
+  },
+  queueContainer: {
+    flex: 1,
+  },
+  progressLabel: {
+    ...Typography.body13,
+    color: Colors.grays.text,
+    textAlign: "center",
+    paddingTop: 8,
   },
 });
 

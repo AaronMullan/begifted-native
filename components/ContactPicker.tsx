@@ -27,7 +27,9 @@ type ContactPickerProps = {
  * Select Contacts bottom drawer (Figma 5732:4449, minus the comp's Add All —
  * removed by product decision so adding stays deliberate, one person at a
  * time). The full contact list shows before any typing and the search field
- * narrows it live. Rows toggle checkboxes; Add creates the checked contacts.
+ * narrows it live. Rows toggle checkboxes; the Add CTA reflects the selection
+ * count and hands the checked contacts to the import flow, which runs each
+ * person through the full setup conversation.
  * No Cancel — swiping the drawer down closes it, and per the hand-off drawer
  * rules the sheet stops flush above the bottom nav.
  */
@@ -184,7 +186,11 @@ export default function ContactPicker({
         />
         <View style={styles.footer}>
           <PrimaryCta
-            label="Add"
+            label={
+              selectedContacts.length > 1
+                ? `Add ${selectedContacts.length} People`
+                : "Add Person"
+            }
             onPress={() => onAdd(selectedContacts)}
             state={isAdding ? "loading" : "idle"}
             disabled={selectedContacts.length === 0}

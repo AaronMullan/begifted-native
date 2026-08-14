@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
-import { logProductEvent, logProductEvents } from "../lib/api";
+import { logProductEvent } from "../lib/api";
 import { queryKeys } from "../lib/query-keys";
 import { makeMutationHandlers } from "../lib/mutation-handlers";
 import type { Recipient } from "../types/recipient";
@@ -89,57 +89,6 @@ export function useCreateRecipient() {
           recipient_id: recipient.id,
           source: "create",
         });
-      },
-    }),
-  });
-}
-
-/**
- * Hook to create several recipients in one insert (multi-select contact
- * import). Rows carry only what the device contact provides;
- * relationship_type stays "" until the user fills the profile in.
- */
-export function useBulkCreateRecipients() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (rows: CreateRecipientData[]): Promise<Recipient[]> => {
-      const safeRows = rows.map((row) =>
-        "birthday" in row
-          ? { ...row, birthday: normalizeBirthday(row.birthday) }
-          : row
-      );
-      const { data: recipients, error } = await supabase
-        .from("recipients")
-        .insert(safeRows)
-        .select();
-
-      if (error) throw error;
-      return recipients;
-    },
-    ...makeMutationHandlers<Recipient[], CreateRecipientData[]>({
-      queryClient,
-      label: "useBulkCreateRecipients",
-      errorMessage: "Couldn't add these people. Please try again.",
-      invalidateKeys: (_, rows) =>
-        rows.length > 0
-          ? [
-              queryKeys.recipients(rows[0].user_id),
-              queryKeys.occasions(rows[0].user_id),
-            ]
-          : [],
-      afterSuccess: (recipients, rows) => {
-        if (rows.length === 0) return;
-        logProductEvents(
-          rows[0].user_id,
-          recipients.map((recipient) => ({
-            name: "person_added" as const,
-            properties: {
-              recipient_id: recipient.id,
-              source: "contact_import",
-            },
-          }))
-        );
       },
     }),
   });
