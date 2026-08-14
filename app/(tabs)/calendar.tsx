@@ -44,6 +44,7 @@ import {
 } from "../../utils/home-occasions";
 import { getNextUpcomingOccasion } from "../../utils/upcoming-occasion";
 import { recommendedMomentsFor } from "../../utils/recommended-moments";
+import { useInterestMomentSuggestions } from "../../hooks/use-interest-moment-suggestions";
 import {
   addMonths,
   dayKey,
@@ -76,7 +77,8 @@ function startOfMonth(date: Date): Date {
 export default function Calendar() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { data: occasions = [] } = useAllOccasions();
+  const { data: occasions = [], isSuccess: occasionsLoaded } =
+    useAllOccasions();
   const { data: recipients = [] } = useRecipients();
   const deleteOccasion = useDeleteOccasion();
   const createOccasion = useCreateOccasion();
@@ -163,6 +165,18 @@ export default function Calendar() {
     if (list) list.push(occasion);
     else occasionsByRecipient.set(occasion.recipient_id, [occasion]);
   }
+  // Fetch kicks off when a person is picked (that pick is the add-a-moment
+  // intent), so chips are usually ready by the time the Add Moment drawer
+  // settles; they fill in live otherwise.
+  const momentRecipient = momentPerson
+    ? recipients.find((r) => r.id === momentPerson.id)
+    : null;
+  const interestSuggestions = useInterestMomentSuggestions(
+    momentRecipient,
+    occasionsLoaded && momentPerson
+      ? (occasionsByRecipient.get(momentPerson.id) ?? [])
+      : undefined
+  );
   const pickerPeople: SelectPersonRow[] = recipients
     .filter(
       (recipient) => !selectedDate || !attachedRecipientIds.has(recipient.id)
@@ -479,15 +493,13 @@ export default function Calendar() {
             : undefined
         }
         recommendedMoments={recommendedMomentsFor(
-          momentPerson
-            ? recipients.find((r) => r.id === momentPerson.id)
-                ?.relationship_type
-            : undefined,
+          momentRecipient?.relationship_type,
           momentPerson
             ? (occasionsByRecipient.get(momentPerson.id) ?? []).map(
                 (o) => o.occasion_type
               )
-            : []
+            : [],
+          interestSuggestions.names
         )}
       />
       <AddNewPersonDrawer

@@ -27,6 +27,10 @@ export const queryKeys = {
   giftSuggestions: (recipientId: string) =>
     ["giftSuggestions", recipientId] as const,
 
+  // Interest-derived moment suggestions for the Add a Moment drawer
+  momentSuggestions: (recipientId: string) =>
+    ["momentSuggestions", recipientId] as const,
+
   // Gift Feedback (DEV-48)
   giftFeedback: (recipientId: string) => ["giftFeedback", recipientId] as const,
 

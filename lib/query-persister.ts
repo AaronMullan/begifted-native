@@ -14,12 +14,15 @@ const PERSIST_KEY = "BEGIFTED_QUERY_CACHE";
 /** How long persisted data is considered valid (24 hours) */
 const PERSIST_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
-/** Query key prefixes we persist (recipients, occasions, profile, giftSuggestions) */
+/** Query key prefixes we persist (recipients, occasions, profile, giftSuggestions, momentSuggestions) */
 const PERSISTED_QUERY_KEYS = new Set([
   "profile",
   "recipients",
   "occasions",
   "giftSuggestions",
+  // AI-derived moment suggestions: persisting caps the cost at one
+  // recommend_occasions call per recipient per maxAge window.
+  "momentSuggestions",
 ]);
 
 export const asyncStoragePersister = createAsyncStoragePersister({

@@ -44,6 +44,13 @@ type AddMomentDrawerProps = {
    * (the calendar).
    */
   captureDate?: boolean;
+  /**
+   * Extra date resolutions for suggested chips (slugified name → ISO date),
+   * consulted before the local holiday catalog — interest-derived occasions
+   * (Record Store Day, …) aren't in it, but their server-resolved dates are
+   * already known and shouldn't cost the user an MM-DD entry.
+   */
+  suggestionDates?: Record<string, string>;
 };
 
 const MONTH_DAY_RE = /^\d{2}-\d{2}$/;
@@ -77,18 +84,21 @@ type MomentDateSectionProps = {
   dateInput: string;
   dateError: string;
   onDateChange: (text: string) => void;
+  suggestionDates: Record<string, string>;
 };
 
-// Date capture under the Moment Name field: a name matching a known holiday
-// (fixed or floating) shows its auto-resolved next occurrence; anything else
-// gets a required MM-DD entry.
+// Date capture under the Moment Name field: a name matching a suggested chip
+// or a known holiday (fixed or floating) shows its auto-resolved next
+// occurrence; anything else gets a required MM-DD entry.
 const MomentDateSection: React.FC<MomentDateSectionProps> = ({
   momentName,
   dateInput,
   dateError,
   onDateChange,
+  suggestionDates,
 }) => {
-  const knownDate = lookupOccasionDate(slugifyOccasionName(momentName));
+  const slug = slugifyOccasionName(momentName);
+  const knownDate = suggestionDates[slug] ?? lookupOccasionDate(slug);
   return (
     <>
       <View style={styles.fieldGap} />
@@ -125,6 +135,7 @@ export const AddMomentDrawer: React.FC<AddMomentDrawerProps> = ({
   recommendedLabel = "RECOMMENDED",
   recommendedMoments = RECOMMENDED_MOMENTS,
   captureDate = false,
+  suggestionDates = {},
 }) => {
   const sheetRef = useRef<BottomSheetModal>(null);
   const [momentName, setMomentName] = useState("");
@@ -155,8 +166,10 @@ export const AddMomentDrawer: React.FC<AddMomentDrawerProps> = ({
     if (!trimmedName || saving) return;
     let date: string | null = null;
     if (captureDate) {
+      const slug = slugifyOccasionName(trimmedName);
       date =
-        lookupOccasionDate(slugifyOccasionName(trimmedName)) ??
+        suggestionDates[slug] ??
+        lookupOccasionDate(slug) ??
         parseEnteredMonthDay(dateInput);
       if (!date) {
         setDateError("Please enter the month and day in MM-DD format");
@@ -229,6 +242,7 @@ export const AddMomentDrawer: React.FC<AddMomentDrawerProps> = ({
             dateInput={dateInput}
             dateError={dateError}
             onDateChange={handleDateChange}
+            suggestionDates={suggestionDates}
           />
         )}
         <Button
