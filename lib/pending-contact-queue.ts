@@ -18,9 +18,13 @@ export function setPendingContactQueue(queue: PendingContactSeed[]): void {
   pendingQueue = queue;
 }
 
-/** Claims and clears the queue so a later visit to the add screen can't replay it. */
-export function takePendingContactQueue(): PendingContactSeed[] | null {
-  const queue = pendingQueue;
+/** Read without clearing — safe to call from a React state initializer,
+ * which must stay pure (StrictMode/concurrent React can replay it). */
+export function peekPendingContactQueue(): PendingContactSeed[] | null {
+  return pendingQueue;
+}
+
+/** Clear after mount so a later visit to the add screen can't replay the batch. */
+export function clearPendingContactQueue(): void {
   pendingQueue = null;
-  return queue;
 }

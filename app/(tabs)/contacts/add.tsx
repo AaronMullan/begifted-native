@@ -15,7 +15,10 @@ import { ManualDataEntry } from "../../../components/recipients/conversation/Man
 import { ProfileReadyInterstitial } from "../../../components/ProfileReadyInterstitial";
 import { showSnackbar } from "../../../components/GlobalSnackbar";
 import { formatShortName } from "../../../lib/format-name";
-import { takePendingContactQueue } from "../../../lib/pending-contact-queue";
+import {
+  clearPendingContactQueue,
+  peekPendingContactQueue,
+} from "../../../lib/pending-contact-queue";
 import type { PendingContactSeed } from "../../../lib/pending-contact-queue";
 import { Spacing } from "../../../lib/spacing";
 
@@ -28,6 +31,7 @@ type InitialContactSeed = PendingContactSeed & {
 const AddRecipient = () => {
   const router = useRouter();
   const navigation = useNavigation();
+  const { user, loading: authLoading } = useAuth();
   const params = useLocalSearchParams<{
     name?: string;
     birthday?: string;
@@ -41,8 +45,9 @@ const AddRecipient = () => {
   }>();
 
   // A multi-select contact import parks its queue in module memory right
-  // before navigating here; claim it once at mount.
-  const [queue] = useState(() => takePendingContactQueue());
+  // before navigating here. Peek in the initializer (it must stay pure —
+  // StrictMode/concurrent React can replay it) and claim in the effect below.
+  const [queue] = useState(() => peekPendingContactQueue());
   const [queueIndex, setQueueIndex] = useState(0);
   const [confirmStopVisible, setConfirmStopVisible] = useState(false);
   const pendingLeaveAction = useRef<NavigationAction | null>(null);
@@ -65,18 +70,26 @@ const AddRecipient = () => {
     },
   }));
 
+  // Claim the queue once mounted so a later visit can't replay the batch.
+  useEffect(() => {
+    if (queue) clearPendingContactQueue();
+  }, [queue]);
+
   // Leaving mid-queue must be deliberate: pending contacts silently vanish
   // (they were never written to the DB), so intercept any removal — back
-  // button, gesture, tab pop — and confirm first.
+  // button, gesture, tab pop — and confirm first. When auth is lost the
+  // flow's redirect to "/" must pass through, or the dialog would trap the
+  // user in a reopen loop over a dead flow.
   useEffect(() => {
     if (!queue) return;
     return navigation.addListener("beforeRemove", (e) => {
       if (allowLeave.current) return;
+      if (!authLoading && !user) return;
       e.preventDefault();
       pendingLeaveAction.current = e.data.action;
       setConfirmStopVisible(true);
     });
-  }, [navigation, queue]);
+  }, [navigation, queue, user, authLoading]);
 
   if (!queue) {
     return <AddRecipientFlow seed={paramSeed} />;
