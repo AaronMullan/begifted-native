@@ -15,6 +15,7 @@ import { ManualDataEntry } from "../../../components/recipients/conversation/Man
 import { ProfileReadyInterstitial } from "../../../components/ProfileReadyInterstitial";
 import { showSnackbar } from "../../../components/GlobalSnackbar";
 import { formatShortName } from "../../../lib/format-name";
+import { registerLeaveGuard } from "../../../lib/leave-guard";
 import {
   clearPendingContactQueue,
   peekPendingContactQueue,
@@ -51,6 +52,7 @@ const AddRecipient = () => {
   const [queueIndex, setQueueIndex] = useState(0);
   const [confirmStopVisible, setConfirmStopVisible] = useState(false);
   const pendingLeaveAction = useRef<NavigationAction | null>(null);
+  const pendingLeaveHref = useRef<string | null>(null);
   const allowLeave = useRef(false);
 
   // Capture device-contact prefill once at mount.
@@ -91,6 +93,22 @@ const AddRecipient = () => {
     });
   }, [navigation, queue, user, authLoading]);
 
+  // beforeRemove only sees stack pops. The BottomNav/Header Links dispatch a
+  // tab switch (or an unpreventable pop for the People tab) that skips it, so
+  // they consult this guard before following the link.
+  useEffect(() => {
+    if (!queue) return;
+    return registerLeaveGuard((href) => {
+      if (allowLeave.current) return false;
+      // Auth lost: the flow is already redirecting to "/"; blocking a nav tap
+      // here would show the stop dialog over a dead flow.
+      if (!authLoading && !user) return false;
+      pendingLeaveHref.current = href;
+      setConfirmStopVisible(true);
+      return true;
+    });
+  }, [queue, user, authLoading]);
+
   if (!queue) {
     return <AddRecipientFlow seed={paramSeed} />;
   }
@@ -111,6 +129,7 @@ const AddRecipient = () => {
 
   const handleKeepAdding = () => {
     pendingLeaveAction.current = null;
+    pendingLeaveHref.current = null;
     setConfirmStopVisible(false);
   };
 
@@ -118,10 +137,19 @@ const AddRecipient = () => {
     setConfirmStopVisible(false);
     allowLeave.current = true;
     const action = pendingLeaveAction.current;
+    const href = pendingLeaveHref.current;
+    pendingLeaveAction.current = null;
+    pendingLeaveHref.current = null;
     if (action) {
       navigation.dispatch(action);
-    } else {
-      router.replace("/contacts");
+      return;
+    }
+    // Replace first so this screen leaves the contacts stack — a bare tab
+    // switch would keep the dead queue mounted and show it on the next visit
+    // to People.
+    router.replace("/contacts");
+    if (href && href !== "/contacts") {
+      router.navigate(href as Parameters<typeof router.navigate>[0]);
     }
   };
 

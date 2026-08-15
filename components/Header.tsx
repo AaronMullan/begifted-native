@@ -6,6 +6,7 @@ import { useAuth } from "../hooks/use-auth";
 import { useProfile } from "../hooks/use-profile";
 import { Colors } from "../lib/colors";
 import { openBugReport } from "../lib/feedback";
+import { interceptLeave } from "../lib/leave-guard";
 import Avatar, { deriveUserInitials } from "./Avatar";
 import BrandMark from "./BrandMark";
 import BrandWordmark from "./BrandWordmark";
@@ -35,7 +36,13 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
       ]}
     >
       <View style={styles.headerContent}>
-        <Link href="/dashboard" asChild>
+        <Link
+          href="/dashboard"
+          asChild
+          onPress={(e) => {
+            if (interceptLeave("/dashboard")) e.preventDefault();
+          }}
+        >
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Go to Begifted home"
@@ -54,7 +61,13 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
           >
             <MaterialIcons name="bug-report" size={24} color={Colors.black} />
           </Pressable>
-          <Link href="/settings" asChild>
+          <Link
+            href="/settings"
+            asChild
+            onPress={(e) => {
+              if (interceptLeave("/settings")) e.preventDefault();
+            }}
+          >
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Open settings"
