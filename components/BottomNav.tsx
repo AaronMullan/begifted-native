@@ -4,6 +4,7 @@ import { Link, usePathname } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../lib/colors";
+import { interceptLeave } from "../lib/leave-guard";
 import { Typography } from "../lib/typography";
 
 // Glyphs are matched to the "Footer Navigation" design frame: an outlined house,
@@ -77,7 +78,14 @@ export default function BottomNav() {
             const isActive = isRouteActive(item, pathname);
             const tint = isActive ? Colors.brand.darkTeal : Colors.white;
             return (
-              <Link key={item.key} href={item.href} asChild>
+              <Link
+                key={item.key}
+                href={item.href}
+                asChild
+                onPress={(e) => {
+                  if (interceptLeave(item.href)) e.preventDefault();
+                }}
+              >
                 <Pressable
                   accessibilityRole="button"
                   accessibilityState={{ selected: isActive }}
