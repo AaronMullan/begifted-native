@@ -114,7 +114,11 @@ export function useDeviceContacts() {
             .filter((e): e is string => !!e),
           birthday: contact.birthday
             ? {
-                month: contact.birthday.month || 1,
+                // expo-contacts serializes months 0-indexed (its native layer
+                // emits `month - 1`); convert here so everything downstream
+                // works in calendar months. `??` — not `||` — so January (0)
+                // isn't mistaken for a missing month.
+                month: (contact.birthday.month ?? 0) + 1,
                 day: contact.birthday.day || 1,
                 year: contact.birthday.year,
               }
