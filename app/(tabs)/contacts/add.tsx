@@ -100,11 +100,14 @@ const AddRecipient = () => {
     if (!queue) return;
     return registerLeaveGuard((href) => {
       if (allowLeave.current) return false;
+      // Auth lost: the flow is already redirecting to "/"; blocking a nav tap
+      // here would show the stop dialog over a dead flow.
+      if (!authLoading && !user) return false;
       pendingLeaveHref.current = href;
       setConfirmStopVisible(true);
       return true;
     });
-  }, [queue]);
+  }, [queue, user, authLoading]);
 
   if (!queue) {
     return <AddRecipientFlow seed={paramSeed} />;
