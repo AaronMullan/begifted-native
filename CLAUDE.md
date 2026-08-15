@@ -41,6 +41,8 @@ eas build --profile production --platform ios    # Production
 npm run update                                    # OTA update (preflight, then eas update)
 ```
 
+**Runtime version gates OTAs — bump `expo.version` with any native dependency change.** `runtimeVersion.policy` is `appVersion`, so every binary built from the same `app.json` version shares one OTA runtime. Merging a native dependency bump (worklets, reanimated, bottom-sheet, …) without bumping `expo.version` arms a landmine: the next OTA published from main — by anyone, for any reason — carries the new JS and hard-crashes every older binary on launch (2026-08-14: worklets 0.10.1 JS aborted all pre-Build-59 installs with a native `JSIWorkletsModuleProxy` SIGABRT; recovered via `eas update:rollback <groupId> --non-interactive`, which republishes the prior update group — there is no `--branch` flag). Bump `expo.version` in the same PR as the native change and cut a build before the next OTA. Non-interactive publishes also need `npm run update -- --environment production --non-interactive`.
+
 **Always publish OTAs via `npm run update`, not bare `eas update`.** The wrapper runs `scripts/assert-ota-env.mjs` first: `eas update` exports the bundle locally, inlining `EXPO_PUBLIC_*` from the shell/.env files — EAS-hosted secrets are not readable there. A missing `EXPO_PUBLIC_SENTRY_DSN` (it lives in untracked `.env.local`) ships a bundle with Sentry silently disabled: no crash reports, and feedback-widget submissions are discarded while showing the user a success message. If the DSN value ever changes, publish once with `--clear-cache` — Metro's transform cache re-inlines the stale value otherwise.
 
 ### User-facing copy voice
