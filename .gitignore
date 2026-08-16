@@ -66,3 +66,8 @@ supabase/.temp/
 # sentry-autofix wrapper's npm-ci cache marker in the bot clones; must be
 # ignored or the wrapper's own `git clean -fd` deletes it every run
 .autofix-lockhash
+
+# Deno auto-writes lockfiles beside any deno.json it runs under; CI and
+# Supabase deploys don't consume them, so they'd sit untracked forever
+deno.lock
+supabase/functions/deno.lock
