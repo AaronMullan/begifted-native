@@ -3,7 +3,12 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, Button, Dialog, Portal } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
-import { Redirect, useRouter, useLocalSearchParams } from "expo-router";
+import {
+  Redirect,
+  useRouter,
+  useLocalSearchParams,
+  useIsFocused,
+} from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../../lib/supabase";
 import { logProductEvent, logProductEvents } from "../../../lib/api";
@@ -15,6 +20,7 @@ import { Typography } from "../../../lib/typography";
 import type { Recipient, GiftSuggestion } from "../../../types/recipient";
 import { AboutRecipientView } from "../../../components/recipients/AboutRecipientView";
 import GiftSuggestionsList from "../../../components/gifts/GiftSuggestionsList";
+import { partitionSuggestions } from "../../../components/gifts/partition";
 import PastGiftsSection from "../../../components/gifts/PastGiftsSection";
 import { useBetaCheckIn } from "../../../components/beta/BetaCheckInProvider";
 import { useAuth } from "../../../hooks/use-auth";
@@ -277,9 +283,26 @@ export default function RecipientEditPage() {
   // First gift set reviewed -> fire the third beta check-in once the gifts tab
   // shows a settled, non-empty set (not still generating). Effect, not a render
   // latch, because it responds to async data arrival; the provider gates it to
-  // a single showing per user.
+  // a single showing per user. The check-in only ever shows once, so a
+  // mistimed fire permanently consumes it — every conjunct below guards a way
+  // gift cards could be absent from the screen while suggestion rows exist:
+  // the screen must be focused (a notification tap can stack another [id]
+  // instance on top while this one keeps polling), the recipient query must
+  // have resolved (before that the screen is a bare loading placeholder, and
+  // suggestions can win the race), and the count must be the partition the
+  // list actually renders (an occasion filter can leave the screen empty
+  // while older suggestions for other occasions exist).
+  const isFocused = useIsFocused();
+  const visibleSuggestionCount = partitionSuggestions(
+    suggestions,
+    occasionFilter
+  ).visible.length;
   const giftsReady =
-    activeTab === "gifts" && !isGenerating && suggestions.length > 0;
+    isFocused &&
+    activeTab === "gifts" &&
+    !isGenerating &&
+    !!recipient &&
+    visibleSuggestionCount > 0;
   const loggedRecommendationsViewRef = useRef(false);
   useEffect(() => {
     if (!giftsReady) return;
