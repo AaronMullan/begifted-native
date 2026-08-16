@@ -22,18 +22,19 @@ export async function fetchRecipients(userId: string): Promise<Recipient[]> {
 }
 
 /**
- * Fetch a single recipient by ID
+ * Fetch a single recipient by ID. Returns null when the row no longer exists —
+ * a mounted detail screen can refetch a recipient the user just deleted.
  */
 export async function fetchRecipient(
   userId: string,
   recipientId: string
-): Promise<Recipient> {
+): Promise<Recipient | null> {
   const { data, error } = await supabase
     .from("recipients")
     .select("*")
     .eq("id", recipientId)
     .eq("user_id", userId)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;

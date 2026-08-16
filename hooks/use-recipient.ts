@@ -10,7 +10,7 @@ import type { Recipient } from "../types/recipient";
  */
 export function useRecipient(
   recipientId: string | undefined,
-  options?: Pick<UseQueryOptions<Recipient, Error>, "refetchInterval">
+  options?: Pick<UseQueryOptions<Recipient | null, Error>, "refetchInterval">
 ) {
   const { user } = useAuth();
 
