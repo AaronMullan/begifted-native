@@ -15,6 +15,7 @@ import { Typography } from "../../../lib/typography";
 import type { Recipient, GiftSuggestion } from "../../../types/recipient";
 import { AboutRecipientView } from "../../../components/recipients/AboutRecipientView";
 import GiftSuggestionsList from "../../../components/gifts/GiftSuggestionsList";
+import { partitionSuggestions } from "../../../components/gifts/partition";
 import PastGiftsSection from "../../../components/gifts/PastGiftsSection";
 import { useBetaCheckIn } from "../../../components/beta/BetaCheckInProvider";
 import { useAuth } from "../../../hooks/use-auth";
@@ -277,9 +278,17 @@ export default function RecipientEditPage() {
   // First gift set reviewed -> fire the third beta check-in once the gifts tab
   // shows a settled, non-empty set (not still generating). Effect, not a render
   // latch, because it responds to async data arrival; the provider gates it to
-  // a single showing per user.
+  // a single showing per user. Gate on the partition the list actually renders:
+  // an occasion filter can leave the screen empty ("no suggestions for this
+  // occasion yet") while older suggestions for other occasions exist, and the
+  // check-in must never ask about gifts the user hasn't seen — it only shows
+  // once, so a mistimed fire permanently consumes it.
+  const visibleSuggestionCount = partitionSuggestions(
+    suggestions,
+    occasionFilter
+  ).visible.length;
   const giftsReady =
-    activeTab === "gifts" && !isGenerating && suggestions.length > 0;
+    activeTab === "gifts" && !isGenerating && visibleSuggestionCount > 0;
   const loggedRecommendationsViewRef = useRef(false);
   useEffect(() => {
     if (!giftsReady) return;
