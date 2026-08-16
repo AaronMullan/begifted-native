@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, Button, Dialog, Portal } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Redirect, useRouter, useLocalSearchParams } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../../lib/supabase";
 import { logProductEvent, logProductEvents } from "../../../lib/api";
@@ -278,17 +279,26 @@ export default function RecipientEditPage() {
   // First gift set reviewed -> fire the third beta check-in once the gifts tab
   // shows a settled, non-empty set (not still generating). Effect, not a render
   // latch, because it responds to async data arrival; the provider gates it to
-  // a single showing per user. Gate on the partition the list actually renders:
-  // an occasion filter can leave the screen empty ("no suggestions for this
-  // occasion yet") while older suggestions for other occasions exist, and the
-  // check-in must never ask about gifts the user hasn't seen — it only shows
-  // once, so a mistimed fire permanently consumes it.
+  // a single showing per user. The check-in only ever shows once, so a
+  // mistimed fire permanently consumes it — every conjunct below guards a way
+  // gift cards could be absent from the screen while suggestion rows exist:
+  // the screen must be focused (a notification tap can stack another [id]
+  // instance on top while this one keeps polling), the recipient query must
+  // have resolved (before that the screen is a bare loading placeholder, and
+  // suggestions can win the race), and the count must be the partition the
+  // list actually renders (an occasion filter can leave the screen empty
+  // while older suggestions for other occasions exist).
+  const isFocused = useIsFocused();
   const visibleSuggestionCount = partitionSuggestions(
     suggestions,
     occasionFilter
   ).visible.length;
   const giftsReady =
-    activeTab === "gifts" && !isGenerating && visibleSuggestionCount > 0;
+    isFocused &&
+    activeTab === "gifts" &&
+    !isGenerating &&
+    !!recipient &&
+    visibleSuggestionCount > 0;
   const loggedRecommendationsViewRef = useRef(false);
   useEffect(() => {
     if (!giftsReady) return;
