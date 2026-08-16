@@ -19,6 +19,19 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-08-16 — OTA
+
+### App
+
+- The "Did these gift ideas feel right?" check-in no longer appears before gift ideas are on screen — it waits until the gifts you're looking at have actually arrived. (DEV-384)
+
+## 2026-08-15 — OTA
+
+### App
+
+- Leaving a multi-person add midway now always asks first. The Home, People, and Moments buttons — and the header — used to slip past the "Stop adding people?" check; every way out now shows it, and stopping takes you where you tapped (DEV-382).
+- Birthdays imported from Contacts landed one month early — March 15 arrived as February 15, and January dates fared worse. Imported birthdays now match the contact card (DEV-383).
+
 ## 2026-08-14 — Build 59 (TestFlight)
 
 ### App
