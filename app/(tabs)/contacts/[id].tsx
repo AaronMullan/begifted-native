@@ -3,8 +3,12 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, Button, Dialog, Portal } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
-import { Redirect, useRouter, useLocalSearchParams } from "expo-router";
-import { useIsFocused } from "@react-navigation/native";
+import {
+  Redirect,
+  useRouter,
+  useLocalSearchParams,
+  useIsFocused,
+} from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../../lib/supabase";
 import { logProductEvent, logProductEvents } from "../../../lib/api";
