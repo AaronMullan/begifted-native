@@ -92,7 +92,11 @@ For each fixable issue:
 5. Verify: `npm run typecheck && npm run lint` clean in every repo touched. Never claim a pass without running it.
 6. Push the branch and `gh pr create --title "<type>: <summary> (DEV-<n>)"` with body covering root cause, the change, verification performed, and the Sentry issue link. Cross-link PRs when two repos are involved.
 7. Conflict check: `git fetch origin main && git merge origin/main --no-edit`; if conflicts, resolve narrowly, re-verify, push.
-8. Transition the ticket to **Ready for Deploy** (`31`), then `jira_add_comment` with the PR URL(s).
+8. **Fresh-context code review.** Do not review the diff yourself — the context that wrote the fix carries the assumptions that produced any bug in it. Spawn a subagent via the Agent tool with a prompt containing (a) the ticket's root cause and planned fix, and (b) an instruction to run `git diff origin/main...HEAD` in the affected clone and adversarially review it for defects. The reviewer must report **only findings that change behavior** — bugs, broken edge cases, violated repo invariants (Paper-only UI, the `react-native-url-polyfill` import rules, reasoning-model token budgets, GradientBackground placement) — never style nits or refactor suggestions; each finding needs a concrete failure scenario, not a hunch. Then:
+   - **Confirmed behavior-level findings:** fix them, re-run `npm run typecheck && npm run lint`, push. At most **one** re-review, scoped to the fix itself — then proceed regardless. No open-ended review-fix loops; this step never stalls the run.
+   - **Findings that would expand scope, or that can't be confirmed within the narrow-fix rubric:** don't fix them; append them to the PR body under a `## Review notes` heading (`gh pr edit --body`) so the human review starts from them.
+   - In dry-run mode there is no branch or PR to review — skip this step.
+9. Transition the ticket to **Ready for Deploy** (`31`), then `jira_add_comment` with the PR URL(s).
 
 Do **not** resolve the Sentry issue here — that happens in a later run's Phase 1, after the PR merges.
 
