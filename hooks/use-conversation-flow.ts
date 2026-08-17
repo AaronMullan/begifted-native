@@ -111,6 +111,15 @@ interface UseConversationFlowOptions {
   };
   onExtractSuccess?: (data: ExtractedData) => void;
   onExtractError?: (error: Error) => void;
+  /** Called with the post-reply conversation when the assistant's turn lands —
+   * including after this screen has unmounted, when the setState calls above
+   * it silently no-op. Lets the add flow park a reply that arrives while the
+   * user is elsewhere in the app, so nothing is lost mid-wait. */
+  onAssistantReply?: (snapshot: {
+    messages: Message[];
+    conversationContext: string | null;
+    shouldShowNextStepButton: boolean;
+  }) => void;
 }
 
 interface UseConversationFlowReturn {
@@ -185,6 +194,7 @@ export function useConversationFlow(
     initialState,
     onExtractSuccess,
     onExtractError,
+    onAssistantReply,
   } = options;
 
   const messagesEndRef = useRef<View | null>(null);
@@ -299,11 +309,18 @@ export function useConversationFlow(
         content: data?.reply || "I understand. Tell me more.",
         timestamp: new Date(),
       };
+      const nextContext = data?.conversationContext || conversationContext;
+      const nextShowNextStep = data?.shouldShowNextStepButton || false;
 
       setMessages((prev) => [...prev, assistantMessage]);
-      setConversationContext(data?.conversationContext || conversationContext);
-      setShouldShowNextStepButton(data?.shouldShowNextStepButton || false);
+      setConversationContext(nextContext);
+      setShouldShowNextStepButton(nextShowNextStep);
       setPendingRetry(null);
+      onAssistantReply?.({
+        messages: [...convo, assistantMessage],
+        conversationContext: nextContext,
+        shouldShowNextStepButton: nextShowNextStep,
+      });
     } catch (error) {
       console.error("Error sending message:", error);
       console.error("Error details:", JSON.stringify(error, null, 2));

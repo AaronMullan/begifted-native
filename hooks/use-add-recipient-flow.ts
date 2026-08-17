@@ -232,6 +232,32 @@ export function useAddRecipientFlow(
         setShowDataReview(true);
       }
     },
+    // Park the post-reply conversation straight into the draft, not only via
+    // the persist effect below: if the user navigated away mid-wait this
+    // screen is unmounted, its setState calls no-op, and the effect never
+    // sees the reply. Writing here means the conversation kept going while
+    // they were elsewhere. Closure values (extractedData, review flags) are
+    // the ones current at send time, which is what the draft should say.
+    onAssistantReply: draftOptions?.persist
+      ? (snapshot) => {
+          saveAddRecipientDraft({
+            userId,
+            seed: {
+              name: initialContactName,
+              birthday: initialBirthday,
+              photoUri: cachedPhotoUri.current ?? undefined,
+              address: initialAddress ?? {},
+              note: initialNote,
+            },
+            messages: snapshot.messages,
+            conversationContext: snapshot.conversationContext,
+            shouldShowNextStepButton: snapshot.shouldShowNextStepButton,
+            extractedData,
+            showDataReview,
+            showOccasionsSelection,
+          });
+        }
+      : undefined,
   });
 
   // Park the whole flow in the in-memory draft after every change, so
