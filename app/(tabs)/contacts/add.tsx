@@ -3,6 +3,7 @@ import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { useRouter, useLocalSearchParams, useNavigation } from "expo-router";
 import { Button, Dialog, Portal, Text } from "react-native-paper";
 import type { NavigationAction } from "@react-navigation/native";
+import type { User } from "@supabase/supabase-js";
 import { useAuth } from "../../../hooks/use-auth";
 import { Typography } from "../../../lib/typography";
 import { Colors } from "../../../lib/colors";
@@ -197,9 +198,36 @@ type AddRecipientFlowProps = {
   onSaved?: () => void;
 };
 
+// Auth gate above the flow: the resume decision below reads the parked draft
+// once, in a state initializer on first render — so the flow must not mount
+// until the user is known (useAuth resolves the session asynchronously, and a
+// null-user first render would silently decide "no draft" every time).
 const AddRecipientFlow = ({ seed, onSaved }: AddRecipientFlowProps) => {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+
+  if (authLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.black} />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
+
+  if (!user) {
+    router.replace("/");
+    return null;
+  }
+
+  return <AddRecipientFlowInner user={user} seed={seed} onSaved={onSaved} />;
+};
+
+const AddRecipientFlowInner = ({
+  user,
+  seed,
+  onSaved,
+}: AddRecipientFlowProps & { user: User }) => {
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [partialData, setPartialData] = useState<any>(null);
   const savedNotified = useRef(false);
@@ -211,7 +239,7 @@ const AddRecipientFlow = ({ seed, onSaved }: AddRecipientFlowProps) => {
   // back into itself.
   const [resume] = useState(() => {
     if (onSaved || seed.name || seed.note) return null;
-    return user ? peekAddRecipientDraft(user.id) : null;
+    return peekAddRecipientDraft(user.id);
   });
   const effectiveSeed = resume?.seed ?? seed;
 
@@ -250,7 +278,7 @@ const AddRecipientFlow = ({ seed, onSaved }: AddRecipientFlowProps) => {
     setShowDataReview,
     setExtractedData,
   } = useAddRecipientFlow(
-    user?.id || "",
+    user.id,
     effectiveSeed.name,
     Object.keys(effectiveSeed.address).length > 0
       ? effectiveSeed.address
@@ -307,22 +335,6 @@ const AddRecipientFlow = ({ seed, onSaved }: AddRecipientFlowProps) => {
     setShowManualEntry(false);
     setPartialData(null);
   };
-
-  // Show loading state while auth is being checked
-  if (authLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.black} />
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
-    );
-  }
-
-  // Only redirect if not loading and no user
-  if (!authLoading && !user) {
-    router.replace("/");
-    return null;
-  }
 
   // Save complete → the "profile is ready" transition (Figma 5051:7621);
   // auto-advances to the new person's gift ideas, no CTA.
