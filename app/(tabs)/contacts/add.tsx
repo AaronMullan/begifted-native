@@ -28,8 +28,6 @@ import {
 import type { AddRecipientDraftSeed } from "../../../lib/add-recipient-draft";
 import { Spacing } from "../../../lib/spacing";
 
-type InitialContactSeed = AddRecipientDraftSeed;
-
 const AddRecipient = () => {
   const router = useRouter();
   const navigation = useNavigation();
@@ -57,7 +55,7 @@ const AddRecipient = () => {
   const allowLeave = useRef(false);
 
   // Capture device-contact prefill once at mount.
-  const [paramSeed] = useState<InitialContactSeed>(() => ({
+  const [paramSeed] = useState<AddRecipientDraftSeed>(() => ({
     name: typeof params.name === "string" ? params.name : undefined,
     birthday: typeof params.birthday === "string" ? params.birthday : undefined,
     photoUri:
@@ -192,7 +190,7 @@ const AddRecipient = () => {
 };
 
 type AddRecipientFlowProps = {
-  seed: InitialContactSeed;
+  seed: AddRecipientDraftSeed;
   /** Batch mode: called once after this recipient saves; suppresses the
    * profile-ready interstitial so the queue advances directly. */
   onSaved?: () => void;
@@ -205,6 +203,9 @@ type AddRecipientFlowProps = {
 const AddRecipientFlow = ({ seed, onSaved }: AddRecipientFlowProps) => {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  // Bumped by "Start fresh": remounting the inner flow discards the restored
+  // conversation and re-runs the resume decision against the cleared store.
+  const [flowKey, setFlowKey] = useState(0);
 
   if (authLoading) {
     return (
@@ -220,17 +221,40 @@ const AddRecipientFlow = ({ seed, onSaved }: AddRecipientFlowProps) => {
     return null;
   }
 
-  return <AddRecipientFlowInner user={user} seed={seed} onSaved={onSaved} />;
+  return (
+    <AddRecipientFlowInner
+      key={flowKey}
+      user={user}
+      seed={seed}
+      onSaved={onSaved}
+      onStartFresh={() => {
+        clearAddRecipientDraft();
+        setFlowKey((k) => k + 1);
+      }}
+    />
+  );
 };
 
 const AddRecipientFlowInner = ({
   user,
   seed,
   onSaved,
-}: AddRecipientFlowProps & { user: User }) => {
+  onStartFresh,
+}: AddRecipientFlowProps & { user: User; onStartFresh: () => void }) => {
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [partialData, setPartialData] = useState<any>(null);
   const savedNotified = useRef(false);
+
+  // Any prefilled field marks seeded intent — device contacts can lack a name
+  // (phone/email only), and such an import must still start fresh rather than
+  // hijack-resume an unrelated parked draft.
+  const seedHasContent = !!(
+    seed.name ||
+    seed.note ||
+    seed.birthday ||
+    seed.photoUri ||
+    Object.keys(seed.address).length > 0
+  );
 
   // Resume an abandoned flow only on a bare "+ Add person" entry. A seeded
   // entry (contact import, Moments note) is an explicit new-person intent, and
@@ -238,7 +262,7 @@ const AddRecipientFlowInner = ({
   // draft keeps updating as this flow runs, so re-reading would loop state
   // back into itself.
   const [resume] = useState(() => {
-    if (onSaved || seed.name || seed.note) return null;
+    if (onSaved || seedHasContent) return null;
     return peekAddRecipientDraft(user.id);
   });
   const effectiveSeed = resume?.seed ?? seed;
@@ -246,12 +270,17 @@ const AddRecipientFlowInner = ({
   // A seeded solo entry supersedes whatever was parked — clear it up front so
   // an immediately-abandoned seeded flow can't resurrect the older draft.
   useEffect(() => {
-    if (!onSaved && (seed.name || seed.note)) clearAddRecipientDraft();
-  }, [onSaved, seed.name, seed.note]);
+    if (!onSaved && seedHasContent) clearAddRecipientDraft();
+  }, [onSaved, seedHasContent]);
 
   useEffect(() => {
-    if (resume) showSnackbar("Picking up where you left off.");
-  }, [resume]);
+    if (resume) {
+      showSnackbar("Picking up where you left off.", {
+        label: "Start fresh",
+        onPress: onStartFresh,
+      });
+    }
+  }, [resume, onStartFresh]);
 
   const {
     messages,

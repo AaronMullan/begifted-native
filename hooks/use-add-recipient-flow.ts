@@ -18,6 +18,7 @@ import {
 } from "../utils/birthday";
 import { sanitizeExtractedOccasionDate } from "../utils/occasion-dates";
 import {
+  claimAddRecipientDraftWriteToken,
   clearAddRecipientDraft,
   saveAddRecipientDraft,
 } from "../lib/add-recipient-draft";
@@ -130,6 +131,10 @@ export function useAddRecipientFlow(
   // Stable cached copy of the contact photo — expo-contacts temp files are cleaned up by iOS
   const cachedPhotoUri = useRef<string | null>(initialPhotoUri ?? null);
   const resume = draftOptions?.resume ?? null;
+  // Claimed lazily on the first mounted write (never by the background reply
+  // writer): an idle visit to the screen must not revoke a previous flow's
+  // still-pending reply.
+  const draftWriteToken = useRef<number | null>(null);
   const [showDataReview, setShowDataReview] = useState(
     resume?.showDataReview ?? false
   );
@@ -180,6 +185,43 @@ export function useAddRecipientFlow(
       initialBirthday,
       initialAddress
     );
+
+  // Single assembly point for the parked draft, shared by the state-driven
+  // persist effect (mounted; may claim the write token) and the background
+  // reply writer (possibly unmounted; must already hold it — see the fence in
+  // lib/add-recipient-draft). Non-message fields come from this render's
+  // closure: current for the effect, send-time for a background write, both
+  // correct for what the draft should say.
+  const parkDraft = (
+    parkedMessages: Message[],
+    parkedContext: string | null,
+    parkedShowNextStep: boolean,
+    claimToken: boolean
+  ) => {
+    if (claimToken) {
+      draftWriteToken.current ??= claimAddRecipientDraftWriteToken();
+    }
+    if (draftWriteToken.current === null) return;
+    saveAddRecipientDraft(
+      {
+        userId,
+        seed: {
+          name: initialContactName,
+          birthday: initialBirthday,
+          photoUri: cachedPhotoUri.current ?? undefined,
+          address: initialAddress ?? {},
+          note: initialNote,
+        },
+        messages: parkedMessages,
+        conversationContext: parkedContext,
+        shouldShowNextStepButton: parkedShowNextStep,
+        extractedData,
+        showDataReview,
+        showOccasionsSelection,
+      },
+      draftWriteToken.current
+    );
+  };
 
   // Use the generic conversation flow hook
   const {
@@ -236,27 +278,15 @@ export function useAddRecipientFlow(
     // the persist effect below: if the user navigated away mid-wait this
     // screen is unmounted, its setState calls no-op, and the effect never
     // sees the reply. Writing here means the conversation kept going while
-    // they were elsewhere. Closure values (extractedData, review flags) are
-    // the ones current at send time, which is what the draft should say.
+    // they were elsewhere.
     onAssistantReply: draftOptions?.persist
-      ? (snapshot) => {
-          saveAddRecipientDraft({
-            userId,
-            seed: {
-              name: initialContactName,
-              birthday: initialBirthday,
-              photoUri: cachedPhotoUri.current ?? undefined,
-              address: initialAddress ?? {},
-              note: initialNote,
-            },
-            messages: snapshot.messages,
-            conversationContext: snapshot.conversationContext,
-            shouldShowNextStepButton: snapshot.shouldShowNextStepButton,
-            extractedData,
-            showDataReview,
-            showOccasionsSelection,
-          });
-        }
+      ? (snapshot) =>
+          parkDraft(
+            snapshot.messages,
+            snapshot.conversationContext,
+            snapshot.shouldShowNextStepButton,
+            false
+          )
       : undefined,
   });
 
@@ -273,36 +303,14 @@ export function useAddRecipientFlow(
     }
     // A welcome-only chat has nothing worth resuming.
     if (messages.length < 2) return;
-    saveAddRecipientDraft({
-      userId,
-      seed: {
-        name: initialContactName,
-        birthday: initialBirthday,
-        photoUri: cachedPhotoUri.current ?? undefined,
-        address: initialAddress ?? {},
-        note: initialNote,
-      },
-      messages,
-      conversationContext,
-      shouldShowNextStepButton,
-      extractedData,
-      showDataReview,
-      showOccasionsSelection,
-    });
+    parkDraft(messages, conversationContext, shouldShowNextStepButton, true);
   }, [
     draftOptions?.persist,
     saveSuccess,
-    userId,
-    initialContactName,
-    initialBirthday,
-    initialAddress,
-    initialNote,
+    parkDraft,
     messages,
     conversationContext,
     shouldShowNextStepButton,
-    extractedData,
-    showDataReview,
-    showOccasionsSelection,
   ]);
 
   // Define saveRecipient FIRST so it can be used by other callbacks

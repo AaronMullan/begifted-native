@@ -214,9 +214,9 @@ export function useConversationFlow(
   );
   // When a send fails after the retry wrapper exhausts its attempts, we stash
   // the conversation (up to and including the failed user turn) so the UI can
-  // offer a manual "Try again" CTA that re-sends without duplicating the turn
-  // (DEV-134). A restored draft ending on a user turn means the reply was lost
-  // when the screen unmounted mid-request — same CTA recovers it.
+  // offer a manual "Try again" CTA that re-sends without duplicating the turn.
+  // A restored draft ending on a user turn means the reply was lost when the
+  // screen unmounted mid-request — same CTA recovers it.
   const [pendingRetry, setPendingRetry] = useState<Message[] | null>(() => {
     const restored = initialState?.messages;
     return restored && restored[restored.length - 1]?.role === "user"
