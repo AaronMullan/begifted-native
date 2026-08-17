@@ -101,8 +101,25 @@ interface UseConversationFlowOptions {
   initialMessage?: string;
   /** If set, added as a user message and sent automatically after the welcome */
   initialUserMessage?: string;
+  /** Restore an abandoned conversation (a parked draft) instead of starting
+   * fresh; suppresses the welcome seeding and initialUserMessage auto-send. */
+  initialState?: {
+    messages: Message[];
+    conversationContext: string | null;
+    shouldShowNextStepButton: boolean;
+    extractedData: ExtractedData | null;
+  };
   onExtractSuccess?: (data: ExtractedData) => void;
   onExtractError?: (error: Error) => void;
+  /** Called with the post-reply conversation when the assistant's turn lands —
+   * including after this screen has unmounted, when the setState calls above
+   * it silently no-op. Lets the add flow park a reply that arrives while the
+   * user is elsewhere in the app, so nothing is lost mid-wait. */
+  onAssistantReply?: (snapshot: {
+    messages: Message[];
+    conversationContext: string | null;
+    shouldShowNextStepButton: boolean;
+  }) => void;
 }
 
 interface UseConversationFlowReturn {
@@ -174,27 +191,38 @@ export function useConversationFlow(
     existingData,
     initialMessage,
     initialUserMessage,
+    initialState,
     onExtractSuccess,
     onExtractError,
+    onAssistantReply,
   } = options;
 
   const messagesEndRef = useRef<View | null>(null);
-  const initialUserMessageSentRef = useRef(false);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const initialUserMessageSentRef = useRef(initialState != null);
+  const [messages, setMessages] = useState<Message[]>(
+    initialState?.messages ?? []
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(
-    null
+    initialState?.extractedData ?? null
   );
   const [conversationContext, setConversationContext] = useState<string | null>(
-    null
+    initialState?.conversationContext ?? null
   );
-  const [shouldShowNextStepButton, setShouldShowNextStepButton] =
-    useState(false);
+  const [shouldShowNextStepButton, setShouldShowNextStepButton] = useState(
+    initialState?.shouldShowNextStepButton ?? false
+  );
   // When a send fails after the retry wrapper exhausts its attempts, we stash
   // the conversation (up to and including the failed user turn) so the UI can
-  // offer a manual "Try again" CTA that re-sends without duplicating the turn
-  // (DEV-134).
-  const [pendingRetry, setPendingRetry] = useState<Message[] | null>(null);
+  // offer a manual "Try again" CTA that re-sends without duplicating the turn.
+  // A restored draft ending on a user turn means the reply was lost when the
+  // screen unmounted mid-request — same CTA recovers it.
+  const [pendingRetry, setPendingRetry] = useState<Message[] | null>(() => {
+    const restored = initialState?.messages;
+    return restored && restored[restored.length - 1]?.role === "user"
+      ? restored
+      : null;
+  });
 
   // Stable timestamp for the seeded welcome message; a fresh Date() would be an
   // impure call during the render-time seeding below.
@@ -281,11 +309,18 @@ export function useConversationFlow(
         content: data?.reply || "I understand. Tell me more.",
         timestamp: new Date(),
       };
+      const nextContext = data?.conversationContext || conversationContext;
+      const nextShowNextStep = data?.shouldShowNextStepButton || false;
 
       setMessages((prev) => [...prev, assistantMessage]);
-      setConversationContext(data?.conversationContext || conversationContext);
-      setShouldShowNextStepButton(data?.shouldShowNextStepButton || false);
+      setConversationContext(nextContext);
+      setShouldShowNextStepButton(nextShowNextStep);
       setPendingRetry(null);
+      onAssistantReply?.({
+        messages: [...convo, assistantMessage],
+        conversationContext: nextContext,
+        shouldShowNextStepButton: nextShowNextStep,
+      });
     } catch (error) {
       console.error("Error sending message:", error);
       console.error("Error details:", JSON.stringify(error, null, 2));

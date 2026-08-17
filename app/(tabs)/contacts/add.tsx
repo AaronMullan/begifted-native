@@ -3,6 +3,7 @@ import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { useRouter, useLocalSearchParams, useNavigation } from "expo-router";
 import { Button, Dialog, Portal, Text } from "react-native-paper";
 import type { NavigationAction } from "@react-navigation/native";
+import type { User } from "@supabase/supabase-js";
 import { useAuth } from "../../../hooks/use-auth";
 import { Typography } from "../../../lib/typography";
 import { Colors } from "../../../lib/colors";
@@ -20,14 +21,12 @@ import {
   clearPendingContactQueue,
   peekPendingContactQueue,
 } from "../../../lib/pending-contact-queue";
-import type { PendingContactSeed } from "../../../lib/pending-contact-queue";
+import {
+  clearAddRecipientDraft,
+  peekAddRecipientDraft,
+} from "../../../lib/add-recipient-draft";
+import type { AddRecipientDraftSeed } from "../../../lib/add-recipient-draft";
 import { Spacing } from "../../../lib/spacing";
-
-type InitialContactSeed = PendingContactSeed & {
-  /** A free-form note (Moments "Tell BeGifted about them" drawer) sent as the
-   * first conversation message so extraction runs on it immediately. */
-  note?: string;
-};
 
 const AddRecipient = () => {
   const router = useRouter();
@@ -56,7 +55,7 @@ const AddRecipient = () => {
   const allowLeave = useRef(false);
 
   // Capture device-contact prefill once at mount.
-  const [paramSeed] = useState<InitialContactSeed>(() => ({
+  const [paramSeed] = useState<AddRecipientDraftSeed>(() => ({
     name: typeof params.name === "string" ? params.name : undefined,
     birthday: typeof params.birthday === "string" ? params.birthday : undefined,
     photoUri:
@@ -191,18 +190,97 @@ const AddRecipient = () => {
 };
 
 type AddRecipientFlowProps = {
-  seed: InitialContactSeed;
+  seed: AddRecipientDraftSeed;
   /** Batch mode: called once after this recipient saves; suppresses the
    * profile-ready interstitial so the queue advances directly. */
   onSaved?: () => void;
 };
 
+// Auth gate above the flow: the resume decision below reads the parked draft
+// once, in a state initializer on first render — so the flow must not mount
+// until the user is known (useAuth resolves the session asynchronously, and a
+// null-user first render would silently decide "no draft" every time).
 const AddRecipientFlow = ({ seed, onSaved }: AddRecipientFlowProps) => {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  // Bumped by "Start fresh": remounting the inner flow discards the restored
+  // conversation and re-runs the resume decision against the cleared store.
+  const [flowKey, setFlowKey] = useState(0);
+
+  if (authLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.black} />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
+
+  if (!user) {
+    router.replace("/");
+    return null;
+  }
+
+  return (
+    <AddRecipientFlowInner
+      key={flowKey}
+      user={user}
+      seed={seed}
+      onSaved={onSaved}
+      onStartFresh={() => {
+        clearAddRecipientDraft();
+        setFlowKey((k) => k + 1);
+      }}
+    />
+  );
+};
+
+const AddRecipientFlowInner = ({
+  user,
+  seed,
+  onSaved,
+  onStartFresh,
+}: AddRecipientFlowProps & { user: User; onStartFresh: () => void }) => {
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [partialData, setPartialData] = useState<any>(null);
   const savedNotified = useRef(false);
+
+  // Any prefilled field marks seeded intent — device contacts can lack a name
+  // (phone/email only), and such an import must still start fresh rather than
+  // hijack-resume an unrelated parked draft.
+  const seedHasContent = !!(
+    seed.name ||
+    seed.note ||
+    seed.birthday ||
+    seed.photoUri ||
+    Object.keys(seed.address).length > 0
+  );
+
+  // Resume an abandoned flow only on a bare "+ Add person" entry. A seeded
+  // entry (contact import, Moments note) is an explicit new-person intent, and
+  // batch mode advances a queue — both start fresh. Read once at mount: the
+  // draft keeps updating as this flow runs, so re-reading would loop state
+  // back into itself.
+  const [resume] = useState(() => {
+    if (onSaved || seedHasContent) return null;
+    return peekAddRecipientDraft(user.id);
+  });
+  const effectiveSeed = resume?.seed ?? seed;
+
+  // A seeded solo entry supersedes whatever was parked — clear it up front so
+  // an immediately-abandoned seeded flow can't resurrect the older draft.
+  useEffect(() => {
+    if (!onSaved && seedHasContent) clearAddRecipientDraft();
+  }, [onSaved, seedHasContent]);
+
+  useEffect(() => {
+    if (resume) {
+      showSnackbar("Picking up where you left off.", {
+        label: "Start fresh",
+        onPress: onStartFresh,
+      });
+    }
+  }, [resume, onStartFresh]);
 
   const {
     messages,
@@ -229,12 +307,15 @@ const AddRecipientFlow = ({ seed, onSaved }: AddRecipientFlowProps) => {
     setShowDataReview,
     setExtractedData,
   } = useAddRecipientFlow(
-    user?.id || "",
-    seed.name,
-    Object.keys(seed.address).length > 0 ? seed.address : undefined,
-    seed.birthday,
-    seed.photoUri,
-    seed.note
+    user.id,
+    effectiveSeed.name,
+    Object.keys(effectiveSeed.address).length > 0
+      ? effectiveSeed.address
+      : undefined,
+    effectiveSeed.birthday,
+    effectiveSeed.photoUri,
+    effectiveSeed.note,
+    { resume, persist: !onSaved }
   );
 
   // saveSuccess flips exactly once per mounted flow (the queue remounts via
@@ -283,22 +364,6 @@ const AddRecipientFlow = ({ seed, onSaved }: AddRecipientFlowProps) => {
     setShowManualEntry(false);
     setPartialData(null);
   };
-
-  // Show loading state while auth is being checked
-  if (authLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.black} />
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
-    );
-  }
-
-  // Only redirect if not loading and no user
-  if (!authLoading && !user) {
-    router.replace("/");
-    return null;
-  }
 
   // Save complete → the "profile is ready" transition (Figma 5051:7621);
   // auto-advances to the new person's gift ideas, no CTA.

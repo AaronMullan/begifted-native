@@ -1,25 +1,35 @@
 import React, { useEffect, useState } from "react";
 import { Portal, Snackbar } from "react-native-paper";
 
-let listener: ((message: string) => void) | null = null;
+type SnackbarAction = {
+  label: string;
+  onPress: () => void;
+};
+
+type SnackbarPayload = {
+  message: string;
+  action?: SnackbarAction;
+};
+
+let listener: ((payload: SnackbarPayload) => void) | null = null;
 
 /**
  * Show a brief app-wide snackbar from anywhere — mutation hooks, plain async
  * handlers — without threading React context through non-component code.
  * No-ops if the snackbar isn't mounted yet (app boot).
  */
-export function showSnackbar(message: string): void {
-  listener?.(message);
+export function showSnackbar(message: string, action?: SnackbarAction): void {
+  listener?.({ message, action });
 }
 
 /**
  * Rendered once in app/_layout.tsx inside PaperProvider (Portal needs it).
  */
 const GlobalSnackbar: React.FC = () => {
-  const [message, setMessage] = useState<string | null>(null);
+  const [payload, setPayload] = useState<SnackbarPayload | null>(null);
 
   useEffect(() => {
-    listener = setMessage;
+    listener = setPayload;
     return () => {
       listener = null;
     };
@@ -28,11 +38,12 @@ const GlobalSnackbar: React.FC = () => {
   return (
     <Portal>
       <Snackbar
-        visible={message !== null}
-        onDismiss={() => setMessage(null)}
+        visible={payload !== null}
+        onDismiss={() => setPayload(null)}
         duration={5000}
+        action={payload?.action}
       >
-        {message ?? ""}
+        {payload?.message ?? ""}
       </Snackbar>
     </Portal>
   );
