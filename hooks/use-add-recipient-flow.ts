@@ -17,6 +17,11 @@ import {
   normalizeBirthday,
 } from "../utils/birthday";
 import { sanitizeExtractedOccasionDate } from "../utils/occasion-dates";
+import {
+  clearAddRecipientDraft,
+  saveAddRecipientDraft,
+} from "../lib/add-recipient-draft";
+import type { AddRecipientDraft } from "../lib/add-recipient-draft";
 import { useBetaCheckIn } from "../components/beta/BetaCheckInProvider";
 import {
   ExtractedData,
@@ -110,15 +115,27 @@ export function useAddRecipientFlow(
   >,
   initialBirthday?: string,
   initialPhotoUri?: string,
-  initialNote?: string
+  initialNote?: string,
+  draftOptions?: {
+    /** Parked draft to restore; null starts fresh. */
+    resume: AddRecipientDraft | null;
+    /** Continuously park progress so an abandoned flow can be resumed.
+     * Off in batch (contact-queue) mode. */
+    persist: boolean;
+  }
 ): UseAddRecipientFlowReturn {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { triggerCheckIn } = useBetaCheckIn();
   // Stable cached copy of the contact photo — expo-contacts temp files are cleaned up by iOS
   const cachedPhotoUri = useRef<string | null>(initialPhotoUri ?? null);
-  const [showDataReview, setShowDataReview] = useState(false);
-  const [showOccasionsSelection, setShowOccasionsSelection] = useState(false);
+  const resume = draftOptions?.resume ?? null;
+  const [showDataReview, setShowDataReview] = useState(
+    resume?.showDataReview ?? false
+  );
+  const [showOccasionsSelection, setShowOccasionsSelection] = useState(
+    resume?.showOccasionsSelection ?? false
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [savedRecipientName, setSavedRecipientName] = useState<string | null>(
@@ -180,6 +197,14 @@ export function useAddRecipientFlow(
   } = useConversationFlow({
     conversationType: "add_recipient",
     initialUserMessage,
+    initialState: resume
+      ? {
+          messages: resume.messages,
+          conversationContext: resume.conversationContext,
+          shouldShowNextStepButton: resume.shouldShowNextStepButton,
+          extractedData: resume.extractedData,
+        }
+      : undefined,
     onExtractSuccess: (data) => {
       // Validate that we have required fields
       if (data.name && data.relationship_type) {
@@ -208,6 +233,51 @@ export function useAddRecipientFlow(
       }
     },
   });
+
+  // Park the whole flow in the in-memory draft after every change, so
+  // navigating away (bottom nav, back, tab switch) doesn't lose an in-progress
+  // conversation — reopening Add Person resumes it. The seed rides along so a
+  // resumed flow keeps its contact prefills; the photo is referenced by our
+  // own cached copy, which outlives the expo-contacts temp file.
+  useEffect(() => {
+    if (!draftOptions?.persist) return;
+    if (saveSuccess) {
+      clearAddRecipientDraft();
+      return;
+    }
+    // A welcome-only chat has nothing worth resuming.
+    if (messages.length < 2) return;
+    saveAddRecipientDraft({
+      userId,
+      seed: {
+        name: initialContactName,
+        birthday: initialBirthday,
+        photoUri: cachedPhotoUri.current ?? undefined,
+        address: initialAddress ?? {},
+        note: initialNote,
+      },
+      messages,
+      conversationContext,
+      shouldShowNextStepButton,
+      extractedData,
+      showDataReview,
+      showOccasionsSelection,
+    });
+  }, [
+    draftOptions?.persist,
+    saveSuccess,
+    userId,
+    initialContactName,
+    initialBirthday,
+    initialAddress,
+    initialNote,
+    messages,
+    conversationContext,
+    shouldShowNextStepButton,
+    extractedData,
+    showDataReview,
+    showOccasionsSelection,
+  ]);
 
   // Define saveRecipient FIRST so it can be used by other callbacks
   const saveRecipient = async (data: ExtractedData) => {

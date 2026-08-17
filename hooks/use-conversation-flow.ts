@@ -101,6 +101,14 @@ interface UseConversationFlowOptions {
   initialMessage?: string;
   /** If set, added as a user message and sent automatically after the welcome */
   initialUserMessage?: string;
+  /** Restore an abandoned conversation (a parked draft) instead of starting
+   * fresh; suppresses the welcome seeding and initialUserMessage auto-send. */
+  initialState?: {
+    messages: Message[];
+    conversationContext: string | null;
+    shouldShowNextStepButton: boolean;
+    extractedData: ExtractedData | null;
+  };
   onExtractSuccess?: (data: ExtractedData) => void;
   onExtractError?: (error: Error) => void;
 }
@@ -174,27 +182,37 @@ export function useConversationFlow(
     existingData,
     initialMessage,
     initialUserMessage,
+    initialState,
     onExtractSuccess,
     onExtractError,
   } = options;
 
   const messagesEndRef = useRef<View | null>(null);
-  const initialUserMessageSentRef = useRef(false);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const initialUserMessageSentRef = useRef(initialState != null);
+  const [messages, setMessages] = useState<Message[]>(
+    initialState?.messages ?? []
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(
-    null
+    initialState?.extractedData ?? null
   );
   const [conversationContext, setConversationContext] = useState<string | null>(
-    null
+    initialState?.conversationContext ?? null
   );
-  const [shouldShowNextStepButton, setShouldShowNextStepButton] =
-    useState(false);
+  const [shouldShowNextStepButton, setShouldShowNextStepButton] = useState(
+    initialState?.shouldShowNextStepButton ?? false
+  );
   // When a send fails after the retry wrapper exhausts its attempts, we stash
   // the conversation (up to and including the failed user turn) so the UI can
   // offer a manual "Try again" CTA that re-sends without duplicating the turn
-  // (DEV-134).
-  const [pendingRetry, setPendingRetry] = useState<Message[] | null>(null);
+  // (DEV-134). A restored draft ending on a user turn means the reply was lost
+  // when the screen unmounted mid-request — same CTA recovers it.
+  const [pendingRetry, setPendingRetry] = useState<Message[] | null>(() => {
+    const restored = initialState?.messages;
+    return restored && restored[restored.length - 1]?.role === "user"
+      ? restored
+      : null;
+  });
 
   // Stable timestamp for the seeded welcome message; a fresh Date() would be an
   // impure call during the render-time seeding below.

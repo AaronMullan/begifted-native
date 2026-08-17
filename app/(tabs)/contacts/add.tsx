@@ -20,14 +20,14 @@ import {
   clearPendingContactQueue,
   peekPendingContactQueue,
 } from "../../../lib/pending-contact-queue";
-import type { PendingContactSeed } from "../../../lib/pending-contact-queue";
+import {
+  clearAddRecipientDraft,
+  peekAddRecipientDraft,
+} from "../../../lib/add-recipient-draft";
+import type { AddRecipientDraftSeed } from "../../../lib/add-recipient-draft";
 import { Spacing } from "../../../lib/spacing";
 
-type InitialContactSeed = PendingContactSeed & {
-  /** A free-form note (Moments "Tell BeGifted about them" drawer) sent as the
-   * first conversation message so extraction runs on it immediately. */
-  note?: string;
-};
+type InitialContactSeed = AddRecipientDraftSeed;
 
 const AddRecipient = () => {
   const router = useRouter();
@@ -204,6 +204,27 @@ const AddRecipientFlow = ({ seed, onSaved }: AddRecipientFlowProps) => {
   const [partialData, setPartialData] = useState<any>(null);
   const savedNotified = useRef(false);
 
+  // Resume an abandoned flow only on a bare "+ Add person" entry. A seeded
+  // entry (contact import, Moments note) is an explicit new-person intent, and
+  // batch mode advances a queue — both start fresh. Read once at mount: the
+  // draft keeps updating as this flow runs, so re-reading would loop state
+  // back into itself.
+  const [resume] = useState(() => {
+    if (onSaved || seed.name || seed.note) return null;
+    return user ? peekAddRecipientDraft(user.id) : null;
+  });
+  const effectiveSeed = resume?.seed ?? seed;
+
+  // A seeded solo entry supersedes whatever was parked — clear it up front so
+  // an immediately-abandoned seeded flow can't resurrect the older draft.
+  useEffect(() => {
+    if (!onSaved && (seed.name || seed.note)) clearAddRecipientDraft();
+  }, [onSaved, seed.name, seed.note]);
+
+  useEffect(() => {
+    if (resume) showSnackbar("Picking up where you left off.");
+  }, [resume]);
+
   const {
     messages,
     isLoading,
@@ -230,11 +251,14 @@ const AddRecipientFlow = ({ seed, onSaved }: AddRecipientFlowProps) => {
     setExtractedData,
   } = useAddRecipientFlow(
     user?.id || "",
-    seed.name,
-    Object.keys(seed.address).length > 0 ? seed.address : undefined,
-    seed.birthday,
-    seed.photoUri,
-    seed.note
+    effectiveSeed.name,
+    Object.keys(effectiveSeed.address).length > 0
+      ? effectiveSeed.address
+      : undefined,
+    effectiveSeed.birthday,
+    effectiveSeed.photoUri,
+    effectiveSeed.note,
+    { resume, persist: !onSaved }
   );
 
   // saveSuccess flips exactly once per mounted flow (the queue remounts via
