@@ -70,6 +70,17 @@ function toUnixSeconds(value: unknown): number | undefined {
   return Number.isNaN(ms) ? undefined : Math.floor(ms / 1000);
 }
 
+function countOrOmit(
+  result: { count: number | null; error: { message?: string } | null },
+  label: string
+): number | undefined {
+  if (result.error) {
+    console.error(`customerio-sync: ${label} query failed:`, result.error);
+    return undefined;
+  }
+  return result.count ?? 0;
+}
+
 function buildEventData(record: ProductEventRecord): Record<string, unknown> {
   const data: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(record.properties ?? {})) {
@@ -125,11 +136,17 @@ serve(async (req: Request) => {
       auth: { persistSession: false },
     });
 
-    // Email lives on auth.users, not profiles. A missing auth user means the
-    // account was deleted between the trigger firing and now — skip quietly.
+    // Email lives on auth.users, not profiles. Only a definitive 404 means the
+    // account was deleted between the trigger firing and now — any other Auth
+    // failure must surface as an error, or transient outages silently drop
+    // events (pg_net never retries, so a 200 here is a permanent drop).
     const { data: userData, error: userError } =
       await supabase.auth.admin.getUserById(userId);
-    if (userError || !userData?.user) {
+    if (userError && userError.status !== 404) {
+      console.error("customerio-sync: auth lookup failed:", userError);
+      return jsonResponse({ error: "Auth lookup failed" }, 502);
+    }
+    if (!userData?.user) {
       return jsonResponse({ ok: true, skipped: "user not found" });
     }
     const authUser = userData.user;
@@ -160,31 +177,43 @@ serve(async (req: Request) => {
         .eq("event_name", "recommendations_viewed"),
     ]);
 
-    // The complete set of user-level fields synced to Customer.io. Dates go as
-    // unix seconds (what Customer.io segments on). Nulls are omitted rather
-    // than sent — Customer.io treats attribute writes as upserts, and an
-    // attribute that was never set shouldn't appear at all.
+    // Customer.io attribute writes are upserts, so what we send for empty
+    // values decides staleness behavior:
+    // - profile row exists, column NULL → send "" (Customer.io's delete
+    //   marker), so a deliberately cleared value propagates instead of the
+    //   stale one living in Customer.io forever
+    // - no profile row yet (signed_up fires before the client upserts one) →
+    //   omit profile fields entirely
+    // - count query failed → omit the count so the previous value survives;
+    //   coercing errors to 0 would fire "has no people"-style journeys at
+    //   active users
+    const profileAttr = (value: unknown): unknown =>
+      profile ? (value ?? "") : undefined;
     const attributeSources: Record<string, unknown> = {
       email: authUser.email,
-      name: profile?.full_name,
+      email_verified: Boolean(authUser.email_confirmed_at),
+      name: profileAttr(profile?.full_name),
       created_at: toUnixSeconds(authUser.created_at),
-      trial_status: profile?.trial_status,
-      trial_start_date: toUnixSeconds(profile?.trial_start_date),
-      trial_end_date: toUnixSeconds(profile?.trial_end_date),
-      account_status: profile?.account_status,
+      trial_status: profileAttr(profile?.trial_status),
+      trial_start_date: profileAttr(toUnixSeconds(profile?.trial_start_date)),
+      trial_end_date: profileAttr(toUnixSeconds(profile?.trial_end_date)),
+      account_status: profileAttr(profile?.account_status),
       early_activated: profile
         ? Boolean(profile.early_activated_at)
         : undefined,
       qualified_trial_user: profile
         ? Boolean(profile.qualified_trial_user_at)
         : undefined,
-      subscription_status: profile?.subscription_status,
-      subscription_plan: profile?.subscription_plan,
-      marketing_email_status: profile?.marketing_email_status,
-      lifecycle_email_status: profile?.lifecycle_email_status,
-      people_count: peopleCount.count ?? 0,
-      occasions_count: occasionsCount.count ?? 0,
-      recommendations_viewed_count: recsViewedCount.count ?? 0,
+      subscription_status: profileAttr(profile?.subscription_status),
+      subscription_plan: profileAttr(profile?.subscription_plan),
+      marketing_email_status: profileAttr(profile?.marketing_email_status),
+      lifecycle_email_status: profileAttr(profile?.lifecycle_email_status),
+      people_count: countOrOmit(peopleCount, "people_count"),
+      occasions_count: countOrOmit(occasionsCount, "occasions_count"),
+      recommendations_viewed_count: countOrOmit(
+        recsViewedCount,
+        "recommendations_viewed_count"
+      ),
     };
     const attributes: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(attributeSources)) {

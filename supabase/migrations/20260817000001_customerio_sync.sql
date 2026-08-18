@@ -54,11 +54,20 @@ CREATE TRIGGER customerio_sync_on_product_event
   FOR EACH ROW EXECUTE FUNCTION public.notify_customerio_sync();
 
 -- Profile changes re-identify the user so Customer.io attributes stay current.
--- The UPDATE trigger fires only on the columns the sync actually sends;
--- unrelated profile edits (avatar, notification prefs) don't generate traffic.
+-- Split INSERT/UPDATE triggers because a WHEN guard referencing OLD is invalid
+-- on INSERT. The WHEN guard is what actually limits traffic to real value
+-- changes: UPDATE OF alone fires whenever a column merely appears in the SET
+-- list, and the app's profile save writes every field on every save.
 DROP TRIGGER IF EXISTS customerio_sync_on_profile_change ON public.profiles;
-CREATE TRIGGER customerio_sync_on_profile_change
-  AFTER INSERT OR UPDATE OF
+DROP TRIGGER IF EXISTS customerio_sync_on_profile_insert ON public.profiles;
+DROP TRIGGER IF EXISTS customerio_sync_on_profile_update ON public.profiles;
+
+CREATE TRIGGER customerio_sync_on_profile_insert
+  AFTER INSERT ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.notify_customerio_sync();
+
+CREATE TRIGGER customerio_sync_on_profile_update
+  AFTER UPDATE OF
     full_name,
     trial_status,
     trial_start_date,
@@ -71,4 +80,18 @@ CREATE TRIGGER customerio_sync_on_profile_change
     marketing_email_status,
     lifecycle_email_status
   ON public.profiles
-  FOR EACH ROW EXECUTE FUNCTION public.notify_customerio_sync();
+  FOR EACH ROW
+  WHEN (
+    OLD.full_name IS DISTINCT FROM NEW.full_name OR
+    OLD.trial_status IS DISTINCT FROM NEW.trial_status OR
+    OLD.trial_start_date IS DISTINCT FROM NEW.trial_start_date OR
+    OLD.trial_end_date IS DISTINCT FROM NEW.trial_end_date OR
+    OLD.account_status IS DISTINCT FROM NEW.account_status OR
+    OLD.early_activated_at IS DISTINCT FROM NEW.early_activated_at OR
+    OLD.qualified_trial_user_at IS DISTINCT FROM NEW.qualified_trial_user_at OR
+    OLD.subscription_status IS DISTINCT FROM NEW.subscription_status OR
+    OLD.subscription_plan IS DISTINCT FROM NEW.subscription_plan OR
+    OLD.marketing_email_status IS DISTINCT FROM NEW.marketing_email_status OR
+    OLD.lifecycle_email_status IS DISTINCT FROM NEW.lifecycle_email_status
+  )
+  EXECUTE FUNCTION public.notify_customerio_sync();
