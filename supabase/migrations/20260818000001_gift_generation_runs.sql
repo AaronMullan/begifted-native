@@ -1,9 +1,9 @@
 -- Per-run telemetry for the gift-generation pipeline. One row per
 -- generateGiftsForRecipient invocation (cron, on-demand, backfill, or repair
--- pass), written by the be-gifted backend via service role. Runs that yield
--- zero suggestions previously left no DB trace at all — this table is the
--- record that makes "the model only found 2" distinguishable from "we
--- generated 3 and filtered one out".
+-- pass), written by the be-gifted backend via service role. gift_suggestions
+-- rows only exist for stored gifts, so this table is the sole record of
+-- zero-yield runs and the funnel that makes "the model only found 2"
+-- distinguishable from "we generated 3 and filtered one out".
 --
 -- Deliberately no foreign keys: this is an append-only telemetry log, and
 -- completion-rate metrics must survive recipient/occasion/user deletion.
