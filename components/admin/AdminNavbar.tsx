@@ -18,6 +18,7 @@ type AdminNavbarProps = {
 };
 
 const NAV_LINKS = [
+  { path: "/admin/dashboard", label: "Traction", icon: "chart-line" },
   { path: "/admin/playground", label: "Playground", icon: "flask-outline" },
   { path: "/admin/prompts", label: "Version History", icon: "history" },
   { path: "/admin/searches", label: "Searches", icon: "magnify" },
