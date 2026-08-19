@@ -232,7 +232,10 @@ Return JSON with what's been established:
       };
     }
 
-    const derived = deriveAddRecipientReadiness(contextInfo);
+    const assistantTurns = messages.filter(
+      (m) => m.role === "assistant"
+    ).length;
+    const derived = deriveAddRecipientReadiness(contextInfo, assistantTurns);
     contextInfo.readiness.has_recipient_anchor = derived.hasRecipientAnchor;
     contextInfo.readiness.has_occasion_anchor = derived.hasOccasion;
     contextInfo.readiness.has_timing_anchor = derived.hasTiming;

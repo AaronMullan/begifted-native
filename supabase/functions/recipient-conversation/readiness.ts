@@ -43,8 +43,23 @@ function mentionsBirthday(occasions: unknown[]): boolean {
   return occasions.some((o) => BIRTHDAY_RE.test(String(o)));
 }
 
+/**
+ * Deterministic termination guard. The one-follow-up cap relies on the
+ * extractor flipping specificity_followup_used; if it never does, the flow
+ * would re-enter captured_needs_specificity every turn and the next-step
+ * button (shown only at "ready") would never appear — the user stuck in
+ * endless texture probing. Once the intake has run this many assistant turns
+ * and the ONLY thing still missing is texture, force completion. Texture is
+ * the only field this can force; timing/price/age keep their own hard gates,
+ * so a genuinely incomplete recipient can never be force-completed on them.
+ * Set above the longest legitimate intake (identity → relationship → occasion
+ * → two dated occasions → price → age → initial texture → one follow-up).
+ */
+const SPECIFICITY_TURN_CAP = 10;
+
 export function deriveAddRecipientReadiness(
-  contextInfo: ContextInfo
+  contextInfo: ContextInfo,
+  assistantTurns = 0
 ): DerivedReadiness {
   const hasName = !!(contextInfo.name || contextInfo.existing_name);
   const hasRelationship = !!(
@@ -83,7 +98,7 @@ export function deriveAddRecipientReadiness(
   // how broad the answer stayed.
   const hasDistinguishing = !!contextInfo.has_distinguishing_texture;
   const followupUsed = !!contextInfo.specificity_followup_used;
-  const hasSpecificity =
+  let hasSpecificity =
     hasDistinguishing || !!contextInfo.user_skipped_specificity || followupUsed;
 
   let state: ReadinessState;
@@ -100,6 +115,15 @@ export function deriveAddRecipientReadiness(
   } else if (!hasSpecificity) {
     state = "captured_needs_specificity";
   } else {
+    state = "ready";
+  }
+
+  // Guard only texture: every other field is already captured in this state.
+  if (
+    state === "captured_needs_specificity" &&
+    assistantTurns >= SPECIFICITY_TURN_CAP
+  ) {
+    hasSpecificity = true;
     state = "ready";
   }
 
