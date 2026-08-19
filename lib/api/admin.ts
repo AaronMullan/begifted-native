@@ -578,3 +578,241 @@ export async function rollbackToVersion(
 
   if (error) throw error;
 }
+
+// ---------------------------------------------------------------------------
+// Traction dashboard (DEV-393)
+
+export interface WeeklyCount {
+  /** ISO date (YYYY-MM-DD) of the bucket's first day. */
+  weekStart: string;
+  count: number;
+}
+
+export interface WeeklyRunCounts {
+  weekStart: string;
+  ok: number;
+  /** Runs that ended no_results or error. */
+  shortfall: number;
+}
+
+export interface TractionMetrics {
+  totalUsers: number;
+  newUsers7d: number;
+  activeUsers7d: number;
+  /** Percent (0–100) of users with at least one recipient. */
+  activationPct: number;
+  giftsChosenTotal: number;
+  giftsChosen7d: number;
+  signupsByWeek: WeeklyCount[];
+  clicksByWeek: WeeklyCount[];
+  runsByWeek: WeeklyRunCounts[];
+  feedbackActions: { action: string; count: number }[];
+  upcomingOccasions30d: number;
+  trialStatusCounts: { status: string; count: number }[];
+  subscriptionStatusCounts: { status: string; count: number }[];
+  runs7d: { total: number; ok: number; errors: number; timeouts: number };
+}
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const TREND_WEEKS = 8;
+
+/** Rolling 7-day buckets ending now; index 0 is the oldest week. */
+function bucketWeekly(timestamps: string[], now: number): WeeklyCount[] {
+  const horizon = now - TREND_WEEKS * WEEK_MS;
+  const counts = new Array<number>(TREND_WEEKS).fill(0);
+  for (const ts of timestamps) {
+    const t = new Date(ts).getTime();
+    if (Number.isNaN(t) || t < horizon || t > now) continue;
+    const idx = Math.min(TREND_WEEKS - 1, Math.floor((t - horizon) / WEEK_MS));
+    counts[idx] += 1;
+  }
+  return counts.map((count, i) => ({
+    weekStart: new Date(horizon + i * WEEK_MS).toISOString().slice(0, 10),
+    count,
+  }));
+}
+
+function tally(values: (string | null | undefined)[]): {
+  [key: string]: number;
+} {
+  const out: { [key: string]: number } = {};
+  for (const v of values) {
+    if (!v) continue;
+    out[v] = (out[v] ?? 0) + 1;
+  }
+  return out;
+}
+
+/**
+ * All Traction dashboard numbers in one parallel fetch (admin only).
+ * Row-level fetches aggregate client-side, the same trade fetchRecentRuns
+ * makes; the .limit() calls mark where an RPC becomes necessary if volume
+ * outgrows them. Team accounts (profiles.is_admin) are excluded from every
+ * user-behavior metric so admin poking doesn't read as traction.
+ */
+export async function fetchTractionMetrics(): Promise<TractionMetrics> {
+  const now = Date.now();
+  const cutoff7d = new Date(now - WEEK_MS).toISOString();
+  const cutoff8w = new Date(now - TREND_WEEKS * WEEK_MS).toISOString();
+  const today = new Date(now).toISOString().slice(0, 10);
+  const in30d = new Date(now + 30 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+
+  const [
+    profilesRes,
+    recipientsRes,
+    signupsRes,
+    events7dRes,
+    clicksRes,
+    feedbackRes,
+    runsRes,
+    occasionsRes,
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, is_admin, trial_status, subscription_status")
+      .limit(10000),
+    supabase.from("recipients").select("id, user_id").limit(10000),
+    supabase
+      .from("product_events")
+      .select("user_id, created_at")
+      .eq("event_name", "signed_up")
+      .gte("created_at", cutoff8w)
+      .limit(10000),
+    supabase
+      .from("product_events")
+      .select("user_id")
+      .gte("created_at", cutoff7d)
+      .limit(10000),
+    supabase
+      .from("outbound_clicks")
+      .select("user_id, created_at")
+      .gte("created_at", cutoff8w)
+      .limit(10000),
+    supabase
+      .from("gift_feedback")
+      .select("user_id, action, created_at")
+      .limit(10000),
+    supabase
+      .from("gift_generation_runs")
+      .select("created_at, status, timeout_hit")
+      .gte("created_at", cutoff8w)
+      .limit(10000),
+    supabase
+      .from("occasions")
+      .select("recipient_id")
+      .gte("date", today)
+      .lte("date", in30d)
+      .limit(10000),
+  ]);
+
+  const firstError = [
+    profilesRes,
+    recipientsRes,
+    signupsRes,
+    events7dRes,
+    clicksRes,
+    feedbackRes,
+    runsRes,
+    occasionsRes,
+  ].find((r) => r.error)?.error;
+  if (firstError) throw firstError;
+
+  const profiles = profilesRes.data ?? [];
+  const adminIds = new Set(profiles.filter((p) => p.is_admin).map((p) => p.id));
+  const users = profiles.filter((p) => !p.is_admin);
+  const totalUsers = users.length;
+
+  const recipients = (recipientsRes.data ?? []).filter(
+    (r) => !adminIds.has(r.user_id)
+  );
+  const usersWithRecipient = new Set(recipients.map((r) => r.user_id)).size;
+
+  const signups = (signupsRes.data ?? []).filter(
+    (e) => !adminIds.has(e.user_id)
+  );
+  const newUsers7d = signups.filter((e) => e.created_at >= cutoff7d).length;
+
+  const clicks = (clicksRes.data ?? []).filter((c) => !adminIds.has(c.user_id));
+  const feedback = (feedbackRes.data ?? []).filter(
+    (f) => !adminIds.has(f.user_id)
+  );
+
+  // Active User = any engagement row in the trailing 7 days (see CONTEXT.md).
+  const activeIds = new Set<string>();
+  for (const e of events7dRes.data ?? []) activeIds.add(e.user_id);
+  for (const c of clicks) {
+    if (c.created_at >= cutoff7d) activeIds.add(c.user_id);
+  }
+  for (const f of feedback) {
+    if (f.created_at >= cutoff7d) activeIds.add(f.user_id);
+  }
+  for (const id of adminIds) activeIds.delete(id);
+
+  const chose = feedback.filter((f) => f.action === "chose");
+
+  const runs = runsRes.data ?? [];
+  const runsByWeekOk = bucketWeekly(
+    runs.filter((r) => r.status === "ok").map((r) => r.created_at),
+    now
+  );
+  const runsByWeekAll = bucketWeekly(
+    runs.map((r) => r.created_at),
+    now
+  );
+  const runs7dRows = runs.filter((r) => r.created_at >= cutoff7d);
+
+  // Occasions belong to recipients; drop the team's via the recipient map.
+  const recipientOwner = new Map(
+    (recipientsRes.data ?? []).map((r) => [r.id, r.user_id])
+  );
+  const upcomingOccasions30d = (occasionsRes.data ?? []).filter((o) => {
+    const owner = recipientOwner.get(o.recipient_id);
+    return owner !== undefined && !adminIds.has(owner);
+  }).length;
+
+  const trialTally = tally(users.map((u) => u.trial_status));
+  const subTally = tally(users.map((u) => u.subscription_status));
+
+  return {
+    totalUsers,
+    newUsers7d,
+    activeUsers7d: activeIds.size,
+    activationPct:
+      totalUsers === 0
+        ? 0
+        : Math.round((100 * usersWithRecipient) / totalUsers),
+    giftsChosenTotal: chose.length,
+    giftsChosen7d: chose.filter((f) => f.created_at >= cutoff7d).length,
+    signupsByWeek: bucketWeekly(
+      signups.map((e) => e.created_at),
+      now
+    ),
+    clicksByWeek: bucketWeekly(
+      clicks.map((c) => c.created_at),
+      now
+    ),
+    runsByWeek: runsByWeekAll.map((week, i) => ({
+      weekStart: week.weekStart,
+      ok: runsByWeekOk[i].count,
+      shortfall: week.count - runsByWeekOk[i].count,
+    })),
+    feedbackActions: Object.entries(tally(feedback.map((f) => f.action)))
+      .map(([action, count]) => ({ action, count }))
+      .sort((a, b) => b.count - a.count),
+    upcomingOccasions30d,
+    trialStatusCounts: Object.entries(trialTally)
+      .map(([status, count]) => ({ status, count }))
+      .sort((a, b) => b.count - a.count),
+    subscriptionStatusCounts: Object.entries(subTally)
+      .map(([status, count]) => ({ status, count }))
+      .sort((a, b) => b.count - a.count),
+    runs7d: {
+      total: runs7dRows.length,
+      ok: runs7dRows.filter((r) => r.status === "ok").length,
+      errors: runs7dRows.filter((r) => r.status === "error").length,
+      timeouts: runs7dRows.filter((r) => r.timeout_hit).length,
+    },
+  };
+}

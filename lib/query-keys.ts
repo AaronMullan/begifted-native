@@ -63,4 +63,7 @@ export const queryKeys = {
 
   // Admin — Outbound clicks (engagement) viewer
   outboundClicks: (page: number) => ["outboundClicks", page] as const,
+
+  // Admin — Traction dashboard
+  tractionMetrics: ["tractionMetrics"] as const,
 };
