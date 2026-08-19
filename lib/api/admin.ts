@@ -672,10 +672,13 @@ function bucketWeekly(timestamps: string[], now: number): WeeklyCount[] {
  * month/day; one-off occasions keep their stored date.
  */
 function nextOccurrenceMs(
-  dateIso: string,
+  dateIso: string | null,
   isAnnual: boolean,
   todayMs: number
 ): number {
+  // Date-unknown occasions store date: null (see lib/api/occasions.ts); the
+  // untyped client would pass it straight into split() and crash the fetch.
+  if (typeof dateIso !== "string") return NaN;
   const [y, m, d] = dateIso.split("-").map(Number);
   if (!y || !m || !d) return NaN;
   if (!isAnnual) return new Date(y, m - 1, d).getTime();
