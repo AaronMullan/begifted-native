@@ -132,6 +132,8 @@ export interface ContextInfo {
   price_guidance_raw?: string | null;
   has_age_context?: boolean;
   age_context_raw?: string | null;
+  has_distinguishing_texture?: boolean;
+  specificity_followup_used?: boolean;
   user_skipped_specificity?: boolean;
   other_details?: string;
   readiness?: Readiness;

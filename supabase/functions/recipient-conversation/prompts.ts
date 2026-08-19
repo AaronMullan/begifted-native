@@ -4,7 +4,8 @@ import type { ContextInfo } from "../types.ts";
 
 export function buildStateGuidance(
   readinessState: string,
-  recipientName: string
+  recipientName: string,
+  textureNeedsFollowup = false
 ): string {
   switch (readinessState) {
     case "not_captured":
@@ -20,7 +21,9 @@ export function buildStateGuidance(
     case "captured_needs_age":
       return `→ Price is captured. Ask for ${recipientName}'s age, grade, or life-stage context. Do not infer from relationship, hobbies, or occasion.`;
     case "captured_needs_specificity":
-      return `→ Ask the user to describe ${recipientName} naturally — what they're like, their interests, personality, or lifestyle.`;
+      return textureNeedsFollowup
+        ? `→ What we know about ${recipientName} so far is broad. Ask exactly one targeted follow-up that sharpens a single interest they already mentioned, then proceed.`
+        : `→ Ask the user to describe ${recipientName} naturally — what they're like, their interests, personality, or lifestyle.`;
     case "ready":
       return `→ All required information is captured. Use the exact ready response.`;
     default:
@@ -53,7 +56,12 @@ export function buildPriorityGuidance(
 // Default wrap-up message shown when the conversation reaches the "ready" state.
 // Editable via the admin playground under prompt_key "add_recipient_wrap_up".
 // Supports {{recipientName}} interpolation.
-export const ADD_RECIPIENT_WRAP_UP_DEFAULT = `Got it — I have what I need. I'll take it from here and start pulling together a few gift ideas for {{recipientName}}.`;
+//
+// Completion copy must obey the add-recipient prompt's COMPLETION rules: no
+// gift/recommendation/next-step language, no "I'll take it from here", and no
+// reference to the next-step button (which renders below this message). Keep it
+// calm and understated — a plain done-signal, nothing more.
+export const ADD_RECIPIENT_WRAP_UP_DEFAULT = `{{recipientName}} is all set.`;
 
 // Default template for add_recipient_conversation — single source of truth.
 // This matches the structure previously hardcoded in buildAddRecipientPrompt().

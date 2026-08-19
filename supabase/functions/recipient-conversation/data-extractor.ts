@@ -16,6 +16,7 @@ import {
   ADD_RECIPIENT_WRAP_UP_DEFAULT,
   ADD_RECIPIENT_DEFAULT_TEMPLATE,
 } from "./prompts.ts";
+import { deriveAddRecipientReadiness } from "./readiness.ts";
 // @ts-ignore - Deno environment variables are resolved at runtime
 export const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 // @ts-ignore - Deno environment variables are resolved at runtime
@@ -101,6 +102,10 @@ Strong signals include: specific interests/hobbies/obsessions, aesthetic or styl
 
 Weak signals include: broad interests, approximate age or general life stage, loose personality descriptors, generic other details.
 
+DISTINGUISHING vs BROAD texture: a distinguishing signal materially narrows who the recipient is or shows how they engage with something they care about (e.g. "reads mostly history and biographies", "follows the Trail Blazers closely", "collects Japanese vinyl toys"). Broad signals are bare categories that do not distinguish the person (e.g. "books", "sports", "music", "has kids") — and several broad signals stacked together stay broad; quantity is not specificity. Personality-only traits ("funny", "thoughtful", "outgoing") are not distinguishing.
+
+specificity_followup_used: set true only when the assistant has ALREADY asked a targeted texture follow-up (a second texture question that drills into one existing interest, e.g. "What kind of books does he usually reach for?") AND the user has answered it. The initial open-ended "What's [Name] like?" ask does NOT count as the follow-up.
+
 If the conversation only establishes the person and the occasion, but the recipient still feels generic, mark as not gift-ready.
 
 Be accurate, not conservative. If the anchors are clearly satisfied, mark them as true. Only mark an anchor as false if the information is genuinely missing from the conversation.
@@ -120,6 +125,8 @@ Return JSON with what's been established:
   "price_guidance_raw": "exact quote or paraphrase of price/spend mentioned, null if none",
   "has_age_context": false,
   "age_context_raw": "exact age, grade, stage, or life-stage mentioned (e.g. '17', 'high school senior', 'retired', 'toddler'), null if none — do NOT infer from relationship, hobbies, graduation, or occasion alone",
+  "has_distinguishing_texture": false,
+  "specificity_followup_used": false,
   "user_skipped_specificity": false,
   "other_details": "brief summary of other key details gathered",
   "readiness": {
@@ -208,6 +215,7 @@ Return JSON with what's been established:
   // Anchor logic and the deterministic wrap-up are specific to the add_recipient
   // flow. Update flows don't have required anchors — the recipient already
   // exists, so the user decides when to save and the button is always visible.
+  let textureNeedsFollowup = false;
   if (conversationType === "add_recipient") {
     if (!contextInfo.readiness) {
       contextInfo.readiness = {
@@ -224,55 +232,18 @@ Return JSON with what's been established:
       };
     }
 
-    const hasName = !!(contextInfo.name || contextInfo.existing_name);
-    const hasRelationship = !!(
-      contextInfo.relationship || contextInfo.existing_relationship
-    );
-    contextInfo.readiness.has_recipient_anchor = hasName && hasRelationship;
-
-    const hasOccasion =
-      !!(contextInfo.birthday || contextInfo.existing_birthday) ||
-      (Array.isArray(contextInfo.occasions_mentioned) &&
-        contextInfo.occasions_mentioned.length > 0);
-    contextInfo.readiness.has_occasion_anchor = hasOccasion;
-
-    const pendingDates = contextInfo.occasions_needing_dates ?? [];
-    const hasTiming =
-      !contextInfo.needs_occasion_date && pendingDates.length === 0;
-    contextInfo.readiness.has_timing_anchor = hasTiming;
-
-    const hasPrice = !!contextInfo.has_price_guidance;
-    contextInfo.readiness.has_price_anchor = hasPrice;
-
-    const hasAge = !!contextInfo.has_age_context;
-    contextInfo.readiness.has_age_anchor = hasAge;
-
-    const interestCount = (
-      contextInfo.interests ||
-      contextInfo.existing_interests ||
-      []
-    ).length;
-    const hasSpecificity =
-      interestCount >= 1 || !!contextInfo.user_skipped_specificity;
-    contextInfo.readiness.has_specificity_anchor = hasSpecificity;
-
-    if (!contextInfo.readiness.has_recipient_anchor) {
-      contextInfo.readiness.state = "not_captured";
-    } else if (!hasOccasion) {
-      contextInfo.readiness.state = hasSpecificity
-        ? "captured_needs_occasion"
-        : "captured_needs_both";
-    } else if (!hasTiming) {
-      contextInfo.readiness.state = "captured_needs_timing";
-    } else if (!hasPrice) {
-      contextInfo.readiness.state = "captured_needs_price";
-    } else if (!hasAge) {
-      contextInfo.readiness.state = "captured_needs_age";
-    } else if (!hasSpecificity) {
-      contextInfo.readiness.state = "captured_needs_specificity";
-    } else {
-      contextInfo.readiness.state = "ready";
-    }
+    const derived = deriveAddRecipientReadiness(contextInfo);
+    contextInfo.readiness.has_recipient_anchor = derived.hasRecipientAnchor;
+    contextInfo.readiness.has_occasion_anchor = derived.hasOccasion;
+    contextInfo.readiness.has_timing_anchor = derived.hasTiming;
+    contextInfo.readiness.has_price_anchor = derived.hasPrice;
+    contextInfo.readiness.has_age_anchor = derived.hasAge;
+    contextInfo.readiness.has_specificity_anchor = derived.hasSpecificity;
+    contextInfo.readiness.state = derived.state;
+    // Write the effective pending dates (incl. the birthday backstop) back so
+    // priorityGuidance and the {{contextInfo}} the model sees stay consistent.
+    contextInfo.occasions_needing_dates = derived.pendingDates;
+    textureNeedsFollowup = derived.textureNeedsFollowup;
 
     // If all anchors are satisfied, skip the reply LLM entirely — return a
     // deterministic wrap-up so the message and button are always in sync.
@@ -298,7 +269,11 @@ Return JSON with what's been established:
   const readinessState = contextInfo.readiness?.state ?? "not_captured";
   const recipientName =
     contextInfo.name || contextInfo.existing_name || "this person";
-  const stateGuidance = buildStateGuidance(readinessState, recipientName);
+  const stateGuidance = buildStateGuidance(
+    readinessState,
+    recipientName,
+    textureNeedsFollowup
+  );
   const priorityGuidance = buildPriorityGuidance(contextInfo, recipientName);
 
   // Interpolate all template variables into a prompt string
