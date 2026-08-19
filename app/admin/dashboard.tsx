@@ -1,10 +1,6 @@
 import { AdminNavbar } from "@/components/admin/AdminNavbar";
-import {
-  fetchTractionMetrics,
-  type TractionMetrics,
-  type WeeklyCount,
-  type WeeklyRunCounts,
-} from "@/lib/api";
+import { fetchTractionMetrics } from "@/lib/api";
+import type { TractionMetrics, WeeklyCount, WeeklyRunCounts } from "@/lib/api";
 import { Colors } from "@/lib/colors";
 import { queryKeys } from "@/lib/query-keys";
 import { useQuery } from "@tanstack/react-query";
@@ -23,6 +19,11 @@ const SERIES_ALT = Colors.brand.gold;
 const CHART_HEIGHT = 120;
 const BAR_GAP = 6;
 const SEGMENT_GAP = 2;
+
+// The signed_up event sink (a DB trigger on auth.users) has only existed
+// since this date; the trend chart flags older weeks as unrecorded rather
+// than letting them read as zero-signup weeks.
+const SIGNUP_SINK_START = "2026-08-12";
 
 // Admin gating (loading / Access Denied) lives in app/admin/_layout.tsx.
 const DashboardScreen: React.FC = () => {
@@ -93,6 +94,12 @@ const DashboardScreen: React.FC = () => {
 
           <Section title="New signups by week">
             <WeeklyBars data={m.signupsByWeek} />
+            {(m.signupsByWeek[0]?.weekStart ?? "") < SIGNUP_SINK_START && (
+              <Text variant="bodySmall" style={styles.chartFootnote}>
+                Signup tracking began Aug 12, 2026 — weeks before that have no
+                data, not zero signups.
+              </Text>
+            )}
           </Section>
 
           <Section title="Outbound product clicks by week">
@@ -297,16 +304,26 @@ const RunBars: React.FC<{ data: WeeklyRunCounts[] }> = ({ data }) => {
             <Svg width={width} height={CHART_HEIGHT}>
               {data.map((d, i) => {
                 const x = i * (barWidth + BAR_GAP);
-                const okH = (d.ok / max) * CHART_HEIGHT;
-                const shortH = (d.shortfall / max) * CHART_HEIGHT;
+                // Scale into a plot area that leaves headroom for the segment
+                // gap, so the busiest week's top segment isn't clipped by the
+                // SVG edge; floors feed the y positions too, or a floored bar
+                // grows down past the baseline instead of up.
+                const plotHeight = CHART_HEIGHT - SEGMENT_GAP - 3;
+                const okH =
+                  d.ok > 0 ? Math.max((d.ok / max) * plotHeight, 3) : 0;
+                const shortH =
+                  d.shortfall > 0
+                    ? Math.max((d.shortfall / max) * plotHeight, 3)
+                    : 0;
+                const okGap = d.ok > 0 ? SEGMENT_GAP : 0;
                 return (
                   <React.Fragment key={d.weekStart}>
                     {d.shortfall > 0 && (
                       <Rect
                         x={x}
-                        y={CHART_HEIGHT - okH - shortH - SEGMENT_GAP}
+                        y={CHART_HEIGHT - okH - okGap - shortH}
                         width={barWidth}
-                        height={Math.max(shortH, 3)}
+                        height={shortH}
                         rx={2}
                         fill={SERIES_ALT}
                       />
@@ -316,7 +333,7 @@ const RunBars: React.FC<{ data: WeeklyRunCounts[] }> = ({ data }) => {
                         x={x}
                         y={CHART_HEIGHT - okH}
                         width={barWidth}
-                        height={Math.max(okH, 3)}
+                        height={okH}
                         rx={2}
                         fill={SERIES}
                       />
@@ -493,6 +510,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   axisLabel: {
+    color: Colors.grays.placeholder,
+  },
+  chartFootnote: {
+    marginTop: 8,
     color: Colors.grays.placeholder,
   },
   legendRow: {

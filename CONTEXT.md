@@ -18,7 +18,7 @@ _Avoid_: Search — a "search" is a web-search tool call _inside_ a run (`search
 A user with at least one row in `product_events`, `outbound_clicks`, or `gift_feedback` in the trailing 7 days.
 
 **Gift Chosen**:
-A user marking a suggestion as the gift they went with (`gift_feedback.action = 'chose'`). The primary traction signal.
+A suggestion whose latest feedback decision is `chose` — `gift_feedback` is append-only, so only the newest decision per gift counts. The primary traction signal.
 
 **Traction**:
 The admin dashboard answering "is the product being used?" — signups, activation, active users, gifts chosen, clicks, generation health, upcoming occasions, and trial/subscription counts.

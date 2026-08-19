@@ -616,6 +616,39 @@ export interface TractionMetrics {
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const TREND_WEEKS = 8;
 
+// PostgREST clamps every response to the project's max-rows (1000 here), so a
+// larger .limit() silently truncates. Page with .range() on a unique ordering
+// instead; the page cap is a runaway guard, warned about, never silent.
+const PAGE_SIZE = 1000;
+const MAX_PAGES = 20;
+
+async function fetchAll<T>(
+  page: (
+    from: number,
+    to: number
+  ) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
+): Promise<T[]> {
+  const rows: T[] = [];
+  for (let i = 0; i < MAX_PAGES; i++) {
+    const { data, error } = await page(i * PAGE_SIZE, (i + 1) * PAGE_SIZE - 1);
+    if (error) throw error;
+    rows.push(...(data ?? []));
+    if (!data || data.length < PAGE_SIZE) return rows;
+  }
+  console.warn(
+    `[traction] row fetch hit the ${MAX_PAGES * PAGE_SIZE}-row guard; metrics undercount — move this query to an RPC`
+  );
+  return rows;
+}
+
+/** Local calendar date (YYYY-MM-DD) — UTC slicing shifts evening viewers a day. */
+function localDateString(ms: number): string {
+  const d = new Date(ms);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
 /** Rolling 7-day buckets ending now; index 0 is the oldest week. */
 function bucketWeekly(timestamps: string[], now: number): WeeklyCount[] {
   const horizon = now - TREND_WEEKS * WEEK_MS;
@@ -627,9 +660,33 @@ function bucketWeekly(timestamps: string[], now: number): WeeklyCount[] {
     counts[idx] += 1;
   }
   return counts.map((count, i) => ({
-    weekStart: new Date(horizon + i * WEEK_MS).toISOString().slice(0, 10),
+    weekStart: localDateString(horizon + i * WEEK_MS),
     count,
   }));
+}
+
+/**
+ * Next occurrence of an occasion as a local-midnight timestamp. Annual
+ * occasions (birthdays, anniversaries) are often stored with a past date —
+ * see fetchAllOccasions — so they roll forward to this year's or next year's
+ * month/day; one-off occasions keep their stored date.
+ */
+function nextOccurrenceMs(
+  dateIso: string,
+  isAnnual: boolean,
+  todayMs: number
+): number {
+  const [y, m, d] = dateIso.split("-").map(Number);
+  if (!y || !m || !d) return NaN;
+  if (!isAnnual) return new Date(y, m - 1, d).getTime();
+  const thisYear = new Date(
+    new Date(todayMs).getFullYear(),
+    m - 1,
+    d
+  ).getTime();
+  return thisYear >= todayMs
+    ? thisYear
+    : new Date(new Date(todayMs).getFullYear() + 1, m - 1, d).getTime();
 }
 
 function tally(values: (string | null | undefined)[]): {
@@ -645,103 +702,106 @@ function tally(values: (string | null | undefined)[]): {
 
 /**
  * All Traction dashboard numbers in one parallel fetch (admin only).
- * Row-level fetches aggregate client-side, the same trade fetchRecentRuns
- * makes; the .limit() calls mark where an RPC becomes necessary if volume
- * outgrows them. Team accounts (profiles.is_admin) are excluded from every
- * user-behavior metric so admin poking doesn't read as traction.
+ * Row fetches page through PostgREST's max-rows clamp and aggregate
+ * client-side — the same trade fetchRecentRuns makes. Team accounts
+ * (profiles.is_admin) are excluded from every user-behavior metric so
+ * admin poking doesn't read as traction.
  */
 export async function fetchTractionMetrics(): Promise<TractionMetrics> {
   const now = Date.now();
   const cutoff7d = new Date(now - WEEK_MS).toISOString();
   const cutoff8w = new Date(now - TREND_WEEKS * WEEK_MS).toISOString();
-  const today = new Date(now).toISOString().slice(0, 10);
-  const in30d = new Date(now + 30 * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .slice(0, 10);
 
   const [
-    profilesRes,
-    recipientsRes,
-    signupsRes,
-    events7dRes,
-    clicksRes,
-    feedbackRes,
-    runsRes,
-    occasionsRes,
+    profiles,
+    allRecipients,
+    signupRows,
+    events7d,
+    allClicks,
+    allFeedback,
+    runs,
+    occasions,
   ] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("id, is_admin, trial_status, subscription_status")
-      .limit(10000),
-    supabase.from("recipients").select("id, user_id").limit(10000),
-    supabase
-      .from("product_events")
-      .select("user_id, created_at")
-      .eq("event_name", "signed_up")
-      .gte("created_at", cutoff8w)
-      .limit(10000),
-    supabase
-      .from("product_events")
-      .select("user_id")
-      .gte("created_at", cutoff7d)
-      .limit(10000),
-    supabase
-      .from("outbound_clicks")
-      .select("user_id, created_at")
-      .gte("created_at", cutoff8w)
-      .limit(10000),
-    supabase
-      .from("gift_feedback")
-      .select("user_id, action, created_at")
-      .limit(10000),
-    supabase
-      .from("gift_generation_runs")
-      .select("created_at, status, timeout_hit")
-      .gte("created_at", cutoff8w)
-      .limit(10000),
-    supabase
-      .from("occasions")
-      .select("recipient_id")
-      .gte("date", today)
-      .lte("date", in30d)
-      .limit(10000),
+    fetchAll((from, to) =>
+      supabase
+        .from("profiles")
+        .select("id, is_admin, trial_status, subscription_status")
+        .order("id")
+        .range(from, to)
+    ),
+    fetchAll((from, to) =>
+      supabase
+        .from("recipients")
+        .select("id, user_id")
+        .order("id")
+        .range(from, to)
+    ),
+    fetchAll((from, to) =>
+      supabase
+        .from("product_events")
+        .select("user_id, created_at")
+        .eq("event_name", "signed_up")
+        .gte("created_at", cutoff8w)
+        .order("id")
+        .range(from, to)
+    ),
+    fetchAll((from, to) =>
+      supabase
+        .from("product_events")
+        .select("user_id")
+        .gte("created_at", cutoff7d)
+        .order("id")
+        .range(from, to)
+    ),
+    fetchAll((from, to) =>
+      supabase
+        .from("outbound_clicks")
+        .select("user_id, created_at")
+        .gte("created_at", cutoff8w)
+        .order("id")
+        .range(from, to)
+    ),
+    fetchAll((from, to) =>
+      supabase
+        .from("gift_feedback")
+        .select("user_id, gift_suggestion_id, action, created_at")
+        .order("id")
+        .range(from, to)
+    ),
+    fetchAll((from, to) =>
+      supabase
+        .from("gift_generation_runs")
+        .select("created_at, status, timeout_hit")
+        .gte("created_at", cutoff8w)
+        .order("run_id")
+        .range(from, to)
+    ),
+    fetchAll((from, to) =>
+      supabase
+        .from("occasions")
+        .select("recipient_id, date, is_annual")
+        .order("id")
+        .range(from, to)
+    ),
   ]);
 
-  const firstError = [
-    profilesRes,
-    recipientsRes,
-    signupsRes,
-    events7dRes,
-    clicksRes,
-    feedbackRes,
-    runsRes,
-    occasionsRes,
-  ].find((r) => r.error)?.error;
-  if (firstError) throw firstError;
-
-  const profiles = profilesRes.data ?? [];
   const adminIds = new Set(profiles.filter((p) => p.is_admin).map((p) => p.id));
   const users = profiles.filter((p) => !p.is_admin);
   const totalUsers = users.length;
 
-  const recipients = (recipientsRes.data ?? []).filter(
-    (r) => !adminIds.has(r.user_id)
-  );
+  const recipients = allRecipients.filter((r) => !adminIds.has(r.user_id));
   const usersWithRecipient = new Set(recipients.map((r) => r.user_id)).size;
 
-  const signups = (signupsRes.data ?? []).filter(
-    (e) => !adminIds.has(e.user_id)
-  );
+  const signups = signupRows.filter((e) => !adminIds.has(e.user_id));
   const newUsers7d = signups.filter((e) => e.created_at >= cutoff7d).length;
 
-  const clicks = (clicksRes.data ?? []).filter((c) => !adminIds.has(c.user_id));
-  const feedback = (feedbackRes.data ?? []).filter(
-    (f) => !adminIds.has(f.user_id)
-  );
+  const clicks = allClicks.filter((c) => !adminIds.has(c.user_id));
+  const feedback = allFeedback.filter((f) => !adminIds.has(f.user_id));
 
   // Active User = any engagement row in the trailing 7 days (see CONTEXT.md).
+  // Free-text note rows count here (activity), but not as decisions below.
   const activeIds = new Set<string>();
-  for (const e of events7dRes.data ?? []) activeIds.add(e.user_id);
+  for (const e of events7d) activeIds.add(e.user_id);
   for (const c of clicks) {
     if (c.created_at >= cutoff7d) activeIds.add(c.user_id);
   }
@@ -750,9 +810,25 @@ export async function fetchTractionMetrics(): Promise<TractionMetrics> {
   }
   for (const id of adminIds) activeIds.delete(id);
 
-  const chose = feedback.filter((f) => f.action === "chose");
-
-  const runs = runsRes.data ?? [];
+  // gift_feedback is append-only (see GIFT_REMOVAL_ACTIONS in gifts.ts):
+  // consumers must read the latest row per gift. "gift_feedback" rows are
+  // free-text notes, not decisions, so they neither count nor override one.
+  const latestDecision = new Map<
+    string,
+    { action: string; created_at: string }
+  >();
+  for (const f of feedback) {
+    if (f.action === "gift_feedback" || !f.gift_suggestion_id) continue;
+    const prev = latestDecision.get(f.gift_suggestion_id);
+    if (!prev || f.created_at >= prev.created_at) {
+      latestDecision.set(f.gift_suggestion_id, {
+        action: f.action,
+        created_at: f.created_at,
+      });
+    }
+  }
+  const decisions = Array.from(latestDecision.values());
+  const chose = decisions.filter((d) => d.action === "chose");
   const runsByWeekOk = bucketWeekly(
     runs.filter((r) => r.status === "ok").map((r) => r.created_at),
     now
@@ -763,13 +839,17 @@ export async function fetchTractionMetrics(): Promise<TractionMetrics> {
   );
   const runs7dRows = runs.filter((r) => r.created_at >= cutoff7d);
 
-  // Occasions belong to recipients; drop the team's via the recipient map.
-  const recipientOwner = new Map(
-    (recipientsRes.data ?? []).map((r) => [r.id, r.user_id])
-  );
-  const upcomingOccasions30d = (occasionsRes.data ?? []).filter((o) => {
+  // Roll annual occasions forward before windowing — they are often stored
+  // with a past date. Occasions belong to recipients; drop the team's via
+  // the recipient map.
+  const todayStart = new Date(now).setHours(0, 0, 0, 0);
+  const windowEnd = now + 30 * 24 * 60 * 60 * 1000;
+  const recipientOwner = new Map(allRecipients.map((r) => [r.id, r.user_id]));
+  const upcomingOccasions30d = occasions.filter((o) => {
     const owner = recipientOwner.get(o.recipient_id);
-    return owner !== undefined && !adminIds.has(owner);
+    if (owner === undefined || adminIds.has(owner)) return false;
+    const occ = nextOccurrenceMs(o.date, o.is_annual ?? true, todayStart);
+    return !Number.isNaN(occ) && occ >= todayStart && occ <= windowEnd;
   }).length;
 
   const trialTally = tally(users.map((u) => u.trial_status));
@@ -784,7 +864,7 @@ export async function fetchTractionMetrics(): Promise<TractionMetrics> {
         ? 0
         : Math.round((100 * usersWithRecipient) / totalUsers),
     giftsChosenTotal: chose.length,
-    giftsChosen7d: chose.filter((f) => f.created_at >= cutoff7d).length,
+    giftsChosen7d: chose.filter((d) => d.created_at >= cutoff7d).length,
     signupsByWeek: bucketWeekly(
       signups.map((e) => e.created_at),
       now
@@ -798,7 +878,7 @@ export async function fetchTractionMetrics(): Promise<TractionMetrics> {
       ok: runsByWeekOk[i].count,
       shortfall: week.count - runsByWeekOk[i].count,
     })),
-    feedbackActions: Object.entries(tally(feedback.map((f) => f.action)))
+    feedbackActions: Object.entries(tally(decisions.map((d) => d.action)))
       .map(([action, count]) => ({ action, count }))
       .sort((a, b) => b.count - a.count),
     upcomingOccasions30d,

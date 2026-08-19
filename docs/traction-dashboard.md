@@ -26,8 +26,10 @@ Admin screen answering "is the product being used?" for non-engineer teammates (
 Definitions:
 
 - **Active User** = ≥1 row in `product_events` ∪ `outbound_clicks` ∪ `gift_feedback` in the trailing 7 days. (`product_events` alone is a sparse 4-event lifecycle sink and undercounts.)
-- **Gift Chosen** = `gift_feedback.action = 'chose'`.
+- **Gift Chosen** = the suggestion's **latest** feedback decision is `chose` (`gift_feedback` is append-only; free-text `gift_feedback` note rows are activity, not decisions).
 - Success for a Generation Run = `gift_generation_runs.status = 'ok'`.
+- Team accounts (`profiles.is_admin`) are excluded from every user-behavior metric.
+- Signup trend reads `product_events` `signed_up` (DB trigger; sink live since 2026-08-12 — `profiles` has no `created_at`). Annual occasions roll forward before the 30-day window. All row fetches page past PostgREST's 1000-row clamp.
 
 ## Presentation
 
