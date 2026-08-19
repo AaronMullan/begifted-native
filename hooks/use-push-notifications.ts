@@ -7,10 +7,15 @@ import { router } from "expo-router";
 import { useAuth } from "./use-auth";
 import { queryKeys } from "../lib/query-keys";
 import {
+  isPushPermissionGranted,
   needsPushPermissionPrompt,
   registerForPushNotifications,
   unregisterPushToken,
 } from "../lib/push-notifications";
+
+// Don't re-hit Expo/Supabase on every quick app-switch; a token the backend
+// pruned only needs restoring once per resume window, not per resume.
+const FOREGROUND_REREGISTER_INTERVAL_MS = 60 * 60 * 1000;
 
 // "Not now" on the pre-permission explainer is remembered so the sheet doesn't
 // reappear every launch; the OS-level ask is preserved for a future
@@ -133,16 +138,39 @@ export function usePushNotifications(): PushIntroControls {
     return () => subscription.remove();
   }, [queryClient]);
 
-  // Clear badge when app comes to foreground
+  // On foreground: clear the badge and re-register the push token. Registration
+  // otherwise runs only once per JS context (login/cold start), so a token the
+  // backend pruned on `DeviceNotRegistered` — or a first registration that
+  // failed transiently — never comes back while iOS keeps the app suspended
+  // rather than killed, and pushes silently stop even as in-app rows keep
+  // arriving. Re-registering only when permission is already granted never
+  // surfaces the OS prompt; the throttle keeps a quick app-switch from re-hitting
+  // Expo/Supabase each resume.
+  const lastForegroundRegisterAt = useRef(0);
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active") {
-        Notifications.setBadgeCountAsync(0);
+      if (state !== "active") return;
+      Notifications.setBadgeCountAsync(0);
+      const userId = user?.id;
+      if (!userId) return;
+      const now = Date.now();
+      if (
+        now - lastForegroundRegisterAt.current <
+        FOREGROUND_REREGISTER_INTERVAL_MS
+      ) {
+        return;
       }
+      (async () => {
+        if (!(await isPushPermissionGranted())) return;
+        lastForegroundRegisterAt.current = now;
+        await registerForPushNotifications(userId);
+      })().catch((err) =>
+        console.error("[push] Foreground re-registration failed:", err)
+      );
     });
 
     return () => subscription.remove();
-  }, []);
+  }, [user?.id]);
 
   return { introVisible, acceptIntro, declineIntro };
 }

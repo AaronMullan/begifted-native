@@ -18,6 +18,18 @@ export async function needsPushPermissionPrompt(): Promise<boolean> {
 }
 
 /**
+ * True when push permission is already granted. Callers use this to re-register
+ * silently (e.g. on app foreground) without ever surfacing the OS prompt — a
+ * token the backend pruned on `DeviceNotRegistered` self-heals only for users
+ * who already opted in.
+ */
+export async function isPushPermissionGranted(): Promise<boolean> {
+  if (!Device.isDevice) return false;
+  const { status } = await Notifications.getPermissionsAsync();
+  return status === "granted";
+}
+
+/**
  * Register for push notifications and store the token in Supabase.
  * No-ops on simulators. Logs errors but never throws.
  */
