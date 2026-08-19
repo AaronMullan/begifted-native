@@ -148,6 +148,9 @@ export function usePushNotifications(): PushIntroControls {
   // Expo/Supabase each resume.
   const lastForegroundRegisterAt = useRef(0);
   useEffect(() => {
+    // Reset per user so a newly signed-in account isn't throttled out of its
+    // first self-heal by the previous account's timestamp.
+    lastForegroundRegisterAt.current = 0;
     const subscription = AppState.addEventListener("change", (state) => {
       if (state !== "active") return;
       Notifications.setBadgeCountAsync(0);
@@ -160,13 +163,22 @@ export function usePushNotifications(): PushIntroControls {
       ) {
         return;
       }
+      // Reserve the throttle slot synchronously so a duplicate "active" event
+      // can't launch a second concurrent registration; roll it back on any path
+      // that did no network work, so a transient failure retries next foreground
+      // instead of waiting out the window.
+      const previous = lastForegroundRegisterAt.current;
+      lastForegroundRegisterAt.current = now;
       (async () => {
-        if (!(await isPushPermissionGranted())) return;
-        lastForegroundRegisterAt.current = now;
+        if (!(await isPushPermissionGranted())) {
+          lastForegroundRegisterAt.current = previous;
+          return;
+        }
         await registerForPushNotifications(userId);
-      })().catch((err) =>
-        console.error("[push] Foreground re-registration failed:", err)
-      );
+      })().catch((err) => {
+        lastForegroundRegisterAt.current = previous;
+        console.error("[push] Foreground re-registration failed:", err);
+      });
     });
 
     return () => subscription.remove();
