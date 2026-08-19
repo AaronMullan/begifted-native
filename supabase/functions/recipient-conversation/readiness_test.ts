@@ -1,0 +1,184 @@
+import { assert, assertEquals } from "jsr:@std/assert@1";
+import { deriveAddRecipientReadiness } from "./readiness.ts";
+import type { ContextInfo } from "../types.ts";
+
+// The Daniel test (DEV-398): brother, "Birthday and Christmas", $100, age 44,
+// "reads a lot, into sports, has two kids". Each case below is the extractor's
+// read of the conversation at one turn; the derived state is what routes the
+// reply. The three regressions this guards are: timing skipped, specificity
+// follow-up skipped, and premature "ready".
+
+function base(overrides: Partial<ContextInfo> = {}): ContextInfo {
+  return {
+    name: "Daniel",
+    relationship: "brother",
+    occasions_mentioned: ["birthday", "christmas"],
+    needs_occasion_date: false,
+    occasions_needing_dates: [],
+    has_price_guidance: false,
+    has_age_context: false,
+    has_distinguishing_texture: false,
+    specificity_followup_used: false,
+    user_skipped_specificity: false,
+    interests: [],
+    ...overrides,
+  };
+}
+
+Deno.test("birthday named without a date blocks readiness on timing", () => {
+  // Extractor dropped birthday from occasions_needing_dates (the real bug).
+  const derived = deriveAddRecipientReadiness(base());
+  assertEquals(derived.state, "captured_needs_timing");
+  assert(!derived.hasTiming);
+  assert(derived.pendingDates.some((o) => /birthday/i.test(o)));
+});
+
+Deno.test("captured birthday date satisfies timing", () => {
+  const derived = deriveAddRecipientReadiness(base({ birthday: "--08-14" }));
+  assert(derived.hasTiming);
+  // Next missing field is price, not timing.
+  assertEquals(derived.state, "captured_needs_price");
+});
+
+Deno.test("broad-only texture is not specificity — routes to follow-up", () => {
+  const derived = deriveAddRecipientReadiness(
+    base({
+      birthday: "--08-14",
+      has_price_guidance: true,
+      has_age_context: true,
+      interests: ["reading", "sports", "kids"],
+      has_distinguishing_texture: false,
+    })
+  );
+  assertEquals(derived.state, "captured_needs_specificity");
+  assert(derived.textureNeedsFollowup);
+  assert(!derived.hasSpecificity);
+});
+
+Deno.test("distinguishing texture completes the intake", () => {
+  const derived = deriveAddRecipientReadiness(
+    base({
+      birthday: "--08-14",
+      has_price_guidance: true,
+      has_age_context: true,
+      interests: ["mostly history and biographies"],
+      has_distinguishing_texture: true,
+    })
+  );
+  assertEquals(derived.state, "ready");
+  assert(derived.hasSpecificity);
+});
+
+Deno.test(
+  "one follow-up cap — already-used follow-up completes even if still broad",
+  () => {
+    const derived = deriveAddRecipientReadiness(
+      base({
+        birthday: "--08-14",
+        has_price_guidance: true,
+        has_age_context: true,
+        interests: ["reading", "sports", "kids"],
+        has_distinguishing_texture: false,
+        specificity_followup_used: true,
+      })
+    );
+    assertEquals(derived.state, "ready");
+    assert(!derived.textureNeedsFollowup);
+  }
+);
+
+Deno.test("explicit skip completes the intake", () => {
+  const derived = deriveAddRecipientReadiness(
+    base({
+      birthday: "--08-14",
+      has_price_guidance: true,
+      has_age_context: true,
+      user_skipped_specificity: true,
+    })
+  );
+  assertEquals(derived.state, "ready");
+});
+
+Deno.test(
+  "missing texture asks the initial open-ended question, not the follow-up",
+  () => {
+    const derived = deriveAddRecipientReadiness(
+      base({
+        birthday: "--08-14",
+        has_price_guidance: true,
+        has_age_context: true,
+        interests: [],
+      })
+    );
+    assertEquals(derived.state, "captured_needs_specificity");
+    assert(!derived.textureNeedsFollowup);
+  }
+);
+
+Deno.test(
+  "termination guard completes a stuck texture loop after the turn cap",
+  () => {
+    // Extractor never flips specificity_followup_used; without the guard this
+    // would loop forever and the next-step button (ready-only) would never show.
+    const stuck = base({
+      birthday: "--08-14",
+      has_price_guidance: true,
+      has_age_context: true,
+      interests: ["reading", "sports", "kids"],
+      has_distinguishing_texture: false,
+      specificity_followup_used: false,
+    });
+    assertEquals(
+      deriveAddRecipientReadiness(stuck, 9).state,
+      "captured_needs_specificity"
+    );
+    assertEquals(deriveAddRecipientReadiness(stuck, 10).state, "ready");
+  }
+);
+
+Deno.test(
+  "termination guard cannot force-complete a missing higher-priority field",
+  () => {
+    // Price still missing at a high turn count → guard must NOT fire; the flow
+    // stays on price, never jumping to ready on an incomplete recipient.
+    const noPrice = base({
+      birthday: "--08-14",
+      has_price_guidance: false,
+      has_age_context: true,
+      interests: ["reading", "sports", "kids"],
+    });
+    assertEquals(
+      deriveAddRecipientReadiness(noPrice, 20).state,
+      "captured_needs_price"
+    );
+  }
+);
+
+Deno.test("no recipient identity is not_captured", () => {
+  const derived = deriveAddRecipientReadiness(
+    base({ name: null, relationship: null })
+  );
+  assertEquals(derived.state, "not_captured");
+});
+
+Deno.test("inferable-only occasions (Christmas) need no date", () => {
+  const derived = deriveAddRecipientReadiness(
+    base({ occasions_mentioned: ["christmas"] })
+  );
+  assert(derived.hasTiming);
+  assertEquals(derived.pendingDates.length, 0);
+});
+
+Deno.test(
+  "extractor-reported non-birthday pending date still blocks timing",
+  () => {
+    const derived = deriveAddRecipientReadiness(
+      base({
+        occasions_mentioned: ["graduation"],
+        occasions_needing_dates: ["graduation"],
+      })
+    );
+    assertEquals(derived.state, "captured_needs_timing");
+    assert(!derived.hasTiming);
+  }
+);
