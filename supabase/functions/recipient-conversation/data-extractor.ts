@@ -248,9 +248,19 @@ Return JSON with what's been established:
     contextInfo.occasions_needing_dates = derived.pendingDates;
     textureNeedsFollowup = derived.textureNeedsFollowup;
 
-    // If all anchors are satisfied, skip the reply LLM entirely — return a
-    // deterministic wrap-up so the message and button are always in sync.
-    if (contextInfo.readiness.state === "ready") {
+    // All anchors are satisfied. When the answer that just made the recipient
+    // ready carried meaningful (distinguishing) texture, don't short-circuit
+    // the reply LLM: let the Add Recipient prompt generate its brief
+    // recognition-without-praise before the flow closes (ready-state guidance
+    // instructs one short acknowledgment, no further question, concise close).
+    // Every other path to "ready" — an explicit skip, a vague follow-up answer,
+    // or the one-follow-up cap — has no meaningful detail to acknowledge, so a
+    // generated line would only invent meaning; keep the deterministic wrap-up
+    // there. The next-step button shows either way.
+    if (
+      contextInfo.readiness.state === "ready" &&
+      !contextInfo.has_distinguishing_texture
+    ) {
       const wrapUpName =
         contextInfo.name || contextInfo.existing_name || "this person";
       const wrapUpTemplate = await loadActivePrompt(
@@ -371,13 +381,17 @@ Return JSON with what's been established:
     }
   }
 
-  // For add_recipient, anchors weren't all satisfied yet — button stays hidden
-  // until the wrap-up branch above fires. For every other conversation type
-  // (update_field, extract_*) the recipient already exists, so the user can
-  // save at any point.
+  // For add_recipient the button stays hidden until the recipient is ready:
+  // either the deterministic wrap-up branch above fired, or we fell through to
+  // the reply LLM at "ready" to let the prompt acknowledge the final meaningful
+  // answer — in which case the button must still show. For every other
+  // conversation type (update_field, extract_*) the recipient already exists,
+  // so the user can save at any point.
   return {
     reply,
-    shouldShowNextStepButton: conversationType !== "add_recipient",
+    shouldShowNextStepButton:
+      conversationType !== "add_recipient" ||
+      contextInfo.readiness?.state === "ready",
     conversationContext: contextInfo,
     resolvedSystemPrompt: systemPrompt,
   };
