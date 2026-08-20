@@ -1,4 +1,4 @@
-import { Colors } from "@/lib/colors";
+import { AdminTheme } from "@/lib/admin-theme";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
@@ -24,7 +24,7 @@ export const CronAvoidListView: React.FC<{
 
 const styles = StyleSheet.create({
   productionContextLabel: {
-    color: Colors.darks.brown,
+    color: AdminTheme.text,
     fontWeight: "600",
   },
   cronAvoidList: {
@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   cronAvoidItem: {
-    color: Colors.darks.brown,
+    color: AdminTheme.text,
     paddingLeft: 8,
   },
 });

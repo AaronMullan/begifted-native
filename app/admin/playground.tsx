@@ -11,8 +11,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePromptPlayground } from "@/hooks/use-prompt-playground";
 import type { Provider } from "@/lib/ai-models";
 import { PROVIDER_MODELS } from "@/lib/ai-models";
+import { AdminTheme } from "@/lib/admin-theme";
 import type { AdminProfileListItem } from "@/lib/api";
-import { Colors } from "@/lib/colors";
 import type { PromptDefinition } from "@/lib/prompt-registry";
 import type { Recipient } from "@/types/recipient";
 import { useRouter } from "expo-router";
@@ -184,7 +184,7 @@ const PlaygroundContent: React.FC<PlaygroundContentProps> = ({
             onPress={() => setShowDeployDialog(true)}
             disabled={!playground.hasPromptChanged || playground.isDeploying}
             loading={playground.isDeploying}
-            buttonColor={Colors.blues.teal}
+            buttonColor={AdminTheme.accent}
             icon="rocket-launch"
             style={styles.headerButton}
           >
@@ -1280,7 +1280,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: "#f8f8f8",
+    backgroundColor: AdminTheme.screenBg,
   },
   scrollContent: {
     padding: 16,
@@ -1332,13 +1332,13 @@ const styles = StyleSheet.create({
   },
   historyItemActive: {
     borderWidth: 2,
-    borderColor: Colors.darks.black,
+    borderColor: AdminTheme.accentBright,
   },
   activeRunChip: {
-    backgroundColor: Colors.darks.black,
+    backgroundColor: "rgba(127,212,196,0.18)",
   },
   activeRunChipText: {
-    color: Colors.white,
+    color: AdminTheme.good,
   },
   resultContentColumn: {
     flex: 1,
@@ -1358,10 +1358,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   metaProviderChip: {
-    backgroundColor: "#e8f4f8",
+    backgroundColor: AdminTheme.panelStrong,
   },
   metaChip: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: AdminTheme.panelStrong,
   },
   panel: {
     gap: 12,
@@ -1381,7 +1381,9 @@ const styles = StyleSheet.create({
   // Cards
   card: {
     borderRadius: 12,
-    backgroundColor: Colors.white,
+    backgroundColor: AdminTheme.panel,
+    borderWidth: 1,
+    borderColor: AdminTheme.border,
   },
   cardTitle: {
     fontWeight: "600",
@@ -1399,18 +1401,18 @@ const styles = StyleSheet.create({
 
   // Test model card
   diffFromProdBadge: {
-    backgroundColor: Colors.yellows.amber,
+    backgroundColor: "rgba(171,138,62,0.28)",
   },
   testModelHint: {
-    color: "#888",
+    color: AdminTheme.muted,
     marginTop: 8,
   },
   testModelHintLink: {
-    color: Colors.blues.dark,
+    color: AdminTheme.accentBright,
     textDecorationLine: "underline",
   },
   testModelProd: {
-    color: "#222",
+    color: AdminTheme.text,
     fontWeight: "600",
   },
   segmentedButtons: {
@@ -1425,7 +1427,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     marginTop: 8,
     marginBottom: 4,
-    color: Colors.darks.brown,
+    color: AdminTheme.muted,
   },
   selector: {
     borderRadius: 8,
@@ -1443,19 +1445,19 @@ const styles = StyleSheet.create({
 
   // Non-gift context panel
   promptDescription: {
-    color: Colors.darks.brown,
+    color: AdminTheme.muted,
     marginBottom: 12,
   },
   templateVarsSection: {
     marginTop: 8,
   },
   templateVarChip: {
-    backgroundColor: "#e8f4f8",
+    backgroundColor: AdminTheme.panelStrong,
     fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
   },
   testTextInput: {
     marginTop: 8,
-    backgroundColor: Colors.white,
+    backgroundColor: AdminTheme.inset,
     // eslint-disable-next-line no-restricted-syntax -- dense admin tooling is off the design type scale
     fontSize: 13,
   },
@@ -1466,23 +1468,23 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   testMessageRole: {
-    backgroundColor: "#e8f4f8",
+    backgroundColor: AdminTheme.panelStrong,
   },
   testMessageText: {
     flex: 1,
-    color: Colors.darks.brown,
+    color: AdminTheme.text,
   },
 
   // CIS
   cisSecondary: {
-    color: Colors.darks.brown,
+    color: AdminTheme.muted,
     fontStyle: "italic",
   },
   cisInputOutline: {
     borderRadius: 6,
   },
   cisFieldLabel: {
-    color: Colors.darks.brown,
+    color: AdminTheme.muted,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     // eslint-disable-next-line no-restricted-syntax -- dense admin tooling is off the design type scale
@@ -1507,12 +1509,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   modifiedBadge: {
-    backgroundColor: Colors.yellows.amber,
+    backgroundColor: "rgba(171,138,62,0.28)",
   },
   promptInput: {
     // eslint-disable-next-line no-restricted-syntax -- dense admin tooling is off the design type scale
     fontSize: 13,
-    backgroundColor: Colors.white,
+    backgroundColor: AdminTheme.inset,
   },
   promptOutline: {
     borderRadius: 6,
@@ -1530,7 +1532,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
   },
   defaultPromptBox: {
-    backgroundColor: "#f5f5f5",
+    backgroundColor: AdminTheme.inset,
     borderRadius: 8,
     padding: 12,
     marginTop: 4,
@@ -1539,7 +1541,7 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
     // eslint-disable-next-line no-restricted-syntax -- monospace readout; the type scale has no mono token
     fontSize: 11,
-    color: Colors.darks.brown,
+    color: AdminTheme.text,
   },
 
   // Chat
@@ -1557,19 +1559,19 @@ const styles = StyleSheet.create({
   conversationScroll: {
     maxHeight: 350,
     borderRadius: 8,
-    backgroundColor: "#fafafa",
+    backgroundColor: AdminTheme.inset,
     padding: 8,
     marginBottom: 8,
   },
   welcomeMessage: {
     padding: 12,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: AdminTheme.panelStrong,
     borderRadius: 10,
     marginBottom: 8,
     gap: 8,
   },
   welcomeText: {
-    color: Colors.darks.brown,
+    color: AdminTheme.muted,
     fontStyle: "italic",
   },
   messageBubble: {
@@ -1580,24 +1582,24 @@ const styles = StyleSheet.create({
   },
   userBubble: {
     alignSelf: "flex-end",
-    backgroundColor: Colors.darks.black,
+    backgroundColor: AdminTheme.accent,
     borderBottomRightRadius: 4,
   },
   assistantBubble: {
     alignSelf: "flex-start",
-    backgroundColor: "#f0f0f0",
+    backgroundColor: AdminTheme.panelStrong,
     borderBottomLeftRadius: 4,
   },
   userText: {
-    color: Colors.white,
+    color: AdminTheme.textStrong,
   },
   assistantText: {
-    color: Colors.darks.black,
+    color: AdminTheme.text,
   },
   loadingBubble: {
     alignSelf: "flex-start",
     padding: 12,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: AdminTheme.panelStrong,
     borderRadius: 14,
     borderBottomLeftRadius: 4,
   },
@@ -1607,11 +1609,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: "#e8e8e8",
-    backgroundColor: "#f9f9f9",
+    borderTopColor: AdminTheme.border,
+    backgroundColor: AdminTheme.panelStrong,
   },
   approveButton: {
-    backgroundColor: Colors.darks.black,
+    backgroundColor: AdminTheme.accent,
   },
   chatInputRow: {
     flexDirection: "row",
@@ -1619,11 +1621,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderTopWidth: 1,
-    borderTopColor: "#e8e8e8",
+    borderTopColor: AdminTheme.border,
   },
   chatInputField: {
     flex: 1,
-    backgroundColor: Colors.white,
+    backgroundColor: AdminTheme.inset,
   },
 
   // Results
@@ -1636,7 +1638,7 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
   },
   emptyResultsText: {
-    color: Colors.darks.brown,
+    color: AdminTheme.muted,
     textAlign: "center",
   },
 
@@ -1646,7 +1648,7 @@ const styles = StyleSheet.create({
   },
   historyItem: {
     borderRadius: 8,
-    backgroundColor: "#fafafa",
+    backgroundColor: AdminTheme.panel,
   },
   historyItemContent: {
     paddingVertical: 8,
@@ -1659,17 +1661,17 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   historyModelText: {
-    color: Colors.darks.brown,
+    color: AdminTheme.muted,
     marginTop: 2,
   },
   historyModelChip: {
     height: 24,
   },
   historyDate: {
-    color: Colors.darks.brown,
+    color: AdminTheme.faint,
   },
   historyPreview: {
-    color: "#555",
+    color: AdminTheme.muted,
   },
 
   // Dialog
@@ -1687,7 +1689,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cronToggleHint: {
-    color: "#888",
+    color: AdminTheme.muted,
     marginTop: 2,
   },
 
@@ -1700,12 +1702,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   productionContextLabel: {
-    color: Colors.darks.brown,
+    color: AdminTheme.muted,
     fontWeight: "600",
   },
   productionContextScroll: {
     maxHeight: 200,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: AdminTheme.inset,
     borderRadius: 8,
     padding: 10,
   },

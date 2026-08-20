@@ -2,7 +2,7 @@ import {
   errorStyles,
   resultStyles,
 } from "@/components/admin/playground/result-styles";
-import { Colors } from "@/lib/colors";
+import { AdminTheme } from "@/lib/admin-theme";
 import React, { useState } from "react";
 import { ScrollView, View } from "react-native";
 import { Button, Chip, Text } from "react-native-paper";
@@ -145,7 +145,7 @@ export const PreferencesResultView: React.FC<{
         {"Step 4 — Extracted user_summary (what the app stores)"}
       </Text>
       {!us ? (
-        <Text variant="bodyMedium" style={{ color: Colors.darks.brown }}>
+        <Text variant="bodyMedium" style={{ color: AdminTheme.text }}>
           No summary extracted.
         </Text>
       ) : (
@@ -155,14 +155,14 @@ export const PreferencesResultView: React.FC<{
               <Text
                 variant="labelSmall"
                 style={{
-                  color: Colors.darks.brown,
+                  color: AdminTheme.text,
                   fontWeight: "700",
                   marginBottom: 2,
                 }}
               >
                 Summary
               </Text>
-              <Text variant="bodyMedium" style={{ color: Colors.darks.brown }}>
+              <Text variant="bodyMedium" style={{ color: AdminTheme.text }}>
                 {us.user_summary}
               </Text>
             </View>
@@ -174,7 +174,7 @@ export const PreferencesResultView: React.FC<{
                 <Text
                   variant="labelSmall"
                   style={{
-                    color: Colors.darks.brown,
+                    color: AdminTheme.text,
                     fontWeight: "700",
                     marginBottom: 2,
                   }}
@@ -185,7 +185,7 @@ export const PreferencesResultView: React.FC<{
                   <Text
                     key={i}
                     variant="bodyMedium"
-                    style={{ color: Colors.darks.brown }}
+                    style={{ color: AdminTheme.text }}
                   >
                     • {item}
                   </Text>
@@ -196,7 +196,7 @@ export const PreferencesResultView: React.FC<{
           {typeof us.confidence === "string" && (
             <Text
               variant="labelSmall"
-              style={{ color: Colors.darks.brown, marginTop: 4 }}
+              style={{ color: AdminTheme.text, marginTop: 4 }}
             >
               Confidence: {us.confidence}
             </Text>

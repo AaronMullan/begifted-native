@@ -1,4 +1,4 @@
-import { Colors } from "@/lib/colors";
+import { AdminTheme } from "@/lib/admin-theme";
 import { Platform, StyleSheet } from "react-native";
 
 export const resultStyles = StyleSheet.create({
@@ -8,13 +8,13 @@ export const resultStyles = StyleSheet.create({
     marginBottom: 4,
   },
   activeChip: {
-    backgroundColor: "#d4edda",
+    backgroundColor: "rgba(127,212,196,0.18)",
   },
   inactiveChip: {
-    backgroundColor: "#e2e3e5",
+    backgroundColor: "rgba(255,255,255,0.08)",
   },
   sectionLabel: {
-    color: Colors.darks.brown,
+    color: AdminTheme.faint,
     marginBottom: 4,
   },
   collapseBtn: {
@@ -22,13 +22,13 @@ export const resultStyles = StyleSheet.create({
     marginTop: 4,
   },
   contextBox: {
-    backgroundColor: "#f5f5f5",
+    backgroundColor: AdminTheme.inset,
     borderRadius: 8,
     padding: 12,
     gap: 4,
   },
   contextField: {
-    color: Colors.darks.brown,
+    color: AdminTheme.text,
   },
   chipRow: {
     flexDirection: "row",
@@ -37,13 +37,13 @@ export const resultStyles = StyleSheet.create({
     alignItems: "center",
   },
   contextChip: {
-    backgroundColor: "#e8e8e8",
+    backgroundColor: AdminTheme.panelStrong,
   },
   anchorActive: {
-    backgroundColor: "#d4edda",
+    backgroundColor: "rgba(127,212,196,0.18)",
   },
   anchorMissing: {
-    backgroundColor: "#f8d7da",
+    backgroundColor: "rgba(173,75,95,0.22)",
   },
   occasionHeader: {
     flexDirection: "row",
@@ -52,13 +52,13 @@ export const resultStyles = StyleSheet.create({
     marginBottom: 4,
   },
   milestoneChip: {
-    backgroundColor: Colors.yellows.amber,
+    backgroundColor: "rgba(171,138,62,0.28)",
   },
   occasionDate: {
-    color: Colors.darks.brown,
+    color: AdminTheme.muted,
   },
   reasoning: {
-    color: Colors.darks.brown,
+    color: AdminTheme.muted,
     fontStyle: "italic",
     marginTop: 4,
   },
@@ -66,7 +66,7 @@ export const resultStyles = StyleSheet.create({
     marginTop: 12,
   },
   summaryBox: {
-    backgroundColor: "#f5f5f5",
+    backgroundColor: AdminTheme.inset,
     borderRadius: 8,
     padding: 12,
   },
@@ -78,14 +78,14 @@ export const resultStyles = StyleSheet.create({
     // eslint-disable-next-line no-restricted-syntax -- monospace readout; the type scale has no mono token
     fontSize: 11,
     lineHeight: 16,
-    color: Colors.darks.brown,
+    color: AdminTheme.text,
   },
   processIntro: {
-    color: Colors.darks.brown,
+    color: AdminTheme.text,
     marginBottom: 8,
   },
   stepHeader: {
-    color: Colors.darks.brown,
+    color: AdminTheme.textStrong,
     fontWeight: "700",
     marginTop: 12,
     marginBottom: 4,
@@ -95,10 +95,10 @@ export const resultStyles = StyleSheet.create({
 export const errorStyles = StyleSheet.create({
   resultError: {
     padding: 12,
-    backgroundColor: "#fce4ec",
+    backgroundColor: "rgba(173,75,95,0.18)",
     borderRadius: 8,
   },
   errorText: {
-    color: Colors.pinks.dark,
+    color: AdminTheme.bad,
   },
 });

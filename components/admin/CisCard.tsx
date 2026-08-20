@@ -12,7 +12,7 @@ import {
   Badge,
 } from "react-native-paper";
 import type { CISPreview } from "@/hooks/use-prompt-playground";
-import { Colors } from "@/lib/colors";
+import { AdminTheme } from "@/lib/admin-theme";
 
 type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
@@ -489,7 +489,9 @@ const styles = StyleSheet.create({
   card: {
     marginBottom: 12,
     borderRadius: 12,
-    backgroundColor: Colors.white,
+    backgroundColor: AdminTheme.panel,
+    borderWidth: 1,
+    borderColor: AdminTheme.border,
   },
   cardTitleRow: {
     flexDirection: "row",
@@ -513,7 +515,7 @@ const styles = StyleSheet.create({
     margin: 0,
   },
   editedBadgeTitle: {
-    backgroundColor: "#f59e0b",
+    backgroundColor: AdminTheme.gold,
   },
   cisLoading: {
     marginVertical: 12,
@@ -531,12 +533,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   cisSectionLabel: {
-    color: "#666",
+    color: AdminTheme.muted,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   editedBadge: {
-    backgroundColor: "#f59e0b",
+    backgroundColor: AdminTheme.gold,
   },
   cisInput: {
     marginBottom: 8,
@@ -555,7 +557,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cisFieldLabel: {
-    color: "#888",
+    color: AdminTheme.muted,
     marginBottom: 4,
   },
   cisChipRow: {
@@ -565,13 +567,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   cisInterestChip: {
-    backgroundColor: "#e0f2fe",
+    backgroundColor: "rgba(127,212,196,0.18)",
   },
   cisAvoidChip: {
-    backgroundColor: "#fee2e2",
+    backgroundColor: "rgba(173,75,95,0.18)",
   },
   addChip: {
-    backgroundColor: "#f3f4f6",
+    backgroundColor: AdminTheme.panelStrong,
   },
   inlineAddRow: {
     flexDirection: "row",
@@ -588,17 +590,17 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   cisSecondary: {
-    color: "#888",
+    color: AdminTheme.muted,
     marginVertical: 8,
   },
   synthesizedProfileBox: {
-    backgroundColor: "#f8f9fa",
+    backgroundColor: AdminTheme.inset,
     borderRadius: 6,
     padding: 8,
     marginBottom: 8,
   },
   synthesizedProfileText: {
-    color: "#444",
+    color: AdminTheme.text,
     lineHeight: 18,
   },
   priorGiftRow: {
@@ -609,7 +611,7 @@ const styles = StyleSheet.create({
   },
   priorGiftText: {
     flex: 1,
-    color: "#555",
+    color: AdminTheme.text,
   },
   removeGiftButton: {
     margin: 0,
