@@ -439,7 +439,7 @@ const RunCard: React.FC<{
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "transparent",
+    backgroundColor: AdminTheme.screenBg,
   },
   scrollContent: {
     padding: 16,

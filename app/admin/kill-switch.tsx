@@ -168,7 +168,7 @@ const KillSwitchRow: React.FC<KillSwitchRowProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "transparent",
+    backgroundColor: AdminTheme.screenBg,
   },
   scrollContent: {
     padding: 16,
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
-    backgroundColor: "transparent",
+    backgroundColor: AdminTheme.screenBg,
   },
   subtitle: {
     color: AdminTheme.muted,

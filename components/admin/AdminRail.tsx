@@ -48,6 +48,9 @@ export const AdminRail: React.FC = () => {
             <Pressable
               key={link.path}
               onPress={() => !active && router.push(link.path)}
+              accessibilityRole="link"
+              accessibilityLabel={link.label}
+              accessibilityState={{ selected: active }}
               style={[styles.railItem, active && styles.railItemActive]}
             >
               <MaterialIcons
@@ -86,6 +89,9 @@ export const AdminTopNav: React.FC = () => {
             <Pressable
               key={link.path}
               onPress={() => !active && router.push(link.path)}
+              accessibilityRole="link"
+              accessibilityLabel={link.label}
+              accessibilityState={{ selected: active }}
               style={[styles.topItem, active && styles.railItemActive]}
             >
               <MaterialIcons
@@ -114,6 +120,7 @@ const styles = StyleSheet.create({
     paddingBottom: 18,
     borderRightWidth: 1,
     borderRightColor: AdminTheme.border,
+    backgroundColor: AdminTheme.railBg,
     height: "100%",
   },
   brand: {
@@ -169,6 +176,7 @@ const styles = StyleSheet.create({
   topNavWrap: {
     borderBottomWidth: 1,
     borderBottomColor: AdminTheme.border,
+    backgroundColor: AdminTheme.railBg,
   },
   topNav: {
     flexDirection: "row",

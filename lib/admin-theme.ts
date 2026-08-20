@@ -13,8 +13,16 @@ import { Platform } from "react-native";
 import { MD3DarkTheme } from "react-native-paper";
 
 export const AdminTheme = {
-  // Page ground — vertical dark-teal gradient (top → bottom).
+  // Page ground — vertical dark-teal gradient (top → bottom), used behind the
+  // rail and the narrow-mode top nav.
   gradient: ["#1F5666", "#163F4D", "#0F2B34"] as const,
+
+  // Solid grounds painted directly on the screens and rail. The Expo Router
+  // stack scene is opaque on web, so the gradient does not bleed through to the
+  // content — screens carry their own solid dark ground instead. Kept dark
+  // enough that muted/faint text clears WCAG AA (4.5:1) on top.
+  screenBg: "#0F2B34",
+  railBg: "#0B2129",
 
   // Translucent surfaces layered over the gradient.
   panel: "rgba(255,255,255,0.045)",
@@ -27,7 +35,9 @@ export const AdminTheme = {
   textStrong: "#FFFFFF",
   text: "#DFE9EC",
   muted: "#8FA8AF",
-  faint: "#6F8A91",
+  // Bumped from #6F8A91 (~3:1) so small dimmed text (axis labels, dates,
+  // footnotes) clears AA on the dark ground while staying dimmer than `muted`.
+  faint: "#7E999F",
 
   // Accents / semantic state.
   accent: "#04697E", // buttonTeal
