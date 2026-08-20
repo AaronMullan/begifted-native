@@ -2,9 +2,14 @@ import React, { useImperativeHandle, useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Button, Text } from "react-native-paper";
 import {
+  BottomSheetFooter,
   BottomSheetModal,
+  BottomSheetScrollView,
   BottomSheetTextInput,
-  BottomSheetView,
+} from "@gorhom/bottom-sheet";
+import type {
+  BottomSheetFooterProps,
+  BottomSheetScrollViewMethods,
 } from "@gorhom/bottom-sheet";
 import { Colors } from "../../lib/colors";
 import { Typography } from "../../lib/typography";
@@ -84,6 +89,7 @@ type MomentDateSectionProps = {
   dateInput: string;
   dateError: string;
   onDateChange: (text: string) => void;
+  onDateFocus: () => void;
   suggestionDates: Record<string, string>;
 };
 
@@ -95,6 +101,7 @@ const MomentDateSection: React.FC<MomentDateSectionProps> = ({
   dateInput,
   dateError,
   onDateChange,
+  onDateFocus,
   suggestionDates,
 }) => {
   const slug = slugifyOccasionName(momentName);
@@ -111,6 +118,7 @@ const MomentDateSection: React.FC<MomentDateSectionProps> = ({
         <BottomSheetTextInput
           value={dateInput}
           onChangeText={onDateChange}
+          onFocus={onDateFocus}
           placeholder="MM-DD"
           placeholderTextColor={Colors.brand.mediumTeal}
           keyboardType="number-pad"
@@ -138,9 +146,18 @@ export const AddMomentDrawer: React.FC<AddMomentDrawerProps> = ({
   suggestionDates = {},
 }) => {
   const sheetRef = useRef<BottomSheetModal>(null);
+  const scrollRef = useRef<BottomSheetScrollViewMethods>(null);
   const [momentName, setMomentName] = useState("");
   const [dateInput, setDateInput] = useState("");
   const [dateError, setDateError] = useState("");
+
+  // The date field is the last item and its number-pad has no "Done" key, so on
+  // focus scroll to the end — gorhom only auto-scrolls to just above the
+  // keyboard, which leaves the field behind the pinned footer CTA. The delay
+  // lets the keyboard's resize settle before we scroll.
+  const handleDateFocus = () => {
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 250);
+  };
 
   useImperativeHandle(handleRef, () => ({
     present: () => sheetRef.current?.present(),
@@ -194,6 +211,29 @@ export const AddMomentDrawer: React.FC<AddMomentDrawerProps> = ({
     </Pressable>
   );
 
+  // Pin the CTA in a footer so it — and the focused field just above it — stay
+  // above the number-pad, which has no "Done" key to dismiss it. A plain
+  // BottomSheetView left the date field and this button behind the keyboard.
+  const renderFooter = (props: BottomSheetFooterProps) => (
+    <BottomSheetFooter {...props}>
+      <View style={styles.footer}>
+        <Button
+          mode="contained"
+          buttonColor={Colors.brand.darkTeal}
+          textColor={Colors.white}
+          onPress={handleSave}
+          loading={saving}
+          disabled={!momentName.trim() || saving}
+          style={styles.cta}
+          contentStyle={styles.ctaContent}
+          labelStyle={styles.ctaLabel}
+        >
+          Add Moment
+        </Button>
+      </View>
+    </BottomSheetFooter>
+  );
+
   return (
     <BottomSheetModal
       ref={sheetRef}
@@ -203,13 +243,19 @@ export const AddMomentDrawer: React.FC<AddMomentDrawerProps> = ({
       android_keyboardInputMode="adjustResize"
       handleIndicatorStyle={styles.sheetHandle}
       backgroundStyle={styles.sheetBackground}
+      footerComponent={renderFooter}
       onDismiss={() => {
         setMomentName("");
         setDateInput("");
         setDateError("");
       }}
     >
-      <BottomSheetView style={styles.content}>
+      <BottomSheetScrollView
+        ref={scrollRef}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        enableFooterMarginAdjustment
+      >
         <Text style={styles.title}>Add a Moment</Text>
         <Text style={styles.subtitle}>
           Pick from recommended occasions, common ones, or add your own.
@@ -242,23 +288,11 @@ export const AddMomentDrawer: React.FC<AddMomentDrawerProps> = ({
             dateInput={dateInput}
             dateError={dateError}
             onDateChange={handleDateChange}
+            onDateFocus={handleDateFocus}
             suggestionDates={suggestionDates}
           />
         )}
-        <Button
-          mode="contained"
-          buttonColor={Colors.brand.darkTeal}
-          textColor={Colors.white}
-          onPress={handleSave}
-          loading={saving}
-          disabled={!momentName.trim() || saving}
-          style={styles.cta}
-          contentStyle={styles.ctaContent}
-          labelStyle={styles.ctaLabel}
-        >
-          Add Moment
-        </Button>
-      </BottomSheetView>
+      </BottomSheetScrollView>
     </BottomSheetModal>
   );
 };
@@ -279,6 +313,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sectionHeadInset,
     paddingTop: 12,
     paddingBottom: 34,
+  },
+  footer: {
+    paddingHorizontal: Spacing.sectionHeadInset,
+    paddingTop: 12,
+    paddingBottom: 34,
+    backgroundColor: Colors.white,
   },
   title: {
     ...Typography.h2,
@@ -353,7 +393,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: 170,
     borderRadius: 24,
-    marginTop: 28,
   },
   ctaContent: {
     height: 46,

@@ -2,9 +2,14 @@ import React, { useImperativeHandle, useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Button, Text } from "react-native-paper";
 import {
+  BottomSheetFooter,
   BottomSheetModal,
+  BottomSheetScrollView,
   BottomSheetTextInput,
-  BottomSheetView,
+} from "@gorhom/bottom-sheet";
+import type {
+  BottomSheetFooterProps,
+  BottomSheetScrollViewMethods,
 } from "@gorhom/bottom-sheet";
 import { Colors } from "../../lib/colors";
 import { Typography } from "../../lib/typography";
@@ -77,10 +82,19 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
   handleRef,
 }) => {
   const sheetRef = useRef<BottomSheetModal>(null);
+  const scrollRef = useRef<BottomSheetScrollViewMethods>(null);
   const [nameInput, setNameInput] = useState("");
   const [dateInput, setDateInput] = useState("");
   const [isAnnual, setIsAnnual] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+
+  // The date field is the last input and its number-pad has no "Done" key, so on
+  // focus scroll to the end — gorhom only auto-scrolls to just above the
+  // keyboard, which leaves the field behind the pinned footer actions. The delay
+  // lets the keyboard's resize settle before we scroll.
+  const handleDateFocus = () => {
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 250);
+  };
 
   useImperativeHandle(handleRef, () => ({
     present: () => sheetRef.current?.present(),
@@ -216,6 +230,35 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
     );
   };
 
+  // Pin the actions in a footer so they — and the focused field just above them
+  // — stay above the number-pad, which has no "Done" key. A plain
+  // BottomSheetView left the date field and these actions behind the keyboard.
+  const renderFooter = (props: BottomSheetFooterProps) => (
+    <BottomSheetFooter {...props}>
+      <View style={styles.footer}>
+        <Button
+          mode="contained"
+          buttonColor={Colors.brand.darkTeal}
+          textColor={Colors.white}
+          onPress={handleSave}
+          style={styles.cta}
+          contentStyle={styles.ctaContent}
+          labelStyle={styles.ctaLabel}
+        >
+          Save Changes
+        </Button>
+        <Pressable
+          onPress={handleDelete}
+          accessibilityRole="button"
+          accessibilityLabel="Delete moment"
+          style={styles.deleteLink}
+        >
+          <Text style={styles.deleteLinkText}>Delete Moment</Text>
+        </Pressable>
+      </View>
+    </BottomSheetFooter>
+  );
+
   return (
     <BottomSheetModal
       ref={sheetRef}
@@ -225,12 +268,18 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
       android_keyboardInputMode="adjustResize"
       handleIndicatorStyle={styles.sheetHandle}
       backgroundStyle={styles.sheetBackground}
+      footerComponent={renderFooter}
       onDismiss={() => {
         setPrevOccasion(null);
         setErrorMessage("");
       }}
     >
-      <BottomSheetView style={styles.content}>
+      <BottomSheetScrollView
+        ref={scrollRef}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        enableFooterMarginAdjustment
+      >
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.sectionLabel}>EDIT DETAILS</Text>
         <Text style={styles.fieldLabel}>Occasion Name</Text>
@@ -256,6 +305,7 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
         <BottomSheetTextInput
           value={dateInput}
           onChangeText={handleDateChange}
+          onFocus={handleDateFocus}
           placeholder={isAnnual ? "MM-DD" : "MM-DD-YYYY"}
           placeholderTextColor={Colors.brand.mediumTeal}
           keyboardType="number-pad"
@@ -263,26 +313,7 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
           style={styles.input}
         />
         {!!errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
-        <Button
-          mode="contained"
-          buttonColor={Colors.brand.darkTeal}
-          textColor={Colors.white}
-          onPress={handleSave}
-          style={styles.cta}
-          contentStyle={styles.ctaContent}
-          labelStyle={styles.ctaLabel}
-        >
-          Save Changes
-        </Button>
-        <Pressable
-          onPress={handleDelete}
-          accessibilityRole="button"
-          accessibilityLabel="Delete moment"
-          style={styles.deleteLink}
-        >
-          <Text style={styles.deleteLinkText}>Delete Moment</Text>
-        </Pressable>
-      </BottomSheetView>
+      </BottomSheetScrollView>
     </BottomSheetModal>
   );
 };
@@ -303,6 +334,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sectionHeadInset,
     paddingTop: 12,
     paddingBottom: 34,
+  },
+  footer: {
+    paddingHorizontal: Spacing.sectionHeadInset,
+    paddingTop: 12,
+    paddingBottom: 34,
+    backgroundColor: Colors.white,
   },
   title: {
     ...Typography.h2,
@@ -367,7 +404,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: 170,
     borderRadius: 24,
-    marginTop: 22,
   },
   ctaContent: {
     height: 46,
