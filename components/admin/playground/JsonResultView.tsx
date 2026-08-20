@@ -1,5 +1,5 @@
 import { errorStyles } from "@/components/admin/playground/result-styles";
-import { Colors } from "@/lib/colors";
+import { AdminTheme } from "@/lib/admin-theme";
 import React from "react";
 import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
@@ -33,10 +33,10 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
     // eslint-disable-next-line no-restricted-syntax -- monospace readout; the type scale has no mono token
     fontSize: 11,
-    color: Colors.darks.brown,
+    color: AdminTheme.text,
   },
   jsonResultBox: {
-    backgroundColor: "#f5f5f5",
+    backgroundColor: AdminTheme.inset,
     borderRadius: 8,
     padding: 12,
     maxHeight: 400,

@@ -2,7 +2,7 @@ import {
   errorStyles,
   resultStyles,
 } from "@/components/admin/playground/result-styles";
-import { Colors } from "@/lib/colors";
+import { AdminTheme } from "@/lib/admin-theme";
 import { formatOccasionType } from "@/utils/home-occasions";
 import React from "react";
 import { View } from "react-native";
@@ -38,7 +38,7 @@ export const OccasionResultView: React.FC<{
 
   if (occasions.length === 0 && additional.length === 0) {
     return (
-      <Text variant="bodyMedium" style={{ color: Colors.darks.brown }}>
+      <Text variant="bodyMedium" style={{ color: AdminTheme.text }}>
         No occasions suggested.
       </Text>
     );
@@ -80,7 +80,7 @@ export const OccasionResultView: React.FC<{
         <View style={resultStyles.additionalSection}>
           <Text
             variant="labelSmall"
-            style={{ color: Colors.darks.brown, marginBottom: 4 }}
+            style={{ color: AdminTheme.text, marginBottom: 4 }}
           >
             Also consider
           </Text>

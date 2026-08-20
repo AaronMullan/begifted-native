@@ -1,6 +1,6 @@
 import { AdminNavbar } from "@/components/admin/AdminNavbar";
+import { AdminTheme } from "@/lib/admin-theme";
 import { fetchOutboundClicks, type OutboundClickRow } from "@/lib/api";
-import { Colors } from "@/lib/colors";
 import { openLink } from "@/lib/open-link";
 import { queryKeys } from "@/lib/query-keys";
 import { useQuery } from "@tanstack/react-query";
@@ -148,7 +148,7 @@ const ClickCard: React.FC<{ click: OutboundClickRow }> = ({ click }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
+    backgroundColor: AdminTheme.screenBg,
   },
   scrollContent: {
     padding: 16,
@@ -159,15 +159,15 @@ const styles = StyleSheet.create({
   },
   summary: {
     marginBottom: 12,
-    color: Colors.darks.brown,
+    color: AdminTheme.muted,
   },
   errorCard: {
     marginBottom: 12,
-    backgroundColor: "#fee",
+    backgroundColor: "rgba(173,75,95,0.18)",
     borderRadius: 8,
   },
   errorText: {
-    color: "#900",
+    color: AdminTheme.bad,
   },
   pagination: {
     flexDirection: "row",
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   pageIndicator: {
-    color: Colors.darks.brown,
+    color: AdminTheme.text,
   },
   nextContent: {
     flexDirection: "row-reverse",
@@ -187,7 +187,9 @@ const styles = StyleSheet.create({
   },
   clickCard: {
     borderRadius: 8,
-    backgroundColor: Colors.white,
+    backgroundColor: AdminTheme.panel,
+    borderWidth: 1,
+    borderColor: AdminTheme.border,
   },
   cardHeader: {
     flexDirection: "row",
@@ -202,13 +204,13 @@ const styles = StyleSheet.create({
   },
   tsMono: {
     fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
-    color: "#888",
+    color: AdminTheme.muted,
   },
   giftTitle: {
     marginTop: 4,
   },
   giftLink: {
-    color: "#0a66c2",
+    color: AdminTheme.accentBright,
     textDecorationLine: "underline",
   },
   metaRow: {
@@ -219,7 +221,7 @@ const styles = StyleSheet.create({
   },
   metaLine: {
     fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
-    color: "#666",
+    color: AdminTheme.muted,
   },
 });
 

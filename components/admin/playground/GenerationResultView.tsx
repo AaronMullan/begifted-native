@@ -1,5 +1,5 @@
 import { errorStyles } from "@/components/admin/playground/result-styles";
-import { Colors } from "@/lib/colors";
+import { AdminTheme } from "@/lib/admin-theme";
 import { openLink } from "@/lib/open-link";
 import React from "react";
 import { StyleSheet, View } from "react-native";
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     minWidth: 200,
     padding: 8,
     borderWidth: 1,
-    borderColor: "#e8e8e8",
+    borderColor: AdminTheme.border,
     borderRadius: 8,
   },
   suggestionHeader: {
@@ -123,11 +123,11 @@ const styles = StyleSheet.create({
     margin: 0,
   },
   suggestionMeta: {
-    color: Colors.blues.dark,
+    color: AdminTheme.muted,
     marginTop: 2,
   },
   suggestionReason: {
-    color: Colors.darks.brown,
+    color: AdminTheme.text,
     fontStyle: "italic",
     marginTop: 4,
   },
@@ -141,15 +141,15 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   primaryChip: {
-    backgroundColor: Colors.yellows.gold,
+    backgroundColor: "rgba(171,138,62,0.28)",
   },
   altChip: {
-    backgroundColor: Colors.neutrals.light,
+    backgroundColor: AdminTheme.panelStrong,
   },
   categoryChip: {
-    backgroundColor: Colors.neutrals.light,
+    backgroundColor: AdminTheme.panelStrong,
   },
   tagChip: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: AdminTheme.panelStrong,
   },
 });
