@@ -1,40 +1,37 @@
 import { useAppConfig } from "@/hooks/use-app-config";
-import { Colors } from "@/lib/colors";
-import { usePathname, useRouter } from "expo-router";
+import { AdminTheme } from "@/lib/admin-theme";
+import { useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { Button, Chip, Text } from "react-native-paper";
+import { Chip, Text } from "react-native-paper";
 
 type AdminNavbarProps = {
   title: string;
+  /** Optional one-line description under the title. */
+  subtitle?: string;
   actions?: React.ReactNode;
   children?: React.ReactNode;
   /**
-   * Override the "Production: …" chip in the upper right. Set this on pages
-   * (e.g. the Playground) where the global app_config row isn't the right
-   * answer because the current view uses a different per-task model.
+   * Override the "Production: …" chip. Set this on pages (e.g. the Playground)
+   * where the global app_config row isn't the right answer because the current
+   * view uses a different per-task model.
    */
   productionOverride?: { provider: string; model: string };
 };
 
-const NAV_LINKS = [
-  { path: "/admin/dashboard", label: "Traction", icon: "chart-line" },
-  { path: "/admin/playground", label: "Playground", icon: "flask-outline" },
-  { path: "/admin/prompts", label: "Version History", icon: "history" },
-  { path: "/admin/searches", label: "Searches", icon: "magnify" },
-  { path: "/admin/clicks", label: "Engagement", icon: "cursor-default-click" },
-  { path: "/admin/ai-model", label: "AI Model", icon: "robot" },
-  { path: "/admin/kill-switch", label: "Kill Switch", icon: "power" },
-] as const;
-
+/**
+ * Per-screen page header for the admin console: title, optional subtitle,
+ * page-specific controls, and the production-model chip. Section navigation
+ * lives in the persistent rail (components/admin/AdminRail.tsx), not here.
+ */
 export const AdminNavbar: React.FC<AdminNavbarProps> = ({
   title,
+  subtitle,
   actions,
   children,
   productionOverride,
 }) => {
   const router = useRouter();
-  const pathname = usePathname();
   const { data: config } = useAppConfig();
 
   const chipProvider = productionOverride?.provider ?? config?.ai_provider;
@@ -42,44 +39,32 @@ export const AdminNavbar: React.FC<AdminNavbarProps> = ({
 
   return (
     <View style={styles.wrapper}>
-      {/* Stable nav row — never changes layout */}
-      <View style={styles.navRow}>
-        <View style={styles.navLinks}>
-          {NAV_LINKS.map((link) => {
-            const isActive = link.path === pathname;
-            return (
-              <Button
-                key={link.path}
-                mode={isActive ? "contained-tonal" : "text"}
-                onPress={() => !isActive && router.push(link.path)}
-                icon={link.icon}
-                compact
-                style={isActive ? styles.activeLink : undefined}
-              >
-                {link.label}
-              </Button>
-            );
-          })}
+      <View style={styles.titleRow}>
+        <View style={styles.titleBlock}>
+          <Text variant="headlineSmall" style={styles.title}>
+            {title}
+          </Text>
+          {subtitle && (
+            <Text variant="bodySmall" style={styles.subtitle}>
+              {subtitle}
+            </Text>
+          )}
         </View>
-        {chipProvider && chipModel && (
-          <Chip
-            compact
-            style={styles.aiChip}
-            onPress={() => router.push("/admin/ai-model")}
-            icon="robot"
-          >
-            {`Production: ${chipProvider} · ${chipModel}`}
-          </Chip>
-        )}
-      </View>
-
-      {/* Page header row — title + page-specific controls */}
-      <View style={styles.pageRow}>
-        <Text variant="headlineSmall" style={styles.title}>
-          {title}
-        </Text>
-        {children && <View style={styles.pageControls}>{children}</View>}
-        {actions && <View style={styles.actions}>{actions}</View>}
+        <View style={styles.right}>
+          {children && <View style={styles.pageControls}>{children}</View>}
+          {actions && <View style={styles.actions}>{actions}</View>}
+          {chipProvider && chipModel && (
+            <Chip
+              compact
+              style={styles.aiChip}
+              textStyle={styles.aiChipText}
+              onPress={() => router.push("/admin/ai-model")}
+              icon="robot"
+            >
+              {`${chipProvider} · ${chipModel}`}
+            </Chip>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -87,49 +72,52 @@ export const AdminNavbar: React.FC<AdminNavbarProps> = ({
 
 const styles = StyleSheet.create({
   wrapper: {
-    marginBottom: 16,
+    marginBottom: 20,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-    paddingBottom: 12,
-    gap: 10,
+    borderBottomColor: AdminTheme.border,
   },
-  navRow: {
+  titleRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-end",
     justifyContent: "space-between",
     flexWrap: "wrap",
-    gap: 4,
+    gap: 12,
   },
-  navLinks: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    flexWrap: "wrap",
-  },
-  activeLink: {
-    borderRadius: 8,
-  },
-  aiChip: {
-    backgroundColor: Colors.neutrals.medium,
-  },
-  pageRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: 8,
+  titleBlock: {
+    minWidth: 0,
+    flexShrink: 1,
   },
   title: {
+    color: AdminTheme.textStrong,
     fontWeight: "700",
+  },
+  subtitle: {
+    color: AdminTheme.muted,
+    marginTop: 6,
+  },
+  right: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
   },
   pageControls: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     flexWrap: "wrap",
-    flex: 1,
   },
   actions: {
     flexDirection: "row",
     gap: 8,
+  },
+  aiChip: {
+    backgroundColor: AdminTheme.panelStrong,
+    borderWidth: 1,
+    borderColor: AdminTheme.border,
+  },
+  aiChipText: {
+    color: AdminTheme.text,
   },
 });

@@ -1,7 +1,8 @@
 import { AdminNavbar } from "@/components/admin/AdminNavbar";
 import { fetchTractionMetrics } from "@/lib/api";
 import type { TractionMetrics, WeeklyCount, WeeklyRunCounts } from "@/lib/api";
-import { Colors } from "@/lib/colors";
+import { AdminTheme } from "@/lib/admin-theme";
+import { Typography } from "@/lib/typography";
 import { queryKeys } from "@/lib/query-keys";
 import { useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
@@ -9,12 +10,12 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { ActivityIndicator, Button, Card, Text } from "react-native-paper";
 import Svg, { Rect } from "react-native-svg";
 
-// Chart colors: buttonTeal + gold pass CVD-separation validation on the white
-// admin surface (protan ΔE 18.9). buttonTeal sits a hair under the chroma
-// floor ("reads gray"), accepted to stay on brand tokens — every chart also
-// carries direct value labels, so color is never the only encoding.
-const SERIES = Colors.brand.buttonTeal;
-const SERIES_ALT = Colors.brand.gold;
+// Chart colors on the dark console surface: a brightened teal for the primary
+// series (buttonTeal reads too dark on the dark ground) and gold for the
+// secondary. They keep clear CVD separation, and every chart also carries
+// direct value labels, so color is never the only encoding.
+const SERIES = AdminTheme.accentBright;
+const SERIES_ALT = AdminTheme.gold;
 
 const CHART_HEIGHT = 120;
 const BAR_GAP = 6;
@@ -41,11 +42,13 @@ const DashboardScreen: React.FC = () => {
     >
       <AdminNavbar
         title="Traction"
+        subtitle="How the product is being used, week over week."
         actions={
           <Button
             mode="outlined"
             compact
             icon="refresh"
+            textColor={AdminTheme.text}
             loading={metricsQuery.isRefetching}
             onPress={() => metricsQuery.refetch()}
           >
@@ -436,12 +439,12 @@ const StatusList: React.FC<{
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
+    backgroundColor: "transparent",
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-    maxWidth: 900,
+    padding: 24,
+    paddingBottom: 60,
+    maxWidth: 980,
     width: "100%",
     alignSelf: "center",
   },
@@ -451,23 +454,25 @@ const styles = StyleSheet.create({
   },
   errorCard: {
     marginBottom: 12,
-    backgroundColor: "#fee",
-    borderRadius: 8,
+    backgroundColor: "rgba(173,75,95,0.18)",
+    borderRadius: 12,
   },
   errorText: {
-    color: "#900",
+    color: AdminTheme.bad,
   },
   tileRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
-    marginBottom: 12,
+    gap: 13,
+    marginBottom: 13,
   },
   tile: {
     flexGrow: 1,
     flexBasis: 150,
-    borderRadius: 8,
-    backgroundColor: Colors.brand.beigeLight,
+    borderRadius: 13,
+    backgroundColor: AdminTheme.panel,
+    borderWidth: 1,
+    borderColor: AdminTheme.border,
   },
   tileContent: {
     alignItems: "flex-start",
@@ -475,25 +480,34 @@ const styles = StyleSheet.create({
   },
   tileValue: {
     fontWeight: "700",
-    color: Colors.darks.black,
+    color: AdminTheme.textStrong,
   },
   tileLabel: {
-    color: Colors.grays.text,
+    ...Typography.eyebrow,
+    color: AdminTheme.faint,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginTop: 6,
   },
   tileDelta: {
-    color: Colors.brand.buttonTeal,
+    color: AdminTheme.good,
+    fontWeight: "600",
   },
   sectionCard: {
-    borderRadius: 8,
-    backgroundColor: Colors.white,
-    marginBottom: 12,
+    borderRadius: 13,
+    backgroundColor: AdminTheme.panel,
+    borderWidth: 1,
+    borderColor: AdminTheme.border,
+    marginBottom: 13,
   },
   sectionTitle: {
-    fontWeight: "600",
-    marginBottom: 12,
+    ...Typography.sectionHeadAc,
+    color: AdminTheme.muted,
+    letterSpacing: 1,
+    marginBottom: 15,
   },
   emptyNote: {
-    color: Colors.grays.text,
+    color: AdminTheme.muted,
   },
   chartLabelRow: {
     flexDirection: "row",
@@ -502,7 +516,7 @@ const styles = StyleSheet.create({
   },
   barValueLabel: {
     textAlign: "center",
-    color: Colors.grays.text,
+    color: AdminTheme.muted,
   },
   axisRow: {
     flexDirection: "row",
@@ -510,11 +524,11 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   axisLabel: {
-    color: Colors.grays.placeholder,
+    color: AdminTheme.faint,
   },
   chartFootnote: {
     marginTop: 8,
-    color: Colors.grays.placeholder,
+    color: AdminTheme.faint,
   },
   legendRow: {
     flexDirection: "row",
@@ -533,7 +547,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   legendLabel: {
-    color: Colors.grays.text,
+    color: AdminTheme.text,
   },
   actionList: {
     gap: 8,
@@ -545,33 +559,35 @@ const styles = StyleSheet.create({
   },
   actionLabel: {
     width: 130,
-    color: Colors.grays.dark,
+    color: AdminTheme.text,
   },
   actionLabelChose: {
     fontWeight: "700",
+    color: AdminTheme.textStrong,
   },
   actionBarTrack: {
     flex: 1,
     height: 14,
     borderRadius: 4,
-    backgroundColor: Colors.grays.hairline,
+    backgroundColor: "rgba(255,255,255,0.08)",
     overflow: "hidden",
   },
   actionBarFill: {
     height: "100%",
     borderRadius: 4,
-    backgroundColor: Colors.brand.buttonTeal,
+    backgroundColor: AdminTheme.accentBright,
   },
   actionCount: {
     width: 32,
     textAlign: "right",
-    color: Colors.grays.dark,
+    color: AdminTheme.text,
   },
   inlineNumber: {
     fontWeight: "700",
+    color: AdminTheme.textStrong,
   },
   opsLine: {
-    color: Colors.grays.dark,
+    color: AdminTheme.text,
   },
   statusColumns: {
     flexDirection: "row",
@@ -585,9 +601,10 @@ const styles = StyleSheet.create({
   statusTitle: {
     fontWeight: "600",
     marginBottom: 2,
+    color: AdminTheme.textStrong,
   },
   statusRow: {
-    color: Colors.grays.dark,
+    color: AdminTheme.text,
   },
 });
 

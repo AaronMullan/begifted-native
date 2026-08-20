@@ -1,4 +1,5 @@
 import { AdminNavbar } from "@/components/admin/AdminNavbar";
+import { AdminTheme } from "@/lib/admin-theme";
 import {
   fetchGiverSynthesizedProfile,
   fetchRecentRuns,
@@ -7,7 +8,6 @@ import {
   fetchWrapperTemplate,
   type RunSummary,
 } from "@/lib/api";
-import { Colors } from "@/lib/colors";
 import { openLink } from "@/lib/open-link";
 import { queryKeys } from "@/lib/query-keys";
 import { useQuery } from "@tanstack/react-query";
@@ -439,7 +439,7 @@ const RunCard: React.FC<{
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
+    backgroundColor: "transparent",
   },
   scrollContent: {
     padding: 16,
@@ -450,15 +450,15 @@ const styles = StyleSheet.create({
   },
   summary: {
     marginBottom: 12,
-    color: Colors.darks.brown,
+    color: AdminTheme.muted,
   },
   errorCard: {
     marginBottom: 12,
-    backgroundColor: "#fee",
+    backgroundColor: "rgba(173,75,95,0.18)",
     borderRadius: 8,
   },
   errorText: {
-    color: "#900",
+    color: AdminTheme.bad,
   },
   pagination: {
     flexDirection: "row",
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   pageIndicator: {
-    color: Colors.darks.brown,
+    color: AdminTheme.text,
   },
   nextContent: {
     flexDirection: "row-reverse",
@@ -478,7 +478,9 @@ const styles = StyleSheet.create({
   },
   runCard: {
     borderRadius: 8,
-    backgroundColor: Colors.white,
+    backgroundColor: AdminTheme.panel,
+    borderWidth: 1,
+    borderColor: AdminTheme.border,
   },
   runHeader: {
     flexDirection: "row",
@@ -492,13 +494,13 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   headlineLink: {
-    color: "#0a66c2",
+    color: AdminTheme.accentBright,
     textDecorationLine: "underline",
     fontWeight: "600",
   },
   runIdMono: {
     fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
-    color: "#888",
+    color: AdminTheme.muted,
   },
   metaRow: {
     flexDirection: "row",
@@ -508,10 +510,10 @@ const styles = StyleSheet.create({
   },
   metaLine: {
     fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
-    color: "#666",
+    color: AdminTheme.muted,
   },
   metaLink: {
-    color: "#0a66c2",
+    color: AdminTheme.accentBright,
     textDecorationLine: "underline",
   },
   dialog: {
@@ -529,14 +531,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   dialogMeta: {
-    color: "#888",
+    color: AdminTheme.muted,
     marginBottom: 8,
   },
   dialogBody: {
     fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
     // eslint-disable-next-line no-restricted-syntax -- monospace readout; the type scale has no mono token
     fontSize: 12,
-    color: Colors.darks.brown,
+    color: AdminTheme.text,
   },
   divider: {
     marginVertical: 10,
@@ -544,26 +546,26 @@ const styles = StyleSheet.create({
   sectionLabel: {
     marginTop: 10,
     fontWeight: "700",
-    color: Colors.darks.brown,
+    color: AdminTheme.faint,
   },
   queryLine: {
     fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
-    color: "#444",
+    color: AdminTheme.text,
   },
   empty: {
     fontStyle: "italic",
-    color: "#aaa",
+    color: AdminTheme.faint,
   },
   pickLine: {
     marginTop: 4,
   },
   pickLink: {
-    color: "#0a66c2",
+    color: AdminTheme.accentBright,
     textDecorationLine: "underline",
   },
   pickMeta: {
     fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
-    color: "#888",
+    color: AdminTheme.muted,
   },
 });
 

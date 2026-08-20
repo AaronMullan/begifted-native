@@ -2,7 +2,7 @@ import { AdminNavbar } from "@/components/admin/AdminNavbar";
 import { useAppConfig, useUpdateAppConfig } from "@/hooks/use-app-config";
 import type { Provider } from "@/lib/ai-models";
 import { PROVIDER_MODELS } from "@/lib/ai-models";
-import { Colors } from "@/lib/colors";
+import { AdminTheme } from "@/lib/admin-theme";
 import React, { useState } from "react";
 import { ScrollView, StyleSheet } from "react-native";
 import {
@@ -119,7 +119,7 @@ const AiModelScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
+    backgroundColor: "transparent",
   },
   scrollContent: {
     padding: 16,
@@ -129,13 +129,15 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   subtitle: {
-    color: Colors.darks.brown,
+    color: AdminTheme.muted,
     marginBottom: 16,
   },
   card: {
     marginBottom: 8,
     borderRadius: 8,
-    backgroundColor: Colors.white,
+    backgroundColor: AdminTheme.panel,
+    borderWidth: 1,
+    borderColor: AdminTheme.border,
   },
   sectionTitle: {
     marginBottom: 8,
@@ -151,11 +153,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   updatedAt: {
-    color: "#888",
+    color: AdminTheme.faint,
     marginTop: 4,
   },
   errorText: {
-    color: "#FF3B30",
+    color: AdminTheme.bad,
     marginBottom: 16,
   },
 });

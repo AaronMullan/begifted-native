@@ -17,7 +17,7 @@ import {
   rollbackToVersion,
 } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
-import { Colors } from "@/lib/colors";
+import { AdminTheme } from "@/lib/admin-theme";
 import { PROMPT_REGISTRY } from "@/lib/prompt-registry";
 import type { SystemPromptVersion } from "@/lib/api";
 import type { PromptDefinition } from "@/lib/prompt-registry";
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
+    backgroundColor: "transparent",
   },
   scrollContent: {
     padding: 16,
@@ -277,20 +277,22 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   activeCard: {
-    backgroundColor: Colors.white,
+    backgroundColor: AdminTheme.panel,
     marginBottom: 12,
     borderWidth: 2,
-    borderColor: Colors.blues.teal,
+    borderColor: AdminTheme.accentBright,
     borderRadius: 8,
   },
   versionCard: {
-    backgroundColor: Colors.white,
+    backgroundColor: AdminTheme.panel,
     marginBottom: 8,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: AdminTheme.border,
   },
   activeVersionCard: {
     borderWidth: 1,
-    borderColor: Colors.blues.teal,
+    borderColor: AdminTheme.accentBright,
   },
   versionHeader: {
     flexDirection: "row",
@@ -299,22 +301,23 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   activeLabel: {
-    color: Colors.blues.teal,
+    color: AdminTheme.good,
     fontWeight: "bold",
   },
   changeNotes: {
-    color: Colors.darks.brown,
+    color: AdminTheme.text,
     marginBottom: 4,
   },
   date: {
-    color: "#888",
+    color: AdminTheme.muted,
     marginBottom: 8,
   },
   promptPreview: {
     fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
     // eslint-disable-next-line no-restricted-syntax -- monospace readout; the type scale has no mono token
     fontSize: 11,
-    backgroundColor: Colors.neutrals.light,
+    backgroundColor: AdminTheme.inset,
+    color: AdminTheme.text,
     padding: 8,
     borderRadius: 4,
   },
@@ -325,13 +328,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   emptyText: {
-    color: Colors.darks.brown,
+    color: AdminTheme.text,
     padding: 12,
   },
   rollbackNotes: {
     marginTop: 8,
     fontStyle: "italic",
-    color: Colors.darks.brown,
+    color: AdminTheme.text,
   },
 });
 

@@ -12,7 +12,7 @@ import {
 import * as Sentry from "@sentry/react-native";
 import { useAppConfig, useUpdateAppConfig } from "@/hooks/use-app-config";
 import { AdminNavbar } from "@/components/admin/AdminNavbar";
-import { Colors } from "@/lib/colors";
+import { AdminTheme } from "@/lib/admin-theme";
 
 // Admin gating (loading / Access Denied) lives in app/admin/_layout.tsx.
 const KillSwitchScreen: React.FC = () => {
@@ -168,7 +168,7 @@ const KillSwitchRow: React.FC<KillSwitchRowProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
+    backgroundColor: "transparent",
   },
   scrollContent: {
     padding: 16,
@@ -182,16 +182,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
-    backgroundColor: Colors.white,
+    backgroundColor: "transparent",
   },
   subtitle: {
-    color: Colors.darks.brown,
+    color: AdminTheme.muted,
     marginBottom: 16,
   },
   card: {
     marginBottom: 8,
     borderRadius: 8,
-    backgroundColor: Colors.white,
+    backgroundColor: AdminTheme.panel,
+    borderWidth: 1,
+    borderColor: AdminTheme.border,
   },
   row: {
     flexDirection: "row",
@@ -204,7 +206,7 @@ const styles = StyleSheet.create({
     paddingRight: 16,
   },
   rowDescription: {
-    color: Colors.darks.brown,
+    color: AdminTheme.muted,
     marginTop: 2,
   },
   rowRight: {
@@ -213,23 +215,23 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   enabledLabel: {
-    color: Colors.blues.teal,
+    color: AdminTheme.good,
     fontWeight: "bold",
   },
   disabledLabel: {
-    color: "#FF3B30",
+    color: AdminTheme.bad,
     fontWeight: "bold",
   },
   divider: {
     marginVertical: 0,
   },
   updatedAt: {
-    color: "#888",
+    color: AdminTheme.muted,
     marginBottom: 24,
     marginTop: 4,
   },
   errorText: {
-    color: "#FF3B30",
+    color: AdminTheme.bad,
     marginBottom: 16,
   },
   promptSection: {
