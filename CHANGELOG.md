@@ -19,6 +19,33 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-08-19 — OTA
+
+### App
+
+- Push notifications for new gift ideas and upcoming occasions now recover on their own — the app re-registers your device each time you reopen it, so alerts that had quietly stopped start arriving again (DEV-394).
+- Adding or editing a moment's date no longer hides the field behind the number keyboard — the field and its buttons stay in view while you type (DEV-395).
+- Admins get a Traction page in the admin area: signups, active users, gifts chosen, weekly trends, and generation health at a glance. Visible only to admin accounts. (DEV-393)
+
+### Backend
+
+- Add Recipient now asks for a birthday date before moving on, asks one sharpening follow-up when what you've shared is broad (books, sports, kids), and closes with calm, on-brand wording instead of talk of pulling together gift ideas. (DEV-398)
+- Gift ideas now respect the budget you set: anything priced outside the range is rejected and replaced before the list reaches you, instead of slipping through. (DEV-392)
+- Dismissing a gift now reliably brings the list back to three: if the first replacement attempt comes up short, the backend keeps working instead of stopping at one or two, and simultaneous refills can no longer stack extra cards onto a full list. (DEV-390)
+- Every gift-generation run now leaves a full trace — how many ideas the model returned, what each filter removed and why, repair passes, and the final outcome — so a short gift list can be diagnosed instead of guessed at. Nothing changes in the app itself. (DEV-391)
+
+## 2026-08-17 — OTA
+
+### App
+
+- Adding someone no longer starts over if you wander off mid-conversation. Reopen Add Person and it's right where you left it — including the reply you didn't wait for. (DEV-387)
+- Deleting a person no longer trips a background error as their page refreshes — the app now recognizes they're gone and steps back quietly (DEV-385).
+- Fixed the app crashing on every launch for testers on the newest TestFlight build. If it still crashes once after updating, one more open — or a delete and reinstall — clears it. (DEV-386)
+
+### Backend
+
+- Accounts and gift-planning activity now sync to Customer.io behind the scenes, so lifecycle email can begin. Nothing changes in the app itself. (DEV-373)
+
 ## 2026-08-16 — OTA
 
 ### App
