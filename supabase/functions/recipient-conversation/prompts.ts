@@ -25,7 +25,7 @@ export function buildStateGuidance(
         ? `→ What we know about ${recipientName} so far is broad. Ask exactly one targeted follow-up that sharpens a single interest they already mentioned, then proceed.`
         : `→ Ask the user to describe ${recipientName} naturally — what they're like, their interests, personality, or lifestyle.`;
     case "ready":
-      return `→ All required information is captured. Use the exact ready response.`;
+      return `→ All required information is captured — this is the final message. If the user's most recent answer shared meaningful, specific detail about ${recipientName}, open with one short sentence of plain recognition (no praise, no enthusiasm) that reflects what they actually said, then close. If the last answer added nothing specific, just close. Ask no further question. Keep the close concise, e.g. "${recipientName} is all set."`;
     default:
       return "";
   }

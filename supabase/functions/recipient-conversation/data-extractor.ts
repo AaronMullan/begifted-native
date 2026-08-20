@@ -106,6 +106,8 @@ DISTINGUISHING vs BROAD texture: a distinguishing signal materially narrows who 
 
 specificity_followup_used: set true only when the assistant has ALREADY asked a targeted texture follow-up (a second texture question that drills into one existing interest, e.g. "What kind of books does he usually reach for?") AND the user has answered it. The initial open-ended "What's [Name] like?" ask does NOT count as the follow-up.
 
+final_answer_added_texture: judge ONLY the user's most recent message. Set true when that single message contributed distinguishing recipient texture (a specific detail that narrows who they are or how they engage with something they care about). Set false when the latest message is a bare anchor answer (an age, price, date, name, or occasion), a broad/generic detail, or a vague/"not sure" reply — even if distinguishing texture appeared earlier in the conversation. This is a per-turn signal, not cumulative.
+
 If the conversation only establishes the person and the occasion, but the recipient still feels generic, mark as not gift-ready.
 
 Be accurate, not conservative. If the anchors are clearly satisfied, mark them as true. Only mark an anchor as false if the information is genuinely missing from the conversation.
@@ -126,6 +128,7 @@ Return JSON with what's been established:
   "has_age_context": false,
   "age_context_raw": "exact age, grade, stage, or life-stage mentioned (e.g. '17', 'high school senior', 'retired', 'toddler'), null if none — do NOT infer from relationship, hobbies, graduation, or occasion alone",
   "has_distinguishing_texture": false,
+  "final_answer_added_texture": false,
   "specificity_followup_used": false,
   "user_skipped_specificity": false,
   "other_details": "brief summary of other key details gathered",
@@ -248,9 +251,21 @@ Return JSON with what's been established:
     contextInfo.occasions_needing_dates = derived.pendingDates;
     textureNeedsFollowup = derived.textureNeedsFollowup;
 
-    // If all anchors are satisfied, skip the reply LLM entirely — return a
-    // deterministic wrap-up so the message and button are always in sync.
-    if (contextInfo.readiness.state === "ready") {
+    // All anchors are satisfied. When the user's FINAL answer carried
+    // meaningful (distinguishing) texture, don't short-circuit the reply LLM:
+    // let the Add Recipient prompt generate its brief recognition-without-praise
+    // before the flow closes (ready-state guidance instructs one short
+    // acknowledgment, no further question, concise close). Every other path to
+    // "ready" — a bare final anchor answer (age/price/date), an explicit skip, a
+    // vague follow-up answer, or the one-follow-up cap — has no meaningful final
+    // detail to acknowledge, so a generated line would only invent meaning; keep
+    // the deterministic wrap-up there. `final_answer_added_texture` is a per-turn
+    // signal, so distinguishing texture volunteered earlier (then completed on a
+    // later anchor) does NOT route here. The next-step button shows either way.
+    if (
+      contextInfo.readiness.state === "ready" &&
+      !contextInfo.final_answer_added_texture
+    ) {
       const wrapUpName =
         contextInfo.name || contextInfo.existing_name || "this person";
       const wrapUpTemplate = await loadActivePrompt(
@@ -371,13 +386,17 @@ Return JSON with what's been established:
     }
   }
 
-  // For add_recipient, anchors weren't all satisfied yet — button stays hidden
-  // until the wrap-up branch above fires. For every other conversation type
-  // (update_field, extract_*) the recipient already exists, so the user can
-  // save at any point.
+  // For add_recipient the button stays hidden until the recipient is ready:
+  // either the deterministic wrap-up branch above fired, or we fell through to
+  // the reply LLM at "ready" to let the prompt acknowledge the final meaningful
+  // answer — in which case the button must still show. For every other
+  // conversation type (update_field, extract_*) the recipient already exists,
+  // so the user can save at any point.
   return {
     reply,
-    shouldShowNextStepButton: conversationType !== "add_recipient",
+    shouldShowNextStepButton:
+      conversationType !== "add_recipient" ||
+      contextInfo.readiness?.state === "ready",
     conversationContext: contextInfo,
     resolvedSystemPrompt: systemPrompt,
   };

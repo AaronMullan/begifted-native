@@ -133,6 +133,10 @@ export interface ContextInfo {
   has_age_context?: boolean;
   age_context_raw?: string | null;
   has_distinguishing_texture?: boolean;
+  // Per-turn signal: the user's most recent message contributed distinguishing
+  // texture. Gates whether the ready turn acknowledges the final answer before
+  // completing; distinct from the cumulative has_distinguishing_texture.
+  final_answer_added_texture?: boolean;
   specificity_followup_used?: boolean;
   user_skipped_specificity?: boolean;
   other_details?: string;
