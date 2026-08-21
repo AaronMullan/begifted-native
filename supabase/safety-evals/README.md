@@ -55,6 +55,11 @@ The Supabase URL and publishable anon key default to the production project
 (both are public — they ship in the app bundle). Override with `SUPABASE_URL` /
 `SUPABASE_ANON_KEY` to point at another project.
 
+To verify a prompt/logic change **before** it's merged and deployed, set
+`SAFETY_EVAL_FUNCTIONS_URL` to a locally-served or preview function base (e.g.
+`http://127.0.0.1:54321/functions/v1`) — sign-in still happens against
+`SUPABASE_URL`, so you exercise the changed function with real auth.
+
 ## Required setup before the scheduled run goes green
 
 The workflow needs three repo **secrets** (Settings → Secrets → Actions):

@@ -20,6 +20,7 @@ import {
   buildUpdateFieldPrompt,
   ADD_RECIPIENT_WRAP_UP_DEFAULT,
   ADD_RECIPIENT_DEFAULT_TEMPLATE,
+  SAFETY_PREAMBLE,
 } from "./prompts.ts";
 import { deriveAddRecipientReadiness } from "./readiness.ts";
 // @ts-ignore - Deno environment variables are resolved at runtime
@@ -390,9 +391,12 @@ Return JSON with what's been established:
     default:
       systemPrompt = interpolatePrompt(ADD_RECIPIENT_DEFAULT_TEMPLATE);
   }
+  // The safety boundary is prepended in code (not baked into the DB/custom
+  // prompt) so it applies to every source of `systemPrompt` and can't be
+  // dropped by a stale prompt version.
   let reply = await callAI(aiConfig.provider, aiConfig.model, aiConfig.apiKey, {
     messages: [
-      { role: "system", content: systemPrompt },
+      { role: "system", content: `${SAFETY_PREAMBLE}\n\n${systemPrompt}` },
       { role: "user", content: "Please respond to continue the conversation." },
     ],
     maxTokens: 300,
