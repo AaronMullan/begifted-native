@@ -106,7 +106,7 @@ DISTINGUISHING vs BROAD texture: a distinguishing signal materially narrows who 
 
 specificity_followup_used: set true only when the assistant has ALREADY asked a targeted texture follow-up (a second texture question that drills into one existing interest, e.g. "What kind of books does he usually reach for?") AND the user has answered it. The initial open-ended "What's [Name] like?" ask does NOT count as the follow-up.
 
-final_answer_added_texture: judge ONLY the user's most recent message. Set true when that single message contributed distinguishing recipient texture (a specific detail that narrows who they are or how they engage with something they care about) — this includes a sharpened answer to a follow-up question. TRUE examples: "mostly history and political biographies", "a big Trail Blazers fan who watches most of their games", "makes ceramics and loves very minimal interiors". Set false when the latest message is a bare anchor answer (an age, price, date, name, or occasion), a bare list of broad categories, or a vague/"not sure" reply — even if distinguishing texture appeared earlier in the conversation. FALSE examples: "he's 44", "around $100", "November 12", "books, sports, and he has kids", "honestly, nothing specific comes to mind". This is a per-turn signal, not cumulative.
+final_answer_added_texture: judge ONLY the user's most recent message. Set true when that single message contributed distinguishing recipient texture (a specific detail that narrows who they are or how they engage with something they care about) — including an answer to a sharpening follow-up, but ONLY when that answer is itself distinguishing. TRUE examples: "mostly history and political biographies", "a big Trail Blazers fan who watches most of their games", "makes ceramics and loves very minimal interiors". Set false when the latest message is a bare anchor answer (an age, price, date, name, or occasion), a broad or generic detail (whether a single loose category or a bare list of them), or a vague/"not sure" reply — even if distinguishing texture appeared earlier in the conversation. FALSE examples: "he's 44", "around $100", "November 12", "he likes cooking", "books, sports, and he has kids", "pop and rock", "honestly, nothing specific comes to mind". This is a per-turn signal, not cumulative.
 
 If the conversation only establishes the person and the occasion, but the recipient still feels generic, mark as not gift-ready.
 
@@ -219,6 +219,10 @@ Return JSON with what's been established:
   // flow. Update flows don't have required anchors — the recipient already
   // exists, so the user decides when to save and the button is always visible.
   let textureNeedsFollowup = false;
+  // When the ready turn carries a meaningful final answer, we fall through to the
+  // reply LLM for its recognition sentence but still append this fixed close so
+  // completion copy stays consistent. Null on every non-acknowledgment path.
+  let readyAcknowledgmentClose: string | null = null;
   if (conversationType === "add_recipient") {
     if (!contextInfo.readiness) {
       contextInfo.readiness = {
@@ -251,21 +255,10 @@ Return JSON with what's been established:
     contextInfo.occasions_needing_dates = derived.pendingDates;
     textureNeedsFollowup = derived.textureNeedsFollowup;
 
-    // All anchors are satisfied. When the user's FINAL answer carried
-    // meaningful (distinguishing) texture, don't short-circuit the reply LLM:
-    // let the Add Recipient prompt generate its brief recognition-without-praise
-    // before the flow closes (ready-state guidance instructs one short
-    // acknowledgment, no further question, concise close). Every other path to
-    // "ready" — a bare final anchor answer (age/price/date), an explicit skip, a
-    // vague follow-up answer, or the one-follow-up cap — has no meaningful final
-    // detail to acknowledge, so a generated line would only invent meaning; keep
-    // the deterministic wrap-up there. `final_answer_added_texture` is a per-turn
-    // signal, so distinguishing texture volunteered earlier (then completed on a
-    // later anchor) does NOT route here. The next-step button shows either way.
-    if (
-      contextInfo.readiness.state === "ready" &&
-      !contextInfo.final_answer_added_texture
-    ) {
+    // All anchors satisfied. The closing line "[Name]'s all set." is always
+    // runtime-owned so completion copy stays consistent and the surrounding
+    // prompt's enthusiasm/CTA requirements can never leak into the close.
+    if (contextInfo.readiness.state === "ready") {
       const wrapUpName =
         contextInfo.name || contextInfo.existing_name || "this person";
       const wrapUpTemplate = await loadActivePrompt(
@@ -274,12 +267,28 @@ Return JSON with what's been established:
         "add_recipient_wrap_up",
         ADD_RECIPIENT_WRAP_UP_DEFAULT
       );
-      return {
-        reply: wrapUpTemplate.replace(/\{\{recipientName\}\}/g, wrapUpName),
-        shouldShowNextStepButton: true,
-        conversationContext: contextInfo,
-        resolvedSystemPrompt: null,
-      };
+      const wrapUpLine = wrapUpTemplate.replace(
+        /\{\{recipientName\}\}/g,
+        wrapUpName
+      );
+      // A bare final anchor answer (age/price/date), an explicit skip, a vague
+      // follow-up answer, or the one-follow-up cap reaches "ready" with no
+      // meaningful final detail to acknowledge — a generated line would only
+      // invent meaning, so close deterministically. `final_answer_added_texture`
+      // is per-turn, so distinguishing texture volunteered earlier (then
+      // completed on a later anchor) also lands here, not on the ack path.
+      if (!contextInfo.final_answer_added_texture) {
+        return {
+          reply: wrapUpLine,
+          shouldShowNextStepButton: true,
+          conversationContext: contextInfo,
+          resolvedSystemPrompt: null,
+        };
+      }
+      // Meaningful final answer: fall through to let the reply LLM generate the
+      // recognition sentence, then append this close (see below). The next-step
+      // button shows either way.
+      readyAcknowledgmentClose = wrapUpLine;
     }
   }
 
@@ -384,6 +393,19 @@ Return JSON with what's been established:
     } catch {
       // Not valid JSON — use the raw text as-is
     }
+  }
+
+  // Acknowledgment path: the reply LLM produced only the recognition sentence.
+  // Strip any close it wrote anyway (against the recognition-only guidance), then
+  // append the runtime-owned close exactly once so completion copy is consistent.
+  if (readyAcknowledgmentClose) {
+    const recognition = reply
+      .trim()
+      .replace(/\s*[A-Za-z][A-Za-z'’\- ]*\b(?:'s|is) all set[.!?]*\s*$/i, "")
+      .trim();
+    reply = recognition
+      ? `${recognition}\n\n${readyAcknowledgmentClose}`
+      : readyAcknowledgmentClose;
   }
 
   // For add_recipient the button stays hidden until the recipient is ready:

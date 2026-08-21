@@ -27,11 +27,12 @@ export function buildStateGuidance(
     case "ready":
       // The runtime only routes to the reply LLM at "ready" when the user's
       // final answer carried distinguishing texture (bare/vague completions take
-      // the deterministic wrap-up and never see this). So recognition here is
+      // the deterministic wrap-up and never see this), so recognition is
       // unconditional — don't let the model re-litigate whether the detail was
-      // "meaningful" and skip straight to the close, which is the exact miss this
-      // guidance previously allowed.
-      return `→ All required information is captured — this is the final message. The user's most recent answer shared a specific, telling detail about ${recipientName}. Open with exactly one short sentence of plain recognition (no praise, no enthusiasm, no questions) that reflects what they actually said, then close with "${recipientName}'s all set." Do not ask anything further.`;
+      // "meaningful" and skip it. The runtime appends the fixed close itself, so
+      // the model must NOT write one; that keeps the surrounding prompt's
+      // enthusiasm/CTA rules out of the completion line.
+      return `→ All required information is captured. The user's most recent answer shared a specific, telling detail about ${recipientName}. Reply with EXACTLY one short sentence of plain recognition (no praise, no enthusiasm, no question, no call-to-action) that reflects what they actually said. Do NOT write a closing line or any "all set" wording — that is appended automatically. Say nothing else.`;
     default:
       return "";
   }
