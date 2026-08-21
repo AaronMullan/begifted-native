@@ -132,6 +132,10 @@ export interface ContextInfo {
   price_guidance_raw?: string | null;
   has_age_context?: boolean;
   age_context_raw?: string | null;
+  // True when the recipient reads as a child/minor. Gates the age requirement:
+  // a child must have an age or birthday before completion (so suggestions don't
+  // skew old); for non-children age stays optional.
+  recipient_is_child?: boolean;
   has_distinguishing_texture?: boolean;
   // Per-turn signal: the user's most recent message contributed distinguishing
   // texture. Gates whether the ready turn acknowledges the final answer before
