@@ -224,20 +224,44 @@ Deno.test(
   }
 );
 
-Deno.test("a child's birthday satisfies the age requirement", () => {
-  const derived = deriveAddRecipientReadiness(
-    base({
-      occasions_mentioned: ["christmas"],
-      has_price_guidance: true,
-      has_age_context: false,
-      recipient_is_child: true,
-      birthday: "2018-05-01",
-    })
-  );
-  assert(derived.hasAge);
-  assert(derived.state !== "captured_needs_age");
-  assertEquals(derived.state, "captured_needs_specificity");
-});
+Deno.test(
+  "a child's full birthday (with year) satisfies the age requirement",
+  () => {
+    const derived = deriveAddRecipientReadiness(
+      base({
+        occasions_mentioned: ["christmas"],
+        has_price_guidance: true,
+        has_age_context: false,
+        recipient_is_child: true,
+        birthday: "2018-05-01",
+      })
+    );
+    assert(derived.hasAge);
+    assert(derived.state !== "captured_needs_age");
+    assertEquals(derived.state, "captured_needs_specificity");
+  }
+);
+
+Deno.test(
+  "a child's year-less birthday does NOT satisfy the age requirement",
+  () => {
+    // The extractor records MM-DD when the year is unknown; age isn't derivable
+    // from that, so the flow must still ask for the child's age.
+    for (const birthday of ["05-01", "--08-14"]) {
+      const derived = deriveAddRecipientReadiness(
+        base({
+          occasions_mentioned: ["christmas"],
+          has_price_guidance: true,
+          has_age_context: false,
+          recipient_is_child: true,
+          birthday,
+        })
+      );
+      assert(!derived.hasAge, `${birthday} should not satisfy the age gate`);
+      assertEquals(derived.state, "captured_needs_age");
+    }
+  }
+);
 
 Deno.test("a child's explicit age satisfies the age requirement", () => {
   const derived = deriveAddRecipientReadiness(

@@ -19,7 +19,7 @@ export function buildStateGuidance(
     case "captured_needs_price":
       return `→ Timing is complete. Ask how much the user would like to spend for ${recipientName}.`;
     case "captured_needs_age":
-      return `→ We still need ${recipientName}'s age or birthday so gift ideas aren't age-inappropriate. Ask for ${recipientName}'s age or birthday — either works, since a birthday lets us derive the age. Ask for only one thing; do not infer it from relationship, hobbies, or occasion.`;
+      return `→ We still need ${recipientName}'s age so gift ideas aren't age-inappropriate. Ask for ${recipientName}'s age (their full birthday, including the year, works too — it lets us derive the age). Ask for only one thing; do not infer it from relationship, hobbies, or occasion.`;
     case "captured_needs_specificity":
       return textureNeedsFollowup
         ? `→ What we know about ${recipientName} so far is broad. Ask exactly one targeted follow-up that sharpens a single interest they already mentioned, then proceed.`
@@ -57,7 +57,7 @@ export function buildPriorityGuidance(
 2. OCCASION — if no giftable moment identified, ask what occasion(s) they're shopping for.
 3. REQUIRED OCCASION TIMING — for every non-inferable occasion lacking a date, ask one at a time. ${timingGuidance}
 4. DEFAULT PRICE GUIDANCE — ask how much the user would like to spend for ${recipientName}. If multiple occasions, ask person-level (not occasion-specific).
-5. AGE OR BIRTHDAY (children only) — if ${recipientName} reads as a child and neither an age nor a birthday is captured, ask for ${recipientName}'s age or birthday. Do not infer from relationship, hobbies, or occasion. For non-children, do not ask — age is optional.
+5. AGE (children only) — if ${recipientName} reads as a child and we have neither an age nor a full birthday (with a year), ask for ${recipientName}'s age (a full birthday including the year works too). Do not infer from relationship, hobbies, or occasion. For non-children, do not ask — age is optional.
 6. RECIPIENT TEXTURE — ask the user to describe ${recipientName} naturally ("Tell me a little about ${recipientName} — what's [he/she/they] like?").
 7. WRAP-UP — all required information captured. Use the exact ready response.`;
 }

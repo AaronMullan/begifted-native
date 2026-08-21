@@ -90,14 +90,19 @@ export function deriveAddRecipientReadiness(
 
   const hasPrice = !!contextInfo.has_price_guidance;
   // Age gate is child-conditional: a recipient that reads as a child needs an
-  // age (or a birthday, from which age is derivable) before completion, so gift
+  // age (or a birthday we can derive age from) before completion, so gift
   // suggestions don't skew old. For everyone else age stays optional — asking
   // every adult their age cuts against a light onboarding, and nothing else
-  // requires it. has_age_context already counts explicit age/grade/life-stage; a
-  // birthday satisfies the gate too so a child with a birthday is never re-asked.
-  const hasBirthday = !!birthday;
+  // requires it. has_age_context already counts explicit age/grade/life-stage.
+  //
+  // Only a full birthday (YYYY-MM-DD) satisfies the gate. The extractor is told
+  // to record a month/day birthday without a year (MM-DD, e.g. "12-07"/"--08-14")
+  // when the year is unknown, and age is NOT derivable from that — accepting it
+  // would complete the intake and leave suggestions skewing old, the exact bug.
+  const birthdayHasYear =
+    typeof birthday === "string" && /^\d{4}-\d{2}-\d{2}$/.test(birthday);
   const isChild = !!contextInfo.recipient_is_child;
-  const hasAge = !!contextInfo.has_age_context || hasBirthday;
+  const hasAge = !!contextInfo.has_age_context || birthdayHasYear;
   const ageRequirementMet = !isChild || hasAge;
 
   // Specificity is NOT satisfied by broad interests (books, sports, "has
