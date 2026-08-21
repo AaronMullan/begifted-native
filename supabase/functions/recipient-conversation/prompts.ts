@@ -25,7 +25,13 @@ export function buildStateGuidance(
         ? `→ What we know about ${recipientName} so far is broad. Ask exactly one targeted follow-up that sharpens a single interest they already mentioned, then proceed.`
         : `→ Ask the user to describe ${recipientName} naturally — what they're like, their interests, personality, or lifestyle.`;
     case "ready":
-      return `→ All required information is captured — this is the final message. If the user's most recent answer shared meaningful, specific detail about ${recipientName}, open with one short sentence of plain recognition (no praise, no enthusiasm) that reflects what they actually said, then close. If the last answer added nothing specific, just close. Ask no further question. Keep the close concise, e.g. "${recipientName} is all set."`;
+      // The runtime only routes to the reply LLM at "ready" when the user's
+      // final answer carried distinguishing texture (bare/vague completions take
+      // the deterministic wrap-up and never see this). So recognition here is
+      // unconditional — don't let the model re-litigate whether the detail was
+      // "meaningful" and skip straight to the close, which is the exact miss this
+      // guidance previously allowed.
+      return `→ All required information is captured — this is the final message. The user's most recent answer shared a specific, telling detail about ${recipientName}. Open with exactly one short sentence of plain recognition (no praise, no enthusiasm, no questions) that reflects what they actually said, then close with "${recipientName}'s all set." Do not ask anything further.`;
     default:
       return "";
   }
@@ -61,7 +67,7 @@ export function buildPriorityGuidance(
 // gift/recommendation/next-step language, no "I'll take it from here", and no
 // reference to the next-step button (which renders below this message). Keep it
 // calm and understated — a plain done-signal, nothing more.
-export const ADD_RECIPIENT_WRAP_UP_DEFAULT = `{{recipientName}} is all set.`;
+export const ADD_RECIPIENT_WRAP_UP_DEFAULT = `{{recipientName}}'s all set.`;
 
 // Default template for add_recipient_conversation — single source of truth.
 // This matches the structure previously hardcoded in buildAddRecipientPrompt().
