@@ -10,12 +10,16 @@ import { recommendOccasions } from "./occasions.ts";
 
 import { parseOpenAIJSON } from "./utils.ts";
 import { loadAIConfig, type AIOverride } from "../_shared/ai-config-loader.ts";
-import { internalErrorResponse } from "../_shared/error-response.ts";
+import {
+  internalErrorResponse,
+  safetyDeclinedResponse,
+} from "../_shared/error-response.ts";
 import { requireUser } from "../_shared/require-user.ts";
 import {
   callAI,
   getApiKey,
   CONVERSATION_MODEL,
+  AIRefusalError,
   type Provider,
 } from "../_shared/ai-client.ts";
 
@@ -113,6 +117,9 @@ ${conversationHistory}`;
     });
     parsed = parseOpenAIJSON(extractRaw);
   } catch (err) {
+    // A refusal must fail closed, not degrade to a "custom" occasion. Only
+    // genuine parse/transport failures fall back here.
+    if (err instanceof AIRefusalError) throw err;
     console.error("add_occasion extract failed, falling back to custom:", err);
   }
 
@@ -347,6 +354,9 @@ serve(async (req) => {
       }
     );
   } catch (error) {
+    if (error instanceof AIRefusalError) {
+      return safetyDeclinedResponse(corsHeaders);
+    }
     return internalErrorResponse("recipient-conversation", error, corsHeaders);
   }
 });

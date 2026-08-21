@@ -155,8 +155,14 @@ type ConversationReply = {
 };
 
 // The extract endpoint sometimes wraps the payload in `{ extractedData }` and
-// sometimes returns the fields at the top level, so accept both shapes.
-type ExtractResponse = ExtractedData & { extractedData?: ExtractedData };
+// sometimes returns the fields at the top level, so accept both shapes. When
+// the model refuses, the function fails closed with `safety_declined` instead
+// of any extracted fields.
+type ExtractResponse = ExtractedData & {
+  extractedData?: ExtractedData;
+  safety_declined?: boolean;
+  message?: string;
+};
 
 // Default welcome messages based on conversation type
 const getDefaultWelcomeMessage = (
@@ -430,6 +436,20 @@ export function useConversationFlow(
         console.error("Supabase function error:", error);
         console.error("Error details:", JSON.stringify(error, null, 2));
         throw error;
+      }
+
+      // A refusal fails closed: surface the calm message and extract nothing,
+      // rather than storing the safety payload as if it were recipient fields.
+      if (data?.safety_declined) {
+        const safetyError = new Error(
+          data.message ?? "This isn't something BeGifted can help with."
+        );
+        if (onExtractError) {
+          onExtractError(safetyError);
+        } else {
+          Alert.alert("Can't continue", safetyError.message);
+        }
+        return null;
       }
 
       // The Edge Function returns { extractedData }

@@ -3,8 +3,11 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { loadAIConfig } from "../_shared/ai-config-loader.ts";
 import type { Provider } from "../_shared/ai-config-loader.ts";
-import { callAI, getApiKey } from "../_shared/ai-client.ts";
-import { internalErrorResponse } from "../_shared/error-response.ts";
+import { callAI, getApiKey, AIRefusalError } from "../_shared/ai-client.ts";
+import {
+  internalErrorResponse,
+  safetyDeclinedResponse,
+} from "../_shared/error-response.ts";
 import { requireUser } from "../_shared/require-user.ts";
 
 const corsHeaders = {
@@ -175,6 +178,9 @@ Return ONLY valid JSON:
       status: 200,
     });
   } catch (error) {
+    if (error instanceof AIRefusalError) {
+      return safetyDeclinedResponse(corsHeaders);
+    }
     return internalErrorResponse(
       "extract-user-preferences",
       error,

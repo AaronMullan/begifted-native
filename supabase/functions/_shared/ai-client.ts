@@ -20,6 +20,32 @@ export type WebSearchCallOptions = {
   userInstruction: string;
 };
 
+// Thrown when a model refuses (or is content-filtered) rather than answering.
+// It is distinct from a normal Error so callers can fail closed with a safety
+// response instead of routing a refusal into their generic parse-error
+// fallback — which would silently substitute fabricated/empty output for a
+// refusal. `refusalText` carries the model's own wording when the provider
+// supplies it.
+export class AIRefusalError extends Error {
+  readonly refusalText?: string;
+  constructor(refusalText?: string) {
+    super("AI provider refused the request");
+    this.name = "AIRefusalError";
+    this.refusalText = refusalText;
+  }
+}
+
+// A model that returns natural-language prose where the caller demanded JSON is
+// refusing or going off-task, not attempting malformed JSON. Treat that as a
+// refusal (fail closed) rather than feed prose to a parser that discards it
+// into a generic fallback. A leading code fence is tolerated because some
+// models wrap valid JSON in ```json … ```. Only consulted for jsonMode calls,
+// so a legitimately prose-returning call is never affected.
+function looksLikeJson(content: string): boolean {
+  const stripped = content.trim().replace(/^```(?:json)?\s*/i, "");
+  return stripped.startsWith("{") || stripped.startsWith("[");
+}
+
 export function getApiKey(provider: Provider): string {
   const envMap: Record<Provider, string> = {
     openai: "OPENAI_API_KEY",
@@ -101,8 +127,19 @@ async function callOpenAI(
   }
 
   const data = await res.json();
-  const content = data.choices?.[0]?.message?.content;
+  const choice = data.choices?.[0];
+  const refusal = choice?.message?.refusal;
+  if (typeof refusal === "string" && refusal.trim()) {
+    throw new AIRefusalError(refusal);
+  }
+  if (choice?.finish_reason === "content_filter") {
+    throw new AIRefusalError();
+  }
+  const content = choice?.message?.content;
   if (!content) throw new Error("No content in OpenAI response");
+  if (opts.jsonMode && !looksLikeJson(content)) {
+    throw new AIRefusalError(content);
+  }
   return content;
 }
 
@@ -140,8 +177,19 @@ async function callAnthropic(
   }
 
   const data = await res.json();
+  if (data.stop_reason === "refusal") {
+    const refusalText = data.content?.find(
+      (c: { type: string; text?: string }) => c.type === "text"
+    )?.text;
+    throw new AIRefusalError(
+      typeof refusalText === "string" ? refusalText : undefined
+    );
+  }
   const content = data.content?.[0]?.text;
   if (!content) throw new Error("No content in Anthropic response");
+  if (opts.jsonMode && !looksLikeJson(content)) {
+    throw new AIRefusalError(content);
+  }
   return content;
 }
 
@@ -183,10 +231,20 @@ async function callGoogle(
   }
 
   const data = await res.json();
+  const candidate = data.candidates?.[0];
+  if (
+    data.promptFeedback?.blockReason ||
+    candidate?.finishReason === "SAFETY"
+  ) {
+    throw new AIRefusalError();
+  }
   const parts: { text?: string; thought?: boolean }[] =
-    data.candidates?.[0]?.content?.parts ?? [];
+    candidate?.content?.parts ?? [];
   const content = parts.find((p) => p.text && !p.thought)?.text;
   if (!content) throw new Error("No content in Google AI response");
+  if (opts.jsonMode && !looksLikeJson(content)) {
+    throw new AIRefusalError(content);
+  }
   return content;
 }
 
@@ -237,9 +295,20 @@ async function callOpenAIWithWebSearch(
   }
 
   const data = await res.json();
+  if (data.incomplete_details?.reason === "content_filter") {
+    throw new AIRefusalError();
+  }
   const messageItem = data.output?.find(
     (item: { type: string }) => item.type === "message"
   );
+  const refusalItem = messageItem?.content?.find(
+    (c: { type: string }) => c.type === "refusal"
+  );
+  if (refusalItem) {
+    throw new AIRefusalError(
+      typeof refusalItem.refusal === "string" ? refusalItem.refusal : undefined
+    );
+  }
   const text = messageItem?.content?.find(
     (c: { type: string }) => c.type === "output_text"
   )?.text;
@@ -272,8 +341,15 @@ async function callGoogleWithSearch(
   }
 
   const data = await res.json();
+  const candidate = data.candidates?.[0];
+  if (
+    data.promptFeedback?.blockReason ||
+    candidate?.finishReason === "SAFETY"
+  ) {
+    throw new AIRefusalError();
+  }
   const parts: { text?: string; thought?: boolean }[] =
-    data.candidates?.[0]?.content?.parts ?? [];
+    candidate?.content?.parts ?? [];
   const text = parts.find((p) => p.text && !p.thought)?.text;
   if (!text) throw new Error("No content in Google AI response");
   return text;
@@ -335,6 +411,15 @@ async function callAnthropicWithWebSearch(
     `[anthropic] content block types:`,
     data.content?.map((c: { type: string }) => c.type)
   );
+
+  if (data.stop_reason === "refusal") {
+    const refusalText = data.content
+      ?.filter((c: { type: string }) => c.type === "text")
+      .pop()?.text;
+    throw new AIRefusalError(
+      typeof refusalText === "string" ? refusalText : undefined
+    );
+  }
 
   const textBlock = data.content
     ?.filter((c: { type: string }) => c.type === "text")

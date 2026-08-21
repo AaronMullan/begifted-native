@@ -1,9 +1,16 @@
 // @ts-ignore - Deno/Supabase client types
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { loadAIConfig } from "../_shared/ai-config-loader.ts";
-import { callAIWithWebSearch, getApiKey } from "../_shared/ai-client.ts";
+import {
+  callAIWithWebSearch,
+  getApiKey,
+  AIRefusalError,
+} from "../_shared/ai-client.ts";
 import type { Provider } from "../_shared/ai-client.ts";
-import { internalErrorResponse } from "../_shared/error-response.ts";
+import {
+  internalErrorResponse,
+  safetyDeclinedResponse,
+} from "../_shared/error-response.ts";
 import { requireUser } from "../_shared/require-user.ts";
 
 interface CIS {
@@ -263,6 +270,9 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
+    if (err instanceof AIRefusalError) {
+      return safetyDeclinedResponse(corsHeaders);
+    }
     return internalErrorResponse("generate-gift-suggestions", err, corsHeaders);
   }
 });
