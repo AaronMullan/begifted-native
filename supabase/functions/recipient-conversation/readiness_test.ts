@@ -139,6 +139,32 @@ Deno.test(
 );
 
 Deno.test(
+  "durable cap — a follow-up asked earlier completes even after an intervening price/age turn",
+  () => {
+    // Interleaved case: the follow-up was asked and answered vaguely, then a
+    // required field (age) was captured on a later turn, so the per-turn
+    // last_assistant_asked signal has reverted to false (the age question is now
+    // the most recent assistant message). The cumulative count is the durable
+    // backstop that still spends the opportunity — the runtime must not re-probe.
+    const derived = deriveAddRecipientReadiness(
+      base({
+        birthday: "--08-14",
+        has_price_guidance: true,
+        has_age_context: true,
+        interests: ["travel", "food", "music", "family"],
+        has_distinguishing_texture: false,
+        specificity_followup_used: false,
+        last_assistant_asked_specificity_followup: false,
+        specificity_followup_questions_asked: 1,
+      })
+    );
+    assertEquals(derived.state, "ready");
+    assert(derived.hasSpecificity);
+    assert(!derived.textureNeedsFollowup);
+  }
+);
+
+Deno.test(
   "initial open-ended ask (not a follow-up) still routes to the one follow-up",
   () => {
     // Last assistant message was the initial "what's Emily like?" (NOT a
