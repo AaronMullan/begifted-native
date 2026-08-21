@@ -112,6 +112,56 @@ Deno.test(
 );
 
 Deno.test(
+  "one-follow-up cap — last assistant message was the follow-up completes on a vague answer",
+  () => {
+    // The Emily regression, driven by the per-turn signal instead of the
+    // cumulative self-count: the assistant already asked ONE sharpening follow-up
+    // ("what kind of food?"), the user answered vaguely ("nothing specific"), and
+    // the extractor dropped both specificity_followup_used and the count. The
+    // most-recent-assistant-message signal spends the opportunity so the runtime
+    // cannot switch to a second broad signal (food → music).
+    const derived = deriveAddRecipientReadiness(
+      base({
+        birthday: "--08-14",
+        has_price_guidance: true,
+        has_age_context: true,
+        interests: ["travel", "food", "music", "family"],
+        has_distinguishing_texture: false,
+        specificity_followup_used: false,
+        specificity_followup_questions_asked: 0,
+        last_assistant_asked_specificity_followup: true,
+      })
+    );
+    assertEquals(derived.state, "ready");
+    assert(derived.hasSpecificity);
+    assert(!derived.textureNeedsFollowup);
+  }
+);
+
+Deno.test(
+  "initial open-ended ask (not a follow-up) still routes to the one follow-up",
+  () => {
+    // Last assistant message was the initial "what's Emily like?" (NOT a
+    // sharpening follow-up) and the user just volunteered broad interests. The
+    // one follow-up has not been spent, so we still ask it.
+    const derived = deriveAddRecipientReadiness(
+      base({
+        birthday: "--08-14",
+        has_price_guidance: true,
+        has_age_context: true,
+        interests: ["travel", "food", "music", "family"],
+        has_distinguishing_texture: false,
+        specificity_followup_used: false,
+        specificity_followup_questions_asked: 0,
+        last_assistant_asked_specificity_followup: false,
+      })
+    );
+    assertEquals(derived.state, "captured_needs_specificity");
+    assert(derived.textureNeedsFollowup);
+  }
+);
+
+Deno.test(
   "broad texture with zero follow-ups asked still routes to the one follow-up",
   () => {
     const derived = deriveAddRecipientReadiness(
