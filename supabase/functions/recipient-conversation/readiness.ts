@@ -93,11 +93,19 @@ export function deriveAddRecipientReadiness(
 
   // Specificity is NOT satisfied by broad interests (books, sports, "has
   // kids"). It needs a distinguishing signal, an explicit skip, or the one
-  // allowed follow-up already spent — which guarantees at most one follow-up:
-  // once specificity_followup_used flips, texture is complete regardless of
-  // how broad the answer stayed.
+  // allowed follow-up already spent.
+  //
+  // The one-follow-up cap keys off a mechanical COUNT of sharpening follow-ups
+  // the assistant has already asked — not the "have I used my opportunity?"
+  // judgment, which the extractor drops when the follow-up answer is vague
+  // ("nothing specific"), letting the flow re-probe on a new topic (food →
+  // music → travel). Once one sharpening follow-up has been asked, the option is
+  // spent regardless of answer quality, so texture completes and cannot loop.
+  // specificity_followup_used is kept as a corroborating signal.
   const hasDistinguishing = !!contextInfo.has_distinguishing_texture;
-  const followupUsed = !!contextInfo.specificity_followup_used;
+  const followupUsed =
+    !!contextInfo.specificity_followup_used ||
+    (contextInfo.specificity_followup_questions_asked ?? 0) >= 1;
   let hasSpecificity =
     hasDistinguishing || !!contextInfo.user_skipped_specificity || followupUsed;
 
