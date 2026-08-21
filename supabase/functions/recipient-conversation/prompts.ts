@@ -29,10 +29,12 @@ export function buildStateGuidance(
       // final answer carried distinguishing texture (bare/vague completions take
       // the deterministic wrap-up and never see this), so recognition is
       // unconditional — don't let the model re-litigate whether the detail was
-      // "meaningful" and skip it. The runtime appends the fixed close itself, so
-      // the model must NOT write one; that keeps the surrounding prompt's
+      // "meaningful" and skip it. The job is to INTERPRET, not summarize: pick one
+      // distinction and reflect it back, never enumerate the profile or rephrase
+      // the user's sentence. The runtime appends the fixed close itself, so the
+      // model must NOT write one; that keeps the surrounding prompt's
       // enthusiasm/CTA rules out of the completion line.
-      return `→ All required information is captured. The user's most recent answer shared a specific, telling detail about ${recipientName}. Reply with EXACTLY one short sentence of plain recognition (no praise, no enthusiasm, no question, no call-to-action) that reflects what they actually said. Do NOT write a closing line or any "all set" wording — that is appended automatically. Say nothing else.`;
+      return `→ All required information is captured, and the user's most recent answer shared telling detail about ${recipientName}. Reply with EXACTLY one short sentence that selects the SINGLE most telling thing about ${recipientName} and reflects it back as a light interpretation — a read that shows you understood something about them. Do NOT summarize the profile, do NOT enumerate a list of facts, and do NOT simply restate or rephrase the user's own sentence; choose one distinction (you may tie a couple of closely related details into that single read, e.g. "ceramics and minimal interiors give a clear read on her taste"). Recognition, not praise: no enthusiasm, no compliments, no question, no call-to-action, and invent no meaning that was not stated. Do NOT write a closing line or any "all set" wording — that is appended automatically. Say nothing else.`;
     default:
       return "";
   }
