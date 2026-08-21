@@ -35,15 +35,16 @@ export class AIRefusalError extends Error {
   }
 }
 
-// A model that returns natural-language prose where the caller demanded JSON is
-// refusing or going off-task, not attempting malformed JSON. Treat that as a
-// refusal (fail closed) rather than feed prose to a parser that discards it
-// into a generic fallback. A leading code fence is tolerated because some
-// models wrap valid JSON in ```json … ```. Only consulted for jsonMode calls,
-// so a legitimately prose-returning call is never affected.
+// A model that returns natural-language prose with NO JSON structure where the
+// caller demanded JSON is refusing or going off-task — treat that as a refusal
+// (fail closed) rather than feed it to a parser that discards it into a generic
+// fallback. We only require that *some* object/array is present, not that it
+// starts the string: Anthropic isn't put in a structural JSON mode (unlike
+// OpenAI's json_object / Google's responseMimeType), so a compliant reply may
+// carry a short preamble ("Here is the JSON:\n{…}") — misreading that as a
+// refusal would false-halt a benign request. Only consulted for jsonMode calls.
 function looksLikeJson(content: string): boolean {
-  const stripped = content.trim().replace(/^```(?:json)?\s*/i, "");
-  return stripped.startsWith("{") || stripped.startsWith("[");
+  return content.includes("{") || content.includes("[");
 }
 
 export function getApiKey(provider: Provider): string {
