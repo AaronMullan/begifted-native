@@ -1,0 +1,33 @@
+# Safety eval set (DEV-411). Runs the eval harness against the REAL deployed
+# edge functions on a schedule — NOT on push/PR. LLM output is non-deterministic,
+# so this is a regression alarm with a tolerance band, not a merge gate. The job
+# fails only when the hard floor breaks (a must-pass case regresses, or the
+# sensitive over-refusal rate exceeds the limit); see supabase/safety-evals/run.ts.
+name: Safety Evals
+
+on:
+  workflow_dispatch: {} # run on demand from the Actions tab
+  schedule:
+    - cron: "0 9 * * 1" # Mondays 09:00 UTC
+
+jobs:
+  safety-evals:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Run safety evals
+        run: deno run --allow-net --allow-env supabase/safety-evals/run.ts
+        env:
+          # A dedicated test account (any signed-up user) — the functions are
+          # behind requireUser, so the harness signs in to get a JWT.
+          SAFETY_EVAL_EMAIL: ${{ secrets.SAFETY_EVAL_EMAIL }}
+          SAFETY_EVAL_PASSWORD: ${{ secrets.SAFETY_EVAL_PASSWORD }}
+          # Judge model key (classifies each response as refused/proceeded).
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
