@@ -106,6 +106,8 @@ DISTINGUISHING vs BROAD texture: a distinguishing signal materially narrows who 
 
 specificity_followup_used: set true only when the assistant has ALREADY asked a targeted texture follow-up (a second texture question that drills into one existing interest, e.g. "What kind of books does he usually reach for?") AND the user has answered it. The initial open-ended "What's [Name] like?" ask does NOT count as the follow-up.
 
+specificity_followup_questions_asked: count how many SHARPENING texture follow-up questions the ASSISTANT has asked across the whole conversation. A sharpening follow-up is a texture question that drills into one interest/trait the user already mentioned (e.g. "What kind of books does he read?", "Is there a team he follows closely?"). Do NOT count the initial open-ended "What's [Name] like?" question, and do NOT count questions about name, relationship, occasions, dates, price, or age. Return an integer (0 if none). This is a plain count of assistant questions, not a judgment about whether they were useful.
+
 final_answer_added_texture: judge ONLY the user's most recent message. Set true when that single message contributed distinguishing recipient texture (a specific detail that narrows who they are or how they engage with something they care about) — including an answer to a sharpening follow-up, but ONLY when that answer is itself distinguishing. TRUE examples: "mostly history and political biographies", "a big Trail Blazers fan who watches most of their games", "makes ceramics and loves very minimal interiors". Set false when the latest message is a bare anchor answer (an age, price, date, name, or occasion), a broad or generic detail (whether a single loose category or a bare list of them), or a vague/"not sure" reply — even if distinguishing texture appeared earlier in the conversation. FALSE examples: "he's 44", "around $100", "November 12", "he likes cooking", "books, sports, and he has kids", "pop and rock", "honestly, nothing specific comes to mind". This is a per-turn signal, not cumulative.
 
 If the conversation only establishes the person and the occasion, but the recipient still feels generic, mark as not gift-ready.
@@ -130,6 +132,7 @@ Return JSON with what's been established:
   "has_distinguishing_texture": false,
   "final_answer_added_texture": false,
   "specificity_followup_used": false,
+  "specificity_followup_questions_asked": 0,
   "user_skipped_specificity": false,
   "other_details": "brief summary of other key details gathered",
   "readiness": {

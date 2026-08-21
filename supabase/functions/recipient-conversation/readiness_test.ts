@@ -87,6 +87,49 @@ Deno.test(
   }
 );
 
+Deno.test(
+  "one sharpening follow-up asked completes even when the extractor drops specificity_followup_used",
+  () => {
+    // The Emily regression: broad texture, one follow-up asked, vague answer
+    // ("nothing specific"). The extractor failed to flip specificity_followup_used,
+    // but the mechanical count of sharpening questions caps it at one so the flow
+    // cannot re-probe on a new topic (food → music → travel).
+    const derived = deriveAddRecipientReadiness(
+      base({
+        birthday: "--08-14",
+        has_price_guidance: true,
+        has_age_context: true,
+        interests: ["travel", "food", "music", "family"],
+        has_distinguishing_texture: false,
+        specificity_followup_used: false,
+        specificity_followup_questions_asked: 1,
+      })
+    );
+    assertEquals(derived.state, "ready");
+    assert(derived.hasSpecificity);
+    assert(!derived.textureNeedsFollowup);
+  }
+);
+
+Deno.test(
+  "broad texture with zero follow-ups asked still routes to the one follow-up",
+  () => {
+    const derived = deriveAddRecipientReadiness(
+      base({
+        birthday: "--08-14",
+        has_price_guidance: true,
+        has_age_context: true,
+        interests: ["travel", "food", "music", "family"],
+        has_distinguishing_texture: false,
+        specificity_followup_used: false,
+        specificity_followup_questions_asked: 0,
+      })
+    );
+    assertEquals(derived.state, "captured_needs_specificity");
+    assert(derived.textureNeedsFollowup);
+  }
+);
+
 Deno.test("explicit skip completes the intake", () => {
   const derived = deriveAddRecipientReadiness(
     base({

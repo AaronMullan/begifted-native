@@ -138,6 +138,11 @@ export interface ContextInfo {
   // completing; distinct from the cumulative has_distinguishing_texture.
   final_answer_added_texture?: boolean;
   specificity_followup_used?: boolean;
+  // Mechanical count of sharpening texture follow-ups the assistant has already
+  // asked (excludes the initial open-ended "what are they like?"). Enforces the
+  // one-follow-up cap deterministically: >= 1 means the option is spent, so a
+  // vague follow-up answer can't be re-probed on a new topic.
+  specificity_followup_questions_asked?: number;
   user_skipped_specificity?: boolean;
   other_details?: string;
   readiness?: Readiness;
