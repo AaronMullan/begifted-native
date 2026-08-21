@@ -89,7 +89,16 @@ export function deriveAddRecipientReadiness(
     !contextInfo.needs_occasion_date && pendingDates.length === 0;
 
   const hasPrice = !!contextInfo.has_price_guidance;
-  const hasAge = !!contextInfo.has_age_context;
+  // Age gate is child-conditional: a recipient that reads as a child needs an
+  // age (or a birthday, from which age is derivable) before completion, so gift
+  // suggestions don't skew old. For everyone else age stays optional — asking
+  // every adult their age cuts against a light onboarding, and nothing else
+  // requires it. has_age_context already counts explicit age/grade/life-stage; a
+  // birthday satisfies the gate too so a child with a birthday is never re-asked.
+  const hasBirthday = !!birthday;
+  const isChild = !!contextInfo.recipient_is_child;
+  const hasAge = !!contextInfo.has_age_context || hasBirthday;
+  const ageRequirementMet = !isChild || hasAge;
 
   // Specificity is NOT satisfied by broad interests (books, sports, "has
   // kids"). It needs a distinguishing signal, an explicit skip, or the one
@@ -122,7 +131,7 @@ export function deriveAddRecipientReadiness(
     state = "captured_needs_timing";
   } else if (!hasPrice) {
     state = "captured_needs_price";
-  } else if (!hasAge) {
+  } else if (!ageRequirementMet) {
     state = "captured_needs_age";
   } else if (!hasSpecificity) {
     state = "captured_needs_specificity";

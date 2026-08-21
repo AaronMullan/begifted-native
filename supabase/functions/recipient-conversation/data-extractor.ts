@@ -112,6 +112,8 @@ last_assistant_asked_specificity_followup: look ONLY at the assistant's single m
 
 final_answer_added_texture: judge ONLY the user's most recent message. Set true when that single message contributed distinguishing recipient texture (a specific detail that narrows who they are or how they engage with something they care about) — including an answer to a sharpening follow-up, but ONLY when that answer is itself distinguishing. TRUE examples: "mostly history and political biographies", "a big Trail Blazers fan who watches most of their games", "makes ceramics and loves very minimal interiors". Set false when the latest message is a bare anchor answer (an age, price, date, name, or occasion), a broad or generic detail (whether a single loose category or a bare list of them), or a vague/"not sure" reply — even if distinguishing texture appeared earlier in the conversation. FALSE examples: "he's 44", "around $100", "November 12", "he likes cooking", "books, sports, and he has kids", "pop and rock", "honestly, nothing specific comes to mind". This is a per-turn signal, not cumulative.
 
+recipient_is_child: set true ONLY when the conversation makes clear the recipient is a child/minor (roughly under 18) — an explicit young age or school stage ("she's 7", "my 2nd grader", "a toddler", "in kindergarten", "a baby"), or the recipient is clearly the user's young kid/grandkid/niece/nephew described as a child. Do NOT set true from a relationship word alone (a "son"/"daughter"/"nephew" can be a grown adult) or from any single interest. Default false whenever age/life-stage is unclear. This gates whether the flow must capture an age or birthday before completing, so gift ideas for a kid don't skew old.
+
 If the conversation only establishes the person and the occasion, but the recipient still feels generic, mark as not gift-ready.
 
 Be accurate, not conservative. If the anchors are clearly satisfied, mark them as true. Only mark an anchor as false if the information is genuinely missing from the conversation.
@@ -131,6 +133,7 @@ Return JSON with what's been established:
   "price_guidance_raw": "exact quote or paraphrase of price/spend mentioned, null if none",
   "has_age_context": false,
   "age_context_raw": "exact age, grade, stage, or life-stage mentioned (e.g. '17', 'high school senior', 'retired', 'toddler'), null if none — do NOT infer from relationship, hobbies, graduation, or occasion alone",
+  "recipient_is_child": false,
   "has_distinguishing_texture": false,
   "final_answer_added_texture": false,
   "specificity_followup_used": false,
