@@ -95,15 +95,19 @@ export function deriveAddRecipientReadiness(
   // kids"). It needs a distinguishing signal, an explicit skip, or the one
   // allowed follow-up already spent.
   //
-  // The one-follow-up cap keys off a mechanical COUNT of sharpening follow-ups
-  // the assistant has already asked — not the "have I used my opportunity?"
-  // judgment, which the extractor drops when the follow-up answer is vague
-  // ("nothing specific"), letting the flow re-probe on a new topic (food →
-  // music → travel). Once one sharpening follow-up has been asked, the option is
-  // spent regardless of answer quality, so texture completes and cannot loop.
-  // specificity_followup_used is kept as a corroborating signal.
+  // The one-follow-up cap is enforced from a per-turn signal the runtime owns:
+  // once the assistant's MOST RECENT message was a sharpening follow-up, that
+  // one opportunity is spent and texture completes on this turn no matter how
+  // the user answered — so a vague reply ("nothing specific") can't reopen the
+  // enrichment decision and re-probe on a new topic (food → music → travel).
+  // last_assistant_asked_specificity_followup is a reliable single-message
+  // classification; the earlier cumulative self-count and the "have I used my
+  // opportunity?" judgment are kept only as backstops — both undercounted the
+  // Emily case (the extractor drops them when the follow-up answer is vague),
+  // which is exactly what the per-turn signal fixes.
   const hasDistinguishing = !!contextInfo.has_distinguishing_texture;
   const followupUsed =
+    !!contextInfo.last_assistant_asked_specificity_followup ||
     !!contextInfo.specificity_followup_used ||
     (contextInfo.specificity_followup_questions_asked ?? 0) >= 1;
   let hasSpecificity =

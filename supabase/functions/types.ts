@@ -143,6 +143,12 @@ export interface ContextInfo {
   // one-follow-up cap deterministically: >= 1 means the option is spent, so a
   // vague follow-up answer can't be re-probed on a new topic.
   specificity_followup_questions_asked?: number;
+  // Per-turn signal: the assistant's single most recent message was a sharpening
+  // texture follow-up (not the initial open-ended ask). This is the reliable
+  // classification the runtime uses to spend the one allowed follow-up — once
+  // true, texture completes regardless of how the user answered, so a vague
+  // reply can't reopen enrichment and re-probe a new topic (food → music).
+  last_assistant_asked_specificity_followup?: boolean;
   user_skipped_specificity?: boolean;
   other_details?: string;
   readiness?: Readiness;
