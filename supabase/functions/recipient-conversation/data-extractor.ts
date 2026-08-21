@@ -401,7 +401,7 @@ Return JSON with what's been established:
   if (readyAcknowledgmentClose) {
     const recognition = reply
       .trim()
-      .replace(/\s*[A-Za-z][A-Za-z'’\- ]*\b(?:'s|is) all set[.!?]*\s*$/i, "")
+      .replace(/\s*[A-Za-z][A-Za-z'’\- ]*\b(?:['’]s|is) all set[.!?]*\s*$/i, "")
       .trim();
     reply = recognition
       ? `${recognition}\n\n${readyAcknowledgmentClose}`
