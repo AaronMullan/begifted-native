@@ -2,8 +2,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // @ts-ignore - Deno/Supabase client types
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callAI, getApiKey, CONVERSATION_MODEL } from "../_shared/ai-client.ts";
-import { internalErrorResponse } from "../_shared/error-response.ts";
+import {
+  callAI,
+  getApiKey,
+  CONVERSATION_MODEL,
+  AIRefusalError,
+} from "../_shared/ai-client.ts";
+import {
+  internalErrorResponse,
+  safetyDeclinedResponse,
+} from "../_shared/error-response.ts";
 import { requireUser } from "../_shared/require-user.ts";
 
 const corsHeaders = {
@@ -292,6 +300,9 @@ serve(async (req) => {
       }
     );
   } catch (error) {
+    if (error instanceof AIRefusalError) {
+      return safetyDeclinedResponse(corsHeaders);
+    }
     return internalErrorResponse(
       "synthesize-recipient-profile",
       error,

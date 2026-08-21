@@ -1,6 +1,11 @@
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { type Provider, type AIOverride } from "../_shared/ai-config-loader.ts";
-import { callAI, getApiKey, CONVERSATION_MODEL } from "../_shared/ai-client.ts";
+import {
+  callAI,
+  getApiKey,
+  CONVERSATION_MODEL,
+  AIRefusalError,
+} from "../_shared/ai-client.ts";
 import type {
   ContextInfo,
   ConversationResponse,
@@ -197,6 +202,10 @@ Return JSON with what's been established:
         };
       }
     } catch (e) {
+      // A refusal must reach the top-level safety handler, not be masked by the
+      // synthetic "not_captured" context below (which would let the flow
+      // continue as if the user had simply said nothing).
+      if (e instanceof AIRefusalError) throw e;
       console.error("Error in context extraction:", e);
       contextInfo = {
         conversation_length: messages.length,

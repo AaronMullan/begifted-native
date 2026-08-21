@@ -1,5 +1,5 @@
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
-import { callAI } from "../_shared/ai-client.ts";
+import { callAI, AIRefusalError } from "../_shared/ai-client.ts";
 import type { AIOverride } from "../_shared/ai-config-loader.ts";
 import type { ExtractedData, RecipientData } from "../types.ts";
 import { parseOpenAIJSON } from "./utils.ts";
@@ -293,6 +293,9 @@ Return JSON only, no markdown:
       }
     );
   } catch (err) {
+    // A refusal must reach the top-level safety handler rather than degrade to
+    // the required-core fallback as if the model had merely errored.
+    if (err instanceof AIRefusalError) throw err;
     console.error("recommendOccasions AI error:", err);
     // Deterministic fallback: required core candidates with stock copy, no
     // discovery. No generic-holiday filler (DEV-158) — required candidates
