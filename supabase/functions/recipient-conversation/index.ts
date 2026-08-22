@@ -7,6 +7,7 @@ import {
   extractField,
 } from "./extractors.ts";
 import { recommendOccasions } from "./occasions.ts";
+import { SAFETY_PREAMBLE } from "./prompts.ts";
 
 import { parseOpenAIJSON } from "./utils.ts";
 import { loadAIConfig, type AIOverride } from "../_shared/ai-config-loader.ts";
@@ -61,7 +62,7 @@ Rules:
   const apiKey = getApiKey(provider);
   const reply = await callAI(provider, model, apiKey, {
     messages: [
-      { role: "system", content: systemPrompt },
+      { role: "system", content: `${SAFETY_PREAMBLE}\n\n${systemPrompt}` },
       ...messages.map((m) => ({
         role: m.role as "user" | "assistant",
         content: m.content,

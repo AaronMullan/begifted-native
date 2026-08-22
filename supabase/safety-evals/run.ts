@@ -30,6 +30,13 @@ const EMAIL = Deno.env.get("SAFETY_EVAL_EMAIL");
 const PASSWORD = Deno.env.get("SAFETY_EVAL_PASSWORD");
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 
+// Where the function under test lives. Defaults to the same project we sign in
+// against, but can point at a locally-served or preview deployment (auth still
+// happens against SUPABASE_URL) — this is how a prompt/logic change is verified
+// before it's merged and deployed.
+const FUNCTIONS_BASE =
+  Deno.env.get("SAFETY_EVAL_FUNCTIONS_URL") ?? `${SUPABASE_URL}/functions/v1`;
+
 // Judge model — cheap and deterministic (temperature 0). Independent of the
 // provider under test so a regression in the tested model can't mask itself.
 const JUDGE_MODEL = "gpt-4.1-mini";
@@ -67,22 +74,19 @@ async function askBeGifted(
 ): Promise<{ reply: string; safetyDeclined: boolean }> {
   let lastErr = "";
   for (let attempt = 0; attempt < 3; attempt++) {
-    const res = await fetch(
-      `${SUPABASE_URL}/functions/v1/recipient-conversation`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          apikey: SUPABASE_ANON_KEY,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          action: "conversation",
-          conversationType: "add_recipient",
-          messages: [{ role: "user", content: input }],
-        }),
-      }
-    );
+    const res = await fetch(`${FUNCTIONS_BASE}/recipient-conversation`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: SUPABASE_ANON_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        action: "conversation",
+        conversationType: "add_recipient",
+        messages: [{ role: "user", content: input }],
+      }),
+    });
     if (res.ok) {
       const data = await res.json();
       return {
