@@ -244,9 +244,15 @@ serve(async (req) => {
     const lastUserMessage = [...messages]
       .reverse()
       .find((m: { role?: string; content?: unknown }) => m.role === "user");
-    if (typeof lastUserMessage?.content === "string") {
+    const lastUserContent = lastUserMessage?.content;
+    if (lastUserContent != null && lastUserContent !== "") {
+      // Coerce to string exactly as the downstream prompt does (`${m.content}`):
+      // array/object content still reaches the model as readable text, so it
+      // must be screened the same way rather than skipped as "not a string".
       const moderation = await screenInput(
-        lastUserMessage.content,
+        typeof lastUserContent === "string"
+          ? lastUserContent
+          : String(lastUserContent),
         getApiKey("openai")
       );
       if (moderation.blocked) {
