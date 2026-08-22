@@ -8,6 +8,7 @@ import {
 } from "./extractors.ts";
 import { recommendOccasions } from "./occasions.ts";
 import { SAFETY_PREAMBLE } from "./prompts.ts";
+import { screenInput } from "../_shared/moderation.ts";
 
 import { parseOpenAIJSON } from "./utils.ts";
 import { loadAIConfig, type AIOverride } from "../_shared/ai-config-loader.ts";
@@ -233,6 +234,31 @@ serve(async (req) => {
         }
       );
     }
+
+    // Deterministic moderation gate: screen the latest user message before any
+    // generation. Catches the hard-illegal categories (sexualized minors,
+    // self-harm intent) that the prompt layer alone doesn't reliably stop, and
+    // fails closed with the safety response. Runs for every message-bearing
+    // action (conversation, extract, add_occasion); recommend_occasions has no
+    // messages and already returned above.
+    const lastUserMessage = [...messages]
+      .reverse()
+      .find((m: { role?: string; content?: unknown }) => m.role === "user");
+    if (typeof lastUserMessage?.content === "string") {
+      const moderation = await screenInput(
+        lastUserMessage.content,
+        getApiKey("openai")
+      );
+      if (moderation.blocked) {
+        console.warn(
+          `[moderation] blocked recipient-conversation input; categories=${moderation.categories.join(
+            ","
+          )}; action=${action}; conversationType=${conversationType}`
+        );
+        return safetyDeclinedResponse(corsHeaders);
+      }
+    }
+
     // ── add_occasion: completely separate path ──
     if (conversationType === "add_occasion") {
       let result;
