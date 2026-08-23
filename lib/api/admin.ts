@@ -4,6 +4,7 @@
 
 import { supabase } from "../supabase";
 import type { Recipient } from "../../types/recipient";
+import type { BetaCheckInScreen } from "./beta-feedback";
 
 export interface PromptTestRun {
   id: string;
@@ -460,6 +461,55 @@ export async function fetchRecentRuns(
     .filter((s): s is RunSummary => Boolean(s));
 
   return { runs, total };
+}
+
+export interface BetaFeedbackRow {
+  id: string;
+  user_id: string;
+  giver_name: string | null;
+  screen: BetaCheckInScreen;
+  // Answers keyed by question id; single-select values are strings, multi-select
+  // are arrays. The label map for both lives in beta-check-in-configs.ts.
+  responses: Record<string, string | string[]>;
+  free_text: string | null;
+  created_at: string;
+}
+
+/**
+ * Beta UX check-in responses for the admin viewer (DEV-415). Reads the whole
+ * append-only table (a few dozen rows across the closed beta) and joins
+ * user_id -> profiles for a readable name, the same batch-join fetchRecentRuns
+ * uses for givers. Ordered newest-first.
+ */
+export async function fetchBetaFeedback(): Promise<BetaFeedbackRow[]> {
+  const { data: rows, error } = await supabase
+    .from("beta_feedback")
+    .select("id, user_id, screen, responses, free_text, created_at")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  const userIds = Array.from(new Set((rows ?? []).map((r) => r.user_id)));
+  const nameById = new Map<string, string | null>();
+  if (userIds.length > 0) {
+    const { data: profileRows } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", userIds);
+    for (const p of profileRows ?? []) {
+      nameById.set(p.id as string, (p.full_name as string | null) ?? null);
+    }
+  }
+
+  return (rows ?? []).map((r) => ({
+    id: r.id,
+    user_id: r.user_id,
+    giver_name: nameById.get(r.user_id) ?? null,
+    screen: r.screen as BetaCheckInScreen,
+    responses: (r.responses ?? {}) as Record<string, string | string[]>,
+    free_text: r.free_text,
+    created_at: r.created_at,
+  }));
 }
 
 /**

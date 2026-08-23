@@ -12,6 +12,11 @@ const NAV_LINKS = [
   { path: "/admin/prompts", label: "Version History", icon: "history" },
   { path: "/admin/searches", label: "Searches", icon: "search" },
   { path: "/admin/clicks", label: "Engagement", icon: "ads-click" },
+  {
+    path: "/admin/beta-feedback",
+    label: "Beta Check-ins",
+    icon: "rate-review",
+  },
   { path: "/admin/ai-model", label: "AI Model", icon: "smart-toy" },
   {
     path: "/admin/kill-switch",
