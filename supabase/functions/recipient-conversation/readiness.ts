@@ -89,21 +89,21 @@ export function deriveAddRecipientReadiness(
     !contextInfo.needs_occasion_date && pendingDates.length === 0;
 
   const hasPrice = !!contextInfo.has_price_guidance;
-  // Age gate is child-conditional: a recipient that reads as a child needs an
-  // age (or a birthday we can derive age from) before completion, so gift
-  // suggestions don't skew old. For everyone else age stays optional — asking
-  // every adult their age cuts against a light onboarding, and nothing else
-  // requires it. has_age_context already counts explicit age/grade/life-stage.
+  // Age/life stage is a required field for EVERY recipient, asked after price
+  // and before texture — not child-only. The active prompt already treats it
+  // as required, but the derived state is the authoritative gate that fires
+  // completion and the next-step button, so it must enforce the same rule or an
+  // adult reaches "ready" with no age and suggestions skew wrong.
+  // has_age_context counts explicit age/grade/life-stage; a full birthday
+  // (with a year) also satisfies it since age is derivable from that.
   //
   // Only a full birthday (YYYY-MM-DD) satisfies the gate. The extractor is told
   // to record a month/day birthday without a year (MM-DD, e.g. "12-07"/"--08-14")
   // when the year is unknown, and age is NOT derivable from that — accepting it
-  // would complete the intake and leave suggestions skewing old, the exact bug.
+  // would complete the intake with age still missing, the exact bug.
   const birthdayHasYear =
     typeof birthday === "string" && /^\d{4}-\d{2}-\d{2}$/.test(birthday);
-  const isChild = !!contextInfo.recipient_is_child;
   const hasAge = !!contextInfo.has_age_context || birthdayHasYear;
-  const ageRequirementMet = !isChild || hasAge;
 
   // Specificity is NOT satisfied by broad interests (books, sports, "has
   // kids"). It needs a distinguishing signal, an explicit skip, or the one
@@ -136,7 +136,7 @@ export function deriveAddRecipientReadiness(
     state = "captured_needs_timing";
   } else if (!hasPrice) {
     state = "captured_needs_price";
-  } else if (!ageRequirementMet) {
+  } else if (!hasAge) {
     state = "captured_needs_age";
   } else if (!hasSpecificity) {
     state = "captured_needs_specificity";

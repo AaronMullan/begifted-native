@@ -276,31 +276,49 @@ Deno.test("a child's explicit age satisfies the age requirement", () => {
   assertEquals(derived.state, "captured_needs_specificity");
 });
 
-Deno.test("non-child is never gated on age — it stays optional", () => {
-  // Adult with price captured but no age and no birthday still moves past the
-  // age slot straight to texture; a distinguishing detail then completes it
-  // without ever asking age.
-  const needsTexture = deriveAddRecipientReadiness(
-    base({
-      occasions_mentioned: ["christmas"],
-      has_price_guidance: true,
-      has_age_context: false,
-      recipient_is_child: false,
-    })
-  );
-  assertEquals(needsTexture.state, "captured_needs_specificity");
+Deno.test(
+  "age is required for an adult too — texture cannot start until it's captured",
+  () => {
+    // Adult with price captured but no age and no birthday must be asked for age
+    // BEFORE texture, and cannot reach "ready" while age is missing — even with a
+    // distinguishing detail already in hand. Age is a required field for everyone,
+    // not child-only.
+    const needsAge = deriveAddRecipientReadiness(
+      base({
+        occasions_mentioned: ["christmas"],
+        has_price_guidance: true,
+        has_age_context: false,
+        recipient_is_child: false,
+      })
+    );
+    assertEquals(needsAge.state, "captured_needs_age");
+    assert(!needsAge.hasAge);
 
-  const ready = deriveAddRecipientReadiness(
-    base({
-      occasions_mentioned: ["christmas"],
-      has_price_guidance: true,
-      has_age_context: false,
-      recipient_is_child: false,
-      has_distinguishing_texture: true,
-    })
-  );
-  assertEquals(ready.state, "ready");
-});
+    // A distinguishing texture detail does not let completion jump the age gate.
+    const stillNeedsAge = deriveAddRecipientReadiness(
+      base({
+        occasions_mentioned: ["christmas"],
+        has_price_guidance: true,
+        has_age_context: false,
+        recipient_is_child: false,
+        has_distinguishing_texture: true,
+      })
+    );
+    assertEquals(stillNeedsAge.state, "captured_needs_age");
+
+    // Once age lands, the adult proceeds normally.
+    const ready = deriveAddRecipientReadiness(
+      base({
+        occasions_mentioned: ["christmas"],
+        has_price_guidance: true,
+        has_age_context: true,
+        recipient_is_child: false,
+        has_distinguishing_texture: true,
+      })
+    );
+    assertEquals(ready.state, "ready");
+  }
+);
 
 Deno.test("explicit skip completes the intake", () => {
   const derived = deriveAddRecipientReadiness(
