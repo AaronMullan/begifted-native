@@ -79,7 +79,7 @@ export function buildPriorityGuidance(
 2. OCCASION — if no giftable moment identified, ask what occasion(s) they're shopping for.
 3. REQUIRED OCCASION TIMING — for every non-inferable occasion lacking a date, ask one at a time. ${timingGuidance}
 4. DEFAULT PRICE GUIDANCE — ask how much the user would like to spend for ${recipientName}. If multiple occasions, ask person-level (not occasion-specific).
-5. AGE (children only) — if ${recipientName} reads as a child and we have neither an age nor a full birthday (with a year), ask for ${recipientName}'s age (a full birthday including the year works too). Do not infer from relationship, hobbies, or occasion. For non-children, do not ask — age is optional.
+5. AGE / LIFE STAGE — required for every recipient. If we have neither an age or life stage nor a full birthday (with a year) for ${recipientName}, ask for it (a full birthday including the year works too — it lets us derive the age). Do not infer from relationship, hobbies, or occasion. Do not move to texture until this is captured.
 6. RECIPIENT TEXTURE — ask the user to describe ${recipientName} naturally ("Tell me a little about ${recipientName} — what's [he/she/they] like?").
 7. WRAP-UP — all required information captured. Use the exact ready response.`;
 }

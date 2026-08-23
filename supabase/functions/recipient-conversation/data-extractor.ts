@@ -31,6 +31,22 @@ export const supabaseServiceKey =
 
 export type AIConfig = { provider: Provider; model: string; apiKey: string };
 
+// The completion line "[Name]'s all set." is runtime-owned so completion copy
+// stays consistent and can only appear once the deterministic gate reaches
+// "ready". The reply LLM must never introduce it: on a non-ready turn it produces
+// the contradiction of a required-field question shipping alongside a completion
+// (e.g. "About how old is Daniel? Daniel's all set."). Global + case-insensitive
+// so a leaked close is removed wherever it lands, not only at the end.
+const ALL_SET_COMPLETION_RE =
+  /\s*\b[A-Za-z][A-Za-z'’\- ]*\b(?:['’]s|is)\s+all set[.!?]*/gi;
+
+export function stripAllSetCompletion(text: string): string {
+  return text
+    .replace(ALL_SET_COMPLETION_RE, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
 export async function resolveAIConfig(
   override?: AIOverride,
   defaultModel: string = CONVERSATION_MODEL
@@ -421,13 +437,21 @@ Return JSON with what's been established:
   // Strip any close it wrote anyway (against the recognition-only guidance), then
   // append the runtime-owned close exactly once so completion copy is consistent.
   if (readyAcknowledgmentClose) {
-    const recognition = reply
-      .trim()
-      .replace(/\s*[A-Za-z][A-Za-z'’\- ]*\b(?:['’]s|is) all set[.!?]*\s*$/i, "")
-      .trim();
+    const recognition = stripAllSetCompletion(reply);
     reply = recognition
       ? `${recognition}\n\n${readyAcknowledgmentClose}`
       : readyAcknowledgmentClose;
+  } else if (
+    conversationType === "add_recipient" &&
+    contextInfo.readiness?.state !== "ready"
+  ) {
+    // Non-ready add_recipient turn: a required field is still missing, so strip
+    // any completion line the model appended. Completion must be impossible
+    // while a required field is unmet — one response can never contain both a
+    // required-field question and "[Name]'s all set." Keep the original reply if
+    // stripping would empty it (the model wrote nothing but a stray close).
+    const stripped = stripAllSetCompletion(reply);
+    if (stripped) reply = stripped;
   }
 
   // For add_recipient the button stays hidden until the recipient is ready:
