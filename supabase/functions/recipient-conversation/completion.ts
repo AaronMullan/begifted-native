@@ -43,3 +43,32 @@ export function stripAllSetCompletion(
     .replace(/[ \t]{2,}/g, " ")
     .trim();
 }
+
+/**
+ * Drop any interrogative sentence from a completion-turn recognition line.
+ *
+ * On the ready/acknowledgment turn every required field is already satisfied in
+ * canonical state, so the reply LLM's recognition sentence must be declarative —
+ * yet it sometimes appends a spurious required-field question for a field that is
+ * already captured ("…a clear aesthetic preference. What's your relationship to
+ * Sarah?"). Left in place, that question ships alongside the runtime-appended
+ * close, producing the mutually-exclusive "…relationship to Sarah? Sarah's all
+ * set." The completion contract — a required-field question can never share a
+ * response with the close — is enforced here by construction, for ANY field, so
+ * no per-field special-casing is needed.
+ *
+ * Splits into sentences on terminal punctuation and keeps only the ones that do
+ * NOT end in a question mark. Returns "" when nothing declarative remains, so the
+ * caller falls back to the close alone.
+ *
+ * Pure module — no env, no AI, no I/O — so Deno tests can import it directly.
+ */
+export function stripQuestions(text: string): string {
+  const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g);
+  if (!sentences) return text.trim();
+  return sentences
+    .filter((s) => !/\?\s*$/.test(s.trim()))
+    .join(" ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}

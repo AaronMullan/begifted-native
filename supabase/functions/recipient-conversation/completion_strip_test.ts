@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { stripAllSetCompletion } from "./completion.ts";
+import { stripAllSetCompletion, stripQuestions } from "./completion.ts";
 
 // A required-field question and the runtime-owned completion line must never
 // share one response. On a non-ready turn the reply LLM sometimes appends the
@@ -76,5 +76,50 @@ Deno.test("no recipient name → returns the text unchanged (trimmed)", () => {
   assertEquals(
     stripAllSetCompletion("  Daniel's all set.  ", null),
     "Daniel's all set."
+  );
+});
+
+// stripQuestions guards the acknowledgment turn: a required-field question for a
+// field already satisfied in canonical state must never survive to ride
+// alongside the runtime-appended close (the Sarah "…relationship to Sarah?
+// Sarah's all set." contradiction).
+
+Deno.test(
+  "drops a trailing required-field question, keeps the recognition",
+  () => {
+    assertEquals(
+      stripQuestions(
+        "Her ceramics and love of minimal interiors give a clear read on her taste. What's your relationship to Sarah?"
+      ),
+      "Her ceramics and love of minimal interiors give a clear read on her taste."
+    );
+  }
+);
+
+Deno.test("drops a leading question, keeps the recognition", () => {
+  assertEquals(
+    stripQuestions(
+      "What's your relationship to Sarah? Her ceramics give a clear read on her taste."
+    ),
+    "Her ceramics give a clear read on her taste."
+  );
+});
+
+Deno.test(
+  "a question-only recognition strips to empty (caller uses close alone)",
+  () => {
+    assertEquals(stripQuestions("What's your relationship to Sarah?"), "");
+  }
+);
+
+Deno.test("leaves a declarative recognition untouched", () => {
+  const r = "The Blazers are clearly a real interest for him.";
+  assertEquals(stripQuestions(r), r);
+});
+
+Deno.test("keeps an exclamatory recognition, drops only the question", () => {
+  assertEquals(
+    stripQuestions("History is clearly his lane! When is his birthday?"),
+    "History is clearly his lane!"
   );
 });
