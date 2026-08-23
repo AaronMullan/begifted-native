@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { stripAllSetCompletion } from "./data-extractor.ts";
+import { stripAllSetCompletion } from "./completion.ts";
 
 // A required-field question and the runtime-owned completion line must never
 // share one response. On a non-ready turn the reply LLM sometimes appends the

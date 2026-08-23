@@ -23,6 +23,7 @@ import {
   SAFETY_PREAMBLE,
 } from "./prompts.ts";
 import { deriveAddRecipientReadiness } from "./readiness.ts";
+import { stripAllSetCompletion } from "./completion.ts";
 // @ts-ignore - Deno environment variables are resolved at runtime
 export const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 // @ts-ignore - Deno environment variables are resolved at runtime
@@ -30,22 +31,6 @@ export const supabaseServiceKey =
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 export type AIConfig = { provider: Provider; model: string; apiKey: string };
-
-// The completion line "[Name]'s all set." is runtime-owned so completion copy
-// stays consistent and can only appear once the deterministic gate reaches
-// "ready". The reply LLM must never introduce it: on a non-ready turn it produces
-// the contradiction of a required-field question shipping alongside a completion
-// (e.g. "About how old is Daniel? Daniel's all set."). Global + case-insensitive
-// so a leaked close is removed wherever it lands, not only at the end.
-const ALL_SET_COMPLETION_RE =
-  /\s*\b[A-Za-z][A-Za-z'’\- ]*\b(?:['’]s|is)\s+all set[.!?]*/gi;
-
-export function stripAllSetCompletion(text: string): string {
-  return text
-    .replace(ALL_SET_COMPLETION_RE, "")
-    .replace(/[ \t]{2,}/g, " ")
-    .trim();
-}
 
 export async function resolveAIConfig(
   override?: AIOverride,
@@ -95,6 +80,9 @@ export async function handleConversation(
         gift_ready: true,
         has_recipient_anchor: true,
         has_occasion_anchor: true,
+        has_timing_anchor: true,
+        has_price_anchor: true,
+        has_age_anchor: true,
         has_specificity_anchor: true,
         missing_requirements: [],
         reason: "Existing recipient — already completed intake.",
