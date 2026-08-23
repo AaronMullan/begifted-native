@@ -158,9 +158,11 @@ const styles = StyleSheet.create({
     paddingTop: 104,
   },
   messageBlock: {
-    // Tall enough for the 4-line message; both messages center on the same
-    // point, so rotation doesn't shift the copy below.
-    height: 112,
+    // Sized for the 4-line message so both messages center on the same point
+    // and rotation doesn't shift the copy below. minHeight (not a fixed height)
+    // so a narrower column that wraps the long message to a 5th line grows the
+    // block instead of overflowing it onto the notification/header.
+    minHeight: 112,
     justifyContent: "center",
     // Span the content column so the message is bounded by the real gutters and
     // wraps on narrow devices; `maxWidth` alone lets the text block overflow a
