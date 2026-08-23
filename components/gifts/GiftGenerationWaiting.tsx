@@ -96,7 +96,9 @@ const GiftGenerationWaiting: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.messageBlock}>
-        <Animated.View style={{ opacity: messageOpacity }}>
+        <Animated.View
+          style={[styles.messageAnim, { opacity: messageOpacity }]}
+        >
           <Text style={styles.message}>{MESSAGES[messageIndex]}</Text>
         </Animated.View>
       </View>
@@ -160,6 +162,15 @@ const styles = StyleSheet.create({
     // point, so rotation doesn't shift the copy below.
     height: 112,
     justifyContent: "center",
+    // Span the content column so the message is bounded by the real gutters and
+    // wraps on narrow devices; `maxWidth` alone lets the text block overflow a
+    // column narrower than 352pt because the centering ancestor won't shrink it.
+    alignSelf: "stretch",
+    alignItems: "center",
+  },
+  messageAnim: {
+    alignSelf: "stretch",
+    alignItems: "center",
   },
   message: {
     ...Typography.h2,
