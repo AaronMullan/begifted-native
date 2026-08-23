@@ -10,14 +10,36 @@
  * Pure module — no env, no AI, no I/O — so Deno tests can import it directly.
  */
 
-// Global + case-insensitive so a leaked close is removed wherever it lands, not
-// only at the end. Matches "[Name]'s all set" and "[Name] is all set".
-const ALL_SET_COMPLETION_RE =
-  /\s*\b[A-Za-z][A-Za-z'’\- ]*\b(?:['’]s|is)\s+all set[.!?]*/gi;
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
-export function stripAllSetCompletion(text: string): string {
+/**
+ * Remove any "[recipientName]'s all set." / "[recipientName] is all set."
+ * completion sentence the reply LLM emitted, for the given recipient.
+ *
+ * Anchored to the actual recipient name (the exact token the runtime's own
+ * completion copy uses) rather than a freeform pattern, so it (a) matches
+ * accented/non-ASCII names literally — an ASCII word-class would leave
+ * "José's all set." intact — and (b) never touches ordinary prose that merely
+ * contains the words "all set" ("once the venue is all set, …"). The clause
+ * must end at terminal punctuation or end-of-string, so "[Name] is all set in
+ * their ways" is left alone. Global + case-insensitive so a leaked close is
+ * removed wherever it lands.
+ */
+export function stripAllSetCompletion(
+  text: string,
+  recipientName?: string | null
+): string {
+  const name = recipientName?.trim();
+  if (!name) return text.trim();
+  const n = escapeRegExp(name);
+  const re = new RegExp(
+    `\\s*${n}(?:['’]s|\\s+is)\\s+all set(?:[.!?]+|$)`,
+    "giu"
+  );
   return text
-    .replace(ALL_SET_COMPLETION_RE, "")
+    .replace(re, "")
     .replace(/[ \t]{2,}/g, " ")
     .trim();
 }

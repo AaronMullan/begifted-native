@@ -425,7 +425,7 @@ Return JSON with what's been established:
   // Strip any close it wrote anyway (against the recognition-only guidance), then
   // append the runtime-owned close exactly once so completion copy is consistent.
   if (readyAcknowledgmentClose) {
-    const recognition = stripAllSetCompletion(reply);
+    const recognition = stripAllSetCompletion(reply, recipientName);
     reply = recognition
       ? `${recognition}\n\n${readyAcknowledgmentClose}`
       : readyAcknowledgmentClose;
@@ -438,7 +438,7 @@ Return JSON with what's been established:
     // while a required field is unmet — one response can never contain both a
     // required-field question and "[Name]'s all set." Keep the original reply if
     // stripping would empty it (the model wrote nothing but a stray close).
-    const stripped = stripAllSetCompletion(reply);
+    const stripped = stripAllSetCompletion(reply, recipientName);
     if (stripped) reply = stripped;
   }
 
