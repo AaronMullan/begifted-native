@@ -123,3 +123,54 @@ Deno.test("keeps an exclamatory recognition, drops only the question", () => {
     "History is clearly his lane!"
   );
 });
+
+Deno.test("drops a question punctuated ?! (not just a bare ?)", () => {
+  assertEquals(
+    stripQuestions(
+      "Her ceramics show real taste. What's your relationship to Sarah?!"
+    ),
+    "Her ceramics show real taste."
+  );
+});
+
+Deno.test("drops a question punctuated ?...", () => {
+  assertEquals(
+    stripQuestions("Her taste is clear. What about her budget?..."),
+    "Her taste is clear."
+  );
+});
+
+Deno.test(
+  "preserves a decimal in a declarative recognition (no re-spacing)",
+  () => {
+    const r = "She spends about $4.50 a day on specialty coffee.";
+    assertEquals(stripQuestions(r), r);
+  }
+);
+
+Deno.test("preserves abbreviations in a declarative recognition", () => {
+  const r = "He's clearly proud of his U.S. Navy service.";
+  assertEquals(stripQuestions(r), r);
+});
+
+Deno.test(
+  "drops a parenthetical question whole, leaving no stray bracket",
+  () => {
+    assertEquals(
+      stripQuestions("Her taste is clear. (When's her birthday?)"),
+      "Her taste is clear."
+    );
+  }
+);
+
+Deno.test(
+  "backstop: an unsplittable question strips to empty (close-only)",
+  () => {
+    // No terminal punctuation before the question, so it can't be segmented off;
+    // the "?" backstop guarantees it still never ships alongside the close.
+    assertEquals(
+      stripQuestions("History is clearly his lane — when's his birthday?"),
+      ""
+    );
+  }
+);

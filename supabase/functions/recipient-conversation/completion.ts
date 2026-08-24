@@ -57,18 +57,25 @@ export function stripAllSetCompletion(
  * response with the close — is enforced here by construction, for ANY field, so
  * no per-field special-casing is needed.
  *
- * Splits into sentences on terminal punctuation and keeps only the ones that do
- * NOT end in a question mark. Returns "" when nothing declarative remains, so the
- * caller falls back to the close alone.
+ * Splits into sentences on whitespace that FOLLOWS terminal punctuation, drops
+ * any sentence containing a question mark (not merely ending in one — "Sarah?!"
+ * and "budget?..." are questions too), and keeps the rest verbatim. Splitting on
+ * post-terminal whitespace, rather than on every ".!?", is deliberate: a decimal
+ * or abbreviation ("$4.50", "U.S.", "e.g.") is not a sentence boundary, so a
+ * declarative recognition that contains one is preserved exactly rather than
+ * re-spaced ("$4. 50"). A final backstop returns "" if any "?" still remains, so
+ * a required-field question can never survive to ship with the appended close,
+ * whatever punctuation the model used. Returns "" when nothing declarative
+ * remains, so the caller falls back to the close alone.
  *
  * Pure module — no env, no AI, no I/O — so Deno tests can import it directly.
  */
 export function stripQuestions(text: string): string {
-  const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g);
-  if (!sentences) return text.trim();
-  return sentences
-    .filter((s) => !/\?\s*$/.test(s.trim()))
+  const result = text
+    .split(/(?<=[.!?])\s+/)
+    .filter((s) => !s.includes("?"))
     .join(" ")
     .replace(/\s{2,}/g, " ")
     .trim();
+  return result.includes("?") ? "" : result;
 }
