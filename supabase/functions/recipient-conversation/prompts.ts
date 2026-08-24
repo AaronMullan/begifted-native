@@ -78,11 +78,51 @@ export function buildPriorityGuidance(
       }).`
     : "Not currently needed.";
 
-  return `1. RECIPIENT IDENTITY (name + relationship) — if not yet captured, ask about who this person is.
-2. OCCASION — if no giftable moment identified, ask what occasion(s) they're shopping for.
-3. REQUIRED OCCASION TIMING — for every non-inferable occasion lacking a date, ask one at a time. ${timingGuidance}
-4. DEFAULT PRICE GUIDANCE — ask how much the user would like to spend for ${recipientName}. If multiple occasions, ask person-level (not occasion-specific).
-5. AGE / LIFE STAGE — required for every recipient. If we have neither an age or life stage nor a full birthday (with a year) for ${recipientName}, ask for it (a full birthday including the year works too — it lets us derive the age). Do not infer from relationship, hobbies, or occasion. Do not move to texture until this is captured.
+  // Captured-field flags read from the SINGLE canonical state: the runtime has
+  // already written the derived readiness anchors onto contextInfo.readiness
+  // (deriveAddRecipientReadiness) before this runs. Marking each field captured
+  // here — rather than leaving the model to re-derive it from raw contextInfo —
+  // is what keeps question-selection in agreement with the readiness/completion
+  // gates: a field satisfied in canonical state is announced as captured so the
+  // model never re-asks it (the "What's your relationship to Sarah?" re-ask of an
+  // already-known field). This is field-agnostic; no relationship special-case.
+  const hasName = !!(contextInfo.name || contextInfo.existing_name);
+  const hasRelationship = !!(
+    contextInfo.relationship || contextInfo.existing_relationship
+  );
+  const readiness = contextInfo.readiness;
+  const hasOccasion = !!readiness?.has_occasion_anchor;
+  const hasTiming = !!readiness?.has_timing_anchor;
+  const hasPrice = !!readiness?.has_price_anchor;
+  const hasAge = !!readiness?.has_age_anchor;
+
+  // "Do NOT ask again" for a captured field; the normal ask instruction for a
+  // missing one. Keeps the required-field order visible while making the
+  // canonical captured-state authoritative over the model's own reading.
+  const identityStatus =
+    hasName && hasRelationship
+      ? "✓ already captured (name + relationship) — do NOT ask who this person is again."
+      : hasName
+        ? "name captured; relationship still missing — ask ONLY how the user knows/relates to this person."
+        : "if not yet captured, ask about who this person is.";
+  const occasionStatus = hasOccasion
+    ? "✓ already captured — do NOT ask for an occasion again."
+    : "if no giftable moment identified, ask what occasion(s) they're shopping for.";
+  const timingStatus = hasTiming
+    ? "✓ all required dates captured — do NOT ask for a date again."
+    : `for every non-inferable occasion lacking a date, ask one at a time. ${timingGuidance}`;
+  const priceStatus = hasPrice
+    ? "✓ already captured — do NOT ask about spend again."
+    : `ask how much the user would like to spend for ${recipientName}. If multiple occasions, ask person-level (not occasion-specific).`;
+  const ageStatus = hasAge
+    ? "✓ already captured — do NOT ask about age/life stage again."
+    : `required for every recipient. If we have neither an age or life stage nor a full birthday (with a year) for ${recipientName}, ask for it (a full birthday including the year works too — it lets us derive the age). Do not infer from relationship, hobbies, or occasion. Do not move to texture until this is captured.`;
+
+  return `1. RECIPIENT IDENTITY (name + relationship) — ${identityStatus}
+2. OCCASION — ${occasionStatus}
+3. REQUIRED OCCASION TIMING — ${timingStatus}
+4. DEFAULT PRICE GUIDANCE — ${priceStatus}
+5. AGE / LIFE STAGE — ${ageStatus}
 6. RECIPIENT TEXTURE — ask the user to describe ${recipientName} naturally ("Tell me a little about ${recipientName} — what's [he/she/they] like?").
 7. WRAP-UP — all required information captured. Use the exact ready response.`;
 }

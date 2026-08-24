@@ -23,7 +23,7 @@ import {
   SAFETY_PREAMBLE,
 } from "./prompts.ts";
 import { deriveAddRecipientReadiness } from "./readiness.ts";
-import { stripAllSetCompletion } from "./completion.ts";
+import { stripAllSetCompletion, stripQuestions } from "./completion.ts";
 // @ts-ignore - Deno environment variables are resolved at runtime
 export const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 // @ts-ignore - Deno environment variables are resolved at runtime
@@ -421,11 +421,19 @@ Return JSON with what's been established:
     }
   }
 
-  // Acknowledgment path: the reply LLM produced only the recognition sentence.
-  // Strip any close it wrote anyway (against the recognition-only guidance), then
-  // append the runtime-owned close exactly once so completion copy is consistent.
+  // Acknowledgment path: the reply LLM should produce only the recognition
+  // sentence. Strip any close it wrote anyway (against the recognition-only
+  // guidance), AND strip any question it appended: at "ready" every required
+  // field is already satisfied in canonical state, so a required-field question
+  // here is spurious, and letting it survive would ship it alongside the
+  // runtime-appended close — the mutually-exclusive "…relationship to Sarah?
+  // Sarah's all set." The completion contract holds by construction: a required-
+  // field question can never share a response with the close. Append the
+  // runtime-owned close exactly once so completion copy is consistent.
   if (readyAcknowledgmentClose) {
-    const recognition = stripAllSetCompletion(reply, recipientName);
+    const recognition = stripQuestions(
+      stripAllSetCompletion(reply, recipientName)
+    );
     reply = recognition
       ? `${recognition}\n\n${readyAcknowledgmentClose}`
       : readyAcknowledgmentClose;

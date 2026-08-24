@@ -43,3 +43,39 @@ export function stripAllSetCompletion(
     .replace(/[ \t]{2,}/g, " ")
     .trim();
 }
+
+/**
+ * Drop any interrogative sentence from a completion-turn recognition line.
+ *
+ * On the ready/acknowledgment turn every required field is already satisfied in
+ * canonical state, so the reply LLM's recognition sentence must be declarative —
+ * yet it sometimes appends a spurious required-field question for a field that is
+ * already captured ("…a clear aesthetic preference. What's your relationship to
+ * Sarah?"). Left in place, that question ships alongside the runtime-appended
+ * close, producing the mutually-exclusive "…relationship to Sarah? Sarah's all
+ * set." The completion contract — a required-field question can never share a
+ * response with the close — is enforced here by construction, for ANY field, so
+ * no per-field special-casing is needed.
+ *
+ * Splits into sentences on whitespace that FOLLOWS terminal punctuation, drops
+ * any sentence containing a question mark (not merely ending in one — "Sarah?!"
+ * and "budget?..." are questions too), and keeps the rest verbatim. Splitting on
+ * post-terminal whitespace, rather than on every ".!?", is deliberate: a decimal
+ * or abbreviation ("$4.50", "U.S.", "e.g.") is not a sentence boundary, so a
+ * declarative recognition that contains one is preserved exactly rather than
+ * re-spaced ("$4. 50"). A final backstop returns "" if any "?" still remains, so
+ * a required-field question can never survive to ship with the appended close,
+ * whatever punctuation the model used. Returns "" when nothing declarative
+ * remains, so the caller falls back to the close alone.
+ *
+ * Pure module — no env, no AI, no I/O — so Deno tests can import it directly.
+ */
+export function stripQuestions(text: string): string {
+  const result = text
+    .split(/(?<=[.!?])\s+/)
+    .filter((s) => !s.includes("?"))
+    .join(" ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return result.includes("?") ? "" : result;
+}
