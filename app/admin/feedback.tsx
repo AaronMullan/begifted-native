@@ -1,41 +1,20 @@
 import { AdminNavbar } from "@/components/admin/AdminNavbar";
 import { AdminTheme } from "@/lib/admin-theme";
-import {
-  fetchFeedbackDashboard,
-  type FeedbackTicket,
-  type RawFeedbackItem,
-  type TicketStatusCategory,
-} from "@/lib/api";
+import { fetchFeedbackDashboard, type RawFeedbackItem } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
 import { useQuery } from "@tanstack/react-query";
-import React, { useState } from "react";
-import { Linking, Platform, ScrollView, StyleSheet, View } from "react-native";
+import React from "react";
 import {
-  ActivityIndicator,
-  Card,
-  Divider,
-  SegmentedButtons,
-  Text,
-} from "react-native-paper";
+  Linking,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
+import { ActivityIndicator, Card, Divider, Text } from "react-native-paper";
 
 // Admin gating (loading / Access Denied) lives in app/admin/_layout.tsx.
-
-type FeedbackView = "raw" | "tickets";
-
-const STATUS_ORDER: TicketStatusCategory[] = ["todo", "in_progress", "done"];
-
-const STATUS_LABELS: Record<TicketStatusCategory, string> = {
-  todo: "To Do",
-  in_progress: "In Progress",
-  done: "Done",
-  unknown: "Other",
-};
-
-const SOURCE_LABELS: Record<FeedbackTicket["source"], string> = {
-  "user-feedback": "User",
-  "team-feedback": "Team",
-  other: "Other",
-};
 
 function formatTs(iso: string): string {
   // Upstream timestamps aren't guaranteed present; an empty/invalid value would
@@ -47,17 +26,13 @@ function formatTs(iso: string): string {
 }
 
 const FeedbackScreen: React.FC = () => {
-  const [view, setView] = useState<FeedbackView>("raw");
-
   const query = useQuery({
     queryKey: queryKeys.feedbackTickets,
     queryFn: fetchFeedbackDashboard,
   });
 
-  const raw = query.data?.rawFeedback ?? [];
-  const tickets = query.data?.tickets ?? [];
-
-  const untriaged = raw.filter((r) => !r.jiraKey).length;
+  const items = query.data?.rawFeedback ?? [];
+  const withTicket = items.filter((i) => i.jiraKey).length;
 
   return (
     <ScrollView
@@ -72,7 +47,9 @@ const FeedbackScreen: React.FC = () => {
       <Text variant="bodyMedium" style={styles.summary}>
         {query.isLoading
           ? "Loading…"
-          : `${raw.length} feedback items · ${untriaged} not yet triaged · ${tickets.length} tickets`}
+          : items.length === 0
+            ? "No feedback recorded yet."
+            : `${items.length} feedback items · ${withTicket} with a ticket`}
       </Text>
 
       {query.error && (
@@ -97,45 +74,18 @@ const FeedbackScreen: React.FC = () => {
           </Card>
         ))}
 
-      <SegmentedButtons
-        value={view}
-        onValueChange={(v) => setView(v as FeedbackView)}
-        style={styles.filter}
-        buttons={[
-          { value: "raw", label: "Raw feedback" },
-          { value: "tickets", label: "Tickets" },
-        ]}
-      />
+      <View style={styles.items}>
+        {items.map((item) => (
+          <FeedbackCard key={item.id} item={item} />
+        ))}
+      </View>
 
       {query.isLoading && <ActivityIndicator style={styles.loader} />}
-
-      {!query.isLoading && view === "raw" && <RawFeedbackList items={raw} />}
-
-      {!query.isLoading && view === "tickets" && (
-        <TicketList tickets={tickets} />
-      )}
     </ScrollView>
   );
 };
 
-const RawFeedbackList: React.FC<{ items: RawFeedbackItem[] }> = ({ items }) => {
-  if (items.length === 0) {
-    return (
-      <Text variant="bodySmall" style={styles.emptyFilter}>
-        No feedback recorded yet.
-      </Text>
-    );
-  }
-  return (
-    <View style={styles.items}>
-      {items.map((item) => (
-        <RawFeedbackCard key={item.id} item={item} />
-      ))}
-    </View>
-  );
-};
-
-const RawFeedbackCard: React.FC<{ item: RawFeedbackItem }> = ({ item }) => {
+const FeedbackCard: React.FC<{ item: RawFeedbackItem }> = ({ item }) => {
   const name = item.reporter ?? "(anonymous)";
   return (
     <Card mode="contained" style={styles.card}>
@@ -156,100 +106,49 @@ const RawFeedbackCard: React.FC<{ item: RawFeedbackItem }> = ({ item }) => {
         </Text>
 
         <View style={styles.statusRow}>
-          {item.jiraKey ? (
-            <View style={styles.ticketTag}>
-              <Text variant="labelSmall" style={styles.ticketTagText}>
-                {item.jiraKey}
-                {item.statusName ? ` · ${item.statusName}` : ""}
-              </Text>
-            </View>
-          ) : (
-            <Text variant="bodySmall" style={styles.untriaged}>
-              Not yet triaged
-            </Text>
-          )}
+          <TicketStatus item={item} />
         </View>
       </Card.Content>
     </Card>
   );
 };
 
-const TicketList: React.FC<{ tickets: FeedbackTicket[] }> = ({ tickets }) => {
-  if (tickets.length === 0) {
+// The ticket a feedback item spawned, resolved to its live status. Tapping the
+// chip opens the issue in Jira. Feedback that was handled in Sentry but has no
+// mapping row yet (e.g. before the backfill runs) reads as "Triaged"; untouched
+// feedback reads as "Not yet triaged".
+const TicketStatus: React.FC<{ item: RawFeedbackItem }> = ({ item }) => {
+  if (item.jiraKey) {
+    const label = item.statusName
+      ? `${item.jiraKey} · ${item.statusName}`
+      : item.jiraKey;
+    if (item.jiraUrl) {
+      const url = item.jiraUrl;
+      return (
+        <Pressable onPress={() => Linking.openURL(url)}>
+          <View style={styles.ticketTag}>
+            <Text variant="labelSmall" style={styles.ticketTagText}>
+              {label}
+            </Text>
+          </View>
+        </Pressable>
+      );
+    }
     return (
-      <Text variant="bodySmall" style={styles.emptyFilter}>
-        No feedback tickets found.
-      </Text>
+      <View style={styles.ticketTag}>
+        <Text variant="labelSmall" style={styles.ticketTagText}>
+          {label}
+        </Text>
+      </View>
     );
   }
 
-  const grouped = STATUS_ORDER.map((cat) => ({
-    cat,
-    rows: tickets.filter((t) => t.statusCategory === cat),
-  }));
-  // Anything Jira didn't map to a known category still deserves to show.
-  const otherRows = tickets.filter(
-    (t) => !STATUS_ORDER.includes(t.statusCategory)
-  );
-  if (otherRows.length > 0) {
-    grouped.push({ cat: "unknown", rows: otherRows });
-  }
-
   return (
-    <View style={styles.groups}>
-      {grouped
-        .filter((g) => g.rows.length > 0)
-        .map((g) => (
-          <View key={g.cat}>
-            <Text variant="labelLarge" style={styles.groupHeader}>
-              {STATUS_LABELS[g.cat]} · {g.rows.length}
-            </Text>
-            <View style={styles.items}>
-              {g.rows.map((t) => (
-                <TicketCard key={t.key} ticket={t} />
-              ))}
-            </View>
-          </View>
-        ))}
-    </View>
+    <Text variant="bodySmall" style={styles.untriaged}>
+      {item.resolved ? "Triaged" : "Not yet triaged"}
+    </Text>
   );
 };
-
-const TicketCard: React.FC<{ ticket: FeedbackTicket }> = ({ ticket }) => (
-  <Card
-    mode="contained"
-    style={styles.card}
-    onPress={() => Linking.openURL(ticket.url)}
-  >
-    <Card.Content>
-      <View style={styles.cardHeader}>
-        <View style={styles.headerLeft}>
-          <View style={styles.sourceTag}>
-            <Text variant="labelSmall" style={styles.sourceTagText}>
-              {SOURCE_LABELS[ticket.source]}
-            </Text>
-          </View>
-          <Text variant="labelSmall" style={styles.ticketKey}>
-            {ticket.key}
-          </Text>
-        </View>
-        <Text variant="bodySmall" style={styles.tsMono}>
-          {ticket.statusName}
-        </Text>
-      </View>
-
-      <Text variant="bodyMedium" style={styles.message}>
-        {ticket.summary}
-      </Text>
-
-      <Text variant="bodySmall" style={styles.meta}>
-        {[ticket.priority, ticket.assignee ?? "Unassigned"]
-          .filter(Boolean)
-          .join(" · ")}
-      </Text>
-    </Card.Content>
-  </Card>
-);
 
 const styles = StyleSheet.create({
   container: {
@@ -283,24 +182,8 @@ const styles = StyleSheet.create({
   warnText: {
     color: AdminTheme.muted,
   },
-  filter: {
-    marginBottom: 12,
-  },
-  emptyFilter: {
-    color: AdminTheme.faint,
-    fontStyle: "italic",
-    marginBottom: 8,
-  },
   loader: {
     marginTop: 24,
-  },
-  groups: {
-    gap: 18,
-  },
-  groupHeader: {
-    color: AdminTheme.textStrong,
-    fontWeight: "700",
-    marginBottom: 8,
   },
   items: {
     gap: 12,
@@ -319,12 +202,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    flexShrink: 1,
-  },
   cardTitle: {
     fontWeight: "600",
     flexShrink: 1,
@@ -342,16 +219,13 @@ const styles = StyleSheet.create({
     color: AdminTheme.text,
     marginTop: 2,
   },
-  meta: {
-    color: AdminTheme.muted,
-    marginTop: 8,
-  },
   statusRow: {
-    marginTop: 10,
+    marginTop: 12,
     flexDirection: "row",
     alignItems: "center",
   },
   ticketTag: {
+    alignSelf: "flex-start",
     backgroundColor: AdminTheme.navActive,
     borderRadius: 6,
     paddingHorizontal: 8,
@@ -364,20 +238,6 @@ const styles = StyleSheet.create({
   untriaged: {
     color: AdminTheme.faint,
     fontStyle: "italic",
-  },
-  sourceTag: {
-    backgroundColor: AdminTheme.navActive,
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  sourceTagText: {
-    color: AdminTheme.text,
-    fontWeight: "700",
-  },
-  ticketKey: {
-    color: AdminTheme.muted,
-    fontWeight: "700",
   },
 });
 
