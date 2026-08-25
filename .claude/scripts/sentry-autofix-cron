@@ -7,6 +7,15 @@
 # sweep #bugs (Slack bug report → ticket).
 set -euo pipefail
 
+# The 01:00–04:00 launchd window keeps losing passes to machine sleep — the API
+# aborts mid-response with "your computer went to sleep" and the pass exits 1
+# (2026-08-21/24/25). Re-exec the whole run under caffeinate so nothing can
+# idle/system-sleep mid-pass; the guard var stops an infinite re-exec loop.
+if [ -z "${AUTOFIX_CAFFEINATED:-}" ]; then
+  export AUTOFIX_CAFFEINATED=1
+  exec caffeinate -dimsu "$0" "$@"
+fi
+
 MAIN_CHECKOUT="$HOME/development/begifted-native"
 AUTOFIX_ROOT="$HOME/development/autofix"
 LOG_DIR="$HOME/Library/Logs/begifted-autofix"
