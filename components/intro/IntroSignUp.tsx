@@ -25,6 +25,7 @@ import { KEYBOARD_CTA_GAP } from "@/lib/constants";
 type IntroSignUpProps = {
   onSignedUp: () => Promise<void> | void;
   onGoToSignIn: () => Promise<void> | void;
+  onNeedsVerification: (email: string) => Promise<void> | void;
 };
 
 type SignUpResult =
@@ -73,6 +74,7 @@ async function performSignUp(
 export default function IntroSignUp({
   onSignedUp,
   onGoToSignIn,
+  onNeedsVerification,
 }: IntroSignUpProps) {
   const insets = useSafeAreaInsets();
 
@@ -82,7 +84,6 @@ export default function IntroSignUp({
   const [submitting, setSubmitting] = useState(false);
   const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
 
   const canSubmit =
     name.trim().length > 0 &&
@@ -93,11 +94,11 @@ export default function IntroSignUp({
 
   async function handleSubmit() {
     setError(null);
-    setInfo(null);
     setSubmitting(true);
 
     try {
-      const result = await performSignUp(name.trim(), email.trim(), password);
+      const trimmedEmail = email.trim();
+      const result = await performSignUp(name.trim(), trimmedEmail, password);
 
       if ("error" in result) {
         setError(result.error);
@@ -107,11 +108,7 @@ export default function IntroSignUp({
         // No session yet, so the acceptance can't be recorded until the user
         // verifies and signs in; flushed by app/index.tsx on first load.
         await markPendingLegalAcceptance();
-        setInfo(
-          Platform.OS === "web"
-            ? "Check your inbox to verify your email, then sign in."
-            : "Check your inbox — the verification link will bring you back to the app."
-        );
+        await onNeedsVerification(trimmedEmail);
         return;
       }
 
@@ -207,7 +204,6 @@ export default function IntroSignUp({
         </View>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        {info ? <Text style={styles.info}>{info}</Text> : null}
 
         <LegalAcceptanceCheckbox
           accepted={acceptedLegal}
@@ -282,10 +278,6 @@ const styles = StyleSheet.create({
   },
   error: {
     color: Colors.brand.rose,
-    marginTop: 4,
-  },
-  info: {
-    color: Colors.brand.darkTeal,
     marginTop: 4,
   },
   button: {

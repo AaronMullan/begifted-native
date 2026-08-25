@@ -20,11 +20,17 @@ export default function IntroSignUpScreen() {
     router.replace("/");
   }
 
+  async function handleNeedsVerification(email: string) {
+    await markIntroSeen();
+    router.replace({ pathname: "/verify-email", params: { email } });
+  }
+
   return (
     <View style={styles.root}>
       <IntroSignUp
         onSignedUp={handleSignedUp}
         onGoToSignIn={handleGoToSignIn}
+        onNeedsVerification={handleNeedsVerification}
       />
     </View>
   );
