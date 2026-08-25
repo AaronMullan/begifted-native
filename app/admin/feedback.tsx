@@ -60,6 +60,15 @@ function statusChipColor(
   return STATUS_COLORS[key] ?? CATEGORY_COLORS[category ?? "unknown"];
 }
 
+// The DEV workflow has no "Triage" status, so feedback tickets sit in "To Do"
+// with the user-feedback label as the de-facto triage queue. Every ticket shown
+// here is a user-feedback ticket, so present "To Do" as "Triage" (the label and
+// gold color both follow from the mapped name).
+function displayStatus(statusName: string | null): string | null {
+  if (!statusName) return null;
+  return statusName.toLowerCase() === "to do" ? "Triage" : statusName;
+}
+
 const FeedbackScreen: React.FC = () => {
   const query = useQuery({
     queryKey: queryKeys.feedbackTickets,
@@ -161,10 +170,9 @@ const TicketStatus: React.FC<{ item: RawFeedbackItem }> = ({ item }) => {
     );
   }
 
-  const c = statusChipColor(item.statusName, item.statusCategory);
-  const label = item.statusName
-    ? `${item.jiraKey} · ${item.statusName}`
-    : item.jiraKey;
+  const shown = displayStatus(item.statusName);
+  const c = statusChipColor(shown, item.statusCategory);
+  const label = shown ? `${item.jiraKey} · ${shown}` : item.jiraKey;
   const chip = (
     <View style={[styles.ticketTag, { backgroundColor: c.bg }]}>
       <Text
