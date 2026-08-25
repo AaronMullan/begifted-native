@@ -5,12 +5,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireUser } from "../_shared/require-user.ts";
 import { internalErrorResponse } from "../_shared/error-response.ts";
 
-// Feedback & tickets dashboard proxy. Jira and Sentry are only reachable
-// server-side (their tokens must never ship in the client), so the admin screen
-// calls this function, which joins three sources:
-//   1. Jira tickets carrying a feedback label (grouped by status client-side).
-//   2. The Sentry user-feedback inbox (the raw feed, incl. not-yet-triaged items).
-//   3. The feedback_tickets mapping table (which raw item became which ticket).
+// Feedback dashboard proxy. Jira and Sentry are only reachable server-side
+// (their tokens must never ship in the client), so the admin screen calls this
+// function, which returns a single feedback-centric feed: each Sentry
+// user-feedback item, with the Jira ticket it spawned (if any) resolved to its
+// live status. Three sources are joined:
+//   1. The Sentry user-feedback inbox (the feed, incl. not-yet-triaged items).
+//   2. The feedback_tickets mapping table (which feedback item became which ticket).
+//   3. Jira tickets labeled user-feedback (only to resolve the live status of a
+//      linked ticket — no standalone ticket list is returned).
 // Unlike refine-prompt (auth only), this verifies is_admin before returning —
 // it exposes internal Jira/Sentry data.
 
@@ -78,6 +81,7 @@ type RawFeedbackItem = {
   createdAt: string;
   resolved: boolean;
   jiraKey: string | null;
+  jiraUrl: string | null;
   statusName: string | null;
   statusCategory: StatusCategory | null;
 };
@@ -98,7 +102,7 @@ async function fetchJiraTickets(): Promise<FeedbackTicket[]> {
 
   for (let page = 0; page < JIRA_MAX_PAGES; page++) {
     const params = new URLSearchParams({
-      jql: "project = DEV AND labels in (user-feedback, team-feedback) ORDER BY updated DESC",
+      jql: "project = DEV AND labels = user-feedback ORDER BY updated DESC",
       fields: "summary,status,priority,assignee,labels,updated",
       maxResults: "100",
     });
@@ -265,6 +269,7 @@ serve(async (req: Request) => {
         createdAt: fb.createdAt,
         resolved: fb.resolved,
         jiraKey,
+        jiraUrl: linked?.url ?? null,
         statusName: linked?.statusName ?? null,
         statusCategory: linked?.statusCategory ?? null,
       };
@@ -272,7 +277,6 @@ serve(async (req: Request) => {
 
     return json(
       {
-        tickets,
         rawFeedback,
         errors: {
           jira:

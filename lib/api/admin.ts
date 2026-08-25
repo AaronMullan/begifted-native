@@ -951,22 +951,13 @@ export async function fetchTractionMetrics(): Promise<TractionMetrics> {
   };
 }
 
-// Jira workflow status buckets, mapped from statusCategory.key so the dashboard
-// can group tickets without hardcoding every workflow status name.
+// Jira workflow status bucket, mapped from statusCategory.key so the dashboard
+// doesn't hardcode every workflow status name.
 export type TicketStatusCategory = "todo" | "in_progress" | "done" | "unknown";
 
-export interface FeedbackTicket {
-  key: string; // DEV-123
-  summary: string;
-  statusName: string; // raw Jira status, e.g. "In Review"
-  statusCategory: TicketStatusCategory;
-  priority: string | null;
-  assignee: string | null;
-  source: "user-feedback" | "team-feedback" | "other";
-  url: string; // deep link to the issue in Jira
-  updated: string; // ISO timestamp
-}
-
+// One piece of user feedback, with the ticket it spawned (if any) resolved to
+// its live Jira status. The dashboard is feedback-centric — a ticket only
+// appears inline on the feedback that produced it, never as a standalone list.
 export interface RawFeedbackItem {
   id: string;
   message: string;
@@ -974,12 +965,12 @@ export interface RawFeedbackItem {
   createdAt: string; // ISO timestamp
   resolved: boolean; // resolved in Sentry (typically because it was triaged)
   jiraKey: string | null; // set when a mapping row links this feedback to a ticket
+  jiraUrl: string | null; // deep link to the linked ticket
   statusName: string | null; // live Jira status of the linked ticket
   statusCategory: TicketStatusCategory | null;
 }
 
 export interface FeedbackDashboard {
-  tickets: FeedbackTicket[];
   rawFeedback: RawFeedbackItem[];
   // Per-source failure notices (generic, safe to show). Present when Jira or
   // Sentry was unreachable but the other source still returned — a partial load
@@ -1000,7 +991,6 @@ export async function fetchFeedbackDashboard(): Promise<FeedbackDashboard> {
   );
   if (error) throw error;
   return {
-    tickets: data?.tickets ?? [],
     rawFeedback: data?.rawFeedback ?? [],
     errors: {
       jira: data?.errors?.jira ?? null,
