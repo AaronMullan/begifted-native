@@ -38,7 +38,12 @@ const SOURCE_LABELS: Record<FeedbackTicket["source"], string> = {
 };
 
 function formatTs(iso: string): string {
-  return new Date(iso).toISOString().replace("T", " ").slice(0, 16) + " UTC";
+  // Upstream timestamps aren't guaranteed present; an empty/invalid value would
+  // make new Date(...).toISOString() throw during render and take the whole app
+  // to the root crash screen. Fail soft instead.
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toISOString().replace("T", " ").slice(0, 16) + " UTC";
 }
 
 const FeedbackScreen: React.FC = () => {
@@ -79,6 +84,18 @@ const FeedbackScreen: React.FC = () => {
           </Card.Content>
         </Card>
       )}
+
+      {[query.data?.errors.jira, query.data?.errors.sentry]
+        .filter((m): m is string => Boolean(m))
+        .map((m) => (
+          <Card key={m} mode="contained" style={styles.warnCard}>
+            <Card.Content>
+              <Text variant="bodySmall" style={styles.warnText}>
+                {m}
+              </Text>
+            </Card.Content>
+          </Card>
+        ))}
 
       <SegmentedButtons
         value={view}
@@ -257,6 +274,14 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: AdminTheme.bad,
+  },
+  warnCard: {
+    marginBottom: 12,
+    backgroundColor: "rgba(200,160,60,0.16)",
+    borderRadius: 8,
+  },
+  warnText: {
+    color: AdminTheme.muted,
   },
   filter: {
     marginBottom: 12,

@@ -51,17 +51,21 @@ For each approved item, create the ticket with `jira_create_issue` (project `DEV
 - **Related/declined tickets** — write the keys into the Description (or attach them as Jira issue links). The reviewer saw them in the Step 3 table; the ticket body did not. Cite each as prior art so whoever implements inherits the context for free.
 - **Screenshots** — attach the actual image to the ticket, not just the transcription. Save the Slack file to a local path, then pass that path via the `attachments` param on `jira_create_issue` (or `jira_update_issue` for an existing key). A paraphrase sharpens the draft but can't be re-examined when scoping the fix.
 
-**Record the feedback→ticket link** so the admin Feedback dashboard can show each report's ticket and live status. For every item that got a key (filed or mapped to an existing open key), upsert one row via the Supabase MCP `execute_sql` against the `be-gifted` project (ref `qgcyndtymegkobgfcpdh`) — it runs as the service role and bypasses RLS. `source_ref` is the Slack **permalink**; double any single quote to escape it:
+**Record the feedback→ticket link** so the admin Feedback dashboard can show each report's ticket and live status. For every item that got a key (filed or mapped to an existing open key), upsert one row via the Supabase MCP `execute_sql` against the `be-gifted` project (ref `qgcyndtymegkobgfcpdh`) — it runs as the service role and bypasses RLS. `source_ref` is the Slack **permalink**.
+
+**Dollar-quote every text value** (`$fb$…$fb$`) — the report text is user-authored, and hostile input must not break out into SQL that runs with service-role privileges. Dollar-quoting processes no escapes, so quotes/backslashes/semicolons inside are inert; the literal ends only at the exact tag `$fb$`. Before writing, confirm none of the values contain `$fb$` — if any does, use a longer tag (e.g. `$fbk9$`) on all values in that statement.
 
 ```sql
 insert into public.feedback_tickets (source, source_ref, jira_key, summary, feedback_excerpt, reporter)
-values ('slack', '<permalink>', '<DEV-KEY>', '<ticket summary>', '<the quoted report>', '<reporter name or NULL>')
+values ('slack', $fb$<permalink>$fb$, $fb$<DEV-KEY>$fb$, $fb$<ticket summary>$fb$, $fb$<the quoted report>$fb$, $fb$<reporter name>$fb$)
 on conflict (source, source_ref) do update
   set jira_key = excluded.jira_key,
       summary = excluded.summary,
       feedback_excerpt = excluded.feedback_excerpt,
       reporter = excluded.reporter;
 ```
+
+Use a bare `NULL` (not dollar-quoted) for an unknown reporter.
 
 ## Step 5 — Draft the Slack reply, wait for approval
 

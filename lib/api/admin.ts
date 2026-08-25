@@ -981,6 +981,10 @@ export interface RawFeedbackItem {
 export interface FeedbackDashboard {
   tickets: FeedbackTicket[];
   rawFeedback: RawFeedbackItem[];
+  // Per-source failure notices (generic, safe to show). Present when Jira or
+  // Sentry was unreachable but the other source still returned — a partial load
+  // rather than a total failure.
+  errors: { jira: string | null; sentry: string | null };
 }
 
 /**
@@ -998,5 +1002,9 @@ export async function fetchFeedbackDashboard(): Promise<FeedbackDashboard> {
   return {
     tickets: data?.tickets ?? [],
     rawFeedback: data?.rawFeedback ?? [],
+    errors: {
+      jira: data?.errors?.jira ?? null,
+      sentry: data?.errors?.sentry ?? null,
+    },
   };
 }

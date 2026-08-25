@@ -82,41 +82,56 @@ type RawFeedbackItem = {
   statusCategory: StatusCategory | null;
 };
 
+// The enhanced /search/jql endpoint hard-caps maxResults at 100 and paginates
+// with an opaque nextPageToken (there is no total). Walk the pages so an old
+// feedback ticket past the first 100 doesn't silently vanish from the list and
+// from the raw-feed linkage map. Bounded so a token bug can't loop forever.
+const JIRA_MAX_PAGES = 10;
+
 async function fetchJiraTickets(): Promise<FeedbackTicket[]> {
   if (!jiraEmail || !jiraToken) {
     throw new Error("Jira credentials are not configured");
   }
   const auth = btoa(`${jiraEmail}:${jiraToken}`);
-  const params = new URLSearchParams({
-    jql: "project = DEV AND labels in (user-feedback, team-feedback) ORDER BY updated DESC",
-    fields: "summary,status,priority,assignee,labels,updated",
-    maxResults: "100",
-  });
-  const res = await fetch(`${jiraBase}/rest/api/2/search/jql?${params}`, {
-    headers: { Authorization: `Basic ${auth}`, Accept: "application/json" },
-  });
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(
-      `Jira search failed (${res.status}): ${detail.slice(0, 300)}`
-    );
+  const tickets: FeedbackTicket[] = [];
+  let nextPageToken: string | undefined;
+
+  for (let page = 0; page < JIRA_MAX_PAGES; page++) {
+    const params = new URLSearchParams({
+      jql: "project = DEV AND labels in (user-feedback, team-feedback) ORDER BY updated DESC",
+      fields: "summary,status,priority,assignee,labels,updated",
+      maxResults: "100",
+    });
+    if (nextPageToken) params.set("nextPageToken", nextPageToken);
+
+    const res = await fetch(`${jiraBase}/rest/api/2/search/jql?${params}`, {
+      headers: { Authorization: `Basic ${auth}`, Accept: "application/json" },
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      throw new Error(
+        `Jira search failed (${res.status}): ${detail.slice(0, 300)}`
+      );
+    }
+    const data = await res.json();
+    for (const issue of (data?.issues ?? []) as any[]) {
+      const f = issue.fields ?? {};
+      tickets.push({
+        key: issue.key,
+        summary: f.summary ?? "(no summary)",
+        statusName: f.status?.name ?? "Unknown",
+        statusCategory: mapStatusCategory(f.status?.statusCategory?.key),
+        priority: f.priority?.name ?? null,
+        assignee: f.assignee?.displayName ?? null,
+        source: labelSource(f.labels ?? []),
+        url: `${jiraBase}/browse/${issue.key}`,
+        updated: f.updated ?? "",
+      });
+    }
+    if (data?.isLast || !data?.nextPageToken) break;
+    nextPageToken = data.nextPageToken;
   }
-  const data = await res.json();
-  const issues: any[] = data?.issues ?? [];
-  return issues.map((issue) => {
-    const f = issue.fields ?? {};
-    return {
-      key: issue.key,
-      summary: f.summary ?? "(no summary)",
-      statusName: f.status?.name ?? "Unknown",
-      statusCategory: mapStatusCategory(f.status?.statusCategory?.key),
-      priority: f.priority?.name ?? null,
-      assignee: f.assignee?.displayName ?? null,
-      source: labelSource(f.labels ?? []),
-      url: `${jiraBase}/browse/${issue.key}`,
-      updated: f.updated ?? "",
-    };
-  });
+  return tickets;
 }
 
 // The issues list gives a paraphrased title; the concrete message and the
@@ -148,7 +163,10 @@ async function fetchSentryFeedback(): Promise<
       `Sentry feedback list failed (${listRes.status}): ${detail.slice(0, 300)}`
     );
   }
-  const issues: any[] = (await listRes.json()) ?? [];
+  const allIssues: any[] = (await listRes.json()) ?? [];
+  // Junk the triage skill marked `ignored` shouldn't reappear in the feed; only
+  // unresolved (not yet triaged) and resolved (triaged → has a ticket) belong.
+  const issues = allIssues.filter((i) => i.status !== "ignored");
 
   const items = await Promise.all(
     issues.slice(0, RAW_FEED_LIMIT).map(async (issue) => {
@@ -206,7 +224,12 @@ serve(async (req: Request) => {
       return json({ error: "Forbidden" }, 403);
     }
 
-    const [tickets, sentryFeedback, mappingRes] = await Promise.all([
+    // Fetch the three sources independently: one being down (e.g. a missing
+    // token, or a transient Jira/Sentry 5xx) must degrade to a partial
+    // dashboard, not a total failure. Per-source errors are surfaced to the
+    // client as generic notices — never the raw upstream body, which can carry
+    // internal detail — while the real reason is logged server-side.
+    const [jiraR, sentryR, mappingR] = await Promise.allSettled([
       fetchJiraTickets(),
       fetchSentryFeedback(),
       admin
@@ -215,9 +238,21 @@ serve(async (req: Request) => {
         .eq("source", "sentry"),
     ]);
 
+    const tickets = jiraR.status === "fulfilled" ? jiraR.value : [];
+    const sentryFeedback = sentryR.status === "fulfilled" ? sentryR.value : [];
+    const mappingRows =
+      mappingR.status === "fulfilled" ? (mappingR.value.data ?? []) : [];
+
+    if (jiraR.status === "rejected") {
+      console.error("[admin-feedback-tickets] jira", jiraR.reason);
+    }
+    if (sentryR.status === "rejected") {
+      console.error("[admin-feedback-tickets] sentry", sentryR.reason);
+    }
+
     const ticketByKey = new Map(tickets.map((t) => [t.key, t]));
     const keyByRef = new Map<string, string>(
-      (mappingRes.data ?? []).map((r: any) => [r.source_ref, r.jira_key])
+      (mappingRows as any[]).map((r) => [r.source_ref, r.jira_key])
     );
 
     const rawFeedback: RawFeedbackItem[] = sentryFeedback.map((fb) => {
@@ -235,7 +270,23 @@ serve(async (req: Request) => {
       };
     });
 
-    return json({ tickets, rawFeedback }, 200);
+    return json(
+      {
+        tickets,
+        rawFeedback,
+        errors: {
+          jira:
+            jiraR.status === "rejected"
+              ? "Couldn't load Jira tickets right now."
+              : null,
+          sentry:
+            sentryR.status === "rejected"
+              ? "Couldn't load the Sentry feedback feed right now."
+              : null,
+        },
+      },
+      200
+    );
   } catch (err) {
     return internalErrorResponse("admin-feedback-tickets", err, corsHeaders);
   }
