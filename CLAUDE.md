@@ -20,6 +20,8 @@ Do not claim a tool failed or assert how a tool, test, or remote system behaves 
 
 **Deploy edge functions via PR, never the CLI.** Don't run `supabase functions deploy`. Merging to `main` auto-deploys edge functions through `.github/workflows/deploy-edge-functions.yml`. Migrations likewise auto-apply on merge via `.github/workflows/apply-migrations.yml`.
 
+**A new edge function must be added to the deploy workflow's hardcoded list, or it never deploys.** `deploy-edge-functions.yml` enumerates each function by name in an explicit `supabase functions deploy <name>` list (duplicated across two path branches) — it does **not** discover functions from the directory. A brand-new function is committed but silently never deployed; the workflow still reports success (it deployed the ones it knows), and `list_edge_functions` won't show yours (2026-08-25, DEV-422). Add the new function to **both** branches in the same PR, then trigger a deploy — the workflow's `paths:` filter is `supabase/functions/**`, so a later workflow-only edit won't fire it; use `gh workflow run "Deploy Edge Functions" --ref main` (workflow_dispatch). Verify with `list_edge_functions`, not the green check.
+
 ## Commands
 
 ```bash
