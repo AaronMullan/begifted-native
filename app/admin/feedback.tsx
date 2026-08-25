@@ -1,6 +1,10 @@
 import { AdminNavbar } from "@/components/admin/AdminNavbar";
 import { AdminTheme } from "@/lib/admin-theme";
-import { fetchFeedbackDashboard, type RawFeedbackItem } from "@/lib/api";
+import {
+  fetchFeedbackDashboard,
+  type RawFeedbackItem,
+  type TicketStatusCategory,
+} from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
 import { useQuery } from "@tanstack/react-query";
 import React from "react";
@@ -23,6 +27,37 @@ function formatTs(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
   return d.toISOString().replace("T", " ").slice(0, 16) + " UTC";
+}
+
+type ChipColor = { bg: string; fg: string };
+
+// Per-status chip colors, keyed by the exact Jira status name (lowercased) so
+// each workflow state reads at a glance. Falls back to statusCategory for any
+// status not listed here (e.g. a future one). "Triage" is included ahead of the
+// workflow adding it, so it lights up the moment tickets land there.
+const STATUS_COLORS: Record<string, ChipColor> = {
+  triage: { bg: "rgba(216,184,105,0.22)", fg: "#E7CE8E" }, // gold — needs sorting
+  "to do": { bg: "rgba(143,168,175,0.18)", fg: "#B9C9CE" }, // neutral — not started
+  blocked: { bg: "rgba(231,154,168,0.20)", fg: "#E79AA8" }, // rose — stuck
+  "in progress": { bg: "rgba(43,163,184,0.24)", fg: "#6FD0E0" }, // cyan — active
+  "ready for deploy": { bg: "rgba(4,105,126,0.42)", fg: "#8FE3D3" },
+  done: { bg: "rgba(127,212,196,0.20)", fg: "#7FD4C4" }, // teal — shipped
+  declined: { bg: "rgba(255,255,255,0.05)", fg: "#7E999F" }, // muted — won't do
+};
+
+const CATEGORY_COLORS: Record<TicketStatusCategory, ChipColor> = {
+  todo: STATUS_COLORS["to do"],
+  in_progress: STATUS_COLORS["in progress"],
+  done: STATUS_COLORS.done,
+  unknown: STATUS_COLORS["to do"],
+};
+
+function statusChipColor(
+  statusName: string | null,
+  category: TicketStatusCategory | null
+): ChipColor {
+  const key = (statusName ?? "").toLowerCase();
+  return STATUS_COLORS[key] ?? CATEGORY_COLORS[category ?? "unknown"];
 }
 
 const FeedbackScreen: React.FC = () => {
@@ -118,36 +153,34 @@ const FeedbackCard: React.FC<{ item: RawFeedbackItem }> = ({ item }) => {
 // mapping row yet (e.g. before the backfill runs) reads as "Triaged"; untouched
 // feedback reads as "Not yet triaged".
 const TicketStatus: React.FC<{ item: RawFeedbackItem }> = ({ item }) => {
-  if (item.jiraKey) {
-    const label = item.statusName
-      ? `${item.jiraKey} · ${item.statusName}`
-      : item.jiraKey;
-    if (item.jiraUrl) {
-      const url = item.jiraUrl;
-      return (
-        <Pressable onPress={() => Linking.openURL(url)}>
-          <View style={styles.ticketTag}>
-            <Text variant="labelSmall" style={styles.ticketTagText}>
-              {label}
-            </Text>
-          </View>
-        </Pressable>
-      );
-    }
+  if (!item.jiraKey) {
     return (
-      <View style={styles.ticketTag}>
-        <Text variant="labelSmall" style={styles.ticketTagText}>
-          {label}
-        </Text>
-      </View>
+      <Text variant="bodySmall" style={styles.untriaged}>
+        {item.resolved ? "Triaged" : "Not yet triaged"}
+      </Text>
     );
   }
 
-  return (
-    <Text variant="bodySmall" style={styles.untriaged}>
-      {item.resolved ? "Triaged" : "Not yet triaged"}
-    </Text>
+  const c = statusChipColor(item.statusName, item.statusCategory);
+  const label = item.statusName
+    ? `${item.jiraKey} · ${item.statusName}`
+    : item.jiraKey;
+  const chip = (
+    <View style={[styles.ticketTag, { backgroundColor: c.bg }]}>
+      <Text
+        variant="labelSmall"
+        style={[styles.ticketTagText, { color: c.fg }]}
+      >
+        {label}
+      </Text>
+    </View>
   );
+
+  if (item.jiraUrl) {
+    const url = item.jiraUrl;
+    return <Pressable onPress={() => Linking.openURL(url)}>{chip}</Pressable>;
+  }
+  return chip;
 };
 
 const styles = StyleSheet.create({
@@ -225,14 +258,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   ticketTag: {
+    // backgroundColor is set per status via statusChipColor.
     alignSelf: "flex-start",
-    backgroundColor: AdminTheme.navActive,
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
   ticketTagText: {
-    color: AdminTheme.text,
+    // color is set per status via statusChipColor.
     fontWeight: "700",
   },
   untriaged: {
