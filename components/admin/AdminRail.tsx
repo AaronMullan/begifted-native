@@ -17,6 +17,7 @@ const NAV_LINKS = [
     label: "Beta Check-ins",
     icon: "rate-review",
   },
+  { path: "/admin/feedback", label: "Feedback", icon: "forum" },
   { path: "/admin/ai-model", label: "AI Model", icon: "smart-toy" },
   {
     path: "/admin/kill-switch",

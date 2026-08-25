@@ -78,7 +78,25 @@ Handled feedback must leave the inbox so the next run doesn't re-triage it. Via 
 
 Interactive mode does this too, after filing — there is no manual dashboard checklist anymore.
 
-## Step 6 — Report
+## Step 6 — Record the feedback→ticket link
+
+So the admin Feedback dashboard can show each feedback item's ticket and live status, persist the link for every item that got a key (filed **or** mapped to an existing open key — not junk, skipped, or over-cap). Use the Supabase MCP `execute_sql` against the `be-gifted` project (ref `qgcyndtymegkobgfcpdh`); it runs as the service role and bypasses RLS. One upsert per item.
+
+**Dollar-quote every text value** (`$fb$…$fb$`) — this feedback text is user-authored and hostile input must not break out into SQL that runs with service-role privileges. Dollar-quoting processes no escapes, so quotes/backslashes/semicolons inside are inert; the literal ends only at the exact tag `$fb$`. Before writing, confirm none of the values contain the string `$fb$` — if any does, pick a longer tag (e.g. `$fbk9$`) and use it on all values in that statement.
+
+```sql
+insert into public.feedback_tickets (source, source_ref, jira_key, summary, feedback_excerpt, reporter)
+values ('sentry', $fb$<SHORT-ID>$fb$, $fb$<DEV-KEY>$fb$, $fb$<ticket summary>$fb$, $fb$<the quoted feedback line>$fb$, $fb$<reporter email>$fb$)
+on conflict (source, source_ref) do update
+  set jira_key = excluded.jira_key,
+      summary = excluded.summary,
+      feedback_excerpt = excluded.feedback_excerpt,
+      reporter = excluded.reporter;
+```
+
+`source_ref` is the `REACT-NATIVE-X` short-ID (the same one on the `Sentry:` line). Use a bare `NULL` (not dollar-quoted) for an unknown reporter. In dry-run mode, skip the write and phrase it as `would link REACT-NATIVE-X → DEV-KEY`.
+
+## Step 7 — Report
 
 End with a summary block; every item pulled in Step 1 appears on exactly one line:
 

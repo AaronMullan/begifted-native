@@ -69,4 +69,7 @@ export const queryKeys = {
 
   // Admin — Beta UX check-in responses viewer
   betaFeedback: ["betaFeedback"] as const,
+
+  // Admin — Feedback & tickets dashboard (raw Sentry feedback + Jira tickets)
+  feedbackTickets: ["feedbackTickets"] as const,
 };
