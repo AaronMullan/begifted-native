@@ -3,6 +3,7 @@
  */
 
 import { supabase } from "../supabase";
+import { invokeWithRetry } from "../edge-retry";
 import type { Recipient } from "../../types/recipient";
 import type { BetaCheckInScreen } from "./beta-feedback";
 
@@ -947,5 +948,55 @@ export async function fetchTractionMetrics(): Promise<TractionMetrics> {
       errors: runs7dRows.filter((r) => r.status === "error").length,
       timeouts: runs7dRows.filter((r) => r.timeout_hit).length,
     },
+  };
+}
+
+// Jira workflow status buckets, mapped from statusCategory.key so the dashboard
+// can group tickets without hardcoding every workflow status name.
+export type TicketStatusCategory = "todo" | "in_progress" | "done" | "unknown";
+
+export interface FeedbackTicket {
+  key: string; // DEV-123
+  summary: string;
+  statusName: string; // raw Jira status, e.g. "In Review"
+  statusCategory: TicketStatusCategory;
+  priority: string | null;
+  assignee: string | null;
+  source: "user-feedback" | "team-feedback" | "other";
+  url: string; // deep link to the issue in Jira
+  updated: string; // ISO timestamp
+}
+
+export interface RawFeedbackItem {
+  id: string;
+  message: string;
+  reporter: string | null;
+  createdAt: string; // ISO timestamp
+  resolved: boolean; // resolved in Sentry (typically because it was triaged)
+  jiraKey: string | null; // set when a mapping row links this feedback to a ticket
+  statusName: string | null; // live Jira status of the linked ticket
+  statusCategory: TicketStatusCategory | null;
+}
+
+export interface FeedbackDashboard {
+  tickets: FeedbackTicket[];
+  rawFeedback: RawFeedbackItem[];
+}
+
+/**
+ * Feedback & tickets dashboard data for the admin viewer. Proxied through the
+ * admin-feedback-tickets edge function because Jira and Sentry are only
+ * reachable server-side (their tokens must never ship in the client). The
+ * function verifies the caller is an admin before returning anything.
+ */
+export async function fetchFeedbackDashboard(): Promise<FeedbackDashboard> {
+  const { data, error } = await invokeWithRetry<FeedbackDashboard>(
+    "admin-feedback-tickets",
+    { body: {} }
+  );
+  if (error) throw error;
+  return {
+    tickets: data?.tickets ?? [],
+    rawFeedback: data?.rawFeedback ?? [],
   };
 }

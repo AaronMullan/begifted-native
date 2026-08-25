@@ -51,6 +51,18 @@ For each approved item, create the ticket with `jira_create_issue` (project `DEV
 - **Related/declined tickets** — write the keys into the Description (or attach them as Jira issue links). The reviewer saw them in the Step 3 table; the ticket body did not. Cite each as prior art so whoever implements inherits the context for free.
 - **Screenshots** — attach the actual image to the ticket, not just the transcription. Save the Slack file to a local path, then pass that path via the `attachments` param on `jira_create_issue` (or `jira_update_issue` for an existing key). A paraphrase sharpens the draft but can't be re-examined when scoping the fix.
 
+**Record the feedback→ticket link** so the admin Feedback dashboard can show each report's ticket and live status. For every item that got a key (filed or mapped to an existing open key), upsert one row via the Supabase MCP `execute_sql` against the `be-gifted` project (ref `qgcyndtymegkobgfcpdh`) — it runs as the service role and bypasses RLS. `source_ref` is the Slack **permalink**; double any single quote to escape it:
+
+```sql
+insert into public.feedback_tickets (source, source_ref, jira_key, summary, feedback_excerpt, reporter)
+values ('slack', '<permalink>', '<DEV-KEY>', '<ticket summary>', '<the quoted report>', '<reporter name or NULL>')
+on conflict (source, source_ref) do update
+  set jira_key = excluded.jira_key,
+      summary = excluded.summary,
+      feedback_excerpt = excluded.feedback_excerpt,
+      reporter = excluded.reporter;
+```
+
 ## Step 5 — Draft the Slack reply, wait for approval
 
 Compose a concise reply for the thread: a one-line acknowledgement plus a bullet per filed ticket (`KEY — summary` with its URL), and a note for any item intentionally not filed. **Print it in the conversation and wait for approval.** Do not touch Slack yet.
@@ -73,7 +85,7 @@ Flow, reusing the interactive steps' craft (thread reading, image pulling, dedup
 4. **Rubric gate (replaces Step 3's approval):** file only if the message is a concrete, actionable bug/request with no open Jira match. Borderline (vague, can't tell if it's a bug, unclear ask) → **skip and report** — a teammate can run the interactive flow on it later. Filing guesses unattended is worse than a one-day delay.
 5. **Dedup (mandatory, in order):** first search for the message's own ts token (`text ~ "p<ts-digits>"`) to catch a prior run's ticket whose reaction failed; then `labels = team-feedback AND statusCategory != Done`; then the keyword search from Step 2. Confirm hits by reading, never by hit-count.
 6. **File:** `jira_create_issue`, one at a time, **label `team-feedback`** via `additional_fields: {"labels": ["team-feedback"]}`. The label marks "filed by automation, not yet human-vetted"; tickets land in To Do until a human re-prioritizes. Body carries the Slack permalink on its own line, the reporter's name, the quoted report, screenshots attached, and one or two `path:line` pointers (light touch — orientation, not root cause). If the item maps to an existing open key, `jira_add_comment` there with the quote + permalink instead of refiling.
-7. **Mark:** add a ✅ reaction (`slack_add_reaction`, `white_check_mark`) to the root message for every item filed or mapped to an existing key. If the reaction call fails, still count the ticket but say so in the report — the ts-token dedup is the backstop. Reactions are the **only** Slack write allowed in sweep mode: never `slack_send_message`, never `slack_send_message_draft`.
+7. **Mark:** add a ✅ reaction (`slack_add_reaction`, `white_check_mark`) to the root message for every item filed or mapped to an existing key. If the reaction call fails, still count the ticket but say so in the report — the ts-token dedup is the backstop. Reactions are the **only** Slack write allowed in sweep mode: never `slack_send_message`, never `slack_send_message_draft`. Then record the feedback→ticket link — the `feedback_tickets` upsert from Step 4 (`source='slack'`, `source_ref=<permalink>`) — so it appears on the admin Feedback dashboard.
 8. **Report** — every scanned root message on exactly one line:
 
    ```
@@ -87,7 +99,7 @@ Flow, reusing the interactive steps' craft (thread reading, image pulling, dedup
 
    In dry-run mode, prefix with `DRY RUN — nothing was written` and phrase entries as `would file`, `would react`, etc.
 
-Sweep hard rails: tickets, comments, and ✅ reactions only — no Slack messages or drafts, no branches/commits/PRs, no DB writes. Skip, don't stall.
+Sweep hard rails: tickets, comments, ✅ reactions, and the `feedback_tickets` link upsert only — no Slack messages or drafts, no branches/commits/PRs, no other DB writes. Skip, don't stall.
 
 ## Notes
 

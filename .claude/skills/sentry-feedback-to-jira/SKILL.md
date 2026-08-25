@@ -78,7 +78,23 @@ Handled feedback must leave the inbox so the next run doesn't re-triage it. Via 
 
 Interactive mode does this too, after filing — there is no manual dashboard checklist anymore.
 
-## Step 6 — Report
+## Step 6 — Record the feedback→ticket link
+
+So the admin Feedback dashboard can show each feedback item's ticket and live status, persist the link for every item that got a key (filed **or** mapped to an existing open key — not junk, skipped, or over-cap). Use the Supabase MCP `execute_sql` against the `be-gifted` project (ref `qgcyndtymegkobgfcpdh`); it runs as the service role and bypasses RLS. One upsert per item (double any single quote in the text to escape it):
+
+```sql
+insert into public.feedback_tickets (source, source_ref, jira_key, summary, feedback_excerpt, reporter)
+values ('sentry', '<SHORT-ID>', '<DEV-KEY>', '<ticket summary>', '<the quoted feedback line>', '<reporter email or NULL>')
+on conflict (source, source_ref) do update
+  set jira_key = excluded.jira_key,
+      summary = excluded.summary,
+      feedback_excerpt = excluded.feedback_excerpt,
+      reporter = excluded.reporter;
+```
+
+`source_ref` is the `REACT-NATIVE-X` short-ID (the same one on the `Sentry:` line). In dry-run mode, skip the write and phrase it as `would link REACT-NATIVE-X → DEV-KEY`.
+
+## Step 7 — Report
 
 End with a summary block; every item pulled in Step 1 appears on exactly one line:
 
