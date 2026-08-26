@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { Button, Chip, Snackbar, Text } from "react-native-paper";
+import {
+  ActivityIndicator,
+  Button,
+  Chip,
+  Snackbar,
+  Text,
+} from "react-native-paper";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { AppDrawer } from "../AppDrawer";
@@ -106,6 +112,10 @@ export default function GiftActionDrawer({
   const [note, setNote] = useState("");
   const [selectedChip, setSelectedChip] = useState<string | null>(null);
   const [errorVisible, setErrorVisible] = useState(false);
+  // Set when a row tap is swallowed by the open guard, so the rows can dim in
+  // response instead of the tap vanishing silently. Cleared when the guard
+  // lifts (below) and on dismiss.
+  const [guardBounced, setGuardBounced] = useState(false);
   const submit = useSubmitGiftFeedback();
 
   // The sheet presents with no backdrop and the "Not for them" row lands under
@@ -118,6 +128,7 @@ export default function GiftActionDrawer({
     openGuardRef.current = true;
     const timer = setTimeout(() => {
       openGuardRef.current = false;
+      setGuardBounced(false);
     }, OPEN_GUARD_MS);
     return () => clearTimeout(timer);
   }, [state]);
@@ -126,7 +137,10 @@ export default function GiftActionDrawer({
   // follow-up screen.
   const handleRowPress = (row: RowDef) => {
     if (!state) return;
-    if (openGuardRef.current) return;
+    if (openGuardRef.current) {
+      setGuardBounced(true);
+      return;
+    }
     submit.mutate(
       {
         recipientId: state.suggestion.recipient_id,
@@ -176,6 +190,7 @@ export default function GiftActionDrawer({
     setActiveRow(null);
     setNote("");
     setSelectedChip(null);
+    setGuardBounced(false);
     onDismiss();
   };
 
@@ -194,21 +209,40 @@ export default function GiftActionDrawer({
                 {state.suggestion.title}
               </Text>
             )}
-            {ROWS.map((row) => (
-              <Pressable
-                key={row.action}
-                onPress={() => handleRowPress(row)}
-                disabled={submit.isPending}
-                style={({ pressed }) => [
-                  styles.row,
-                  pressed && styles.rowPressed,
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel={row.label}
-              >
-                <Text style={styles.rowLabel}>{row.label}</Text>
-              </Pressable>
-            ))}
+            {ROWS.map((row) => {
+              // The row whose feedback is currently in flight; it carries the
+              // spinner so the tap is visibly acknowledged even on a slow save.
+              const isSubmittingRow =
+                submit.isPending && submit.variables?.action === row.action;
+              // Dim every blocked row except the one showing a spinner, so "not
+              // ready yet" always looks different from a live row. `guardBounced`
+              // only trips once a tap is actually swallowed by the open guard, so
+              // a normal open doesn't flash dimmed.
+              const blocked = submit.isPending || guardBounced;
+              return (
+                <Pressable
+                  key={row.action}
+                  onPress={() => handleRowPress(row)}
+                  disabled={blocked}
+                  style={({ pressed }) => [
+                    styles.row,
+                    pressed && styles.rowPressed,
+                    blocked && !isSubmittingRow && styles.rowBlocked,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={row.label}
+                >
+                  <Text style={styles.rowLabel}>{row.label}</Text>
+                  {isSubmittingRow && (
+                    <ActivityIndicator
+                      size={16}
+                      color={Colors.brand.darkTeal}
+                      style={styles.rowSpinner}
+                    />
+                  )}
+                </Pressable>
+              );
+            })}
           </>
         ) : (
           <View style={styles.followUp}>
@@ -301,10 +335,16 @@ const styles = StyleSheet.create({
   rowPressed: {
     opacity: 0.6,
   },
+  rowBlocked: {
+    opacity: 0.4,
+  },
   rowLabel: {
     ...Typography.eyebrow,
     lineHeight: 24,
     color: Colors.brand.darkTeal,
+  },
+  rowSpinner: {
+    marginLeft: 12,
   },
   followUp: {
     marginTop: 4,
