@@ -127,7 +127,12 @@ export default function Auth() {
       // on the sign-up form with only an inline message (DEV-420).
       await markPendingLegalAcceptance();
       setLoading(false);
-      router.push({ pathname: "/verify-email", params: { email: data.email } });
+      // replace (not push) so a hardware-back press can't return the user to
+      // the populated sign-up form — the stranding this fix removes (DEV-420).
+      router.replace({
+        pathname: "/verify-email",
+        params: { email: data.email },
+      });
       return;
     }
 

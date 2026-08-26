@@ -51,11 +51,14 @@ export default function BottomNav() {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
 
-  // Hide on admin, onboarding, and pre-auth intro routes
+  // Hide on admin, onboarding, and pre-auth intro/verify routes. The tab bar
+  // on /verify-email would let an unverified (still signed-out) user tap into
+  // the (tabs) group instead of acting on the verification prompt.
   if (
     pathname.startsWith("/admin") ||
     pathname.startsWith("/onboarding") ||
-    pathname.startsWith("/intro")
+    pathname.startsWith("/intro") ||
+    pathname.startsWith("/verify-email")
   ) {
     return null;
   }
