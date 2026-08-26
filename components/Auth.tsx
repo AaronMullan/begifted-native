@@ -7,6 +7,7 @@ import {
   Platform,
 } from "react-native";
 import { TextInput, Button, Text } from "react-native-paper";
+import { useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import {
   supabase,
@@ -32,6 +33,7 @@ type FormData = {
 };
 
 export default function Auth() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [message, setMessage] = useState("");
@@ -120,13 +122,18 @@ export default function Auth() {
       reset();
     } else {
       // No session yet, so the acceptance can't be recorded until the user
-      // verifies and signs in; flushed by app/index.tsx on first load.
+      // verifies and signs in; flushed by app/index.tsx on first load. Hand
+      // off to the dedicated verify-email screen rather than leaving the user
+      // on the sign-up form with only an inline message (DEV-420).
       await markPendingLegalAcceptance();
-      setMessage(
-        Platform.OS === "web"
-          ? "Check your inbox to verify your email before signing in."
-          : "Check your inbox — the verification link will bring you back to the app."
-      );
+      setLoading(false);
+      // replace (not push) so a hardware-back press can't return the user to
+      // the populated sign-up form — the stranding this fix removes (DEV-420).
+      router.replace({
+        pathname: "/verify-email",
+        params: { email: data.email },
+      });
+      return;
     }
 
     setLoading(false);
