@@ -210,15 +210,22 @@ export default function GiftActionDrawer({
               </Text>
             )}
             {ROWS.map((row) => {
+              // `submit` is one shared mutation instance; scope its pending state
+              // to the gift on screen so a slow save for a previously-opened gift
+              // (the list behind the backdropless sheet stays tappable) doesn't
+              // dim/spinner or block this gift's rows.
+              const pendingForThisGift =
+                submit.isPending &&
+                submit.variables?.giftSuggestionId === state?.suggestion.id;
               // The row whose feedback is currently in flight; it carries the
               // spinner so the tap is visibly acknowledged even on a slow save.
               const isSubmittingRow =
-                submit.isPending && submit.variables?.action === row.action;
+                pendingForThisGift && submit.variables?.action === row.action;
               // Dim every blocked row except the one showing a spinner, so "not
               // ready yet" always looks different from a live row. `guardBounced`
               // only trips once a tap is actually swallowed by the open guard, so
               // a normal open doesn't flash dimmed.
-              const blocked = submit.isPending || guardBounced;
+              const blocked = pendingForThisGift || guardBounced;
               return (
                 <Pressable
                   key={row.action}
