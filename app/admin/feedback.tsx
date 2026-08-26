@@ -20,6 +20,14 @@ import { ActivityIndicator, Card, Divider, Text } from "react-native-paper";
 
 // Admin gating (loading / Access Denied) lives in app/admin/_layout.tsx.
 
+// react-native-web renders a Text with an `href` as a real <a> element, but the
+// react-native core types don't include `href`. This cast exposes it for the
+// per-item deep-link anchor without leaking `any` or spreading props. On native
+// the prop is inert.
+const AnchorText = Text as React.ComponentType<
+  React.ComponentProps<typeof Text> & { href?: string }
+>;
+
 function formatTs(iso: string): string {
   // Upstream timestamps aren't guaranteed present; an empty/invalid value would
   // make new Date(...).toISOString() throw during render and take the whole app
@@ -131,29 +139,43 @@ const FeedbackScreen: React.FC = () => {
 
 const FeedbackCard: React.FC<{ item: RawFeedbackItem }> = ({ item }) => {
   const name = item.reporter ?? "(anonymous)";
+  // Stable DOM id (web) so each item is addressable as /admin/feedback#<anchorId>.
+  const anchorId = `feedback-${item.id}`;
   return (
-    <Card mode="contained" style={styles.card}>
-      <Card.Content>
-        <View style={styles.cardHeader}>
-          <Text variant="titleSmall" style={styles.cardTitle}>
-            {name}
+    <View nativeID={anchorId}>
+      <Card mode="contained" style={styles.card}>
+        <Card.Content>
+          <View style={styles.cardHeader}>
+            <Text variant="titleSmall" style={styles.cardTitle}>
+              {name}
+            </Text>
+            <View style={styles.headerRight}>
+              <AnchorText
+                variant="bodySmall"
+                href={`#${anchorId}`}
+                accessibilityLabel="Link to this feedback item"
+                style={styles.anchorLink}
+              >
+                #
+              </AnchorText>
+              <Text variant="bodySmall" style={styles.tsMono}>
+                {formatTs(item.createdAt)}
+              </Text>
+            </View>
+          </View>
+
+          <Divider style={styles.divider} />
+
+          <Text variant="bodyMedium" style={styles.message}>
+            {item.message}
           </Text>
-          <Text variant="bodySmall" style={styles.tsMono}>
-            {formatTs(item.createdAt)}
-          </Text>
-        </View>
 
-        <Divider style={styles.divider} />
-
-        <Text variant="bodyMedium" style={styles.message}>
-          {item.message}
-        </Text>
-
-        <View style={styles.statusRow}>
-          <TicketStatus item={item} />
-        </View>
-      </Card.Content>
-    </Card>
+          <View style={styles.statusRow}>
+            <TicketStatus item={item} />
+          </View>
+        </Card.Content>
+      </Card>
+    </View>
   );
 };
 
@@ -247,6 +269,16 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     flexShrink: 1,
     color: AdminTheme.textStrong,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  anchorLink: {
+    color: AdminTheme.faint,
+    fontWeight: "700",
+    textDecorationLine: "none",
   },
   tsMono: {
     fontFamily: Platform.OS === "web" ? "monospace" : "Courier",
