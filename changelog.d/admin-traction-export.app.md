@@ -1,0 +1,1 @@
+- Admin: the Traction dashboard gains an Export button that downloads a per-user CSV, plus a collapsible "How to read these numbers" reference and a one-line caption under each tile so every metric explains itself.
