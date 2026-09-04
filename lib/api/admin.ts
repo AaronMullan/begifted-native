@@ -951,6 +951,158 @@ export async function fetchTractionMetrics(): Promise<TractionMetrics> {
   };
 }
 
+export interface UserExportRow {
+  user_id: string;
+  /** YYYY-MM-DD of the earliest signed_up event; "" for users who predate the
+   * event sink (see SIGNUP_SINK_START in the dashboard) and have none. */
+  signup_date: string;
+  num_recipients: number;
+  added_person: boolean;
+  active_7d: boolean;
+  gifts_chosen: number;
+  trial_status: string;
+  subscription_status: string;
+}
+
+/**
+ * One row per non-admin user for the Traction CSV export. Reads the same source
+ * tables and applies the same admin exclusion as fetchTractionMetrics, joined
+ * per user, so the tiles reconcile to these rows: added_person → "Added a
+ * person", active_7d → "Active this week", sum(gifts_chosen) → "Gifts chosen".
+ * Paginates through PostgREST's max-rows clamp and aggregates client-side, the
+ * same trade the dashboard makes.
+ */
+export async function fetchUserExportRows(): Promise<UserExportRow[]> {
+  const now = Date.now();
+  const cutoff7d = new Date(now - WEEK_MS).toISOString();
+
+  const [
+    profiles,
+    allRecipients,
+    signupRows,
+    events7d,
+    allClicks,
+    allFeedback,
+  ] = await Promise.all([
+    fetchAll((from, to) =>
+      supabase
+        .from("profiles")
+        .select("id, is_admin, trial_status, subscription_status")
+        .order("id")
+        .range(from, to)
+    ),
+    fetchAll((from, to) =>
+      supabase
+        .from("recipients")
+        .select("id, user_id")
+        .order("id")
+        .range(from, to)
+    ),
+    fetchAll((from, to) =>
+      supabase
+        .from("product_events")
+        .select("user_id, created_at")
+        .eq("event_name", "signed_up")
+        .order("id")
+        .range(from, to)
+    ),
+    fetchAll((from, to) =>
+      supabase
+        .from("product_events")
+        .select("user_id")
+        .gte("created_at", cutoff7d)
+        .order("id")
+        .range(from, to)
+    ),
+    fetchAll((from, to) =>
+      supabase
+        .from("outbound_clicks")
+        .select("user_id, created_at")
+        .gte("created_at", cutoff7d)
+        .order("id")
+        .range(from, to)
+    ),
+    fetchAll((from, to) =>
+      supabase
+        .from("gift_feedback")
+        .select("user_id, gift_suggestion_id, action, created_at")
+        .order("id")
+        .range(from, to)
+    ),
+  ]);
+
+  const adminIds = new Set(profiles.filter((p) => p.is_admin).map((p) => p.id));
+  const users = profiles.filter((p) => !p.is_admin);
+
+  const recipientCount = new Map<string, number>();
+  for (const r of allRecipients) {
+    if (adminIds.has(r.user_id)) continue;
+    recipientCount.set(r.user_id, (recipientCount.get(r.user_id) ?? 0) + 1);
+  }
+
+  // Earliest signed_up event per user is the closest thing to a signup date —
+  // profiles has no created_at column.
+  const signupMs = new Map<string, number>();
+  for (const e of signupRows) {
+    if (adminIds.has(e.user_id)) continue;
+    const t = new Date(e.created_at).getTime();
+    if (Number.isNaN(t)) continue;
+    const prev = signupMs.get(e.user_id);
+    if (prev === undefined || t < prev) signupMs.set(e.user_id, t);
+  }
+
+  // Active = any engagement row in the trailing 7 days, mirroring the tile.
+  const active = new Set<string>();
+  for (const e of events7d) active.add(e.user_id);
+  for (const c of allClicks)
+    if (c.created_at >= cutoff7d) active.add(c.user_id);
+  for (const f of allFeedback)
+    if (f.created_at >= cutoff7d) active.add(f.user_id);
+  for (const id of adminIds) active.delete(id);
+
+  // Latest decision per gift, attributed to the user on that latest row (see
+  // fetchTractionMetrics for why free-text "gift_feedback" rows are skipped);
+  // summing the per-user "chose" counts reproduces the Gifts-chosen total.
+  const latest = new Map<
+    string,
+    { action: string; created_at: string; user_id: string }
+  >();
+  for (const f of allFeedback) {
+    if (adminIds.has(f.user_id)) continue;
+    if (f.action === "gift_feedback" || !f.gift_suggestion_id) continue;
+    const prev = latest.get(f.gift_suggestion_id);
+    if (!prev || f.created_at >= prev.created_at) {
+      latest.set(f.gift_suggestion_id, {
+        action: f.action,
+        created_at: f.created_at,
+        user_id: f.user_id,
+      });
+    }
+  }
+  const chosenCount = new Map<string, number>();
+  for (const d of latest.values()) {
+    if (d.action !== "chose") continue;
+    chosenCount.set(d.user_id, (chosenCount.get(d.user_id) ?? 0) + 1);
+  }
+
+  return users
+    .map((u) => {
+      const ms = signupMs.get(u.id);
+      const n = recipientCount.get(u.id) ?? 0;
+      return {
+        user_id: u.id,
+        signup_date: ms === undefined ? "" : localDateString(ms),
+        num_recipients: n,
+        added_person: n > 0,
+        active_7d: active.has(u.id),
+        gifts_chosen: chosenCount.get(u.id) ?? 0,
+        trial_status: u.trial_status ?? "",
+        subscription_status: u.subscription_status ?? "",
+      };
+    })
+    .sort((a, b) => b.signup_date.localeCompare(a.signup_date));
+}
+
 // Jira workflow status bucket, mapped from statusCategory.key so the dashboard
 // doesn't hardcode every workflow status name.
 export type TicketStatusCategory = "todo" | "in_progress" | "done" | "unknown";

@@ -1,14 +1,74 @@
 import { AdminNavbar } from "@/components/admin/AdminNavbar";
-import { fetchTractionMetrics } from "@/lib/api";
-import type { TractionMetrics, WeeklyCount, WeeklyRunCounts } from "@/lib/api";
+import { fetchTractionMetrics, fetchUserExportRows } from "@/lib/api";
+import type {
+  TractionMetrics,
+  UserExportRow,
+  WeeklyCount,
+  WeeklyRunCounts,
+} from "@/lib/api";
 import { AdminTheme } from "@/lib/admin-theme";
 import { Typography } from "@/lib/typography";
 import { queryKeys } from "@/lib/query-keys";
 import { useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
-import { ActivityIndicator, Button, Card, Text } from "react-native-paper";
+import { Platform, ScrollView, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  Button,
+  Card,
+  Snackbar,
+  Text,
+} from "react-native-paper";
 import Svg, { Rect } from "react-native-svg";
+
+const EXPORT_COLUMNS: (keyof UserExportRow)[] = [
+  "user_id",
+  "signup_date",
+  "num_recipients",
+  "added_person",
+  "active_7d",
+  "gifts_chosen",
+  "trial_status",
+  "subscription_status",
+];
+
+const csvCell = (value: string | number | boolean): string => {
+  const s =
+    typeof value === "boolean" ? (value ? "TRUE" : "FALSE") : String(value);
+  // Quote per RFC 4180 only when a cell contains a comma, quote, or newline.
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
+const buildUserCsv = (rows: UserExportRow[]): string => {
+  const header = EXPORT_COLUMNS.join(",");
+  const body = rows
+    .map((row) => EXPORT_COLUMNS.map((key) => csvCell(row[key])).join(","))
+    .join("\n");
+  return `${header}\n${body}\n`;
+};
+
+/** Trigger a browser download. The admin console runs on the web build; native
+ * has no DOM anchor, so callers surface a web-only note when this returns false. */
+const downloadCsv = (filename: string, csv: string): boolean => {
+  if (Platform.OS !== "web" || typeof document === "undefined") return false;
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
+  return true;
+};
+
+const todayStamp = (): string => {
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+};
 
 // Chart colors on the dark console surface: a brightened teal for the primary
 // series (buttonTeal reads too dark on the dark ground) and gold for the
@@ -35,146 +95,288 @@ const DashboardScreen: React.FC = () => {
 
   const m = metricsQuery.data;
 
+  const [exporting, setExporting] = useState(false);
+  const [snack, setSnack] = useState<string | null>(null);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const rows = await fetchUserExportRows();
+      const downloaded = downloadCsv(
+        `begifted-users-${todayStamp()}.csv`,
+        buildUserCsv(rows)
+      );
+      setSnack(
+        downloaded
+          ? `Exported ${rows.length} user${rows.length === 1 ? "" : "s"}.`
+          : "Export runs on the web console."
+      );
+    } catch (e) {
+      setSnack(`Export failed: ${(e as Error).message}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-    >
-      <AdminNavbar
-        title="Traction"
-        subtitle="How the product is being used, week over week."
-        actions={
-          <Button
-            mode="outlined"
-            compact
-            icon="refresh"
-            textColor={AdminTheme.text}
-            loading={metricsQuery.isRefetching}
-            onPress={() => metricsQuery.refetch()}
-          >
-            Refresh
-          </Button>
-        }
-      />
+    <>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <AdminNavbar
+          title="Traction"
+          subtitle="How the product is being used, week over week."
+          actions={
+            <>
+              <Button
+                mode="outlined"
+                compact
+                icon="download"
+                textColor={AdminTheme.text}
+                loading={exporting}
+                disabled={exporting}
+                onPress={handleExport}
+              >
+                Export users
+              </Button>
+              <Button
+                mode="outlined"
+                compact
+                icon="refresh"
+                textColor={AdminTheme.text}
+                loading={metricsQuery.isRefetching}
+                onPress={() => metricsQuery.refetch()}
+              >
+                Refresh
+              </Button>
+            </>
+          }
+        />
 
-      {metricsQuery.isLoading && (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" />
-        </View>
-      )}
-
-      {metricsQuery.error && (
-        <Card mode="contained" style={styles.errorCard}>
-          <Card.Content>
-            <Text variant="bodyMedium" style={styles.errorText}>
-              {(metricsQuery.error as Error).message}
-            </Text>
-          </Card.Content>
-        </Card>
-      )}
-
-      {m && (
-        <>
-          <View style={styles.tileRow}>
-            <StatTile
-              label="Users"
-              value={String(m.totalUsers)}
-              delta={m.newUsers7d > 0 ? `+${m.newUsers7d} this week` : null}
-            />
-            <StatTile
-              label="Active this week"
-              value={String(m.activeUsers7d)}
-            />
-            <StatTile label="Added a person" value={`${m.activationPct}%`} />
-            <StatTile
-              label="Gifts chosen"
-              value={String(m.giftsChosenTotal)}
-              delta={
-                m.giftsChosen7d > 0 ? `+${m.giftsChosen7d} this week` : null
-              }
-            />
+        {metricsQuery.isLoading && (
+          <View style={styles.center}>
+            <ActivityIndicator size="large" />
           </View>
+        )}
 
-          <Section title="New signups by week">
-            <WeeklyBars data={m.signupsByWeek} />
-            {(m.signupsByWeek[0]?.weekStart ?? "") < SIGNUP_SINK_START && (
-              <Text variant="bodySmall" style={styles.chartFootnote}>
-                Signup tracking began Aug 12, 2026 — weeks before that have no
-                data, not zero signups.
+        {metricsQuery.error && (
+          <Card mode="contained" style={styles.errorCard}>
+            <Card.Content>
+              <Text variant="bodyMedium" style={styles.errorText}>
+                {(metricsQuery.error as Error).message}
               </Text>
-            )}
-          </Section>
+            </Card.Content>
+          </Card>
+        )}
 
-          <Section title="Outbound product clicks by week">
-            <WeeklyBars data={m.clicksByWeek} />
-          </Section>
+        {m && (
+          <>
+            <HowToRead />
 
-          <Section title="Generation runs by week">
-            <RunBars data={m.runsByWeek} />
-            <View style={styles.legendRow}>
-              <LegendSwatch color={SERIES} label="Delivered a full set" />
-              <LegendSwatch color={SERIES_ALT} label="Came up short" />
+            <View style={styles.tileRow}>
+              <StatTile
+                label="Users"
+                value={String(m.totalUsers)}
+                caption="Total signups, all time"
+                delta={m.newUsers7d > 0 ? `+${m.newUsers7d} this week` : null}
+              />
+              <StatTile
+                label="Active this week"
+                value={String(m.activeUsers7d)}
+                caption="Did anything in the last 7 days"
+              />
+              <StatTile
+                label="Added a person"
+                value={`${m.activationPct}%`}
+                caption="Share with ≥1 recipient"
+              />
+              <StatTile
+                label="Gifts chosen"
+                value={String(m.giftsChosenTotal)}
+                caption="Marked as the one to give"
+                delta={
+                  m.giftsChosen7d > 0 ? `+${m.giftsChosen7d} this week` : null
+                }
+              />
             </View>
-          </Section>
 
-          <Section title="Gift decisions">
-            {m.feedbackActions.length === 0 ? (
-              <EmptyNote text="No gift feedback recorded yet." />
-            ) : (
-              <ActionBars actions={m.feedbackActions} />
-            )}
-          </Section>
+            <Section title="New signups by week">
+              <WeeklyBars data={m.signupsByWeek} />
+              {(m.signupsByWeek[0]?.weekStart ?? "") < SIGNUP_SINK_START && (
+                <Text variant="bodySmall" style={styles.chartFootnote}>
+                  Signup tracking began Aug 12, 2026 — weeks before that have no
+                  data, not zero signups.
+                </Text>
+              )}
+            </Section>
 
-          <Section title="Upcoming occasions">
-            <Text variant="bodyLarge">
-              <Text variant="titleLarge" style={styles.inlineNumber}>
-                {String(m.upcomingOccasions30d)}
-              </Text>
-              {"  in the next 30 days"}
-            </Text>
-          </Section>
+            <Section title="Outbound product clicks by week">
+              <WeeklyBars data={m.clicksByWeek} />
+            </Section>
 
-          <Section title="Trials & subscriptions">
-            {m.trialStatusCounts.length === 0 &&
-            m.subscriptionStatusCounts.length === 0 ? (
-              <EmptyNote text="Nothing here yet — this section fills in when the trial funnel goes live." />
-            ) : (
-              <View style={styles.statusColumns}>
-                <StatusList title="Trials" rows={m.trialStatusCounts} />
-                <StatusList
-                  title="Subscriptions"
-                  rows={m.subscriptionStatusCounts}
-                />
+            <Section title="Generation runs by week">
+              <RunBars data={m.runsByWeek} />
+              <View style={styles.legendRow}>
+                <LegendSwatch color={SERIES} label="Delivered a full set" />
+                <LegendSwatch color={SERIES_ALT} label="Came up short" />
               </View>
-            )}
-          </Section>
+            </Section>
 
-          <Section title="Generation health, trailing 7 days">
-            {m.runs7d.total === 0 ? (
-              <EmptyNote text="No generation runs recorded this week." />
-            ) : (
-              <Text variant="bodyMedium" style={styles.opsLine}>
-                {`${m.runs7d.total} runs · ${Math.round(
-                  (100 * m.runs7d.ok) / m.runs7d.total
-                )}% delivered a full set · ${m.runs7d.errors} error${
-                  m.runs7d.errors === 1 ? "" : "s"
-                } · ${m.runs7d.timeouts} timeout${
-                  m.runs7d.timeouts === 1 ? "" : "s"
-                }`}
+            <Section title="Gift decisions">
+              {m.feedbackActions.length === 0 ? (
+                <EmptyNote text="No gift feedback recorded yet." />
+              ) : (
+                <ActionBars actions={m.feedbackActions} />
+              )}
+            </Section>
+
+            <Section title="Upcoming occasions">
+              <Text variant="bodyLarge">
+                <Text variant="titleLarge" style={styles.inlineNumber}>
+                  {String(m.upcomingOccasions30d)}
+                </Text>
+                {"  in the next 30 days"}
               </Text>
-            )}
-          </Section>
-        </>
-      )}
-    </ScrollView>
+            </Section>
+
+            <Section title="Trials & subscriptions">
+              {m.trialStatusCounts.length === 0 &&
+              m.subscriptionStatusCounts.length === 0 ? (
+                <EmptyNote text="Nothing here yet — this section fills in when the trial funnel goes live." />
+              ) : (
+                <View style={styles.statusColumns}>
+                  <StatusList title="Trials" rows={m.trialStatusCounts} />
+                  <StatusList
+                    title="Subscriptions"
+                    rows={m.subscriptionStatusCounts}
+                  />
+                </View>
+              )}
+            </Section>
+
+            <Section title="Generation health, trailing 7 days">
+              {m.runs7d.total === 0 ? (
+                <EmptyNote text="No generation runs recorded this week." />
+              ) : (
+                <Text variant="bodyMedium" style={styles.opsLine}>
+                  {`${m.runs7d.total} runs · ${Math.round(
+                    (100 * m.runs7d.ok) / m.runs7d.total
+                  )}% delivered a full set · ${m.runs7d.errors} error${
+                    m.runs7d.errors === 1 ? "" : "s"
+                  } · ${m.runs7d.timeouts} timeout${
+                    m.runs7d.timeouts === 1 ? "" : "s"
+                  }`}
+                </Text>
+              )}
+            </Section>
+          </>
+        )}
+      </ScrollView>
+      <Snackbar
+        visible={snack !== null}
+        onDismiss={() => setSnack(null)}
+        duration={4000}
+      >
+        {snack ?? ""}
+      </Snackbar>
+    </>
+  );
+};
+
+// Plain-English definition of every metric on the page, for the collapsible
+// reference card. Kept in sync with fetchTractionMetrics / fetchUserExportRows.
+const GUIDE: { term: string; def: string }[] = [
+  {
+    term: "Users",
+    def: "Everyone who has signed up, all time.",
+  },
+  {
+    term: "Active this week",
+    def: "People who did anything — opened a gift, tapped a product link, or gave feedback — in the last 7 days.",
+  },
+  {
+    term: "Added a person",
+    def: "Share of users who have added at least one recipient. 56% means 56% have added someone; the rest have added no one.",
+  },
+  {
+    term: "Gifts chosen",
+    def: "Gifts a user marked as the one they're going with, all time.",
+  },
+  {
+    term: "New signups by week",
+    def: "Signups per week over the last 8 weeks. Only tracked since Aug 12, 2026 — earlier weeks read blank, not zero.",
+  },
+  {
+    term: "Outbound product clicks by week",
+    def: "Taps on a suggested product's link, per week.",
+  },
+  {
+    term: "Generation runs by week",
+    def: "Gift-generation attempts per week, split by whether a full set came back or it came up short.",
+  },
+  {
+    term: "Gift decisions",
+    def: "How users judged their gifts (chose, kept in the mix, already have it, …), counted by each gift's latest decision.",
+  },
+  {
+    term: "Upcoming occasions",
+    def: "Occasions falling in the next 30 days; annual ones roll forward to their next date.",
+  },
+  {
+    term: "Trials & subscriptions",
+    def: "Current snapshot of where users sit in the trial and subscription funnel.",
+  },
+  {
+    term: "Generation health",
+    def: "Reliability of gift generation over the last 7 days: total runs, share that delivered a full set, errors, and timeouts.",
+  },
+];
+
+const HowToRead: React.FC = () => {
+  const [open, setOpen] = useState(false);
+  return (
+    <Card mode="contained" style={styles.sectionCard}>
+      <Card.Content>
+        <Button
+          mode="text"
+          compact
+          icon={open ? "chevron-up" : "chevron-down"}
+          textColor={AdminTheme.muted}
+          style={styles.guideToggle}
+          onPress={() => setOpen((v) => !v)}
+        >
+          How to read these numbers
+        </Button>
+        {open && (
+          <View style={styles.guideList}>
+            <Text variant="bodySmall" style={styles.guideIntro}>
+              All counts exclude team accounts. Time windows are rolling
+              (relative to now), not calendar weeks or months.
+            </Text>
+            {GUIDE.map((g) => (
+              <View key={g.term} style={styles.guideRow}>
+                <Text variant="bodyMedium" style={styles.guideTerm}>
+                  {g.term}
+                </Text>
+                <Text variant="bodySmall" style={styles.guideDef}>
+                  {g.def}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </Card.Content>
+    </Card>
   );
 };
 
 const StatTile: React.FC<{
   label: string;
   value: string;
+  caption: string;
   delta?: string | null;
-}> = ({ label, value, delta = null }) => (
+}> = ({ label, value, caption, delta = null }) => (
   <Card mode="contained" style={styles.tile}>
     <Card.Content style={styles.tileContent}>
       <Text variant="displaySmall" style={styles.tileValue}>
@@ -182,6 +384,9 @@ const StatTile: React.FC<{
       </Text>
       <Text variant="bodySmall" style={styles.tileLabel}>
         {label}
+      </Text>
+      <Text variant="bodySmall" style={styles.tileCaption}>
+        {caption}
       </Text>
       {delta && (
         <Text variant="bodySmall" style={styles.tileDelta}>
@@ -489,9 +694,36 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     marginTop: 6,
   },
+  tileCaption: {
+    color: AdminTheme.faint,
+    marginTop: 4,
+  },
   tileDelta: {
     color: AdminTheme.good,
     fontWeight: "600",
+    marginTop: 2,
+  },
+  guideToggle: {
+    alignSelf: "flex-start",
+    marginLeft: -8,
+  },
+  guideList: {
+    gap: 12,
+    marginTop: 10,
+  },
+  guideIntro: {
+    color: AdminTheme.faint,
+    marginBottom: 2,
+  },
+  guideRow: {
+    gap: 2,
+  },
+  guideTerm: {
+    color: AdminTheme.textStrong,
+    fontWeight: "600",
+  },
+  guideDef: {
+    color: AdminTheme.muted,
   },
   sectionCard: {
     borderRadius: 13,
