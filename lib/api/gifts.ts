@@ -18,6 +18,10 @@ export async function fetchGiftSuggestions(
       .from("gift_suggestions")
       .select("*")
       .eq("recipient_id", recipientId)
+      // Retired by a later refresh: a profile edit generates a replacement set,
+      // and the ideas it replaced must not linger in the list or the Past Gifts
+      // band (DEV-426).
+      .is("superseded_at", null)
       .not("price", "is", null)
       .gt("price", 0)
       .order("generated_at", { ascending: false }),
