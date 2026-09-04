@@ -965,10 +965,18 @@ export interface UserExportRow {
 }
 
 /**
- * One row per non-admin user for the Traction CSV export. Reads the same source
- * tables and applies the same admin exclusion as fetchTractionMetrics, joined
- * per user, so the tiles reconcile to these rows: added_person → "Added a
- * person", active_7d → "Active this week", sum(gifts_chosen) → "Gifts chosen".
+ * One row per non-admin user for the Traction CSV export. Uses the same source
+ * tables, admin exclusion, and definitions as fetchTractionMetrics, so the
+ * per-user rows line up with the tiles: added_person → "Added a person",
+ * active_7d → "Active this week", sum(gifts_chosen) → "Gifts chosen".
+ *
+ * One deliberate difference: the tiles count raw event/recipient rows, whereas
+ * this emits a row only per profile. So an activity row whose user_id has no
+ * profile — possible only for recipients, whose user_id is nullable — counts
+ * toward the tile but has no CSV row to land on. There are none today; if that
+ * changes the tiles could read one higher than the CSV sums. The CSV is the
+ * stricter side (it can't attribute activity to a user that doesn't exist).
+ *
  * Paginates through PostgREST's max-rows clamp and aggregates client-side, the
  * same trade the dashboard makes.
  */

@@ -35,23 +35,37 @@ const EXPORT_COLUMNS: (keyof UserExportRow)[] = [
 const csvCell = (value: string | number | boolean): string => {
   const s =
     typeof value === "boolean" ? (value ? "TRUE" : "FALSE") : String(value);
+  // Neutralize spreadsheet formula injection: a cell a spreadsheet would
+  // evaluate (leading =, +, -, @, tab, or CR) is prefixed with a quote so it
+  // opens as literal text. Today's columns are UUIDs/dates/enums that never
+  // trigger this, but the file is opened in Excel/Sheets, so guard it now
+  // before anyone adds a free-text column (a name, a note).
+  const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
   // Quote per RFC 4180 only when a cell contains a comma, quote, or newline.
-  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 };
 
 const buildUserCsv = (rows: UserExportRow[]): string => {
   const header = EXPORT_COLUMNS.join(",");
-  const body = rows
-    .map((row) => EXPORT_COLUMNS.map((key) => csvCell(row[key])).join(","))
-    .join("\n");
-  return `${header}\n${body}\n`;
+  // Header-only when empty — a trailing newline after an empty body reads as a
+  // spurious blank record in some parsers.
+  const lines = [
+    header,
+    ...rows.map((row) =>
+      EXPORT_COLUMNS.map((key) => csvCell(row[key])).join(",")
+    ),
+  ];
+  return `${lines.join("\n")}\n`;
 };
 
 /** Trigger a browser download. The admin console runs on the web build; native
  * has no DOM anchor, so callers surface a web-only note when this returns false. */
 const downloadCsv = (filename: string, csv: string): boolean => {
   if (Platform.OS !== "web" || typeof document === "undefined") return false;
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  // Lead with a UTF-8 BOM (U+FEFF) so Excel-on-Windows decodes non-ASCII
+  // correctly. Written via fromCharCode so no invisible BOM sits in source.
+  const bom = String.fromCharCode(0xfeff);
+  const blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
