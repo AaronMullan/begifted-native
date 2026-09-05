@@ -73,12 +73,13 @@ export async function callAI(
   }
 }
 
-// Reasoning-class OpenAI models (gpt-5*, o-series) use the Chat Completions
-// API but require `max_completion_tokens` instead of `max_tokens` and only
-// accept the default temperature (1). Sending `max_tokens` returns a 400
-// `unsupported_parameter` error. gpt-4.x and earlier keep the legacy params.
+// Reasoning-class OpenAI models (gpt-5 and later, o-series) use the Chat
+// Completions API but require `max_completion_tokens` instead of `max_tokens`
+// and only accept the default temperature (1). Sending `max_tokens` or a
+// custom temperature returns a 400 `unsupported_parameter` error. gpt-4.x and
+// earlier keep the legacy params.
 function isReasoningOpenAIModel(model: string): boolean {
-  return /^(gpt-5|o\d)/i.test(model);
+  return /^(gpt-[5-9]|o\d)/i.test(model);
 }
 
 // max_completion_tokens on reasoning models is the TOTAL budget including
@@ -86,7 +87,7 @@ function isReasoningOpenAIModel(model: string): boolean {
 // output only (e.g. 300–900), which reasoning models consume entirely while
 // thinking, returning empty content. Apply a floor so visible output always
 // has room. `reasoning_effort: "low"` further caps the thinking budget and
-// is accepted by both gpt-5 and o-series.
+// is accepted by gpt-5+ and o-series.
 const REASONING_TOKEN_FLOOR = 4000;
 
 async function callOpenAI(
