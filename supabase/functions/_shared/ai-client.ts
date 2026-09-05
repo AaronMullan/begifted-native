@@ -73,13 +73,14 @@ export async function callAI(
   }
 }
 
-// Reasoning-class OpenAI models (gpt-5 and later, o-series) use the Chat
-// Completions API but require `max_completion_tokens` instead of `max_tokens`
-// and only accept the default temperature (1). Sending `max_tokens` or a
-// custom temperature returns a 400 `unsupported_parameter` error. gpt-4.x and
-// earlier keep the legacy params.
-function isReasoningOpenAIModel(model: string): boolean {
-  return /^(gpt-[5-9]|o\d)/i.test(model);
+// OpenAI's Chat Completions API has two parameter dialects. The gpt-3.5 and
+// gpt-4 families take `max_tokens` + `temperature`; every reasoning-class model
+// (gpt-5 onward, o-series) requires `max_completion_tokens` and only accepts
+// the default temperature (1) — sending the legacy params returns a 400
+// `unsupported_parameter`. Legacy is the closed set, so a new model generation
+// lands on the modern dialect without a code change.
+export function isReasoningOpenAIModel(model: string): boolean {
+  return !/^gpt-(3\.5|4)/i.test(model);
 }
 
 // max_completion_tokens on reasoning models is the TOTAL budget including
