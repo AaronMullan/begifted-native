@@ -145,8 +145,26 @@ serve(async (req) => {
       headers: corsHeaders,
     });
   }
+  const requestStartedAt = Date.now();
+  const timings: Record<string, number> = {};
+  // Stages in front of / behind the model calls (auth, moderation) are logged
+  // alongside the handler so a slow request can be split between shared
+  // infrastructure and the flow's own model work.
+  const logRequestTiming = (action: unknown, conversationType: unknown) => {
+    timings.total_ms = Date.now() - requestStartedAt;
+    console.log(
+      JSON.stringify({
+        tag: "request_timing",
+        action,
+        conversationType,
+        ...timings,
+      })
+    );
+  };
   try {
+    const authStartedAt = Date.now();
     const { user, errorResponse } = await requireUser(req, corsHeaders);
+    timings.auth_ms = Date.now() - authStartedAt;
     if (errorResponse) return errorResponse;
 
     // Parse request body
@@ -249,12 +267,14 @@ serve(async (req) => {
       // Coerce to string exactly as the downstream prompt does (`${m.content}`):
       // array/object content still reaches the model as readable text, so it
       // must be screened the same way rather than skipped as "not a string".
+      const moderationStartedAt = Date.now();
       const moderation = await screenInput(
         typeof lastUserContent === "string"
           ? lastUserContent
           : String(lastUserContent),
         getApiKey("openai")
       );
+      timings.moderation_ms = Date.now() - moderationStartedAt;
       if (moderation.blocked) {
         console.warn(
           `[moderation] blocked recipient-conversation input; categories=${moderation.categories.join(
@@ -293,6 +313,7 @@ serve(async (req) => {
 
     // Handle conversation action
     if (action === "conversation") {
+      const handlerStartedAt = Date.now();
       const result = await handleConversation(
         messages,
         conversationType,
@@ -300,6 +321,8 @@ serve(async (req) => {
         customSystemPrompt,
         aiOverride
       );
+      timings.handler_ms = Date.now() - handlerStartedAt;
+      logRequestTiming(action, conversationType);
       return new Response(JSON.stringify(result), {
         headers: {
           ...corsHeaders,
@@ -311,6 +334,7 @@ serve(async (req) => {
     // Handle extract action
     if (action === "extract") {
       let result;
+      const handlerStartedAt = Date.now();
       // Route to appropriate extraction function based on conversation type
       switch (conversationType) {
         case "add_recipient":
@@ -365,6 +389,8 @@ serve(async (req) => {
         default:
           throw new Error(`Unsupported conversation type: ${conversationType}`);
       }
+      timings.handler_ms = Date.now() - handlerStartedAt;
+      logRequestTiming(action, conversationType);
       return new Response(JSON.stringify(result), {
         headers: {
           ...corsHeaders,
