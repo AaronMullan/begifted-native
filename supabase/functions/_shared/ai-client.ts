@@ -67,6 +67,13 @@ function logAICall(
     ms: Date.now() - startedAt,
     prompt_tokens:
       u.prompt_tokens ?? u.input_tokens ?? u.promptTokenCount ?? null,
+    // Prompt tokens served from the provider's prefix cache. Zero with a large
+    // prompt means the stable part of the prompt isn't a contiguous prefix.
+    cached_tokens:
+      u.prompt_tokens_details?.cached_tokens ??
+      u.cache_read_input_tokens ??
+      u.cachedContentTokenCount ??
+      null,
     completion_tokens:
       u.completion_tokens ?? u.output_tokens ?? u.candidatesTokenCount ?? null,
     reasoning_tokens:
