@@ -47,6 +47,36 @@ function looksLikeJson(content: string): boolean {
   return content.includes("{") || content.includes("[");
 }
 
+// One structured line per model call so the edge-function log stream carries
+// the cost of every LLM-backed flow: which model, wall time, tokens in/out and
+// (for reasoning models) how many output tokens were hidden reasoning. Token
+// counts come straight from the provider's usage block; each provider names
+// the fields differently, so all known spellings are read.
+type UsageBlock = Record<string, unknown> | undefined;
+function logAICall(
+  provider: Provider,
+  model: string,
+  startedAt: number,
+  usage: UsageBlock
+): void {
+  const u = (usage ?? {}) as Record<string, any>;
+  const line = {
+    tag: "ai_call",
+    provider,
+    model,
+    ms: Date.now() - startedAt,
+    prompt_tokens:
+      u.prompt_tokens ?? u.input_tokens ?? u.promptTokenCount ?? null,
+    completion_tokens:
+      u.completion_tokens ?? u.output_tokens ?? u.candidatesTokenCount ?? null,
+    reasoning_tokens:
+      u.completion_tokens_details?.reasoning_tokens ??
+      u.thoughtsTokenCount ??
+      null,
+  };
+  console.log(JSON.stringify(line));
+}
+
 export function getApiKey(provider: Provider): string {
   const envMap: Record<Provider, string> = {
     openai: "OPENAI_API_KEY",
@@ -115,6 +145,7 @@ async function callOpenAI(
     body.response_format = { type: "json_object" };
   }
 
+  const startedAt = Date.now();
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -130,6 +161,7 @@ async function callOpenAI(
   }
 
   const data = await res.json();
+  logAICall("openai", model, startedAt, data.usage);
   const choice = data.choices?.[0];
   const refusal = choice?.message?.refusal;
   if (typeof refusal === "string" && refusal.trim()) {
@@ -164,6 +196,7 @@ async function callAnthropic(
     body.system = systemMsg.content;
   }
 
+  const startedAt = Date.now();
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -180,6 +213,7 @@ async function callAnthropic(
   }
 
   const data = await res.json();
+  logAICall("anthropic", model, startedAt, data.usage);
   if (data.stop_reason === "refusal") {
     const refusalText = data.content?.find(
       (c: { type: string; text?: string }) => c.type === "text"
@@ -222,6 +256,7 @@ async function callGoogle(
   }
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const startedAt = Date.now();
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -234,6 +269,7 @@ async function callGoogle(
   }
 
   const data = await res.json();
+  logAICall("google", model, startedAt, data.usageMetadata);
   const candidate = data.candidates?.[0];
   if (
     data.promptFeedback?.blockReason ||

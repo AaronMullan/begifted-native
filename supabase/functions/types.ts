@@ -185,6 +185,10 @@ export interface ConversationResponse {
   shouldShowNextStepButton: boolean;
   conversationContext?: any;
   resolvedSystemPrompt?: string | null;
+  // Server-side wall time per stage of this turn, in ms. Surfaced so the
+  // playground and client logs can attribute a slow turn to a stage without a
+  // log-stream lookup.
+  timings?: Record<string, number>;
 }
 
 export interface ExtractionResponse {

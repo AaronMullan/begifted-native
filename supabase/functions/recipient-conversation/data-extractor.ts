@@ -57,10 +57,58 @@ export async function handleConversation(
   customSystemPrompt?: string,
   aiOverride?: AIOverride
 ): Promise<ConversationResponse> {
+  const turnStartedAt = Date.now();
+  const timings: Record<string, number> = {};
+  // Every exit path logs one line so a slow turn in the log stream can be
+  // attributed to a stage (extraction vs prompt load vs reply) at a glance.
+  const finishTimings = (readinessState: string) => {
+    timings.total_ms = Date.now() - turnStartedAt;
+    console.log(
+      JSON.stringify({
+        tag: "turn_timing",
+        conversationType,
+        readiness: readinessState,
+        ...timings,
+      })
+    );
+    return timings;
+  };
   const aiConfig = await resolveAIConfig(aiOverride);
   const conversationHistory = messages
     .map((m) => `${m.role}: ${m.content}`)
     .join("\n");
+  // The prompt rows don't depend on the extraction result, so their round
+  // trips overlap the model call instead of adding to it. loadActivePrompt
+  // never rejects (it falls back internally), so a promise left un-awaited on
+  // a path that doesn't use it can't surface as an unhandled rejection.
+  const timedLoad = (key: string, fallback: string, timingKey: string) => {
+    const startedAt = Date.now();
+    return loadActivePrompt(
+      supabaseUrl,
+      supabaseServiceKey,
+      key,
+      fallback
+    ).then((text) => {
+      timings[timingKey] = Date.now() - startedAt;
+      return text;
+    });
+  };
+  const wrapUpTemplatePromise =
+    conversationType === "add_recipient"
+      ? timedLoad(
+          "add_recipient_wrap_up",
+          ADD_RECIPIENT_WRAP_UP_DEFAULT,
+          "wrap_up_prompt_load_ms"
+        )
+      : null;
+  const conversationTemplatePromise =
+    conversationType === "add_recipient" && !customSystemPrompt
+      ? timedLoad(
+          "add_recipient_conversation",
+          ADD_RECIPIENT_DEFAULT_TEMPLATE,
+          "prompt_load_ms"
+        )
+      : null;
   // Build context info about what we know
   let contextInfo: ContextInfo = {};
   if (existingData) {
@@ -97,8 +145,6 @@ ${conversationHistory}
 A recipient should not be judged by conversation length. Do NOT use number of exchanges as a proxy for readiness.
 
 Determine what information is still missing for this recipient to become gift-ready in the current flow.
-
-Mark gift_ready as true only when BeGifted has the minimum information needed to generate 3 non-generic gift concepts for one specific occasion, with a clear rationale, and without obvious mismatch.
 
 A recipient is gift-ready only when ALL of the following are true:
 
@@ -150,22 +196,9 @@ Return JSON with what's been established:
   "specificity_followup_questions_asked": 0,
   "last_assistant_asked_specificity_followup": false,
   "user_skipped_specificity": false,
-  "other_details": "brief summary of other key details gathered",
-  "readiness": {
-    "state": "not_captured | captured_needs_both | captured_needs_occasion | captured_needs_timing | captured_needs_price | captured_needs_age | captured_needs_specificity | ready",
-    "gift_ready": false,
-    "has_recipient_anchor": false,
-    "has_occasion_anchor": false,
-    "has_timing_anchor": false,
-    "has_price_anchor": false,
-    "has_age_anchor": false,
-    "has_specificity_anchor": false,
-    "missing_requirements": ["recipient_anchor", "occasion_anchor", "timing_anchor", "price_anchor", "age_anchor", "specificity_anchor"],
-    "reason": "One-sentence explanation of the assessment"
-  },
-  "conversation_length": ${messages.length},
-  "readiness_score": "0-10 scale (debugging only)"
+  "other_details": "brief summary of other key details gathered"
 }`;
+    const extractionStartedAt = Date.now();
     try {
       const contextRaw = await callAI(
         aiConfig.provider,
@@ -178,8 +211,10 @@ Return JSON with what's been established:
           jsonMode: true,
         }
       );
+      timings.context_extraction_ms = Date.now() - extractionStartedAt;
       try {
         contextInfo = parseOpenAIJSON(contextRaw);
+        contextInfo.conversation_length = messages.length;
       } catch (e) {
         console.error("Failed to parse context extraction:", e);
         contextInfo = {
@@ -247,6 +282,11 @@ Return JSON with what's been established:
   // completion copy stays consistent. Null on every non-acknowledgment path.
   let readyAcknowledgmentClose: string | null = null;
   if (conversationType === "add_recipient") {
+    // The extractor is not asked for a readiness block: the runtime is the
+    // single source for every anchor and the state, and generating the block
+    // costs ~130 output tokens on the slowest call of the turn. The block is
+    // assembled here instead so contextInfo keeps its shape for the reply
+    // prompt and the playground.
     if (!contextInfo.readiness) {
       contextInfo.readiness = {
         state: "not_captured",
@@ -273,6 +313,20 @@ Return JSON with what's been established:
     contextInfo.readiness.has_age_anchor = derived.hasAge;
     contextInfo.readiness.has_specificity_anchor = derived.hasSpecificity;
     contextInfo.readiness.state = derived.state;
+    contextInfo.readiness.gift_ready = derived.state === "ready";
+    contextInfo.readiness.missing_requirements = [
+      ["recipient_anchor", derived.hasRecipientAnchor],
+      ["occasion_anchor", derived.hasOccasion],
+      ["timing_anchor", derived.hasTiming],
+      ["price_anchor", derived.hasPrice],
+      ["age_anchor", derived.hasAge],
+      ["specificity_anchor", derived.hasSpecificity],
+    ]
+      .filter(([, satisfied]) => !satisfied)
+      .map(([name]) => name as string);
+    if (!contextInfo.readiness.reason) {
+      contextInfo.readiness.reason = `Required-field state derived by the runtime: ${derived.state}.`;
+    }
     // Write the effective pending dates (incl. the birthday backstop) back so
     // priorityGuidance and the {{contextInfo}} the model sees stay consistent.
     contextInfo.occasions_needing_dates = derived.pendingDates;
@@ -284,12 +338,8 @@ Return JSON with what's been established:
     if (contextInfo.readiness.state === "ready") {
       const wrapUpName =
         contextInfo.name || contextInfo.existing_name || "this person";
-      const wrapUpTemplate = await loadActivePrompt(
-        supabaseUrl,
-        supabaseServiceKey,
-        "add_recipient_wrap_up",
-        ADD_RECIPIENT_WRAP_UP_DEFAULT
-      );
+      const wrapUpTemplate =
+        (await wrapUpTemplatePromise) ?? ADD_RECIPIENT_WRAP_UP_DEFAULT;
       const wrapUpLine = wrapUpTemplate.replace(
         /\{\{recipientName\}\}/g,
         wrapUpName
@@ -306,6 +356,7 @@ Return JSON with what's been established:
           shouldShowNextStepButton: true,
           conversationContext: contextInfo,
           resolvedSystemPrompt: null,
+          timings: finishTimings("ready"),
         };
       }
       // Meaningful final answer: fall through to let the reply LLM generate the
@@ -349,12 +400,8 @@ Return JSON with what's been established:
         systemPrompt = interpolatePrompt(customSystemPrompt);
       } else {
         // Production — load from DB, fall back to hardcoded default template
-        const dbPrompt = await loadActivePrompt(
-          supabaseUrl,
-          supabaseServiceKey,
-          "add_recipient_conversation",
-          ADD_RECIPIENT_DEFAULT_TEMPLATE
-        );
+        const dbPrompt =
+          (await conversationTemplatePromise) ?? ADD_RECIPIENT_DEFAULT_TEMPLATE;
         systemPrompt = interpolatePrompt(dbPrompt);
       }
       break;
@@ -398,6 +445,7 @@ Return JSON with what's been established:
   // The safety boundary is prepended in code (not baked into the DB/custom
   // prompt) so it applies to every source of `systemPrompt` and can't be
   // dropped by a stale prompt version.
+  const replyStartedAt = Date.now();
   let reply = await callAI(aiConfig.provider, aiConfig.model, aiConfig.apiKey, {
     messages: [
       { role: "system", content: `${SAFETY_PREAMBLE}\n\n${systemPrompt}` },
@@ -406,6 +454,7 @@ Return JSON with what's been established:
     maxTokens: 300,
     temperature: 0.7,
   });
+  timings.reply_ms = Date.now() - replyStartedAt;
 
   // Guard: if the LLM returned a JSON object instead of plain text, extract the
   // reply field so we never display raw JSON to the user.
@@ -463,5 +512,6 @@ Return JSON with what's been established:
       contextInfo.readiness?.state === "ready",
     conversationContext: contextInfo,
     resolvedSystemPrompt: systemPrompt,
+    timings: finishTimings(contextInfo.readiness?.state ?? "n/a"),
   };
 }
