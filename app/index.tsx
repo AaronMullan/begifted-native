@@ -9,7 +9,9 @@ import {
 } from "react-native";
 import type { Href } from "expo-router";
 import { useRouter } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
+import { consumeLaunchNotification } from "../hooks/use-push-notifications";
 import Auth from "../components/Auth";
 import { Colors } from "../lib/colors";
 import GradientBackground from "../components/GradientBackground";
@@ -20,6 +22,7 @@ export default function Index() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const queryClient = useQueryClient();
   const hasNavigated = useRef(false);
 
   useEffect(() => {
@@ -42,10 +45,15 @@ export default function Index() {
         if (!isMounted || hasNavigated.current) return;
 
         hasNavigated.current = true;
-        const route = data?.onboarding_completed
-          ? "/dashboard"
-          : "/onboarding/welcome";
-        router.replace(route as Href);
+        if (!data?.onboarding_completed) {
+          router.replace("/onboarding/welcome" as Href);
+          return;
+        }
+        // A tap that cold-launched the app lands on that person's Gift Ideas
+        // with Home beneath it, the same stack a tap on a running app builds.
+        const notificationHref = consumeLaunchNotification(queryClient);
+        router.replace("/dashboard" as Href);
+        if (notificationHref) router.push(notificationHref);
       } catch {
         if (!isMounted || hasNavigated.current) return;
         hasNavigated.current = true;
@@ -107,7 +115,7 @@ export default function Index() {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [router]);
+  }, [router, queryClient]);
 
   // Keep showing loading until redirect completes for authenticated users
   if (loading) {

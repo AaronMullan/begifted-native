@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { AppState, Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import type { QueryClient } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
-import { router } from "expo-router";
+import type { Href } from "expo-router";
+import { router, usePathname } from "expo-router";
 import { useAuth } from "./use-auth";
 import { queryKeys } from "../lib/query-keys";
 import {
@@ -40,6 +42,55 @@ if (Platform.OS === "android") {
     name: "Gift Suggestions",
     importance: Notifications.AndroidImportance.HIGH,
   });
+}
+
+// A tap can reach JS twice: once natively as the "last response" that the auth
+// gate consumes on cold start, and once through the response listener. Apply
+// each response at most once so the second sighting can't push a duplicate.
+let lastAppliedResponseId: string | null = null;
+
+/**
+ * Applies a notification tap: refreshes the target's cached gift suggestions
+ * and returns the Gift Ideas route to open, or null when the payload carries
+ * no target or the response was already applied. The caller navigates.
+ */
+export function consumeNotificationResponse(
+  response: Notifications.NotificationResponse,
+  queryClient: QueryClient
+): Href | null {
+  const responseId = response.notification.request.identifier;
+  if (responseId === lastAppliedResponseId) return null;
+  const data = response.notification.request.content.data;
+  const recipientId = data?.recipientId;
+  if (typeof recipientId !== "string" || !recipientId) return null;
+  lastAppliedResponseId = responseId;
+  // Otherwise a stale tap resurfaces as "the launch tap" the next time the
+  // auth gate routes a signed-in user (e.g. after sign-out and sign-in).
+  Notifications.clearLastNotificationResponse();
+  // Invalidate the target's cached suggestions before navigating so the gifts
+  // screen refetches on mount instead of serving the still-fresh cached list.
+  queryClient.invalidateQueries({
+    queryKey: queryKeys.giftSuggestions(recipientId),
+  });
+  const occasionId = data?.occasionId;
+  const query =
+    typeof occasionId === "string" && occasionId
+      ? `?tab=gifts&occasionId=${occasionId}`
+      : "?tab=gifts";
+  return `/contacts/${recipientId}${query}` as Href;
+}
+
+/**
+ * The tap that launched the app from a killed state. iOS and Android emit that
+ * response before any JS listener exists, so it is only observable here; the
+ * auth gate reads it once it knows where the user may go.
+ */
+export function consumeLaunchNotification(
+  queryClient: QueryClient
+): Href | null {
+  if (Platform.OS === "web") return null;
+  const response = Notifications.getLastNotificationResponse();
+  return response ? consumeNotificationResponse(response, queryClient) : null;
 }
 
 export type PushIntroControls = {
@@ -112,31 +163,21 @@ export function usePushNotifications(): PushIntroControls {
     return () => subscription.remove();
   }, [user?.id, queryClient]);
 
-  // Handle notification taps → deep link to recipient screen
+  // Handle notification taps → deep link to recipient screen. While the auth
+  // gate (route "/") still owns navigation, leave the response for it to
+  // consume: navigating here would be overwritten by its replace to Home.
+  const pathname = usePathname();
   useEffect(() => {
+    if (pathname === "/") return;
     const subscription = Notifications.addNotificationResponseReceivedListener(
       (response) => {
-        const data = response.notification.request.content.data;
-        if (data?.recipientId) {
-          const recipientId = data.recipientId as string;
-          // Invalidate the target's cached suggestions before navigating so the
-          // gifts screen refetches on mount instead of showing the previously
-          // cached (old) list. Without this, the still-fresh query is served and
-          // the tap "lands on old gifts" until the cache goes stale (DEV-208).
-          queryClient.invalidateQueries({
-            queryKey: queryKeys.giftSuggestions(recipientId),
-          });
-          const occasionId = data.occasionId as string | undefined;
-          const query = occasionId
-            ? `?tab=gifts&occasionId=${occasionId}`
-            : `?tab=gifts`;
-          router.push(`/contacts/${recipientId}${query}`);
-        }
+        const href = consumeNotificationResponse(response, queryClient);
+        if (href) router.push(href);
       }
     );
 
     return () => subscription.remove();
-  }, [queryClient]);
+  }, [pathname, queryClient]);
 
   // On foreground: clear the badge and re-register the push token. Registration
   // otherwise runs only once per JS context (login/cold start), so a token the
