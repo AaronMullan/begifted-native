@@ -164,6 +164,13 @@ export function usePushNotifications(): PushIntroControls {
           queryKey: queryKeys.unreadNotificationCount(user.id),
         });
       }
+      // The user may navigate to the person without tapping the push. A
+      // mounted gifts screen never refetches on its own (screens stay
+      // mounted across tabs and there is no focus-based refetch), so the
+      // list would keep showing the pre-push gifts. Every recipient, not
+      // just the payload's: a coalesced "gifts ready" push names only its
+      // lead recipient.
+      queryClient.invalidateQueries({ queryKey: ["giftSuggestions"] });
     });
 
     return () => subscription.remove();
@@ -203,6 +210,11 @@ export function usePushNotifications(): PushIntroControls {
       Notifications.setBadgeCountAsync(0);
       const userId = user?.id;
       if (!userId) return;
+      // A push that arrived while the app was backgrounded never reaches JS,
+      // so gifts generated meanwhile are only visible after a refetch. Mark
+      // every recipient's suggestions stale: mounted lists refetch now, the
+      // rest on their next mount.
+      queryClient.invalidateQueries({ queryKey: ["giftSuggestions"] });
       const now = Date.now();
       if (
         now - lastForegroundRegisterAt.current <
@@ -229,7 +241,7 @@ export function usePushNotifications(): PushIntroControls {
     });
 
     return () => subscription.remove();
-  }, [user?.id]);
+  }, [user?.id, queryClient]);
 
   return { introVisible, acceptIntro, declineIntro };
 }
