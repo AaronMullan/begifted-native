@@ -417,17 +417,42 @@ Deno.test(
 );
 
 Deno.test(
-  "year-only birthday is age context, not timing — still asks for the date",
+  "year-only birthday is age context, not an occasion or timing",
   () => {
     // "He was born in 1961" with no month/day: the extractor returns "1961".
     const derived = deriveAddRecipientReadiness(
       base({ occasions_mentioned: [], birthday: "1961" })
     );
-    assert(derived.hasOccasion);
+    assert(derived.hasAge);
+    assert(!derived.hasOccasion);
+    assertEquals(derived.state, "captured_needs_both");
+  }
+);
+
+Deno.test(
+  "year-only birthday with a named birthday still needs the date",
+  () => {
+    const derived = deriveAddRecipientReadiness(base({ birthday: "1961" }));
     assert(derived.hasAge);
     assert(!derived.hasTiming);
     assertEquals(derived.state, "captured_needs_timing");
     assert(derived.pendingDates.some((o) => /birthday/i.test(o)));
+  }
+);
+
+Deno.test(
+  "year-only birthday never blocks completion on the date alone",
+  () => {
+    // Christmas gift; the age question was answered with a bare year.
+    const derived = deriveAddRecipientReadiness(
+      base({
+        occasions_mentioned: ["christmas"],
+        birthday: "1961",
+        has_price_guidance: true,
+        has_distinguishing_texture: true,
+      })
+    );
+    assertEquals(derived.state, "ready");
   }
 );
 

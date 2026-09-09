@@ -69,25 +69,25 @@ export function deriveAddRecipientReadiness(
 
   const birthday = contextInfo.birthday || contextInfo.existing_birthday;
   // The extractor returns a bare year ("1961") when the user gave the birth
-  // year but no month/day ("he was born in 1961"). That is age context and a
-  // birthday still needing its date — never captured timing, or the intake
-  // completes and the year gets persisted as a fabricated Jan 1 birthday.
+  // year but no month/day ("he was born in 1961"). That is age context only:
+  // it is not an occasion and not captured timing (treating it as timing let
+  // the intake complete and persist a fabricated Jan 1 birthday), and it must
+  // not force a birthday date either — a user who only knows the year would
+  // otherwise never reach "ready".
   const birthdayIsYearOnly =
     typeof birthday === "string" && /^\d{4}$/.test(birthday.trim());
   const birthdayDate = !!birthday && !birthdayIsYearOnly;
   const occasionsMentioned = Array.isArray(contextInfo.occasions_mentioned)
     ? contextInfo.occasions_mentioned
     : [];
-  const hasOccasion =
-    birthdayDate || birthdayIsYearOnly || occasionsMentioned.length > 0;
+  const hasOccasion = birthdayDate || occasionsMentioned.length > 0;
 
   // A birthday is never inferable. If a birthday occasion is named but no
   // birthday date is captured, timing is still missing — independent of
   // whatever the extractor happened to put in occasions_needing_dates (which
   // it routinely drops, skipping the birthday question entirely).
   const birthdayNeedsDate =
-    (mentionsBirthday(occasionsMentioned) || birthdayIsYearOnly) &&
-    !birthdayDate;
+    mentionsBirthday(occasionsMentioned) && !birthdayDate;
   const extractorPending = Array.isArray(contextInfo.occasions_needing_dates)
     ? contextInfo.occasions_needing_dates
     : [];

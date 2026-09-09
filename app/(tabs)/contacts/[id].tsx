@@ -535,7 +535,8 @@ export default function RecipientEditPage() {
     const backfilledBirthday = backfillBirthdayFromAge(age, knownBirthday);
     if (backfilledBirthday) {
       updates.birthday = backfilledBirthday;
-    } else if (!birthdayHasYear(knownBirthday)) {
+    } else if (!birthdayHasYear(knownBirthday) && updates.birth_year == null) {
+      // A stated year (set above) beats a year approximated from an age.
       const birthYear = birthYearFromAge(age);
       if (birthYear) updates.birth_year = birthYear;
     }

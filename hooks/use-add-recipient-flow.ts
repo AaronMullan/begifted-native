@@ -370,9 +370,10 @@ export function useAddRecipientFlow(
         interests:
           data.interests && data.interests.length > 0 ? data.interests : null,
         birthday,
+        // A stated year beats a year approximated from an age.
         birth_year: birthdayHasYear(birthday)
           ? null
-          : (birthYearFromAge(age) ?? birthYearFromYearOnly(data.birthday)),
+          : (birthYearFromYearOnly(data.birthday) ?? birthYearFromAge(age)),
         emotional_tone_preference:
           data.emotional_tone_preference?.trim() || null,
         gift_budget_min: data.gift_budget_min || null,
