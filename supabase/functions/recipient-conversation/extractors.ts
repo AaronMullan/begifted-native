@@ -201,7 +201,7 @@ Extract and return valid JSON (no markdown formatting) with this exact structure
       ? JSON.stringify(criticalFields.relationship_type)
       : "null"
   },
-  "birthday": "Birthday or null. Use YYYY-MM-DD only when the year is explicit; use MM-DD when only month and day are known. Never use placeholder years like 0000.",
+  "birthday": "Birthday or null. Use YYYY-MM-DD only when the year is explicit; use MM-DD when only month and day are known; use just 'YYYY' when only the year is known ('born in 1961'). A two-digit year in a numeric date (9/11/61) is the full year (1961) — expand it. Never use placeholder years like 0000 or a placeholder month/day like 01-01.",
   "age": "The recipient's CURRENT age in whole years as a number, but ONLY when the user explicitly states it (e.g. \"he's 47\", \"she just turned 30\", \"my 8 year old\"). Do NOT infer age from relationship, life stage, grade, graduation, hobbies, or occasion. null if not explicitly stated.",
   "interests": ["array of interests the recipient LIKES / is into, as expressed in this conversation. NEVER include a topic the conversation negates ('does not', 'not interested in', 'no interest in', 'hates') — a statement like 'he is not interested in fish' must never produce a fishing-related interest here."],
   "interests_removed": ["array of interests the user says the recipient is NO LONGER into, dislikes, or wants removed (e.g. \"not into pokemon anymore\", \"she's over hiking\"). When a CURRENTLY STORED INTERESTS list is provided above, every stored entry matching the dropped topic must appear here verbatim; also include the user's own wording. Empty array if no interest was dropped — never put a newly-liked interest here."],
@@ -292,6 +292,16 @@ IMPORTANT:
     extractedData.age = Number.isFinite(n) && n > 0 ? n : null;
   }
 
+  // The birthday occasion is derived from the birthday field below
+  // (addBirthdayAsOccasion). The model writes the birth date itself as the
+  // occasion date ("1961-09-11"), which would put the occasion decades in the
+  // past, so model-emitted birthday occasions are never kept.
+  if (Array.isArray(extractedData.occasions)) {
+    extractedData.occasions = extractedData.occasions.filter(
+      (occ: { occasion_type?: string }) => occ?.occasion_type !== "birthday"
+    );
+  }
+
   // Process occasions - fill in missing dates using holiday lookup
   if (extractedData.occasions && Array.isArray(extractedData.occasions)) {
     const { convertHolidaysToOccasions } = await import("./utils.ts");
@@ -368,7 +378,7 @@ export async function extractFields(
         case "gift_budget_max":
           return `"gift_budget_max": "Upper end of the gift budget range as a number, or null. Explicit range \"$50-$75\" -> 75. Single anchor \"around $150\" -> about 1.25x (e.g. 190). Upper-limit only \"under $150\"/\"up to $250\" -> that number. Vague -> null."`;
         case "birthday":
-          return `"birthday": "YYYY-MM-DD when year is explicit, MM-DD when only month and day are known, or null. Never use placeholder years like 0000."`;
+          return `"birthday": "YYYY-MM-DD when year is explicit, MM-DD when only month and day are known, 'YYYY' when only the year is known, or null. A two-digit year (9/11/61) means 1961. Never use placeholder years like 0000 or a placeholder month/day like 01-01."`;
         case "emotional_tone_preference":
           return `"emotional_tone_preference": "string or null"`;
         case "address":

@@ -415,3 +415,27 @@ Deno.test(
     assert(!derived.hasTiming);
   }
 );
+
+Deno.test(
+  "year-only birthday is age context, not timing — still asks for the date",
+  () => {
+    // "He was born in 1961" with no month/day: the extractor returns "1961".
+    const derived = deriveAddRecipientReadiness(
+      base({ occasions_mentioned: [], birthday: "1961" })
+    );
+    assert(derived.hasOccasion);
+    assert(derived.hasAge);
+    assert(!derived.hasTiming);
+    assertEquals(derived.state, "captured_needs_timing");
+    assert(derived.pendingDates.some((o) => /birthday/i.test(o)));
+  }
+);
+
+Deno.test("full birthday with year satisfies timing and age", () => {
+  const derived = deriveAddRecipientReadiness(
+    base({ birthday: "1961-09-11", has_price_guidance: true })
+  );
+  assert(derived.hasTiming);
+  assert(derived.hasAge);
+  assertEquals(derived.state, "captured_needs_specificity");
+});

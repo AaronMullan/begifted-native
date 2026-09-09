@@ -11,12 +11,17 @@ import { supabase } from "../lib/supabase";
 import { uploadRecipientPhoto } from "../lib/recipient-photo";
 import {
   backfillBirthdayFromAge,
+  birthdayFromOccasionDate,
   birthdayHasYear,
   birthYearFromAge,
+  birthYearFromYearOnly,
   formatBirthdayDisplay,
   normalizeBirthday,
 } from "../utils/birthday";
-import { sanitizeExtractedOccasionDate } from "../utils/occasion-dates";
+import {
+  getNextAnnualOccurrence,
+  sanitizeExtractedOccasionDate,
+} from "../utils/occasion-dates";
 import {
   claimAddRecipientDraftWriteToken,
   clearAddRecipientDraft,
@@ -337,10 +342,20 @@ export function useAddRecipientFlow(
       }
       const photoUrl = photoUri ? await uploadRecipientPhoto(photoUri) : null;
 
+      // When the conversation captured no birthday, a birthday occasion the
+      // user dated by hand on the occasions screen is the recipient's
+      // birthday — people type the birth date there, year included.
+      const enteredBirthdayOccasion = data.occasions?.find(
+        (occasion) => occasion.occasion_type === "birthday"
+      )?.date;
+      const normalizedBirthday =
+        normalizeBirthday(data.birthday) ??
+        birthdayFromOccasionDate(enteredBirthdayOccasion);
       // A volunteered age ("my 8 year old") anchors a birth year: onto the
       // birthday when its month/day is known, else onto birth_year — never a
       // fabricated Jan-1 birthday, which the cron would read as a real date.
-      const normalizedBirthday = normalizeBirthday(data.birthday);
+      // A bare year ("born in 1961") is not a birthday either; it lands on
+      // birth_year the same way.
       const extractedAge =
         typeof data.age === "number" ? data.age : Number(data.age);
       const age = Number.isFinite(extractedAge) ? extractedAge : null;
@@ -355,7 +370,9 @@ export function useAddRecipientFlow(
         interests:
           data.interests && data.interests.length > 0 ? data.interests : null,
         birthday,
-        birth_year: birthdayHasYear(birthday) ? null : birthYearFromAge(age),
+        birth_year: birthdayHasYear(birthday)
+          ? null
+          : (birthYearFromAge(age) ?? birthYearFromYearOnly(data.birthday)),
         emotional_tone_preference:
           data.emotional_tone_preference?.trim() || null,
         gift_budget_min: data.gift_budget_min || null,
@@ -388,7 +405,12 @@ export function useAddRecipientFlow(
         const occasionsData = data.occasions.map((occasion) => ({
           user_id: userId,
           recipient_id: recipient.id,
-          date: occasion.date,
+          // A birthday occasion is annual: a hand-entered birth date must land
+          // on the next birthday, not decades in the past.
+          date:
+            occasion.occasion_type === "birthday" && occasion.date
+              ? getNextAnnualOccurrence(occasion.date)
+              : occasion.date,
           occasion_type: occasion.occasion_type || "custom",
         }));
 

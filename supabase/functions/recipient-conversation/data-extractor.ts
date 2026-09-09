@@ -180,7 +180,7 @@ Return JSON with what's been established:
   "name": "person's name if clearly mentioned, null otherwise",
   "relationship": "relationship if established, null otherwise",
   "interests": ["any interests mentioned"],
-  "birthday": "birthday if mentioned. Use YYYY-MM-DD only when the year is explicitly stated. If only month and day are known, use MM-DD (e.g. '12-07'). Never substitute placeholder years like 0000 — when in doubt, omit the year. Return null if no birthday is mentioned.",
+  "birthday": "birthday if mentioned. Use YYYY-MM-DD only when the year is explicitly stated. If only month and day are known, use MM-DD (e.g. '12-07'). If only the year is known ('born in 1961'), return just the year as 'YYYY'. A two-digit year in a numeric date (9/11/61) is the full year (1961) — expand it. Never substitute placeholder years like 0000 or a placeholder month/day like 01-01 — omit the part you don't know. Return null if no birthday is mentioned.",
   "occasions_mentioned": ["array of holidays/occasions mentioned (e.g., 'christmas', 'anniversary', 'kwanzaa')"],
   "needs_occasion_date": false,
   "occasion_needing_date": null,
