@@ -19,6 +19,42 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-09-09 — OTA
+
+### App
+
+- Admin: the Traction dashboard gains an Export button that downloads a per-user CSV, plus a collapsible "How to read these numbers" reference and a one-line caption under each tile so every metric explains itself.
+- Admin: a new Beta Check-ins tab surfaces the in-app beta UX check-in responses, filterable by screen, with each tester's structured answers and free text (DEV-415).
+- The "Finding the perfect gift can take a few minutes" copy on the waiting screen now wraps within the screen edges instead of running off the right side on smaller phones. (DEV-416)
+- Signing up now takes you to a screen that confirms which address the verification email went to, reminds you to check spam, and lets you resend it — instead of leaving you stranded on the sign-up form. (DEV-420)
+- Tapping a gift's "..." options — "I chose this gift" and the rest — now always shows it registered: a spinner while it saves, or a clear retry prompt if it can't, instead of a row that quietly does nothing. (DEV-423)
+- Admin: GPT-6 Astra (`gpt-6-astra`) is now in the OpenAI model list on both the Playground and the AI Model screen. Until OpenAI provisions our org, choosing it returns an OpenAI error instead of a result, so don't set it as the production model yet (DEV-429).
+- Tapping a gift notification now opens that person's Gift Ideas even when the app was fully closed, instead of landing on Home (DEV-432).
+- New gift ideas show up when you open the app after a notification, without closing and reopening it (DEV-433).
+
+### Backend
+
+Backend entries went live on merge between 2026-08-19 and 2026-09-09; the app changes above shipped in this OTA.
+
+- When you describe a recipient with a specific, telling detail as your last answer in Add Recipient, BeGifted now briefly reflects it back before finishing instead of jumping straight to "all set." (DEV-399)
+- Add Recipient now reliably reflects your last telling detail back before it finishes, and the closing line reads the same every time — "[Name]'s all set." (DEV-401)
+- In Add Recipient, a broad description now draws exactly one sharpening question; after you answer it — even with "not sure" — BeGifted moves on instead of probing the same ground again. (DEV-402)
+- When you finish adding a recipient, the closing line now reflects one telling thing it understood about them, instead of repeating back everything you said. (DEV-403)
+- Add Recipient now asks at most one optional follow-up about someone's interests — once you've answered it (even with "not sure"), it moves on instead of jumping to another topic. (DEV-404)
+- When you add a child and haven't given an age or birthday, Add Recipient now asks for one so gift ideas fit their age instead of skewing old. Adding an adult is unchanged — age stays optional. (DEV-405)
+- When a request crosses a safety line, BeGifted now stops and says so plainly instead of quietly continuing with generic output. (DEV-407)
+- BeGifted now recognizes clearly out-of-bounds requests and declines them plainly instead of continuing the gifting flow. (DEV-408)
+- Add several people back to back and the "gift ideas ready" alert no longer interrupts you mid-entry — it waits until you've finished and arrives once, covering everyone from that session. (DEV-412)
+- Add Recipient now always asks about someone's age or life stage before wrapping up, and won't say a recipient is "all set" until it has that — no more finishing with age skipped or a stray "all set" tacked onto the age question. (DEV-413)
+- When Add Recipient wraps up, its one closing recognition line now stays grounded in the detail you actually gave instead of stretching it into claims you didn't make. (DEV-414)
+- Add Recipient no longer re-asks about something it already knows — like your relationship to a person you named up front — and it can never end a turn by asking for a required detail and calling the recipient "all set" in the same breath. (DEV-417)
+- Every occasion you're tracking now gets an explicit reminder before it arrives, timed to how much runway is left. Add someone a week out and you'll hear about it soon — not at the last minute — with the day before, or that morning, as the final safety net. Gift ideas landing in your feed no longer quietly stand in for that reminder. (DEV-418)
+- Gift ideas no longer arrive with a photo that can't load. Every product image is checked before it's saved, and a dead link or a postage-stamp-sized thumbnail is swapped for a working photo of the product where one can be found (DEV-425).
+- Editing someone's budget, or updating what BeGifted knows about them, produces a fresh set of gift ideas again. The new ideas replace the ones on their profile instead of stacking up beside them (DEV-426).
+- No visible change: OpenAI models from gpt-5 onward, including future generations, now get reasoning-model request parameters automatically; only the gpt-3.5 and gpt-4 families keep the legacy ones (DEV-429).
+- Add Recipient answers noticeably faster: each turn spends less time waiting on the analysis step, and the prompt is fetched while that step runs instead of after it. Server logs now record how long each stage of a turn took, and which model and token counts every AI call used. (DEV-430)
+- Older gift ideas that showed a blank where the photo should be now have a working product image. Every image saved before the image check existed was re-verified; broken ones were replaced with a photo from the product page, and the handful with no usable photo now show cleanly without one (DEV-434).
+
 ## 2026-08-19 — OTA
 
 ### App
