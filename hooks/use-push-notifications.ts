@@ -155,28 +155,23 @@ export function usePushNotifications(): PushIntroControls {
 
   // Invalidate notification cache when a push is received in foreground
   useEffect(() => {
-    const subscription = Notifications.addNotificationReceivedListener(
-      (notification) => {
-        if (user?.id) {
-          queryClient.invalidateQueries({
-            queryKey: queryKeys.notifications(user.id),
-          });
-          queryClient.invalidateQueries({
-            queryKey: queryKeys.unreadNotificationCount(user.id),
-          });
-        }
-        // The user may navigate to the person without tapping the push. A
-        // mounted gifts screen never refetches on its own (screens stay
-        // mounted across tabs and there is no focus-based refetch), so the
-        // list would keep showing the pre-push gifts.
-        const recipientId = notification.request.content.data?.recipientId;
-        if (typeof recipientId === "string" && recipientId) {
-          queryClient.invalidateQueries({
-            queryKey: queryKeys.giftSuggestions(recipientId),
-          });
-        }
+    const subscription = Notifications.addNotificationReceivedListener(() => {
+      if (user?.id) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.notifications(user.id),
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.unreadNotificationCount(user.id),
+        });
       }
-    );
+      // The user may navigate to the person without tapping the push. A
+      // mounted gifts screen never refetches on its own (screens stay
+      // mounted across tabs and there is no focus-based refetch), so the
+      // list would keep showing the pre-push gifts. Every recipient, not
+      // just the payload's: a coalesced "gifts ready" push names only its
+      // lead recipient.
+      queryClient.invalidateQueries({ queryKey: ["giftSuggestions"] });
+    });
 
     return () => subscription.remove();
   }, [user?.id, queryClient]);
