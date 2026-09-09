@@ -93,6 +93,12 @@ export function consumeLaunchNotification(
   return response ? consumeNotificationResponse(response, queryClient) : null;
 }
 
+/** Drops a launch tap the current session may not act on. */
+export function discardLaunchNotification(): void {
+  if (Platform.OS === "web") return;
+  Notifications.clearLastNotificationResponse();
+}
+
 export type PushIntroControls = {
   /** Render the pre-permission explainer when true. */
   introVisible: boolean;

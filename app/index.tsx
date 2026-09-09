@@ -11,7 +11,10 @@ import type { Href } from "expo-router";
 import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
-import { consumeLaunchNotification } from "../hooks/use-push-notifications";
+import {
+  consumeLaunchNotification,
+  discardLaunchNotification,
+} from "../hooks/use-push-notifications";
 import Auth from "../components/Auth";
 import { Colors } from "../lib/colors";
 import GradientBackground from "../components/GradientBackground";
@@ -46,14 +49,20 @@ export default function Index() {
 
         hasNavigated.current = true;
         if (!data?.onboarding_completed) {
+          discardLaunchNotification();
           router.replace("/onboarding/welcome" as Href);
           return;
         }
         // A tap that cold-launched the app lands on that person's Gift Ideas
         // with Home beneath it, the same stack a tap on a running app builds.
+        // The push must wait for the replace to commit: queued in the same
+        // tick, expo-router has no mounted tab navigator to descend into and
+        // pushes a second one onto the root stack instead.
         const notificationHref = consumeLaunchNotification(queryClient);
         router.replace("/dashboard" as Href);
-        if (notificationHref) router.push(notificationHref);
+        if (notificationHref) {
+          setTimeout(() => router.push(notificationHref), 0);
+        }
       } catch {
         if (!isMounted || hasNavigated.current) return;
         hasNavigated.current = true;
@@ -62,6 +71,8 @@ export default function Index() {
     }
 
     async function routeUnauthenticated() {
+      // A tap left in the tray must not follow whichever account signs in next.
+      discardLaunchNotification();
       // The intro slider is touch-only (swipe paging, CTA on the last slide),
       // so on desktop web it strands signed-out users with no path to sign-in.
       // Web skips the intro gate and goes straight to <Auth />.
