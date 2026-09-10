@@ -1,0 +1,24 @@
+diff --git a/node_modules/@sentry/react-native/dist/js/feedback/FeedbackForm.js b/node_modules/@sentry/react-native/dist/js/feedback/FeedbackForm.js
+index 2f95060..abc5c55 100644
+--- a/node_modules/@sentry/react-native/dist/js/feedback/FeedbackForm.js
++++ b/node_modules/@sentry/react-native/dist/js/feedback/FeedbackForm.js
+@@ -232,6 +232,10 @@ export class FeedbackForm extends React.Component {
+             attachment: FeedbackForm._savedState.attachment || undefined,
+             attachmentUri: FeedbackForm._savedState.attachmentUri || undefined,
+         };
++        // The message input is uncontrolled: on iOS 26.6 every `value` push after an
++        // autocorrection rewrites the native text and cancels the keyboard's
++        // double-space "." shortcut. Seed it once from the saved state instead.
++        this._initialDescription = this.state.description;
+         lazyLoadFeedbackIntegration();
+     }
+     /**
+@@ -326,7 +330,7 @@ export class FeedbackForm extends React.Component {
+                 React.createElement(Text, { style: styles.label },
+                     text.messageLabel,
+                     ` ${text.isRequiredLabel}`),
+-                React.createElement(TextInput, { style: [styles.input, styles.textArea], testID: "sentry-feedback-message-input", placeholder: text.messagePlaceholder, value: description, onChangeText: value => this.setState({ description: value }), multiline: true, autoCorrect: autoCorrect, spellCheck: spellCheck }),
++                React.createElement(TextInput, { style: [styles.input, styles.textArea], testID: "sentry-feedback-message-input", placeholder: text.messagePlaceholder, defaultValue: this._initialDescription, onChangeText: value => this.setState({ description: value }), multiline: true, autoCorrect: autoCorrect, spellCheck: spellCheck }),
+                 (config.enableScreenshot || imagePickerConfiguration.imagePicker || this._hasScreenshot()) && (React.createElement(View, { style: styles.screenshotContainer },
+                     this.state.attachmentUri && (React.createElement(Image, { source: { uri: this.state.attachmentUri }, style: styles.screenshotThumbnail })),
+                     React.createElement(TouchableOpacity, { style: styles.screenshotButton, onPress: this.onScreenshotButtonPress },

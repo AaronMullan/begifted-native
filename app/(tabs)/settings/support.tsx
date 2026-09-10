@@ -6,6 +6,7 @@ import {
   Keyboard,
   Platform,
   TouchableWithoutFeedback,
+  TextInput as NativeTextInput,
 } from "react-native";
 import { Text, TextInput, IconButton } from "react-native-paper";
 import { useState, useEffect } from "react";
@@ -28,7 +29,6 @@ import { PrimaryCta } from "../../../components/PrimaryCta";
 // stroke — so the Paper input runs flat with its own label suppressed.
 type FieldProps = {
   label: string;
-  value: string;
   onChangeText: (value: string) => void;
   placeholder: string;
   multiline?: boolean;
@@ -36,7 +36,6 @@ type FieldProps = {
 
 const Field: React.FC<FieldProps> = ({
   label,
-  value,
   onChangeText,
   placeholder,
   multiline = false,
@@ -45,7 +44,6 @@ const Field: React.FC<FieldProps> = ({
     <Text style={styles.fieldLabel}>{label}</Text>
     <TextInput
       mode="flat"
-      value={value}
       onChangeText={onChangeText}
       placeholder={placeholder}
       placeholderTextColor={Colors.brand.mediumTeal}
@@ -55,6 +53,12 @@ const Field: React.FC<FieldProps> = ({
       textColor={Colors.brand.darkTeal}
       style={[styles.fieldBox, multiline && styles.fieldBoxMultiline]}
       contentStyle={styles.fieldContent}
+      // The native input must stay uncontrolled: on iOS 26.6 every `value`
+      // push after an autocorrection rewrites the native text and cancels the
+      // keyboard's double-space "." shortcut. Paper always forwards its own
+      // value to the native input, so the render prop drops it (the spread is
+      // Paper's documented passthrough).
+      render={(props) => <NativeTextInput {...props} value={undefined} />}
     />
   </View>
 );
@@ -183,13 +187,11 @@ export default function SupportSettings() {
 
               <Field
                 label="Subject"
-                value={subject}
                 onChangeText={setSubject}
                 placeholder="What can we help with?"
               />
               <Field
                 label="Message"
-                value={message}
                 onChangeText={setMessage}
                 placeholder="Tell us what's going on."
                 multiline

@@ -280,7 +280,10 @@ export default function GiftActionDrawer({
               </View>
             )}
             <BottomSheetTextInput
-              value={note}
+              // Uncontrolled on purpose: on iOS 26.6 a `value` push after an
+              // autocorrection rewrites the native text and cancels the
+              // keyboard's double-space "." shortcut. The follow-up view
+              // unmounts on dismiss, so the field never needs clearing.
               onChangeText={setNote}
               placeholder={activeRow.followUp?.placeholder}
               placeholderTextColor={Colors.brand.mediumTeal}

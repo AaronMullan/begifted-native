@@ -191,7 +191,10 @@ export default function BetaFeedbackModal({
                     {config.freeText.label}
                   </Text>
                   <TextInput
-                    value={freeText}
+                    // Uncontrolled on purpose: on iOS 26.6 a `value` push after
+                    // an autocorrection rewrites the native text and cancels the
+                    // keyboard's double-space "." shortcut. The modal unmounts
+                    // on submit, so the field never needs clearing.
                     onChangeText={setFreeText}
                     placeholder={config.freeText.placeholder}
                     placeholderTextColor={Colors.brand.lightTeal}
