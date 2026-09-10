@@ -31,6 +31,7 @@ running. Earlier builds (≤ 44) are not backfilled here.
 - Admin: GPT-6 Astra (`gpt-6-astra`) is now in the OpenAI model list on both the Playground and the AI Model screen. Until OpenAI provisions our org, choosing it returns an OpenAI error instead of a result, so don't set it as the production model yet (DEV-429).
 - Tapping a gift notification now opens that person's Gift Ideas even when the app was fully closed, instead of landing on Home (DEV-432).
 - New gift ideas show up when you open the app after a notification, without closing and reopening it (DEV-433).
+- Add Recipient keeps birthdays and ages straight when the answer is incomplete: a birth year on its own no longer becomes a January 1 birthday, "he's 64" lands on the right birth year even before this year's birthday, and a birthday you date by hand on the occasions screen becomes the person's birthday instead of a decades-old calendar entry (DEV-431).
 
 ### Backend
 
@@ -48,6 +49,7 @@ Backend entries went live on merge between 2026-08-19 and 2026-09-09; the app ch
 - Add Recipient now always asks about someone's age or life stage before wrapping up, and won't say a recipient is "all set" until it has that — no more finishing with age skipped or a stray "all set" tacked onto the age question. (DEV-413)
 - When Add Recipient wraps up, its one closing recognition line now stays grounded in the detail you actually gave instead of stretching it into claims you didn't make. (DEV-414)
 - Add Recipient no longer re-asks about something it already knows — like your relationship to a person you named up front — and it can never end a turn by asking for a required detail and calling the recipient "all set" in the same breath. (DEV-417)
+- Add Recipient asks for the birthday date when only the birth year was given, and no longer writes the birth date itself as the birthday occasion (DEV-431).
 - Every occasion you're tracking now gets an explicit reminder before it arrives, timed to how much runway is left. Add someone a week out and you'll hear about it soon — not at the last minute — with the day before, or that morning, as the final safety net. Gift ideas landing in your feed no longer quietly stand in for that reminder. (DEV-418)
 - Gift ideas no longer arrive with a photo that can't load. Every product image is checked before it's saved, and a dead link or a postage-stamp-sized thumbnail is swapped for a working photo of the product where one can be found (DEV-425).
 - Editing someone's budget, or updating what BeGifted knows about them, produces a fresh set of gift ideas again. The new ideas replace the ones on their profile instead of stacking up beside them (DEV-426).
