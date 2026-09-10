@@ -6,6 +6,8 @@ import {
   birthdayHasYear,
   backfillBirthdayFromAge,
   birthYearFromAge,
+  birthYearFromYearOnly,
+  birthdayFromOccasionDate,
 } from "../birthday";
 
 // Year validation ("no future years") and age backfill both key off the
@@ -167,6 +169,14 @@ describe("backfillBirthdayFromAge", () => {
     expect(backfillBirthdayFromAge(47, "--06-05")).toBe("1979-06-05");
   });
 
+  it("subtracts a year when this year's birthday is still ahead", () => {
+    // Clock is 2026-07-08: someone who is 47 with a September birthday turned
+    // 47 last September, so they were born in 1978, not 1979.
+    expect(backfillBirthdayFromAge(47, "--09-11")).toBe("1978-09-11");
+    // A birthday today has already happened this year.
+    expect(backfillBirthdayFromAge(47, "--07-08")).toBe("1979-07-08");
+  });
+
   it("never overwrites a birthday whose year is already known", () => {
     expect(backfillBirthdayFromAge(47, "1980-06-05")).toBeNull();
   });
@@ -181,5 +191,36 @@ describe("backfillBirthdayFromAge", () => {
     expect(backfillBirthdayFromAge(200, null)).toBeNull();
     expect(backfillBirthdayFromAge(null, null)).toBeNull();
     expect(backfillBirthdayFromAge(Number.NaN, null)).toBeNull();
+  });
+});
+
+describe("birthYearFromYearOnly", () => {
+  it("accepts a plausible bare year", () => {
+    expect(birthYearFromYearOnly("1961")).toBe(1961);
+    expect(birthYearFromYearOnly(" 2019 ")).toBe(2019);
+  });
+
+  it("rejects anything that is not a bare plausible year", () => {
+    expect(birthYearFromYearOnly("1961-09-11")).toBeNull();
+    expect(birthYearFromYearOnly("--09-11")).toBeNull();
+    expect(birthYearFromYearOnly("0000")).toBeNull();
+    expect(birthYearFromYearOnly("2031")).toBeNull();
+    expect(birthYearFromYearOnly(null)).toBeNull();
+  });
+});
+
+describe("birthdayFromOccasionDate", () => {
+  it("keeps a past year as the birth year", () => {
+    expect(birthdayFromOccasionDate("1953-07-28")).toBe("1953-07-28");
+  });
+
+  it("drops a current or future year — it is only the next occurrence", () => {
+    expect(birthdayFromOccasionDate("2026-09-11")).toBe("--09-11");
+    expect(birthdayFromOccasionDate("2027-07-28")).toBe("--07-28");
+  });
+
+  it("returns null for anything unparseable", () => {
+    expect(birthdayFromOccasionDate(null)).toBeNull();
+    expect(birthdayFromOccasionDate("soon")).toBeNull();
   });
 });

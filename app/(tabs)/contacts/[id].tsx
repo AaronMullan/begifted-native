@@ -51,6 +51,7 @@ import {
   backfillBirthdayFromAge,
   birthdayHasYear,
   birthYearFromAge,
+  birthYearFromYearOnly,
   normalizeBirthday,
 } from "../../../utils/birthday";
 import { sanitizeExtractedOccasionDate } from "../../../utils/occasion-dates";
@@ -511,8 +512,14 @@ export default function RecipientEditPage() {
     // persist a loose "08-18" (DEV-105).
     if (typeof updates.birthday === "string") {
       const normalized = normalizeBirthday(updates.birthday);
+      // A bare year ("born in 1961") is not a birthday, but it is a birth
+      // year — keep it unless a full birthday already carries one.
+      const yearOnly = birthYearFromYearOnly(updates.birthday);
       if (normalized) updates.birthday = normalized;
       else delete updates.birthday;
+      if (yearOnly && !birthdayHasYear(recipient.birthday)) {
+        updates.birth_year = yearOnly;
+      }
     }
 
     // Turn a user-volunteered age ("he's 47") into a birth year so the synopsis
@@ -528,7 +535,8 @@ export default function RecipientEditPage() {
     const backfilledBirthday = backfillBirthdayFromAge(age, knownBirthday);
     if (backfilledBirthday) {
       updates.birthday = backfilledBirthday;
-    } else if (!birthdayHasYear(knownBirthday)) {
+    } else if (!birthdayHasYear(knownBirthday) && updates.birth_year == null) {
+      // A stated year (set above) beats a year approximated from an age.
       const birthYear = birthYearFromAge(age);
       if (birthYear) updates.birth_year = birthYear;
     }

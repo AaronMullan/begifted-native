@@ -68,16 +68,26 @@ export function deriveAddRecipientReadiness(
   const hasRecipientAnchor = hasName && hasRelationship;
 
   const birthday = contextInfo.birthday || contextInfo.existing_birthday;
+  // The extractor returns a bare year ("1961") when the user gave the birth
+  // year but no month/day ("he was born in 1961"). That is age context only:
+  // it is not an occasion and not captured timing (treating it as timing let
+  // the intake complete and persist a fabricated Jan 1 birthday), and it must
+  // not force a birthday date either — a user who only knows the year would
+  // otherwise never reach "ready".
+  const birthdayIsYearOnly =
+    typeof birthday === "string" && /^\d{4}$/.test(birthday.trim());
+  const birthdayDate = !!birthday && !birthdayIsYearOnly;
   const occasionsMentioned = Array.isArray(contextInfo.occasions_mentioned)
     ? contextInfo.occasions_mentioned
     : [];
-  const hasOccasion = !!birthday || occasionsMentioned.length > 0;
+  const hasOccasion = birthdayDate || occasionsMentioned.length > 0;
 
   // A birthday is never inferable. If a birthday occasion is named but no
   // birthday date is captured, timing is still missing — independent of
   // whatever the extractor happened to put in occasions_needing_dates (which
   // it routinely drops, skipping the birthday question entirely).
-  const birthdayNeedsDate = mentionsBirthday(occasionsMentioned) && !birthday;
+  const birthdayNeedsDate =
+    mentionsBirthday(occasionsMentioned) && !birthdayDate;
   const extractorPending = Array.isArray(contextInfo.occasions_needing_dates)
     ? contextInfo.occasions_needing_dates
     : [];
@@ -103,7 +113,8 @@ export function deriveAddRecipientReadiness(
   // would complete the intake with age still missing, the exact bug.
   const birthdayHasYear =
     typeof birthday === "string" && /^\d{4}-\d{2}-\d{2}$/.test(birthday);
-  const hasAge = !!contextInfo.has_age_context || birthdayHasYear;
+  const hasAge =
+    !!contextInfo.has_age_context || birthdayHasYear || birthdayIsYearOnly;
 
   // Specificity is NOT satisfied by broad interests (books, sports, "has
   // kids"). It needs a distinguishing signal, an explicit skip, or the one

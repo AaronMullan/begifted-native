@@ -230,10 +230,64 @@ export function backfillBirthdayFromAge(
   // No month/day to anchor the year to — refuse to fabricate one.
   if (!parts) return null;
 
-  const year = new Date().getFullYear() - rounded;
+  // "He's 64" is the age today. If this year's birthday is still ahead, the
+  // 64th birthday was last year's, so the birth year is one earlier than the
+  // plain subtraction gives.
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const birthdayThisYear = new Date(
+    now.getFullYear(),
+    parts.month - 1,
+    parts.day
+  );
+  const year = now.getFullYear() - rounded - (birthdayThisYear > today ? 1 : 0);
   const mm = String(parts.month).padStart(2, "0");
   const dd = String(parts.day).padStart(2, "0");
   return normalizeBirthday(`${year}-${mm}-${dd}`);
+}
+
+/**
+ * A bare year ("1961") is what extraction returns when the user gave the
+ * birth year but no month/day. It is not a birthday (normalizeBirthday
+ * rejects it) but it is a birth year, so it belongs on recipients.birth_year.
+ */
+export function birthYearFromYearOnly(
+  input: string | null | undefined
+): number | null {
+  if (typeof input !== "string") return null;
+  const trimmed = input.trim();
+  if (!/^\d{4}$/.test(trimmed)) return null;
+  const year = Number(trimmed);
+  if (year < MIN_YEAR || year > new Date().getFullYear()) return null;
+  return year;
+}
+
+/**
+ * Recipient birthday implied by a birthday occasion the user dated by hand.
+ * People enter the birth date itself ("07-28-1953") on the occasions screen,
+ * so a year in the past is the birth year; a current or future year is just
+ * the next occurrence and carries no birth year.
+ */
+export function birthdayFromOccasionDate(
+  date: string | null | undefined
+): string | null {
+  // Not parseBirthdayParts: an occasion date can legitimately carry next
+  // year's date, which the birthday parser rejects as a future birth year.
+  const trimmed = (date ?? "").trim();
+  const full = FULL_DATE.exec(trimmed);
+  const noYear = MONTH_DAY_NO_YEAR.exec(trimmed);
+  if (!full && !noYear) return null;
+  const year = full ? Number(full[1]) : null;
+  const month = Number(full ? full[2] : noYear![1]);
+  const day = Number(full ? full[3] : noYear![2]);
+  if (!isRealMonthDay(month, day)) return null;
+  const mm = String(month).padStart(2, "0");
+  const dd = String(day).padStart(2, "0");
+  const birthYear =
+    year !== null && year >= MIN_YEAR && year < new Date().getFullYear()
+      ? year
+      : null;
+  return birthYear === null ? `--${mm}-${dd}` : `${birthYear}-${mm}-${dd}`;
 }
 
 /**
