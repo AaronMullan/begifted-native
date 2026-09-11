@@ -45,19 +45,21 @@ export default function ContactPicker({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  // The parent owns visibility as state (the import flow opens the picker
-  // after permission is granted); sync it onto the sheet's imperative API.
-  // On the very first grant, `visible` flips while iOS is still tearing down
-  // its contacts-access UI over the app window. A present() fired in that
-  // window wedges: the modal registers as presented but never reaches the
-  // screen, and further present() calls no-op (AppState still reads
-  // "active", so it can't be gated on). onChange tells us whether the sheet
-  // actually opened; if it hasn't after a beat, force a dismiss and
-  // re-present.
+  // Two BottomSheetModal footguns, both of which leave the sheet registered
+  // as presented but never on screen, with every later present() a no-op:
+  // - dismiss() on a modal that isn't currently open (never presented, or
+  //   already gone via the user's swipe) poisons the next present(), so only
+  //   dismiss while openedRef says the sheet is actually up.
+  // - a present() fired while iOS is showing its contacts-access UI over the
+  //   app window can wedge outright (AppState still reads "active", so it
+  //   can't be gated on). onAnimate/onChange report whether the sheet really
+  //   started opening; if it hasn't after a beat, force a dismiss and
+  //   re-present. onAnimate matters because a healthy open on a slow device
+  //   can take longer than the retry interval to settle.
   const openedRef = useRef(false);
   useEffect(() => {
     if (!visible) {
-      sheetRef.current?.dismiss();
+      if (openedRef.current) sheetRef.current?.dismiss();
       return;
     }
     openedRef.current = false;
@@ -92,6 +94,7 @@ export default function ContactPicker({
     // A recovery dismiss of a wedged (never-opened) sheet also lands here;
     // only a dismissal of a sheet the user actually saw should close the flow.
     if (!openedRef.current) return;
+    openedRef.current = false;
     setSearchQuery("");
     setSelectedIds([]);
     onClose();
@@ -102,6 +105,9 @@ export default function ContactPicker({
       ref={sheetRef}
       snapPoints={["75%"]}
       enableDynamicSizing={false}
+      onAnimate={(_from, to) => {
+        if (to >= 0) openedRef.current = true;
+      }}
       onChange={(index) => {
         if (index >= 0) openedRef.current = true;
       }}
