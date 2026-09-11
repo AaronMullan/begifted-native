@@ -1,24 +1,28 @@
 import { playgroundStyles } from "@/components/admin/playground/playground-styles";
 import { AdminTheme } from "@/lib/admin-theme";
-import React, { useState } from "react";
+import React from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Button, Card, Text } from "react-native-paper";
 
 type ProductionContextCardProps = {
   productionContext: Record<string, unknown>;
+  // Owned by the parent: this card unmounts while a generation is in flight
+  // (the result is cleared first), so local state would re-expand every run.
+  expanded: boolean;
+  onToggle: () => void;
 };
 
 export const ProductionContextCard: React.FC<ProductionContextCardProps> = ({
   productionContext,
+  expanded,
+  onToggle,
 }) => {
-  const [expanded, setExpanded] = useState(true);
-
   return (
     <Card mode="contained" style={playgroundStyles.card}>
       <Card.Content>
         <Button
           mode="text"
-          onPress={() => setExpanded(!expanded)}
+          onPress={onToggle}
           icon={expanded ? "chevron-up" : "chevron-down"}
           compact
           style={styles.toggle}

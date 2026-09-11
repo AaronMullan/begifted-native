@@ -1,7 +1,7 @@
 import { playgroundStyles } from "@/components/admin/playground/playground-styles";
 import type { PromptPlayground } from "@/hooks/use-prompt-playground";
 import { AdminTheme } from "@/lib/admin-theme";
-import React, { useRef, useState } from "react";
+import React, { useRef } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
@@ -14,12 +14,17 @@ import {
 
 type ConversationTestCardProps = {
   playground: PromptPlayground;
+  // Draft lives in ContextPanel so it survives switching prompts and back;
+  // this card unmounts whenever another prompt is selected.
+  input: string;
+  setInput: (value: string) => void;
 };
 
 export const ConversationTestCard: React.FC<ConversationTestCardProps> = ({
   playground,
+  input,
+  setInput,
 }) => {
-  const [input, setInput] = useState("");
   const scrollRef = useRef<ScrollView>(null);
 
   function handleSend() {

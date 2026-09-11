@@ -5,7 +5,7 @@ import { playgroundStyles } from "@/components/admin/playground/playground-style
 import { TestModelCard } from "@/components/admin/playground/TestModelCard";
 import type { PromptPlayground } from "@/hooks/use-prompt-playground";
 import { AdminTheme } from "@/lib/admin-theme";
-import React from "react";
+import React, { useState } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import { Card, Chip, Switch, Text, TextInput } from "react-native-paper";
 
@@ -18,6 +18,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
   playground,
   isDesktop,
 }) => {
+  const [conversationInput, setConversationInput] = useState("");
   const panelStyle = [
     playgroundStyles.panel,
     isDesktop && styles.contextPanelDesktop,
@@ -98,7 +99,11 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
       </Card>
 
       {playground.selectedPromptKey === "add_recipient_conversation" && (
-        <ConversationTestCard playground={playground} />
+        <ConversationTestCard
+          playground={playground}
+          input={conversationInput}
+          setInput={setConversationInput}
+        />
       )}
 
       {playground.selectedPromptKey === "occasion_recommendations" && (

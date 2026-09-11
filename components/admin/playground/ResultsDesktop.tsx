@@ -19,6 +19,7 @@ export const ResultsDesktop: React.FC<ResultsDesktopProps> = ({
   playground,
 }) => {
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  const [showProductionContext, setShowProductionContext] = useState(true);
 
   const activeRun = playground.testRuns.find((r) => r.id === activeRunId);
 
@@ -132,7 +133,11 @@ export const ResultsDesktop: React.FC<ResultsDesktopProps> = ({
         />
 
         {playground.isGiftGeneration && !!productionContext && (
-          <ProductionContextCard productionContext={productionContext} />
+          <ProductionContextCard
+            productionContext={productionContext}
+            expanded={showProductionContext}
+            onToggle={() => setShowProductionContext(!showProductionContext)}
+          />
         )}
 
         {playground.isGiftGeneration && !!cronContext && (

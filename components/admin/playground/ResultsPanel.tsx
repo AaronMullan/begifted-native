@@ -16,6 +16,7 @@ type ResultsPanelProps = {
 // collapsible test-run history. Desktop uses ResultsDesktop instead.
 export const ResultsPanel: React.FC<ResultsPanelProps> = ({ playground }) => {
   const [showHistory, setShowHistory] = useState(false);
+  const [showProductionContext, setShowProductionContext] = useState(true);
 
   const productionContext = playground.generationResult?.productionContext as
     Record<string, unknown> | undefined;
@@ -27,7 +28,11 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({ playground }) => {
       <ResultContentCard playground={playground} />
 
       {playground.isGiftGeneration && !!productionContext && (
-        <ProductionContextCard productionContext={productionContext} />
+        <ProductionContextCard
+          productionContext={productionContext}
+          expanded={showProductionContext}
+          onToggle={() => setShowProductionContext(!showProductionContext)}
+        />
       )}
 
       {playground.isGiftGeneration && !!cronContext && (
