@@ -19,6 +19,17 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-09-11 — OTA
+
+### App
+
+- Importing from Contacts opens the picker sheet the first time, every time, including after you've closed it once (DEV-365).
+
+### Backend
+
+- Subscriptions bought on bgftd.com now unlock the matching BeGifted account automatically, and payment events reach Customer.io (DEV-374).
+- Each gift-generation run now records the tokens it used, so cost per run and the effect of a model change can be measured from our own data. No visible change in the app (DEV-435).
+
 ## 2026-09-09 — OTA
 
 ### App
