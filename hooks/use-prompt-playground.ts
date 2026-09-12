@@ -793,3 +793,5 @@ export function usePromptPlayground(userId: string) {
     isLoadingRecipients: recipientsQuery.isLoading,
   };
 }
+
+export type PromptPlayground = ReturnType<typeof usePromptPlayground>;
