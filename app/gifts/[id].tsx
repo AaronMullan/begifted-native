@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { ActivityIndicator, Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -12,6 +12,7 @@ import { useRecipient } from "../../hooks/use-recipient";
 import { useGiftSuggestions } from "../../hooks/use-gift-suggestions";
 import GiftSuggestionsList from "../../components/gifts/GiftSuggestionsList";
 import PastGiftsSection from "../../components/gifts/PastGiftsSection";
+import { partitionSuggestions } from "../../components/gifts/partition";
 
 /** Gap left above an expanded card once it's scrolled to the top of the visible
  * area, so it sits a touch below the sticky header rather than flush against it. */
@@ -54,7 +55,16 @@ function GiftIdeasHeader({ name, onAboutPress }: GiftIdeasHeaderProps) {
 
 export default function GiftIdeasPage() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, occasionId } = useLocalSearchParams<{
+    id: string;
+    occasionId?: string;
+  }>();
+  // Every Home card pushes a fresh instance of this screen, so the param only
+  // needs to seed the filter; the user can clear it on-screen to see every
+  // suggestion for the recipient.
+  const [occasionFilter, setOccasionFilter] = useState<string | null>(
+    occasionId ?? null
+  );
   const { data: recipient, isLoading: loadingRecipient } = useRecipient(id);
   const { data: suggestions = [], isLoading: loadingSuggestions } =
     useGiftSuggestions(id);
@@ -63,18 +73,25 @@ export default function GiftIdeasPage() {
   const contentRef = useRef<View>(null);
 
   // Log recommendations_viewed once per screen visit, when suggestions have
-  // actually loaded and there is something to view.
+  // actually loaded and there is something to view. The count must be the
+  // partition the list renders: an occasion filter can leave the screen on
+  // its empty state while older suggestions for other occasions exist.
+  const visibleSuggestionCount = partitionSuggestions(
+    suggestions,
+    occasionFilter
+  ).visible.length;
   const loggedViewRef = useRef(false);
   useEffect(() => {
     if (loggedViewRef.current) return;
-    if (!user || !id || loadingSuggestions || suggestions.length === 0) return;
+    if (!user || !id || loadingSuggestions || visibleSuggestionCount === 0)
+      return;
     loggedViewRef.current = true;
     logProductEvent(user.id, "recommendations_viewed", {
       recipient_id: id,
-      suggestion_count: suggestions.length,
+      suggestion_count: visibleSuggestionCount,
       screen: "gift_ideas",
     });
-  }, [user, id, loadingSuggestions, suggestions.length]);
+  }, [user, id, loadingSuggestions, visibleSuggestionCount]);
 
   const isLoading = loadingRecipient || loadingSuggestions;
   const name = firstName(recipient?.name);
@@ -127,12 +144,17 @@ export default function GiftIdeasPage() {
           <GiftSuggestionsList
             suggestions={suggestions}
             recipientName={name}
+            occasionId={occasionFilter}
+            onClearOccasionFilter={() => setOccasionFilter(null)}
             onScrollCardIntoView={handleScrollCardIntoView}
           />
         </View>
         {/* Full-bleed band — outside the horizontally-padded content column. */}
         <View style={styles.pastSection}>
-          <PastGiftsSection suggestions={suggestions} />
+          <PastGiftsSection
+            suggestions={suggestions}
+            occasionId={occasionFilter}
+          />
         </View>
       </ScrollView>
     </View>

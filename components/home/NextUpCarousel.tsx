@@ -122,7 +122,7 @@ function NextUpCard({
     days === 0 ? "Today" : days === 1 ? "Tomorrow" : `In ${days} days`;
 
   const handlePress = () => {
-    router.push(`/gifts/${occasion.recipient_id}`);
+    router.push(`/gifts/${occasion.recipient_id}?occasionId=${occasion.id}`);
   };
 
   return (
