@@ -91,7 +91,7 @@ export default function GiftIdeasPage() {
       suggestion_count: visibleSuggestionCount,
       screen: "gift_ideas",
     });
-  }, [user, id, loadingSuggestions, suggestions.length]);
+  }, [user, id, loadingSuggestions, visibleSuggestionCount]);
 
   const isLoading = loadingRecipient || loadingSuggestions;
   const name = firstName(recipient?.name);
