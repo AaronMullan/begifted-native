@@ -41,8 +41,9 @@ export default function HomeHeroCard({ occasion }: HomeHeroCardProps) {
   const countdown = `${dayLabel} • ${formatOccasionDate(occasion.date)}`;
 
   const handlePress = () => {
-    // TODO(DEV-69): navigate to gift recommendation page for this occasion
-    router.push(`/contacts/${occasion.recipient_id}`);
+    router.push(
+      `/contacts/${occasion.recipient_id}?tab=gifts&occasionId=${occasion.id}`
+    );
   };
 
   return (

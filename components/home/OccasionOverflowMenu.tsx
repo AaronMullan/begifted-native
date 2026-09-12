@@ -28,7 +28,7 @@ export default function OccasionOverflowMenu({
 
   const handleViewGifts = () => {
     closeMenu();
-    router.push(`/gifts/${occasion.recipient_id}`);
+    router.push(`/gifts/${occasion.recipient_id}?occasionId=${occasion.id}`);
   };
 
   const handleEdit = () => {

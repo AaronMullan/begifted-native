@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { ActivityIndicator, Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -54,7 +54,16 @@ function GiftIdeasHeader({ name, onAboutPress }: GiftIdeasHeaderProps) {
 
 export default function GiftIdeasPage() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, occasionId } = useLocalSearchParams<{
+    id: string;
+    occasionId?: string;
+  }>();
+  // Every Home card pushes a fresh instance of this screen, so the param only
+  // needs to seed the filter; the user can clear it on-screen to see every
+  // suggestion for the recipient.
+  const [occasionFilter, setOccasionFilter] = useState<string | null>(
+    occasionId ?? null
+  );
   const { data: recipient, isLoading: loadingRecipient } = useRecipient(id);
   const { data: suggestions = [], isLoading: loadingSuggestions } =
     useGiftSuggestions(id);
@@ -127,12 +136,17 @@ export default function GiftIdeasPage() {
           <GiftSuggestionsList
             suggestions={suggestions}
             recipientName={name}
+            occasionId={occasionFilter}
+            onClearOccasionFilter={() => setOccasionFilter(null)}
             onScrollCardIntoView={handleScrollCardIntoView}
           />
         </View>
         {/* Full-bleed band — outside the horizontally-padded content column. */}
         <View style={styles.pastSection}>
-          <PastGiftsSection suggestions={suggestions} />
+          <PastGiftsSection
+            suggestions={suggestions}
+            occasionId={occasionFilter}
+          />
         </View>
       </ScrollView>
     </View>
