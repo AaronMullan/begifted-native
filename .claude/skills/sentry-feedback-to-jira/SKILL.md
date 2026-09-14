@@ -43,10 +43,15 @@ Keep each short-ID and URL — every ticket links back to its feedback, and Step
 ### Step 1b — Pull TestFlight feedback from App Store Connect
 
 ```bash
-.claude/scripts/asc-api check || echo "TestFlight source unavailable — report and continue with Sentry only"
-.claude/scripts/asc-api screenshots 50 > <scratchpad>/tf-screenshots.json
-.claude/scripts/asc-api crashes 50   > <scratchpad>/tf-crashes.json
+if .claude/scripts/asc-api check; then
+  .claude/scripts/asc-api screenshots 50 > <scratchpad>/tf-screenshots.json
+  .claude/scripts/asc-api crashes 50   > <scratchpad>/tf-crashes.json
+else
+  echo "TESTFLIGHT_UNAVAILABLE"
+fi
 ```
+
+If `check` fails (no key in `.env.local`) or either pull errors (Apple 401/403 — wrong key or role), **skip the rest of Step 1b entirely**, continue with the Sentry items only, and put `testflight: source unavailable (<reason>)` in the Step 7 report. This is never a run failure.
 
 Both lists are newest-first, `data[]` entries with `id` (the submission id — the stable ref for everything below), `attributes.createdDate`, `attributes.comment` (the tester's words; often empty on screenshot-only submissions), `attributes.email`, `deviceModel`, `osVersion`, and for screenshots `attributes.screenshots[]` (`url`, `width`, `height`, `expirationDate` — the URLs are pre-signed and expire, so download in this run). `included[]` carries the build (`version`) and tester (`firstName`/`lastName`/`email`) referenced by each entry's `relationships`.
 
@@ -107,12 +112,12 @@ Interactive mode does this too, after filing — there is no manual dashboard ch
 
 ```sql
 insert into public.testflight_feedback_seen (submission_id, kind, disposition, jira_key, submitted_at)
-values ($fb$<submission id>$fb$, 'screenshot' | 'crash', 'filed' | 'duplicate' | 'junk', $fb$<DEV-KEY or NULL>$fb$, '<createdDate>')
+values ($fb$<submission id>$fb$, 'screenshot' | 'crash', 'filed' | 'duplicate' | 'junk', $fb$<DEV-KEY>$fb$, '<createdDate>')
 on conflict (submission_id) do update
   set disposition = excluded.disposition, jira_key = excluded.jira_key, seen_at = now();
 ```
 
-Only `filed`, `duplicate`, and `junk` get a row. **Skipped (headless borderline) and over-cap items get no row** — like unresolved Sentry items, they come back next run. Never delete submissions from App Store Connect (the API allows it): the page there is the tester-facing record and a human may still want to see junk.
+For a `junk` row use a bare `NULL` (not dollar-quoted) as `jira_key`. Only `filed`, `duplicate`, and `junk` get a row. **Skipped (headless borderline) and over-cap items get no row** — like unresolved Sentry items, they come back next run. Never delete submissions from App Store Connect (the API allows it): the page there is the tester-facing record and a human may still want to see junk.
 
 ## Step 6 — Record the feedback→ticket link
 
