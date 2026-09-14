@@ -190,6 +190,23 @@ export default function RecipientEditPage() {
     tab === "details" || tab === "gifts" ? tab : (previous ?? "gifts")
   );
 
+  // Tabs are local state, so a details→gifts switch pushes nothing onto the
+  // navigation stack. The Gift Ideas chevron must unwind that switch itself
+  // instead of popping the route (which lands on whatever pushed it). Keyed on
+  // the tab param so a fresh navigation straight to gifts resets it.
+  const [giftsReachedFromDetails, setGiftsReachedFromDetails] =
+    useParamDrivenState<string | undefined, boolean>(params.tab, () => false);
+
+  const showDetailsFromGifts = () => {
+    setGiftsReachedFromDetails(false);
+    setActiveTab("details");
+  };
+
+  const showGiftsFromDetails = () => {
+    setGiftsReachedFromDetails(true);
+    setActiveTab("gifts");
+  };
+
   // A navigation that omits occasionId must clear the filter: a notification
   // tap without an occasion (e.g. on-demand gift generation) must not strand
   // the user on a stale filter pointing at an empty occasion.
@@ -638,7 +655,9 @@ export default function RecipientEditPage() {
       {activeTab === "gifts" ? (
         <View style={styles.hero}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() =>
+              giftsReachedFromDetails ? showDetailsFromGifts() : router.back()
+            }
             style={styles.backButton}
             accessibilityRole="button"
             accessibilityLabel="Go back"
@@ -652,7 +671,7 @@ export default function RecipientEditPage() {
           </Pressable>
           <Text style={styles.heroTitle}>{shortName}&apos;s Gift Ideas</Text>
           <Pressable
-            onPress={() => setActiveTab("details")}
+            onPress={showDetailsFromGifts}
             style={styles.aboutLink}
             accessibilityRole="link"
             accessibilityLabel={`About ${shortName}`}
@@ -664,7 +683,7 @@ export default function RecipientEditPage() {
       ) : (
         <View style={styles.detailsHeader}>
           <Pressable
-            onPress={() => setActiveTab("gifts")}
+            onPress={showGiftsFromDetails}
             style={styles.detailsBackLink}
             accessibilityRole="button"
             accessibilityLabel="Back to Gift Ideas"
@@ -714,7 +733,7 @@ export default function RecipientEditPage() {
             onAddOccasion={presentAddMoment}
             onViewGiftIdeas={(occasionId) => {
               setOccasionFilter(occasionId);
-              setActiveTab("gifts");
+              showGiftsFromDetails();
               scrollRef.current?.scrollTo({ y: 0, animated: false });
             }}
             onDelete={() => setConfirmDeleteVisible(true)}
