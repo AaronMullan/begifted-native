@@ -122,6 +122,7 @@ const MomentDateSection: React.FC<MomentDateSectionProps> = ({
           placeholder="MM-DD"
           placeholderTextColor={Colors.brand.mediumTeal}
           keyboardType="number-pad"
+          returnKeyType="done"
           maxLength={5}
           style={styles.input}
         />

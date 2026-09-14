@@ -285,6 +285,8 @@ export default function GiftActionDrawer({
               placeholder={activeRow.followUp?.placeholder}
               placeholderTextColor={Colors.brand.mediumTeal}
               multiline
+              returnKeyType="done"
+              submitBehavior="blurAndSubmit"
               editable={!submit.isPending}
               style={styles.notesField}
             />

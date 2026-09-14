@@ -1,5 +1,5 @@
 import React, { useImperativeHandle, useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Keyboard, Pressable, StyleSheet, View } from "react-native";
 import { Button, Text } from "react-native-paper";
 import {
   BottomSheetModal,
@@ -79,45 +79,49 @@ export const UpdateKnowledgeDrawer: React.FC<UpdateKnowledgeDrawerProps> = ({
         setDraft("");
       }}
     >
-      <BottomSheetView style={styles.content}>
-        {step === "compose" ? (
-          <>
-            <Text style={styles.title}>{title}</Text>
-            <Text style={styles.prompt}>{prompt}</Text>
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Details</Text>
-              <BottomSheetTextInput
-                value={draft}
-                onChangeText={setDraft}
-                placeholder={placeholder}
-                placeholderTextColor={Colors.brand.mediumTeal}
-                multiline
-                style={styles.input}
+      <BottomSheetView>
+        <Pressable style={styles.content} onPress={Keyboard.dismiss}>
+          {step === "compose" ? (
+            <>
+              <Text style={styles.title}>{title}</Text>
+              <Text style={styles.prompt}>{prompt}</Text>
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>Details</Text>
+                <BottomSheetTextInput
+                  value={draft}
+                  onChangeText={setDraft}
+                  placeholder={placeholder}
+                  placeholderTextColor={Colors.brand.mediumTeal}
+                  multiline
+                  returnKeyType="done"
+                  submitBehavior="blurAndSubmit"
+                  style={styles.input}
+                />
+              </View>
+              <Button
+                mode="contained"
+                buttonColor={Colors.brand.darkTeal}
+                textColor={Colors.white}
+                disabled={!draft.trim()}
+                onPress={() => setStep("review")}
+                style={styles.cta}
+                contentStyle={styles.ctaContent}
+                labelStyle={styles.ctaLabel}
+              >
+                Send
+              </Button>
+            </>
+          ) : (
+            <>
+              <Text style={styles.title}>{reviewTitle}</Text>
+              <ReviewSaveStep
+                text={draft.trim()}
+                saving={saving}
+                onSave={handleSave}
               />
-            </View>
-            <Button
-              mode="contained"
-              buttonColor={Colors.brand.darkTeal}
-              textColor={Colors.white}
-              disabled={!draft.trim()}
-              onPress={() => setStep("review")}
-              style={styles.cta}
-              contentStyle={styles.ctaContent}
-              labelStyle={styles.ctaLabel}
-            >
-              Send
-            </Button>
-          </>
-        ) : (
-          <>
-            <Text style={styles.title}>{reviewTitle}</Text>
-            <ReviewSaveStep
-              text={draft.trim()}
-              saving={saving}
-              onSave={handleSave}
-            />
-          </>
-        )}
+            </>
+          )}
+        </Pressable>
       </BottomSheetView>
     </BottomSheetModal>
   );

@@ -309,6 +309,7 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
           placeholder={isAnnual ? "MM-DD" : "MM-DD-YYYY"}
           placeholderTextColor={Colors.brand.mediumTeal}
           keyboardType="number-pad"
+          returnKeyType="done"
           maxLength={isAnnual ? 5 : 10}
           style={styles.input}
         />

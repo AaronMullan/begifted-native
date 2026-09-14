@@ -109,6 +109,8 @@ export default function OnboardingIdentity() {
               onChangeText={setDescription}
               multiline
               numberOfLines={5}
+              returnKeyType="done"
+              submitBehavior="blurAndSubmit"
               style={styles.input}
               outlineStyle={styles.inputOutline}
               contentStyle={styles.inputContent}
