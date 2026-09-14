@@ -54,10 +54,21 @@ Take a Jira ticket from investigation to merged-ready PR. The ticket ID is passe
 
    If it merges cleanly, proceed. If it conflicts, resolve by hand, re-run `npm run typecheck && npm run lint` (the incoming `main` changes may touch files you edited), commit the merge (`git commit --no-edit`), `git push`, then confirm the PR is conflict-free. (Changelog fragments are one file per ticket, so they never conflict — a conflict means real code overlap.)
 
-9. **Fresh-context code review.** These PRs self-merge — this step is the only review they get. Do **not** review the diff yourself: the context that wrote the code carries the assumptions that produced any bug in it. Spawn a subagent via the Agent tool with a prompt containing (a) the ticket summary and acceptance criteria, (b) an instruction to run `git diff origin/main...HEAD` and adversarially review it for defects. The reviewer must report **only findings that change behavior** — bugs, broken edge cases, violated repo invariants (Paper-only UI, the `react-native-url-polyfill` import rules, reasoning-model token budgets, GradientBackground placement, migration idempotency) — never style nits or refactor suggestions; each finding needs a concrete failure scenario, not a hunch.
+9. **Fresh-context code review.** These PRs self-merge — this step is the only review they get. Do **not** review the diff yourself: the context that wrote the code carries the assumptions that produced any bug in it.
+
+   Before spawning the reviewer, confirm there is something to review — a bad ref or an empty diff should fail here, not inside the subagent:
+
+   ```bash
+   git rev-parse --verify origin/main && git diff --stat origin/main...HEAD
+   ```
+
+   Spawn a subagent via the Agent tool with a prompt containing (a) the ticket summary and acceptance criteria, verbatim, (b) an instruction to run `git diff origin/main...HEAD` and review it along **two separate axes**, reported under separate headings and never merged or reranked against each other — a change can pass one and fail the other, and one axis must not mask the other:
+   - **Defects** — adversarially hunt for findings that **change behavior**: bugs, broken edge cases, violated repo invariants (Paper-only UI, the `react-native-url-polyfill` import rules, reasoning-model token budgets, GradientBackground placement, migration idempotency). Never style nits or refactor suggestions; each finding needs a concrete failure scenario, not a hunch.
+   - **Spec fidelity** — check the diff against the ticket, not against the code's own intent: (1) acceptance criteria that are missing or only partially met, (2) behavior the diff adds that the ticket did not ask for, (3) criteria that look implemented but where the implementation does something other than what the ticket describes. Quote the ticket line each finding refers to. This axis exists because the writing context is the one most likely to have quietly reinterpreted the ticket.
 
    Then:
-   - **Confirmed behavior-level findings:** fix them, re-run `npm run typecheck && npm run lint`, push. At most **one** re-review, scoped to the fix itself — then proceed to merge regardless. No open-ended review-fix loops.
+   - **Confirmed Defects findings, and Spec findings of kinds (1) and (3):** fix them, re-run `npm run typecheck && npm run lint`, push. At most **one** re-review, scoped to the fix itself — then proceed to merge regardless. No open-ended review-fix loops.
+   - **Spec findings of kind (2) — unrequested behavior:** remove it if it is incidental to the fix; if it is load-bearing, keep it and say so in the PR body and the final report.
    - **Findings that would expand scope beyond the ticket:** don't fix them; record them in the final report (or propose a follow-up ticket).
    - **No findings:** proceed.
 
