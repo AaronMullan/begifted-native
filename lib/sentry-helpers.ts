@@ -20,8 +20,17 @@ export function toError(value: unknown): Error {
 // Supabase PostgrestErrors), and "Network request timed out" (background
 // pollers like unreadCount). Substring-match the common "Network request"
 // stem so all variants are treated as expected offline noise, not bugs.
+//
+// Expo's WinterCG fetch is the global `fetch` on native, and it wraps every
+// native transport failure as "fetch failed: <OS message>" (e.g. "The network
+// connection was lost", "The request timed out") — a shape that never carries
+// the "Network request" stem. Anything behind that prefix failed below the
+// HTTP layer, so it is offline noise by construction.
 export function isOfflineError(err: Error): boolean {
-  return err.message.includes("Network request");
+  return (
+    err.message.includes("Network request") ||
+    err.message.includes("fetch failed:")
+  );
 }
 
 // A stale access token surfaces as PGRST301 / "JWT expired" on a foregrounded
