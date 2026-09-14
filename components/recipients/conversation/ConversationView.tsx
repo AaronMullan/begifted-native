@@ -156,6 +156,7 @@ export function ConversationView({
         style={styles.messagesContainer}
         contentContainerStyle={styles.messagesContent}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
       >
         {messages.map((message) => (
           <View
@@ -238,7 +239,8 @@ export function ConversationView({
             placeholder="Type your message..."
             onSubmitEditing={handleSend}
             returnKeyType="send"
-            blurOnSubmit={false}
+            // Multiline defaults to 'newline', which swallows the Send key.
+            submitBehavior="submit"
             multiline
             editable={!isLoading && !isSending}
             autoComplete="off"

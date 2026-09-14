@@ -174,6 +174,8 @@ export function DataReviewView({
               placeholder="e.g., reading, hiking, coffee (comma-separated)"
               multiline
               numberOfLines={3}
+              returnKeyType="done"
+              submitBehavior="blurAndSubmit"
               autoCapitalize="none"
               autoCorrect={false}
               style={styles.input}
@@ -201,6 +203,7 @@ export function DataReviewView({
                 }
                 placeholder="$"
                 keyboardType="numeric"
+                returnKeyType="done"
                 style={styles.input}
               />
             </View>
@@ -218,6 +221,7 @@ export function DataReviewView({
                 }
                 placeholder="$"
                 keyboardType="numeric"
+                returnKeyType="done"
                 style={styles.input}
               />
             </View>
@@ -287,6 +291,7 @@ export function DataReviewView({
                 onChangeText={(value) => updateField("zip_code", value)}
                 placeholder="ZIP"
                 keyboardType="numeric"
+                returnKeyType="done"
                 maxLength={10}
                 style={styles.input}
               />

@@ -296,6 +296,7 @@ export function OccasionEditor({
                     onChangeText={handleDateChange}
                     placeholder={isAnnual ? "MM-DD" : "MM-DD-YYYY"}
                     keyboardType="number-pad"
+                    returnKeyType="done"
                     maxLength={isAnnual ? 5 : 10}
                     style={styles.input}
                   />

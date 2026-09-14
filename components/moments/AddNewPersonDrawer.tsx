@@ -1,5 +1,5 @@
 import React, { useImperativeHandle, useRef, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Keyboard, Pressable, StyleSheet, View } from "react-native";
 import { Button, Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
@@ -60,58 +60,68 @@ export const AddNewPersonDrawer: React.FC<AddNewPersonDrawerProps> = ({
       backgroundStyle={styles.sheetBackground}
       onDismiss={() => setNote("")}
     >
-      <BottomSheetView style={styles.content}>
-        <Text style={styles.title}>Tell BeGifted about them</Text>
-        <Text style={styles.prompt}>What should BeGifted know about them?</Text>
-        <View style={styles.fieldBox}>
-          <BottomSheetTextInput
-            ref={inputRef}
-            value={note}
-            onChangeText={setNote}
-            placeholder="e.g. Michelle is my wife, born June 26. Loves architecture, modern design, and thoughtful handmade things — not generic gifts."
-            placeholderTextColor={Colors.brand.mediumTeal}
-            multiline
-            style={styles.input}
-          />
-          <View style={styles.iconRow}>
-            <Pressable
-              onPress={() => inputRef.current?.focus()}
-              accessibilityRole="button"
-              accessibilityLabel="Dictate with the keyboard microphone"
-              hitSlop={8}
-            >
-              <MaterialIcons
-                name="mic-none"
-                size={20}
-                color={Colors.brand.rose}
-              />
-            </Pressable>
-            <Pressable
-              onPress={handleSend}
-              accessibilityRole="button"
-              accessibilityLabel="Send"
-              style={[styles.sendCircle, !note.trim() && styles.sendDisabled]}
-            >
-              <MaterialIcons
-                name="arrow-upward"
-                size={18}
-                color={Colors.white}
-              />
-            </Pressable>
-          </View>
-        </View>
-        <Button
-          mode="contained"
-          buttonColor={Colors.brand.darkTeal}
-          textColor={Colors.white}
-          onPress={handleSend}
-          disabled={!note.trim()}
-          style={styles.cta}
-          contentStyle={styles.ctaContent}
-          labelStyle={styles.ctaLabel}
+      <BottomSheetView>
+        <Pressable
+          style={styles.content}
+          onPress={Keyboard.dismiss}
+          accessible={false}
         >
-          Send
-        </Button>
+          <Text style={styles.title}>Tell BeGifted about them</Text>
+          <Text style={styles.prompt}>
+            What should BeGifted know about them?
+          </Text>
+          <View style={styles.fieldBox}>
+            <BottomSheetTextInput
+              ref={inputRef}
+              value={note}
+              onChangeText={setNote}
+              placeholder="e.g. Michelle is my wife, born June 26. Loves architecture, modern design, and thoughtful handmade things — not generic gifts."
+              placeholderTextColor={Colors.brand.mediumTeal}
+              multiline
+              returnKeyType="done"
+              submitBehavior="blurAndSubmit"
+              style={styles.input}
+            />
+            <View style={styles.iconRow}>
+              <Pressable
+                onPress={() => inputRef.current?.focus()}
+                accessibilityRole="button"
+                accessibilityLabel="Dictate with the keyboard microphone"
+                hitSlop={8}
+              >
+                <MaterialIcons
+                  name="mic-none"
+                  size={20}
+                  color={Colors.brand.rose}
+                />
+              </Pressable>
+              <Pressable
+                onPress={handleSend}
+                accessibilityRole="button"
+                accessibilityLabel="Send"
+                style={[styles.sendCircle, !note.trim() && styles.sendDisabled]}
+              >
+                <MaterialIcons
+                  name="arrow-upward"
+                  size={18}
+                  color={Colors.white}
+                />
+              </Pressable>
+            </View>
+          </View>
+          <Button
+            mode="contained"
+            buttonColor={Colors.brand.darkTeal}
+            textColor={Colors.white}
+            onPress={handleSend}
+            disabled={!note.trim()}
+            style={styles.cta}
+            contentStyle={styles.ctaContent}
+            labelStyle={styles.ctaLabel}
+          >
+            Send
+          </Button>
+        </Pressable>
       </BottomSheetView>
     </BottomSheetModal>
   );

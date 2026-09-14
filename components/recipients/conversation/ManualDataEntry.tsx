@@ -170,6 +170,8 @@ export function ManualDataEntry({
                 placeholder="e.g., reading, hiking, coffee (comma-separated)"
                 multiline
                 numberOfLines={3}
+                returnKeyType="done"
+                submitBehavior="blurAndSubmit"
                 style={styles.input}
               />
             </View>
@@ -190,6 +192,7 @@ export function ManualDataEntry({
                   onChangeText={setBudgetMin}
                   placeholder="$"
                   keyboardType="numeric"
+                  returnKeyType="done"
                   style={styles.input}
                 />
               </View>
@@ -202,6 +205,7 @@ export function ManualDataEntry({
                   onChangeText={setBudgetMax}
                   placeholder="$"
                   keyboardType="numeric"
+                  returnKeyType="done"
                   style={styles.input}
                 />
               </View>
@@ -271,6 +275,7 @@ export function ManualDataEntry({
                   onChangeText={setZipCode}
                   placeholder="ZIP"
                   keyboardType="numeric"
+                  returnKeyType="done"
                   maxLength={10}
                   style={styles.input}
                 />

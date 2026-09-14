@@ -118,6 +118,8 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
                 defaultValue={tone}
                 onChangeText={setTone}
                 multiline
+                returnKeyType="done"
+                submitBehavior="blurAndSubmit"
                 style={styles.input}
               />
               <View style={styles.row}>
@@ -127,6 +129,7 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
                   defaultValue={minBudget}
                   onChangeText={setMinBudget}
                   keyboardType="number-pad"
+                  returnKeyType="done"
                   style={[styles.input, styles.budgetInput]}
                 />
                 <TextInput
@@ -135,6 +138,7 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
                   defaultValue={maxBudget}
                   onChangeText={setMaxBudget}
                   keyboardType="number-pad"
+                  returnKeyType="done"
                   style={[styles.input, styles.budgetInput]}
                 />
               </View>
