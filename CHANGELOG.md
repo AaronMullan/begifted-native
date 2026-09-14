@@ -19,6 +19,21 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-09-14 — OTA
+
+### App
+
+- On a recipient's Gift Ideas, the back chevron returns to About Recipient when that is where you came from, instead of jumping to Home. (DEV-443)
+- Gift Ideas opened from a Home card now show that occasion's gifts. Michelle's anniversary card and her Christmas card open different sets, matching what her profile shows for each moment, with a clear-filter link to see everything (DEV-436).
+- The keyboard now retracts on Return in note fields, number pads get a Done button, and tapping a blank area of a drawer dismisses the keyboard. (DEV-440)
+- Admin only: the Prompt Playground screen was split into smaller components. No visible change; everything on the screen should look and behave exactly as before (DEV-400).
+
+### Backend
+
+- Past Gifts no longer vanish after you edit a recipient: a refresh now replaces only the three current cards, and the notification-day link check leaves older gifts alone. (DEV-442)
+- Gift ideas now read price and stock from the product page itself. Sold-out items are replaced before they reach you, and a price the model guessed wrong is corrected to what the shop actually charges. (DEV-437)
+- On the day an occasion reminder goes out, each gift idea's product page is checked again. A gift that has sold out or vanished is replaced before the reminder arrives, and a price that changed is updated to what the shop charges now. (DEV-438)
+
 ## 2026-09-11 — OTA
 
 ### App
