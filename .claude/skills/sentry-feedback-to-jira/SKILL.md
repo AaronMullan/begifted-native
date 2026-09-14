@@ -1,11 +1,11 @@
 ---
 name: sentry-feedback-to-jira
-description: Turn Sentry user feedback into Jira tickets — tickets only, never code changes. Pulls the `issue.category:feedback` inbox, filters junk, classifies each genuine report (bug/UX/feature), dedups against Jira, files tickets labeled `user-feedback`, then resolves the handled feedback in Sentry. Interactive by default (drafts wait for approval); pass `headless` to run unattended (weekday launchd schedule alongside sentry-autofix) — rubric-clean items are filed straight to To Do, borderline items are skipped and reported. Pass `dry-run` to execute the full pipeline with zero writes. Implements the DEV-199 process.
+description: Turn Sentry user feedback and TestFlight's native feedback (App Store Connect screenshot + crash submissions) into Jira tickets — tickets only, never code changes. Pulls the Sentry `issue.category:feedback` inbox and the App Store Connect beta-feedback lists, filters junk, classifies each genuine report (bug/UX/feature), dedups against Jira, files tickets labeled `user-feedback`, then resolves the handled feedback in Sentry and records handled TestFlight submissions. Interactive by default (drafts wait for approval); pass `headless` to run unattended (weekday launchd schedule alongside sentry-autofix) — rubric-clean items are filed straight to To Do, borderline items are skipped and reported. Pass `dry-run` to execute the full pipeline with zero writes. Implements the DEV-199 process.
 ---
 
 # Sentry Feedback → Jira
 
-Convert the Sentry **User Feedback** inbox into tracked Jira work. This is the lightweight path DEV-199 calls for — distinct from `/triage`, which root-causes **error clusters** (stack traces by volume), and from `/sentry-autofix`, which opens fix PRs. Feedback is human prose from beta testers, so this skill classifies and dedups rather than grepping the stack — and it **only files tickets**: user feedback never drives code changes directly. A human re-prioritizes the labeled tickets before any work starts.
+Convert the Sentry **User Feedback** inbox and TestFlight's **native feedback** (screenshot annotations and crash reports filed from the TestFlight app, read from App Store Connect) into tracked Jira work. Testers reach us both ways — the in-app Report a Bug button goes to Sentry; the TestFlight app's own feedback goes only to App Store Connect — and non-technical testers find the TestFlight one first, so both sources are read every run. This is the lightweight path DEV-199 calls for — distinct from `/triage`, which root-causes **error clusters** (stack traces by volume), and from `/sentry-autofix`, which opens fix PRs. Feedback is human prose from beta testers, so this skill classifies and dedups rather than grepping the stack — and it **only files tickets**: user feedback never drives code changes directly. A human re-prioritizes the labeled tickets before any work starts.
 
 ## Arguments (all optional, composable)
 
@@ -26,6 +26,7 @@ Convert the Sentry **User Feedback** inbox into tracked Jira work. This is the l
 ## Constants
 
 - Sentry: org `begifted`, feedback project `4511361418395648` (react-native). Token: `SENTRY_TOKEN_TWO` in `.env.local` (never echo it): `TOKEN=$(grep -E '^SENTRY_TOKEN_TWO=' .env.local | sed -E 's/^SENTRY_TOKEN_TWO=//' | tr -d '"\r\n ')`.
+- App Store Connect (TestFlight feedback): app `6758072456`, via `.claude/scripts/asc-api` (mints its own JWT from `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_PRIVATE_KEY_B64` in `.env.local`; never echo them). `asc-api check` exits 2 when the key isn't configured — then the TestFlight source is **skipped and reported**, never a run failure. See _Setup_ at the end.
 - Jira: project `DEV`. Reads/searches via `.claude/scripts/jira-api`; writes via the Jira MCP. Create issues **one at a time** (`jira_batch_create_issues` is unreliable). Never pass `comment` to `jira_transition_issue` (requires ADF) — use `jira_add_comment`.
 - Parse Sentry response bodies with python3, not jq — they carry unescaped control characters.
 
@@ -39,6 +40,30 @@ Capture per item: short-ID (`REACT-NATIVE-X`), numeric id, title, first/last see
 
 Keep each short-ID and URL — every ticket links back to its feedback, and Step 5 resolves by short-ID. The `limit=50` is deliberately above the ticket cap so the final report can account for the whole inbox even when capped.
 
+### Step 1b — Pull TestFlight feedback from App Store Connect
+
+```bash
+.claude/scripts/asc-api check || echo "TestFlight source unavailable — report and continue with Sentry only"
+.claude/scripts/asc-api screenshots 50 > <scratchpad>/tf-screenshots.json
+.claude/scripts/asc-api crashes 50   > <scratchpad>/tf-crashes.json
+```
+
+Both lists are newest-first, `data[]` entries with `id` (the submission id — the stable ref for everything below), `attributes.createdDate`, `attributes.comment` (the tester's words; often empty on screenshot-only submissions), `attributes.email`, `deviceModel`, `osVersion`, and for screenshots `attributes.screenshots[]` (`url`, `width`, `height`, `expirationDate` — the URLs are pre-signed and expire, so download in this run). `included[]` carries the build (`version`) and tester (`firstName`/`lastName`/`email`) referenced by each entry's `relationships`.
+
+Then drop everything the sweep already handled. App Store Connect has no resolve/ignore state, so the record lives in `public.testflight_feedback_seen` (Supabase MCP `execute_sql`, project `qgcyndtymegkobgfcpdh`):
+
+```sql
+select submission_id from public.testflight_feedback_seen
+where submission_id in ('<id1>', '<id2>', ...);
+```
+
+Anything returned is done — leave it out of the work-list entirely (it still counts in the report's totals as `already handled`). For each remaining item:
+
+- **Screenshot submissions:** download every image (`asc-api download <url> <scratchpad>/tf-<id>-<n>.png`) and **Read it** — the annotation on the screenshot is usually the whole report; the `comment` is often blank. Draft from what the screenshot shows plus the comment.
+- **Crash submissions:** pull the log (`asc-api crashlog <id> > <scratchpad>/tf-<id>.crash`) and read the top of the stack for the crashing thread and exception; that goes into the ticket body verbatim (trimmed to the crashing thread).
+
+Treat each item exactly like a Sentry feedback entry from here on. Its identity line in the ticket body is `TestFlight: <submission id>` (screenshot or crash), in place of the `Sentry:` line; its URL is `https://appstoreconnect.apple.com/apps/6758072456/testflight/screenshots` or `/crashes` (the API exposes no per-item deep link — cite the tester name and date next to it so a human can find it on the page).
+
 ## Step 2 — Filter junk, then extract
 
 **Junk filter first.** Drop test/placeholder entries with no actionable content — "Blah blah blah", "Something bad happened", lorem-ipsum, empty bodies. Borderline items (vague but possibly real): interactive keeps them flagged `low-confidence`; headless **skips** them (reported, left unresolved). **Say how many you dropped or skipped and why** — never let a filtered item vanish unaccounted.
@@ -48,11 +73,11 @@ For each genuine item, draft:
 - **Summary** — a tight, imperative title (the fix, not the complaint: "Show past occasions in calendar", not "Calendar is missing stuff").
 - **Type** — Bug / UX / Story. A crash or wrong behaviour is a Bug; a rough-but-working interaction is UX; a "wish it could…" is a Story.
 - **Priority** — your read of severity × reach. A reported crash outranks a copy nit.
-- **Description** — what the user reported (quote the relevant feedback line), which screen/flow it concerns, any acceptance criteria you can infer, and the Sentry feedback URL. Must include the short-ID on its own line — `Sentry: REACT-NATIVE-X` — that line is what makes re-run dedup and Step 5 resolution work; never omit it.
+- **Description** — what the user reported (quote the relevant feedback line), which screen/flow it concerns, any acceptance criteria you can infer, and the Sentry feedback URL. Must include the short-ID on its own line — `Sentry: REACT-NATIVE-X` — that line is what makes re-run dedup and Step 5 resolution work; never omit it. TestFlight items carry `TestFlight: <submission id>` instead, plus the tester, build version, and device/OS from the submission, and — for screenshots — attach the downloaded image to the ticket (`jira_create_issue` first, then `.claude/scripts/jira-api attach <KEY> <file>`) so whoever picks it up sees the annotated screen, not a paraphrase.
 - **Locate the screen (light touch).** Grep the codebase for the relevant route/component so the ticket points whoever implements at a concrete file (`path:line`). Orientation only — don't fan out a `/triage`-style investigation; one or two pointers is enough.
 - **Dedup check (mandatory, in order):**
 
-  1. **Short-ID:** `.claude/scripts/jira-api search 'project = DEV AND text ~ "<SHORT-ID>"' 'summary,status' 10` — catches this exact feedback already filed by a prior run. Jira `text ~` is tokenized, so a short-ID query matches every ticket mentioning any `REACT-NATIVE-*` ID; a hit only counts if the ticket body actually carries this ID — confirm by reading, never by hit-count.
+  1. **Short-ID:** `.claude/scripts/jira-api search 'project = DEV AND text ~ "<SHORT-ID>"' 'summary,status' 10` — catches this exact feedback already filed by a prior run. Jira `text ~` is tokenized, so a short-ID query matches every ticket mentioning any `REACT-NATIVE-*` ID; a hit only counts if the ticket body actually carries this ID — confirm by reading, never by hit-count. For TestFlight items search the submission id the same way; the seen-table check in Step 1b is the primary guard, this is the backstop.
   2. **Prior feedback tickets:** `.claude/scripts/jira-api search 'project = DEV AND labels = user-feedback AND statusCategory != Done' 'summary,status' 20` — a different user reporting the same thing maps to the existing key.
   3. **Keywords:** `.claude/scripts/jira-api search 'project = DEV AND statusCategory != Done AND text ~ "<keywords>"' 'summary,status' 10` — feedback often overlaps prior tickets (DEV-200/DEV-201 came from earlier sweeps). If an _open_ ticket covers it, map to that key instead of drafting a duplicate.
 
@@ -78,6 +103,17 @@ Handled feedback must leave the inbox so the next run doesn't re-triage it. Via 
 
 Interactive mode does this too, after filing — there is no manual dashboard checklist anymore.
 
+**TestFlight items** have no Sentry-side state to change; instead record the outcome in the seen table so the next run skips them (`execute_sql`, service role, dollar-quote text values as in Step 6):
+
+```sql
+insert into public.testflight_feedback_seen (submission_id, kind, disposition, jira_key, submitted_at)
+values ($fb$<submission id>$fb$, 'screenshot' | 'crash', 'filed' | 'duplicate' | 'junk', $fb$<DEV-KEY or NULL>$fb$, '<createdDate>')
+on conflict (submission_id) do update
+  set disposition = excluded.disposition, jira_key = excluded.jira_key, seen_at = now();
+```
+
+Only `filed`, `duplicate`, and `junk` get a row. **Skipped (headless borderline) and over-cap items get no row** — like unresolved Sentry items, they come back next run. Never delete submissions from App Store Connect (the API allows it): the page there is the tester-facing record and a human may still want to see junk.
+
 ## Step 6 — Record the feedback→ticket link
 
 So the admin Feedback dashboard can show each feedback item's ticket and live status, persist the link for every item that got a key (filed **or** mapped to an existing open key — not junk, skipped, or over-cap). Use the Supabase MCP `execute_sql` against the `be-gifted` project (ref `qgcyndtymegkobgfcpdh`); it runs as the service role and bypasses RLS. One upsert per item.
@@ -94,7 +130,7 @@ on conflict (source, source_ref) do update
       reporter = excluded.reporter;
 ```
 
-`source_ref` is the `REACT-NATIVE-X` short-ID (the same one on the `Sentry:` line). Use a bare `NULL` (not dollar-quoted) for an unknown reporter. In dry-run mode, skip the write and phrase it as `would link REACT-NATIVE-X → DEV-KEY`.
+`source_ref` is the `REACT-NATIVE-X` short-ID (the same one on the `Sentry:` line). For TestFlight items use `source = 'testflight'` and the submission id as `source_ref`; the admin Feedback dashboard only renders the Sentry stream today, so these rows are for the record until it grows a TestFlight tab. Use a bare `NULL` (not dollar-quoted) for an unknown reporter. In dry-run mode, skip the write and phrase it as `would link REACT-NATIVE-X → DEV-KEY`.
 
 ## Step 7 — Report
 
@@ -107,6 +143,9 @@ FEEDBACK RUN <date>
   junk:       REACT-NATIVE-Z (ignored — placeholder text)
   skipped:    REACT-NATIVE-W (borderline — <what a human should look at>)
   over cap:   REACT-NATIVE-V (carried to next run)
+  testflight: filed DEV-zzz <summary> (screenshot <id> → seen)
+              junk <id> (blank screenshot, no annotation)
+              12 already handled, 0 skipped — or: source unavailable (no ASC key)
 ```
 
 In dry-run mode, prefix with `DRY RUN — nothing was written` and phrase entries as `would file`, `would ignore`, etc.
@@ -117,4 +156,18 @@ In dry-run mode, prefix with `DRY RUN — nothing was written` and phrase entrie
 - **Dedup is mandatory** — a duplicate is worse than a miss.
 - **Account for everything pulled** — junk, skipped, over-cap, mapped-to-existing. If you cap or sample, say so; never let a partial pass read as "cleared the backlog."
 - This skill produces tickets; it does not implement them. Hand a filed key to `/ticket <KEY>` after human review.
-- Scheduling lives in `.claude/scripts/sentry-autofix-cron` (launchd `com.begifted.sentry-autofix`, weekday mornings): the wrapper runs `/sentry-autofix` first, then `/sentry-feedback-to-jira headless` from the bot clone.
+- Scheduling lives in `.claude/scripts/sentry-autofix-cron` (launchd `com.begifted.sentry-autofix`, weekday mornings): the wrapper runs `/sentry-autofix` first, then `/sentry-feedback-to-jira headless` from the bot clone. The wrapper copies `.env.local` into the clone, so the App Store Connect key travels with the Sentry token.
+
+## Setup — App Store Connect key (one-time, manual)
+
+TestFlight feedback is only readable with a **team** API key; there is none in the repo or EAS. Create one as the Account Holder/Admin: App Store Connect → Users and Access → Integrations → App Store Connect API → **Generate API Key**. Name it `begifted-feedback-sweep`, role **Developer** (the least-privileged role with TestFlight access; if `asc-api screenshots` returns HTTP 403 with that role, regenerate as **App Manager**). Download the `.p8` once — Apple never shows it again — then, without committing anything:
+
+```bash
+# in begifted-native
+printf 'ASC_KEY_ID=%s\nASC_ISSUER_ID=%s\nASC_PRIVATE_KEY_B64=%s\n' \
+  '<key id>' '<issuer id>' "$(base64 -i ~/Downloads/AuthKey_<key id>.p8 | tr -d '\n')" >> .env.local
+rm ~/Downloads/AuthKey_<key id>.p8
+.claude/scripts/asc-api check && .claude/scripts/asc-api screenshots 1 | head -c 400
+```
+
+`.env.local` and `*.p8` are gitignored. Revoking the key in App Store Connect is the off switch.

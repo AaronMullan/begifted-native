@@ -1,0 +1,140 @@
+#!/usr/bin/env bash
+# Authenticated App Store Connect API helper (TestFlight feedback ingest).
+# Reads a team API key from .env.local at runtime and mints a short-lived
+# ES256 JWT per call — never prints the key or the token. Only python3 and
+# openssl from the base macOS install are needed, so the launchd bot clone and
+# a cloud routine can run it without node or pip.
+#
+# .env.local (untracked — never commit):
+#   ASC_KEY_ID=ABC123DEFG              # Users and Access → Integrations → key ID
+#   ASC_ISSUER_ID=xxxxxxxx-xxxx-...    # shown at the top of the Integrations tab
+#   ASC_PRIVATE_KEY_B64=<base64 -i AuthKey_ABC123DEFG.p8 | tr -d '\n'>
+#   ASC_APP_ID=6758072456              # optional; BeGifted's App Store Connect app id
+# ASC_PRIVATE_KEY_PATH=<path to .p8> is accepted instead of the base64 value.
+#
+# Usage:
+#   asc-api check                          # 0 if credentials are present, 2 if not
+#   asc-api token                          # print a fresh 15-minute JWT (for ad-hoc curl)
+#   asc-api get <path>                     # raw GET, e.g. get '/v1/apps?limit=5'
+#   asc-api screenshots [limit]            # screenshot feedback, newest first
+#   asc-api crashes [limit]                # crash feedback, newest first
+#   asc-api crashlog <submissionId>        # crash log text for a crash submission
+#   asc-api download <url> <outfile>       # screenshot image (pre-signed URL)
+set -euo pipefail
+
+ENV_FILE="${ASC_ENV_FILE:-$(cd "$(dirname "$0")/../.." && pwd)/.env.local}"
+BASE="https://api.appstoreconnect.apple.com"
+
+env_val() {
+  { grep -E "^$1=" "$ENV_FILE" 2>/dev/null || true; } | head -1 | sed -E "s/^$1=//" | tr -d '"\r\n '
+}
+
+cmd="${1:-}"; shift || true
+
+KEY_ID=$(env_val ASC_KEY_ID)
+ISSUER_ID=$(env_val ASC_ISSUER_ID)
+KEY_B64=$(env_val ASC_PRIVATE_KEY_B64)
+KEY_PATH=$(env_val ASC_PRIVATE_KEY_PATH)
+APP_ID=$(env_val ASC_APP_ID)
+APP_ID="${APP_ID:-6758072456}"
+
+if [ "$cmd" = "check" ]; then
+  if [ -n "$KEY_ID" ] && [ -n "$ISSUER_ID" ] && { [ -n "$KEY_B64" ] || [ -n "$KEY_PATH" ]; }; then
+    echo "asc credentials present (key $KEY_ID, app $APP_ID)"
+    exit 0
+  fi
+  echo "no App Store Connect credentials in $ENV_FILE (need ASC_KEY_ID, ASC_ISSUER_ID, ASC_PRIVATE_KEY_B64)" >&2
+  exit 2
+fi
+
+if [ "$cmd" = "download" ]; then
+  # Screenshot URLs are pre-signed by Apple and expire; no bearer token needed.
+  curl -sfL -o "$2" "$1"
+  exit 0
+fi
+
+[ -n "$KEY_ID" ] && [ -n "$ISSUER_ID" ] || { echo "ASC_KEY_ID / ASC_ISSUER_ID missing in $ENV_FILE" >&2; exit 2; }
+
+# The base64 key is decoded to a 0600 temp file only for the duration of the
+# openssl call. Apple rejects tokens expiring more than 20 minutes out; 15
+# leaves room for clock skew.
+token() {
+  local key_file
+  if [ -n "$KEY_B64" ]; then
+    key_file=$(mktemp)
+    trap 'rm -f "$key_file"' RETURN
+    chmod 600 "$key_file"
+    printf '%s' "$KEY_B64" | base64 -d >"$key_file"
+  else
+    key_file="$KEY_PATH"
+  fi
+  [ -s "$key_file" ] || { echo "private key unreadable" >&2; return 2; }
+  python3 - "$key_file" "$KEY_ID" "$ISSUER_ID" <<'EOF'
+import base64, json, subprocess, sys, time
+key_file, kid, iss = sys.argv[1:4]
+b64 = lambda b: base64.urlsafe_b64encode(b).rstrip(b"=").decode()
+now = int(time.time())
+header = b64(json.dumps({"alg": "ES256", "kid": kid, "typ": "JWT"}, separators=(",", ":")).encode())
+payload = b64(json.dumps({"iss": iss, "iat": now, "exp": now + 15 * 60, "aud": "appstoreconnect-v1"}, separators=(",", ":")).encode())
+signing_input = f"{header}.{payload}".encode()
+der = subprocess.run(["openssl", "dgst", "-sha256", "-sign", key_file], input=signing_input, capture_output=True, check=True).stdout
+# openssl emits a DER-encoded ECDSA signature (SEQUENCE of two INTEGERs); JOSE
+# wants the raw 32-byte r and s concatenated.
+def ints(buf):
+    assert buf[0] == 0x30
+    i = 2 if buf[1] < 0x80 else 2 + (buf[1] & 0x7F)
+    out = []
+    for _ in range(2):
+        assert buf[i] == 0x02
+        n = buf[i + 1]
+        out.append(int.from_bytes(buf[i + 2:i + 2 + n], "big"))
+        i += 2 + n
+    return out
+r, s = ints(der)
+sig = r.to_bytes(32, "big") + s.to_bytes(32, "big")
+print(f"{header}.{payload}.{b64(sig)}")
+EOF
+}
+
+# A 403 here usually means the key's role can't see TestFlight feedback — keep
+# Apple's error body visible instead of curl -f's bare exit code.
+api_get() {
+  local path="$1" body status
+  body=$(mktemp)
+  # --globoff: the fields[...] query parameters would otherwise be parsed as
+  # curl URL globs and rejected as malformed.
+  status=$(curl -s --globoff -o "$body" -w '%{http_code}' -H "Authorization: Bearer $(token)" -H 'Accept: application/json' "$BASE$path")
+  if [ "$status" != "200" ]; then
+    echo "asc-api: HTTP $status for $path" >&2
+    cat "$body" >&2
+    echo >&2
+    rm -f "$body"
+    return 1
+  fi
+  cat "$body"
+  rm -f "$body"
+}
+
+FEEDBACK_FIELDS="createdDate,comment,email,deviceModel,osVersion,locale,appPlatform,buildBundleId"
+
+case "$cmd" in
+  token)
+    token
+    ;;
+  get)
+    api_get "$1"
+    ;;
+  screenshots)
+    api_get "/v1/apps/$APP_ID/betaFeedbackScreenshotSubmissions?sort=-createdDate&limit=${1:-50}&include=build,tester&fields[betaFeedbackScreenshotSubmissions]=$FEEDBACK_FIELDS,screenshots,build,tester&fields[builds]=version,preReleaseVersion&fields[betaTesters]=firstName,lastName,email"
+    ;;
+  crashes)
+    api_get "/v1/apps/$APP_ID/betaFeedbackCrashSubmissions?sort=-createdDate&limit=${1:-50}&include=build,tester&fields[betaFeedbackCrashSubmissions]=$FEEDBACK_FIELDS,build,tester&fields[builds]=version,preReleaseVersion&fields[betaTesters]=firstName,lastName,email"
+    ;;
+  crashlog)
+    api_get "/v1/betaFeedbackCrashSubmissions/$1/crashLog" | python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["attributes"].get("logText",""))'
+    ;;
+  *)
+    echo "usage: asc-api check | token | get <path> | screenshots [limit] | crashes [limit] | crashlog <id> | download <url> <outfile>" >&2
+    exit 1
+    ;;
+esac

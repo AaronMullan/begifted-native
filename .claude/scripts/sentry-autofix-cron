@@ -22,7 +22,8 @@ LOG_DIR="$HOME/Library/Logs/begifted-autofix"
 LOCK_DIR="$LOG_DIR/.lock"
 CLAUDE_BIN="$HOME/.local/bin/claude"
 AUTOFIX_TIMEOUT_SECS=3600
-FEEDBACK_TIMEOUT_SECS=1200
+# The feedback pass also downloads and reads TestFlight screenshots now.
+FEEDBACK_TIMEOUT_SECS=1800
 SWEEP_TIMEOUT_SECS=1200
 NOTIFY_TIMEOUT_SECS=300
 REPOS=(begifted-native be-gifted)

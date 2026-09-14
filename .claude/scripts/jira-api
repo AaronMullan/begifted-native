@@ -7,6 +7,7 @@
 #   jira-api get <path>                      # raw GET, e.g. get '/rest/api/2/issue/DEV-110?fields=summary'
 #   jira-api search <jql> [fields] [max]     # JQL search (handles URL-encoding)
 #   jira-api download <url> <outfile>        # authenticated binary download (attachments)
+#   jira-api attach <KEY> <file>             # upload a file as an issue attachment
 set -euo pipefail
 
 BASE="https://be-gifted.atlassian.net"
@@ -35,8 +36,13 @@ case "$cmd" in
   download)
     curl -sfL -u "$CREDS" -o "$2" "$1"
     ;;
+  attach)
+    # Jira rejects attachment uploads without the XSRF opt-out header.
+    curl -sf -u "$CREDS" -X POST -H 'X-Atlassian-Token: no-check' \
+      -F "file=@$2" "$BASE/rest/api/2/issue/$1/attachments"
+    ;;
   *)
-    echo "usage: jira-api get <path> | search <jql> [fields] [max] | download <url> <outfile>" >&2
+    echo "usage: jira-api get <path> | search <jql> [fields] [max] | download <url> <outfile> | attach <KEY> <file>" >&2
     exit 1
     ;;
 esac
