@@ -80,7 +80,11 @@ export const UpdateKnowledgeDrawer: React.FC<UpdateKnowledgeDrawerProps> = ({
       }}
     >
       <BottomSheetView>
-        <Pressable style={styles.content} onPress={Keyboard.dismiss}>
+        <Pressable
+          style={styles.content}
+          onPress={Keyboard.dismiss}
+          accessible={false}
+        >
           {step === "compose" ? (
             <>
               <Text style={styles.title}>{title}</Text>

@@ -156,7 +156,7 @@ export function ConversationView({
         style={styles.messagesContainer}
         contentContainerStyle={styles.messagesContent}
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
       >
         {messages.map((message) => (
           <View

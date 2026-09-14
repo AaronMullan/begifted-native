@@ -61,7 +61,11 @@ export const AddNewPersonDrawer: React.FC<AddNewPersonDrawerProps> = ({
       onDismiss={() => setNote("")}
     >
       <BottomSheetView>
-        <Pressable style={styles.content} onPress={Keyboard.dismiss}>
+        <Pressable
+          style={styles.content}
+          onPress={Keyboard.dismiss}
+          accessible={false}
+        >
           <Text style={styles.title}>Tell BeGifted about them</Text>
           <Text style={styles.prompt}>
             What should BeGifted know about them?
