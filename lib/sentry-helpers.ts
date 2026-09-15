@@ -20,8 +20,36 @@ export function toError(value: unknown): Error {
 // Supabase PostgrestErrors), and "Network request timed out" (background
 // pollers like unreadCount). Substring-match the common "Network request"
 // stem so all variants are treated as expected offline noise, not bugs.
+//
+// Expo's fetch is the global `fetch` on native and prefixes every failure
+// below the HTTP layer with "fetch failed:". That prefix alone is too broad:
+// it also wraps TLS/ATS rejections, unresolvable hosts, redirect refusals, and
+// unknown errors, which signal a broken release and must still reach Sentry.
+// Match only the OS messages for a lost or absent connection. The native
+// URLError code would be the sturdier signal, but Expo's bridge keeps only the
+// localized description, so these strings are all JS ever sees. On a
+// non-English device they won't match and get reported, which is the safe
+// direction to fail.
+const EXPO_FETCH_PREFIX = "fetch failed:";
+const EXPO_OFFLINE_MESSAGES = [
+  "The network connection was lost",
+  "The request timed out",
+  "The Internet connection appears to be offline",
+  "Could not connect to the server",
+];
+
+function isExpoFetchOfflineError(message: string): boolean {
+  return (
+    message.includes(EXPO_FETCH_PREFIX) &&
+    EXPO_OFFLINE_MESSAGES.some((m) => message.includes(m))
+  );
+}
+
 export function isOfflineError(err: Error): boolean {
-  return err.message.includes("Network request");
+  return (
+    err.message.includes("Network request") ||
+    isExpoFetchOfflineError(err.message)
+  );
 }
 
 // A stale access token surfaces as PGRST301 / "JWT expired" on a foregrounded
