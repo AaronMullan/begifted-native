@@ -42,6 +42,8 @@ const SEGMENT_GAP = 2;
 // Room above the bars for the two direct value labels, drawn inside the SVG
 // because thirty bars are too narrow for a per-bar label row.
 const LABEL_HEIGHT = 16;
+// A "$12.34" label at 11px is about 36px wide; centers closer than this collide.
+const LABEL_MIN_SEPARATION = 44;
 
 const money = (v: number): string => `$${v.toFixed(2)}`;
 const thousands = (v: number): string => `${(v / 1000).toFixed(1)}k`;
@@ -392,10 +394,13 @@ const DailyBars: React.FC<{
   const barWidth =
     days.length > 0 ? (width - BAR_GAP * (days.length - 1)) / days.length : 0;
   // Direct labels on the peak and the latest day only; the peak label is
-  // dropped when it would sit on top of the latest one.
+  // dropped when the two would overlap, which depends on bar pitch, not on
+  // how many days apart they are.
   const last = days.length - 1;
   const peak = totals.indexOf(max);
-  const labeled = new Set<number>(last - peak < 2 ? [last] : [peak, last]);
+  const labelsOverlap =
+    (last - peak) * (barWidth + BAR_GAP) < LABEL_MIN_SEPARATION;
+  const labeled = new Set<number>(labelsOverlap ? [last] : [peak, last]);
   const seriesInWindow = data.byModel.filter((r) => r.runs > 0);
   const hasUntracked = days.some((d) => !d.tracked);
 
