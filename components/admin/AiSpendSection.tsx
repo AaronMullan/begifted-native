@@ -201,7 +201,9 @@ export const AiSpendSection: React.FC = () => {
                         />
                         <Text
                           variant="bodyMedium"
-                          style={quiet ? styles.cellQuiet : styles.modelName}
+                          style={
+                            quiet ? styles.modelNameQuiet : styles.modelName
+                          }
                         >
                           {r.model}
                         </Text>
@@ -448,6 +450,7 @@ const DailyBars: React.FC<{
                         x={labelX}
                         y={topOfBar - SEGMENT_GAP * 2 - 3}
                         fontSize={11}
+                        fontFamily="Roboto, Helvetica Neue, Helvetica, Arial, sans-serif"
                         fill={AdminTheme.muted}
                         textAnchor={anchor}
                       >
@@ -747,6 +750,9 @@ const styles = StyleSheet.create({
   modelName: {
     fontWeight: "700",
     color: AdminTheme.textStrong,
+  },
+  modelNameQuiet: {
+    color: AdminTheme.muted,
   },
   productionTag: {
     color: AdminTheme.faint,
