@@ -568,29 +568,51 @@ const EditPriceDialog: React.FC<{
     new Date().toISOString().slice(0, 10)
   );
 
+  // The 2.4 MB list is fetched once per session: it is a suggestion, and a
+  // stale copy costs nothing until Save, where the admin checks the numbers.
   const publishedQuery = useQuery({
     queryKey: queryKeys.publishedModelPrices,
     queryFn: fetchPublishedModelPrices,
     enabled: visible,
-    staleTime: 60 * 60 * 1000,
+    staleTime: Infinity,
+    gcTime: Infinity,
     retry: 1,
   });
   const suggestion = publishedQuery.data
     ? lookupPublishedPrice(publishedQuery.data, provider, model)
     : null;
-  // Trim float noise from per-token rates scaled up (4.000000000000001).
-  const suggest = (v: number | undefined): string =>
-    v == null ? "" : String(Number(v.toFixed(4)));
-  const inputText = input ?? suggest(suggestion?.input_per_m);
-  const cachedText = cached ?? suggest(suggestion?.cached_input_per_m);
-  const outputText = output ?? suggest(suggestion?.output_per_m);
+  // Trim float noise from per-token rates scaled up (4.000000000000001). A
+  // rate too small to survive four decimals is left blank rather than saved
+  // as a $0 price.
+  const suggest = (v: number | null | undefined): string => {
+    if (v == null) return "";
+    const rounded = Number(v.toFixed(4));
+    return v > 0 && rounded === 0 ? "" : String(rounded);
+  };
+  const suggested = {
+    input: suggest(suggestion?.input_per_m),
+    cached: suggest(suggestion?.cached_input_per_m),
+    output: suggest(suggestion?.output_per_m),
+  };
+  const inputText = input ?? suggested.input;
+  const cachedText = cached ?? suggested.cached;
+  const outputText = output ?? suggested.output;
+  const untouched = input === null && cached === null && output === null;
+  const suggestionComplete =
+    suggested.input !== "" &&
+    suggested.cached !== "" &&
+    suggested.output !== "";
   const suggestionNote = publishedQuery.isLoading
     ? "Looking up the published price…"
-    : publishedQuery.error
+    : publishedQuery.data == null
       ? "Couldn't load the published price list; enter the price by hand."
-      : suggestion
-        ? "Filled from LiteLLM's public price list. Check it before saving."
-        : `No published price for ${model}; enter it by hand.`;
+      : !suggestion
+        ? `No published price for ${model}; enter it by hand.`
+        : !untouched
+          ? "Edited by hand; the published price is no longer shown."
+          : suggestionComplete
+            ? "Filled from LiteLLM's public price list. Check it before saving."
+            : "Partly filled from LiteLLM's public price list; fill the blank by hand.";
 
   const mutation = useMutation({
     mutationFn: (price: NewAiModelPrice) => saveAiModelPrice(price, user!.id),
@@ -617,6 +639,12 @@ const EditPriceDialog: React.FC<{
     setCached(null);
     setOutput(null);
   };
+  // Cancel forgets what was typed, so reopening starts from the suggestion
+  // again instead of showing a half-edited price under a LiteLLM label.
+  const dismiss = () => {
+    resetTyped();
+    onDismiss();
+  };
   const selectProvider = (p: Provider) => {
     setProvider(p);
     setModel(PROVIDER_MODELS[p][0]);
@@ -630,7 +658,7 @@ const EditPriceDialog: React.FC<{
 
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss} style={styles.dialog}>
+      <Dialog visible={visible} onDismiss={dismiss} style={styles.dialog}>
         <Dialog.Title>Set a price</Dialog.Title>
         <Dialog.Content>
           <Text variant="bodySmall" style={styles.dialogHint}>
@@ -708,7 +736,7 @@ const EditPriceDialog: React.FC<{
           )}
         </Dialog.Content>
         <Dialog.Actions>
-          <Button onPress={onDismiss}>Cancel</Button>
+          <Button onPress={dismiss}>Cancel</Button>
           <Button
             disabled={!valid || mutation.isPending}
             loading={mutation.isPending}

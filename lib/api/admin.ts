@@ -1534,11 +1534,13 @@ export async function saveAiModelPrice(
   if (error) throw error;
 }
 
-/** USD per million tokens as published for a model, for prefilling a price row. */
-export type PublishedModelPrice = Pick<
-  AiModelPrice,
-  "input_per_m" | "cached_input_per_m" | "output_per_m"
->;
+/** USD per million tokens as published for a model, for prefilling a price
+ * row. Cached input is null when the list gives no cache tier for the model. */
+export type PublishedModelPrice = {
+  input_per_m: number;
+  cached_input_per_m: number | null;
+  output_per_m: number;
+};
 
 export type PublishedPriceTable = { [modelKey: string]: PublishedModelPrice };
 
@@ -1551,18 +1553,25 @@ const PUBLISHED_PRICES_URL =
 /**
  * Downloads the published price list (about 2.4 MB) and keeps only the three
  * per-token rates, scaled to per million. Entries without a numeric input
- * price are dropped.
+ * price are dropped. Resolves null instead of throwing when the list cannot
+ * be fetched: it is a best-effort suggestion, and a thrown query error would
+ * be reported to Sentry like an app failure.
  */
-export async function fetchPublishedModelPrices(): Promise<PublishedPriceTable> {
-  const res = await fetch(PUBLISHED_PRICES_URL);
-  if (!res.ok) throw new Error(`Price list returned ${res.status}`);
-  const raw = (await res.json()) as {
+export async function fetchPublishedModelPrices(): Promise<PublishedPriceTable | null> {
+  let raw: {
     [key: string]: {
       input_cost_per_token?: unknown;
       cache_read_input_token_cost?: unknown;
       output_cost_per_token?: unknown;
     };
   };
+  try {
+    const res = await fetch(PUBLISHED_PRICES_URL);
+    if (!res.ok) return null;
+    raw = await res.json();
+  } catch {
+    return null;
+  }
   const table: PublishedPriceTable = {};
   for (const [key, entry] of Object.entries(raw)) {
     if (!entry || typeof entry !== "object") continue;
@@ -1572,9 +1581,8 @@ export async function fetchPublishedModelPrices(): Promise<PublishedPriceTable> 
     const cached = entry.cache_read_input_token_cost;
     table[key] = {
       input_per_m: input * 1_000_000,
-      // Models with no cache tier bill cached input at the full input rate.
       cached_input_per_m:
-        (typeof cached === "number" ? cached : input) * 1_000_000,
+        typeof cached === "number" ? cached * 1_000_000 : null,
       output_per_m: output * 1_000_000,
     };
   }
