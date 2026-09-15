@@ -24,9 +24,10 @@ const CHIP_BACKGROUND = "#E5E8E5";
 // height bound.
 const CARD_VERTICAL_MARGIN = 24;
 
-// The title and chip are the only text that doesn't scroll away quickly, so
-// cap their scaling to keep accessibility sizes from filling the card.
-const HEADER_MAX_FONT_SCALE = 1.4;
+// Caps scaling on the header and the CTA label: the header would otherwise
+// fill the card at accessibility sizes, and the label is clipped by the
+// button's fixed content height.
+const FIXED_TEXT_MAX_FONT_SCALE = 1.4;
 
 const MONTH_NAMES = [
   "January",
@@ -149,7 +150,7 @@ const OtaUpdateGate: React.FC = () => {
           <ScrollView style={styles.scroll}>
             <Text
               style={styles.title}
-              maxFontSizeMultiplier={HEADER_MAX_FONT_SCALE}
+              maxFontSizeMultiplier={FIXED_TEXT_MAX_FONT_SCALE}
             >
               What&apos;s New
             </Text>
@@ -157,7 +158,7 @@ const OtaUpdateGate: React.FC = () => {
               <View style={styles.chip}>
                 <Text
                   style={styles.chipLabel}
-                  maxFontSizeMultiplier={HEADER_MAX_FONT_SCALE}
+                  maxFontSizeMultiplier={FIXED_TEXT_MAX_FONT_SCALE}
                 >
                   {chipDate}
                 </Text>
@@ -181,6 +182,7 @@ const OtaUpdateGate: React.FC = () => {
             style={styles.cta}
             contentStyle={styles.ctaContent}
             labelStyle={styles.ctaLabel}
+            maxFontSizeMultiplier={FIXED_TEXT_MAX_FONT_SCALE}
           >
             Let&apos;s Go
           </Button>
