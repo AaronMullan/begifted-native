@@ -47,6 +47,20 @@ notify() {
 # The URL lives in the human checkout's untracked .env.local (SLACK_WEBHOOK_URL).
 SLACK_WEBHOOK_URL=$(grep '^SLACK_WEBHOOK_URL=' "$MAIN_CHECKOUT/.env.local" 2>/dev/null | cut -d= -f2- | tr -d '"') || true
 
+# The interactive /login session expires and can't refresh unattended, which
+# fails every pass. A `claude setup-token` token lasts one year and outranks
+# /login when exported; regenerate it before it expires. It only authorizes
+# model requests, so MCP servers must stay locally configured (~/.claude.json),
+# not claude.ai connectors. Without the key the passes fall back to /login.
+# A malformed value would still outrank /login and fail every pass, so take only
+# the last (newest) line and its first word.
+CLAUDE_CODE_OAUTH_TOKEN=$(grep '^CLAUDE_CODE_OAUTH_TOKEN=' "$MAIN_CHECKOUT/.env.local" 2>/dev/null | tail -1 | cut -d= -f2- | tr -d "\"'\r" | awk '{print $1}') || true
+if [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
+  export CLAUDE_CODE_OAUTH_TOKEN
+else
+  unset CLAUDE_CODE_OAUTH_TOKEN
+fi
+
 webhook_alert() {
   if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
     echo "no SLACK_WEBHOOK_URL in .env.local — skipping webhook alert"
