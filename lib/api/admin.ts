@@ -1158,3 +1158,378 @@ export async function fetchFeedbackDashboard(): Promise<FeedbackDashboard> {
     },
   };
 }
+
+// Admin — AI spend (Traction dashboard)
+
+/** USD per million tokens for one model, effective from a UTC date. */
+export interface AiModelPrice {
+  id: number;
+  provider: string;
+  model: string;
+  input_per_m: number;
+  cached_input_per_m: number;
+  output_per_m: number;
+  /** ISO date (YYYY-MM-DD). */
+  effective_from: string;
+}
+
+export interface AiSpendModelRow {
+  provider: string;
+  model: string;
+  /** Runs in the window with usage data and a price. */
+  runs: number;
+  /** Runs with usage data but no price row for this model on their day. */
+  unpricedRuns: number;
+  cost: number;
+  avgCost: number | null;
+  /** Per-run averages over costed runs; input excludes the cached share. */
+  avgInput: number | null;
+  avgCached: number | null;
+  avgOutput: number | null;
+  avgAttempts: number | null;
+  storedCount: number;
+  costPerStored: number | null;
+  /** What the window's costed runs would average at this model's current price. */
+  projectedAvgCost: number | null;
+}
+
+export interface AiSpendDay {
+  /** ISO UTC date. */
+  day: string;
+  /** False for days before token tracking began — no data, not zero. */
+  tracked: boolean;
+  byModel: { model: string; cost: number }[];
+}
+
+export interface AiSpendMetrics {
+  /** ISO UTC dates, inclusive. The window runs from the day token tracking
+   * began to today; the daily chart covers only the last CHART_DAYS of it. */
+  windowStart: string;
+  windowEnd: string;
+  trackingStart: string;
+  totalRuns: number;
+  costedRuns: number;
+  /** Runs with no token usage, by what started them. */
+  uncostedBySource: { source: string; count: number }[];
+  /** Runs with usage but no price row for their model. */
+  unpricedRuns: number;
+  unpricedModels: string[];
+  spend: number;
+  avgCostPerRun: number | null;
+  storedCount: number;
+  costPerStored: number | null;
+  byModel: AiSpendModelRow[];
+  /** Whole-window cost of every costed run at each priced model's current price. */
+  projections: { provider: string; model: string; cost: number }[];
+  byDay: AiSpendDay[];
+  bySource: { source: string; runs: number; cost: number }[];
+  /** Current price per model (newest effective_from), for the prices card. */
+  prices: AiModelPrice[];
+}
+
+/** The day gift_generation_runs started carrying token usage. */
+export const AI_SPEND_TRACKING_START = "2026-09-10";
+const AI_SPEND_CHART_DAYS = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+type SpendRun = {
+  created_at: string;
+  trigger_source: string;
+  ai_provider: string | null;
+  ai_model: string | null;
+  attempt_count: number;
+  stored_count: number;
+  input_tokens: number | null;
+  cached_input_tokens: number | null;
+  output_tokens: number | null;
+};
+
+type PriceRow = Omit<
+  AiModelPrice,
+  "input_per_m" | "cached_input_per_m" | "output_per_m"
+> & {
+  // PostgREST serializes NUMERIC as strings.
+  input_per_m: string | number;
+  cached_input_per_m: string | number;
+  output_per_m: string | number;
+};
+
+const utcDateString = (ms: number): string =>
+  new Date(ms).toISOString().slice(0, 10);
+
+/**
+ * USD for one run at a price. Cached tokens are a subset of input_tokens and
+ * reasoning tokens a subset of output_tokens (see the token-usage migration),
+ * so the cached share is subtracted from input and reasoning is not added.
+ */
+function runCost(run: SpendRun, price: AiModelPrice): number {
+  const input = run.input_tokens ?? 0;
+  const cached = Math.min(run.cached_input_tokens ?? 0, input);
+  const output = run.output_tokens ?? 0;
+  return (
+    ((input - cached) * price.input_per_m +
+      cached * price.cached_input_per_m +
+      output * price.output_per_m) /
+    1_000_000
+  );
+}
+
+const modelKey = (provider: string, model: string) => `${provider}/${model}`;
+
+export async function fetchAiSpendMetrics(): Promise<AiSpendMetrics> {
+  const nowMs = Date.now();
+  const windowEnd = utcDateString(nowMs);
+  // Runs before tracking began have no usage by construction; fetching them
+  // would only pad the uncosted count with expected blanks.
+  const windowStart = AI_SPEND_TRACKING_START;
+
+  const [priceRows, runs] = await Promise.all([
+    fetchAll<PriceRow>((from, to) =>
+      supabase
+        .from("ai_model_prices")
+        .select(
+          "id, provider, model, input_per_m, cached_input_per_m, output_per_m, effective_from"
+        )
+        .order("id")
+        .range(from, to)
+    ),
+    fetchAll<SpendRun>((from, to) =>
+      supabase
+        .from("gift_generation_runs")
+        .select(
+          "created_at, trigger_source, ai_provider, ai_model, attempt_count, stored_count, input_tokens, cached_input_tokens, output_tokens"
+        )
+        .gte("created_at", `${windowStart}T00:00:00Z`)
+        .order("run_id")
+        .range(from, to)
+    ),
+  ]);
+
+  // Newest effective_from first, so the first row on or before a run's date
+  // is the price in force that day.
+  const priceHistory: AiModelPrice[] = priceRows
+    .map((p) => ({
+      ...p,
+      input_per_m: Number(p.input_per_m),
+      cached_input_per_m: Number(p.cached_input_per_m),
+      output_per_m: Number(p.output_per_m),
+    }))
+    .sort((a, b) => b.effective_from.localeCompare(a.effective_from));
+  const priceOn = (
+    provider: string,
+    model: string,
+    day: string
+  ): AiModelPrice | undefined =>
+    priceHistory.find(
+      (p) =>
+        p.provider === provider && p.model === model && p.effective_from <= day
+    );
+  // The price in force today per model; a row dated in the future waits its
+  // turn so the prices card and projections agree with how runs are costed.
+  const currentPrices: AiModelPrice[] = [];
+  for (const p of priceHistory) {
+    if (p.effective_from > windowEnd) continue;
+    if (
+      !currentPrices.some(
+        (c) => modelKey(c.provider, c.model) === modelKey(p.provider, p.model)
+      )
+    ) {
+      currentPrices.push(p);
+    }
+  }
+
+  type Agg = {
+    provider: string;
+    model: string;
+    runs: number;
+    unpricedRuns: number;
+    cost: number;
+    input: number;
+    cached: number;
+    output: number;
+    attempts: number;
+    stored: number;
+  };
+  const byModel = new Map<string, Agg>();
+  const byDay = new Map<string, Map<string, number>>();
+  const bySource = new Map<string, { runs: number; cost: number }>();
+  const uncostedBySource = new Map<string, number>();
+  const unpricedModels = new Set<string>();
+  const projections = new Map<string, number>();
+  for (const p of currentPrices)
+    projections.set(modelKey(p.provider, p.model), 0);
+
+  let costedRuns = 0;
+  let unpricedRuns = 0;
+  let spend = 0;
+  let storedCount = 0;
+
+  for (const run of runs) {
+    if (run.input_tokens == null || run.output_tokens == null) {
+      uncostedBySource.set(
+        run.trigger_source,
+        (uncostedBySource.get(run.trigger_source) ?? 0) + 1
+      );
+      continue;
+    }
+    const provider = run.ai_provider ?? "unknown";
+    const model = run.ai_model ?? "unknown";
+    const day = utcDateString(new Date(run.created_at).getTime());
+    const key = modelKey(provider, model);
+    const agg = byModel.get(key) ?? {
+      provider,
+      model,
+      runs: 0,
+      unpricedRuns: 0,
+      cost: 0,
+      input: 0,
+      cached: 0,
+      output: 0,
+      attempts: 0,
+      stored: 0,
+    };
+    const price = priceOn(provider, model, day);
+    if (!price) {
+      unpricedRuns += 1;
+      unpricedModels.add(model);
+      agg.unpricedRuns += 1;
+      byModel.set(key, agg);
+      continue;
+    }
+    const cost = runCost(run, price);
+    costedRuns += 1;
+    spend += cost;
+    storedCount += run.stored_count;
+
+    const cached = Math.min(run.cached_input_tokens ?? 0, run.input_tokens);
+    agg.runs += 1;
+    agg.cost += cost;
+    agg.input += run.input_tokens - cached;
+    agg.cached += cached;
+    agg.output += run.output_tokens;
+    agg.attempts += run.attempt_count;
+    agg.stored += run.stored_count;
+    byModel.set(key, agg);
+
+    const dayMap = byDay.get(day) ?? new Map<string, number>();
+    dayMap.set(model, (dayMap.get(model) ?? 0) + cost);
+    byDay.set(day, dayMap);
+
+    const src = bySource.get(run.trigger_source) ?? { runs: 0, cost: 0 };
+    src.runs += 1;
+    src.cost += cost;
+    bySource.set(run.trigger_source, src);
+
+    for (const p of currentPrices) {
+      const k = modelKey(p.provider, p.model);
+      projections.set(k, (projections.get(k) ?? 0) + runCost(run, p));
+    }
+  }
+
+  // Every model that ran plus every priced model, so a candidate with no runs
+  // still shows what it would cost.
+  const rowKeys = new Map<string, { provider: string; model: string }>();
+  for (const agg of byModel.values())
+    rowKeys.set(modelKey(agg.provider, agg.model), agg);
+  for (const p of currentPrices)
+    if (!rowKeys.has(modelKey(p.provider, p.model)))
+      rowKeys.set(modelKey(p.provider, p.model), p);
+
+  const modelRows: AiSpendModelRow[] = [...rowKeys.entries()]
+    .map(([key, { provider, model }]) => {
+      const agg = byModel.get(key);
+      const projected = projections.get(key);
+      return {
+        provider,
+        model,
+        runs: agg?.runs ?? 0,
+        unpricedRuns: agg?.unpricedRuns ?? 0,
+        cost: agg?.cost ?? 0,
+        avgCost: agg && agg.runs > 0 ? agg.cost / agg.runs : null,
+        avgInput: agg && agg.runs > 0 ? agg.input / agg.runs : null,
+        avgCached: agg && agg.runs > 0 ? agg.cached / agg.runs : null,
+        avgOutput: agg && agg.runs > 0 ? agg.output / agg.runs : null,
+        avgAttempts: agg && agg.runs > 0 ? agg.attempts / agg.runs : null,
+        storedCount: agg?.stored ?? 0,
+        costPerStored: agg && agg.stored > 0 ? agg.cost / agg.stored : null,
+        projectedAvgCost:
+          projected != null && costedRuns > 0 ? projected / costedRuns : null,
+      };
+    })
+    .sort(
+      (a, b) =>
+        b.runs + b.unpricedRuns - (a.runs + a.unpricedRuns) ||
+        a.model.localeCompare(b.model)
+    );
+
+  const days: AiSpendDay[] = [];
+  for (let i = 0; i < AI_SPEND_CHART_DAYS; i++) {
+    const day = utcDateString(nowMs - (AI_SPEND_CHART_DAYS - 1 - i) * DAY_MS);
+    const dayMap = byDay.get(day);
+    days.push({
+      day,
+      tracked: day >= AI_SPEND_TRACKING_START,
+      byModel: dayMap
+        ? [...dayMap.entries()].map(([model, cost]) => ({ model, cost }))
+        : [],
+    });
+  }
+
+  return {
+    windowStart,
+    windowEnd,
+    trackingStart: AI_SPEND_TRACKING_START,
+    totalRuns: runs.length,
+    costedRuns,
+    uncostedBySource: [...uncostedBySource.entries()]
+      .map(([source, count]) => ({ source, count }))
+      .sort((a, b) => b.count - a.count),
+    unpricedRuns,
+    unpricedModels: [...unpricedModels].sort(),
+    spend,
+    avgCostPerRun: costedRuns > 0 ? spend / costedRuns : null,
+    storedCount,
+    costPerStored: storedCount > 0 ? spend / storedCount : null,
+    byModel: modelRows,
+    projections: [...projections.entries()].map(([key, cost]) => {
+      const [provider, model] = key.split("/");
+      return { provider, model, cost };
+    }),
+    byDay: days,
+    bySource: [...bySource.entries()]
+      .map(([source, v]) => ({ source, runs: v.runs, cost: v.cost }))
+      .sort((a, b) => b.cost - a.cost),
+    prices: currentPrices.sort(
+      (a, b) =>
+        a.provider.localeCompare(b.provider) || a.model.localeCompare(b.model)
+    ),
+  };
+}
+
+export type NewAiModelPrice = Pick<
+  AiModelPrice,
+  | "provider"
+  | "model"
+  | "input_per_m"
+  | "cached_input_per_m"
+  | "output_per_m"
+  | "effective_from"
+>;
+
+/**
+ * Saves a price row. Same model and date overwrites (so a typo can be fixed
+ * the day it was made); a new date adds to the history and past runs keep
+ * the price in force on their day.
+ */
+export async function saveAiModelPrice(
+  price: NewAiModelPrice,
+  userId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("ai_model_prices")
+    .upsert(
+      { ...price, created_by: userId },
+      { onConflict: "provider,model,effective_from" }
+    );
+  if (error) throw error;
+}

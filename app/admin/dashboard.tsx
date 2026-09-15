@@ -1,4 +1,18 @@
 import { AdminNavbar } from "@/components/admin/AdminNavbar";
+import { AiSpendSection } from "@/components/admin/AiSpendSection";
+import {
+  BAR_GAP,
+  CHART_HEIGHT,
+  DateAxis,
+  EmptyNote,
+  LegendSwatch,
+  SERIES,
+  SERIES_ALT,
+  Section,
+  StatTile,
+  primitiveStyles,
+  useChartWidth,
+} from "@/components/admin/dashboard-primitives";
 import { fetchTractionMetrics, fetchUserExportRows } from "@/lib/api";
 import type {
   TractionMetrics,
@@ -7,7 +21,6 @@ import type {
   WeeklyRunCounts,
 } from "@/lib/api";
 import { AdminTheme } from "@/lib/admin-theme";
-import { Typography } from "@/lib/typography";
 import { queryKeys } from "@/lib/query-keys";
 import { useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
@@ -84,15 +97,6 @@ const todayStamp = (): string => {
   return `${d.getFullYear()}-${mm}-${dd}`;
 };
 
-// Chart colors on the dark console surface: a brightened teal for the primary
-// series (buttonTeal reads too dark on the dark ground) and gold for the
-// secondary. They keep clear CVD separation, and every chart also carries
-// direct value labels, so color is never the only encoding.
-const SERIES = AdminTheme.accentBright;
-const SERIES_ALT = AdminTheme.gold;
-
-const CHART_HEIGHT = 120;
-const BAR_GAP = 6;
 const SEGMENT_GAP = 2;
 
 // The signed_up event sink (a DB trigger on auth.users) has only existed
@@ -188,7 +192,7 @@ const DashboardScreen: React.FC = () => {
           <>
             <HowToRead />
 
-            <View style={styles.tileRow}>
+            <View style={primitiveStyles.tileRow}>
               <StatTile
                 label="Users"
                 value={String(m.totalUsers)}
@@ -218,7 +222,7 @@ const DashboardScreen: React.FC = () => {
             <Section title="New signups by week">
               <WeeklyBars data={m.signupsByWeek} />
               {(m.signupsByWeek[0]?.weekStart ?? "") < SIGNUP_SINK_START && (
-                <Text variant="bodySmall" style={styles.chartFootnote}>
+                <Text variant="bodySmall" style={primitiveStyles.chartFootnote}>
                   Signup tracking began Aug 12, 2026 — weeks before that have no
                   data, not zero signups.
                 </Text>
@@ -231,7 +235,7 @@ const DashboardScreen: React.FC = () => {
 
             <Section title="Generation runs by week">
               <RunBars data={m.runsByWeek} />
-              <View style={styles.legendRow}>
+              <View style={primitiveStyles.legendRow}>
                 <LegendSwatch color={SERIES} label="Delivered a full set" />
                 <LegendSwatch color={SERIES_ALT} label="Came up short" />
               </View>
@@ -284,6 +288,8 @@ const DashboardScreen: React.FC = () => {
                 </Text>
               )}
             </Section>
+
+            <AiSpendSection />
           </>
         )}
       </ScrollView>
@@ -299,7 +305,8 @@ const DashboardScreen: React.FC = () => {
 };
 
 // Plain-English definition of every metric on the page, for the collapsible
-// reference card. Kept in sync with fetchTractionMetrics / fetchUserExportRows.
+// reference card. Kept in sync with fetchTractionMetrics / fetchUserExportRows /
+// fetchAiSpendMetrics.
 const GUIDE: { term: string; def: string }[] = [
   {
     term: "Users",
@@ -345,12 +352,24 @@ const GUIDE: { term: string; def: string }[] = [
     term: "Generation health",
     def: "Reliability of gift generation over the last 7 days: total runs, share that delivered a full set, errors, and timeouts.",
   },
+  {
+    term: "AI spend",
+    def: "What gift generation cost in the last 30 days, priced from each run's own token counts and the prices card. Runs without token data are left out, never estimated; token tracking began Sep 10, 2026.",
+  },
+  {
+    term: "Per run / per gift stored",
+    def: "Average cost of one generation run, and total spend divided by the gifts that actually reached a user.",
+  },
+  {
+    term: "Same runs on another model",
+    def: "The window's runs repriced at another model's rates with the same token counts. A floor, not a forecast — a different model may use more or fewer tokens.",
+  },
 ];
 
 const HowToRead: React.FC = () => {
   const [open, setOpen] = useState(false);
   return (
-    <Card mode="contained" style={styles.sectionCard}>
+    <Card mode="contained" style={primitiveStyles.sectionCard}>
       <Card.Content>
         <Button
           mode="text"
@@ -385,73 +404,6 @@ const HowToRead: React.FC = () => {
   );
 };
 
-const StatTile: React.FC<{
-  label: string;
-  value: string;
-  caption: string;
-  delta?: string | null;
-}> = ({ label, value, caption, delta = null }) => (
-  <Card mode="contained" style={styles.tile}>
-    <Card.Content style={styles.tileContent}>
-      <Text variant="displaySmall" style={styles.tileValue}>
-        {value}
-      </Text>
-      <Text variant="bodySmall" style={styles.tileLabel}>
-        {label}
-      </Text>
-      <Text variant="bodySmall" style={styles.tileCaption}>
-        {caption}
-      </Text>
-      {delta && (
-        <Text variant="bodySmall" style={styles.tileDelta}>
-          {delta}
-        </Text>
-      )}
-    </Card.Content>
-  </Card>
-);
-
-const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
-  title,
-  children,
-}) => (
-  <Card mode="contained" style={styles.sectionCard}>
-    <Card.Content>
-      <Text variant="titleMedium" style={styles.sectionTitle}>
-        {title}
-      </Text>
-      {children}
-    </Card.Content>
-  </Card>
-);
-
-const EmptyNote: React.FC<{ text: string }> = ({ text }) => (
-  <Text variant="bodyMedium" style={styles.emptyNote}>
-    {text}
-  </Text>
-);
-
-const LegendSwatch: React.FC<{ color: string; label: string }> = ({
-  color,
-  label,
-}) => (
-  <View style={styles.legendItem}>
-    <View style={[styles.legendDot, { backgroundColor: color }]} />
-    <Text variant="bodySmall" style={styles.legendLabel}>
-      {label}
-    </Text>
-  </View>
-);
-
-/** Measures its own width so SVG bars can use real pixels (no viewBox
- * stretching, which would distort nothing here but breaks on text). */
-const useChartWidth = () => {
-  const [width, setWidth] = useState(0);
-  const onLayout = (e: { nativeEvent: { layout: { width: number } } }) =>
-    setWidth(e.nativeEvent.layout.width);
-  return { width, onLayout };
-};
-
 const WeeklyBars: React.FC<{ data: WeeklyCount[] }> = ({ data }) => {
   const { width, onLayout } = useChartWidth();
   const max = Math.max(...data.map((d) => d.count), 1);
@@ -471,12 +423,12 @@ const WeeklyBars: React.FC<{ data: WeeklyCount[] }> = ({ data }) => {
       ) : (
         width > 0 && (
           <>
-            <View style={styles.chartLabelRow}>
+            <View style={primitiveStyles.chartLabelRow}>
               {data.map((d, i) => (
                 <Text
                   key={d.weekStart}
                   variant="bodySmall"
-                  style={[styles.barValueLabel, { width: barWidth }]}
+                  style={[primitiveStyles.barValueLabel, { width: barWidth }]}
                 >
                   {labeled.has(i) && d.count > 0 ? String(d.count) : " "}
                 </Text>
@@ -501,7 +453,7 @@ const WeeklyBars: React.FC<{ data: WeeklyCount[] }> = ({ data }) => {
                 );
               })}
             </Svg>
-            <WeekAxis data={data.map((d) => d.weekStart)} />
+            <DateAxis data={data.map((d) => d.weekStart)} />
           </>
         )
       )}
@@ -564,29 +516,10 @@ const RunBars: React.FC<{ data: WeeklyRunCounts[] }> = ({ data }) => {
                 );
               })}
             </Svg>
-            <WeekAxis data={data.map((d) => d.weekStart)} />
+            <DateAxis data={data.map((d) => d.weekStart)} />
           </>
         )
       )}
-    </View>
-  );
-};
-
-/** First and last week-start only; eight date labels under 40px bars collide. */
-const WeekAxis: React.FC<{ data: string[] }> = ({ data }) => {
-  if (data.length === 0) return null;
-  const fmt = (iso: string) => {
-    const d = new Date(`${iso}T00:00:00`);
-    return `${d.getMonth() + 1}/${d.getDate()}`;
-  };
-  return (
-    <View style={styles.axisRow}>
-      <Text variant="bodySmall" style={styles.axisLabel}>
-        {fmt(data[0])}
-      </Text>
-      <Text variant="bodySmall" style={styles.axisLabel}>
-        {fmt(data[data.length - 1])}
-      </Text>
     </View>
   );
 };
@@ -679,44 +612,6 @@ const styles = StyleSheet.create({
   errorText: {
     color: AdminTheme.bad,
   },
-  tileRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 13,
-    marginBottom: 13,
-  },
-  tile: {
-    flexGrow: 1,
-    flexBasis: 150,
-    borderRadius: 13,
-    backgroundColor: AdminTheme.panel,
-    borderWidth: 1,
-    borderColor: AdminTheme.border,
-  },
-  tileContent: {
-    alignItems: "flex-start",
-    gap: 2,
-  },
-  tileValue: {
-    fontWeight: "700",
-    color: AdminTheme.textStrong,
-  },
-  tileLabel: {
-    ...Typography.eyebrow,
-    color: AdminTheme.faint,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-    marginTop: 6,
-  },
-  tileCaption: {
-    color: AdminTheme.faint,
-    marginTop: 4,
-  },
-  tileDelta: {
-    color: AdminTheme.good,
-    fontWeight: "600",
-    marginTop: 2,
-  },
   guideToggle: {
     alignSelf: "flex-start",
     marginLeft: -8,
@@ -738,62 +633,6 @@ const styles = StyleSheet.create({
   },
   guideDef: {
     color: AdminTheme.muted,
-  },
-  sectionCard: {
-    borderRadius: 13,
-    backgroundColor: AdminTheme.panel,
-    borderWidth: 1,
-    borderColor: AdminTheme.border,
-    marginBottom: 13,
-  },
-  sectionTitle: {
-    ...Typography.sectionHeadAc,
-    color: AdminTheme.muted,
-    letterSpacing: 1,
-    marginBottom: 15,
-  },
-  emptyNote: {
-    color: AdminTheme.muted,
-  },
-  chartLabelRow: {
-    flexDirection: "row",
-    gap: BAR_GAP,
-    marginBottom: 2,
-  },
-  barValueLabel: {
-    textAlign: "center",
-    color: AdminTheme.muted,
-  },
-  axisRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 4,
-  },
-  axisLabel: {
-    color: AdminTheme.faint,
-  },
-  chartFootnote: {
-    marginTop: 8,
-    color: AdminTheme.faint,
-  },
-  legendRow: {
-    flexDirection: "row",
-    gap: 16,
-    marginTop: 10,
-    flexWrap: "wrap",
-  },
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 2,
-  },
-  legendLabel: {
-    color: AdminTheme.text,
   },
   actionList: {
     gap: 8,
