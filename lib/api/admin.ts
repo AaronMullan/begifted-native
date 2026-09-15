@@ -1171,6 +1171,8 @@ export interface AiModelPrice {
   output_per_m: number;
   /** ISO date (YYYY-MM-DD). */
   effective_from: string;
+  /** Null when the nightly sync or the seed migration wrote the row. */
+  created_by: string | null;
 }
 
 export interface AiSpendModelRow {
@@ -1288,7 +1290,7 @@ export async function fetchAiSpendMetrics(): Promise<AiSpendMetrics> {
       supabase
         .from("ai_model_prices")
         .select(
-          "id, provider, model, input_per_m, cached_input_per_m, output_per_m, effective_from"
+          "id, provider, model, input_per_m, cached_input_per_m, output_per_m, effective_from, created_by"
         )
         .order("id")
         .range(from, to)
