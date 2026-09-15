@@ -1178,6 +1178,8 @@ export interface AiSpendModelRow {
   model: string;
   /** Runs in the window with usage data and a price. */
   runs: number;
+  /** Runs with usage data but no price row for this model on their day. */
+  unpricedRuns: number;
   cost: number;
   avgCost: number | null;
   /** Per-run averages over costed runs; input excludes the cached share. */
@@ -1200,7 +1202,8 @@ export interface AiSpendDay {
 }
 
 export interface AiSpendMetrics {
-  /** ISO UTC dates, inclusive. */
+  /** ISO UTC dates, inclusive. The window runs from the day token tracking
+   * began to today; the daily chart covers only the last CHART_DAYS of it. */
   windowStart: string;
   windowEnd: string;
   trackingStart: string;
@@ -1226,7 +1229,7 @@ export interface AiSpendMetrics {
 
 /** The day gift_generation_runs started carrying token usage. */
 export const AI_SPEND_TRACKING_START = "2026-09-10";
-const AI_SPEND_WINDOW_DAYS = 30;
+const AI_SPEND_CHART_DAYS = 30;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 type SpendRun = {
@@ -1276,15 +1279,9 @@ const modelKey = (provider: string, model: string) => `${provider}/${model}`;
 export async function fetchAiSpendMetrics(): Promise<AiSpendMetrics> {
   const nowMs = Date.now();
   const windowEnd = utcDateString(nowMs);
-  const windowStart = utcDateString(
-    nowMs - (AI_SPEND_WINDOW_DAYS - 1) * DAY_MS
-  );
   // Runs before tracking began have no usage by construction; fetching them
   // would only pad the uncosted count with expected blanks.
-  const fetchFrom =
-    windowStart > AI_SPEND_TRACKING_START
-      ? windowStart
-      : AI_SPEND_TRACKING_START;
+  const windowStart = AI_SPEND_TRACKING_START;
 
   const [priceRows, runs] = await Promise.all([
     fetchAll<PriceRow>((from, to) =>
@@ -1302,7 +1299,7 @@ export async function fetchAiSpendMetrics(): Promise<AiSpendMetrics> {
         .select(
           "created_at, trigger_source, ai_provider, ai_model, attempt_count, stored_count, input_tokens, cached_input_tokens, output_tokens"
         )
-        .gte("created_at", `${fetchFrom}T00:00:00Z`)
+        .gte("created_at", `${windowStart}T00:00:00Z`)
         .order("run_id")
         .range(from, to)
     ),
@@ -1327,8 +1324,11 @@ export async function fetchAiSpendMetrics(): Promise<AiSpendMetrics> {
       (p) =>
         p.provider === provider && p.model === model && p.effective_from <= day
     );
+  // The price in force today per model; a row dated in the future waits its
+  // turn so the prices card and projections agree with how runs are costed.
   const currentPrices: AiModelPrice[] = [];
   for (const p of priceHistory) {
+    if (p.effective_from > windowEnd) continue;
     if (
       !currentPrices.some(
         (c) => modelKey(c.provider, c.model) === modelKey(p.provider, p.model)
@@ -1342,6 +1342,7 @@ export async function fetchAiSpendMetrics(): Promise<AiSpendMetrics> {
     provider: string;
     model: string;
     runs: number;
+    unpricedRuns: number;
     cost: number;
     input: number;
     cached: number;
@@ -1374,22 +1375,12 @@ export async function fetchAiSpendMetrics(): Promise<AiSpendMetrics> {
     const provider = run.ai_provider ?? "unknown";
     const model = run.ai_model ?? "unknown";
     const day = utcDateString(new Date(run.created_at).getTime());
-    const price = priceOn(provider, model, day);
-    if (!price) {
-      unpricedRuns += 1;
-      unpricedModels.add(model);
-      continue;
-    }
-    const cost = runCost(run, price);
-    costedRuns += 1;
-    spend += cost;
-    storedCount += run.stored_count;
-
     const key = modelKey(provider, model);
     const agg = byModel.get(key) ?? {
       provider,
       model,
       runs: 0,
+      unpricedRuns: 0,
       cost: 0,
       input: 0,
       cached: 0,
@@ -1397,6 +1388,19 @@ export async function fetchAiSpendMetrics(): Promise<AiSpendMetrics> {
       attempts: 0,
       stored: 0,
     };
+    const price = priceOn(provider, model, day);
+    if (!price) {
+      unpricedRuns += 1;
+      unpricedModels.add(model);
+      agg.unpricedRuns += 1;
+      byModel.set(key, agg);
+      continue;
+    }
+    const cost = runCost(run, price);
+    costedRuns += 1;
+    spend += cost;
+    storedCount += run.stored_count;
+
     const cached = Math.min(run.cached_input_tokens ?? 0, run.input_tokens);
     agg.runs += 1;
     agg.cost += cost;
@@ -1439,23 +1443,28 @@ export async function fetchAiSpendMetrics(): Promise<AiSpendMetrics> {
         provider,
         model,
         runs: agg?.runs ?? 0,
+        unpricedRuns: agg?.unpricedRuns ?? 0,
         cost: agg?.cost ?? 0,
-        avgCost: agg ? agg.cost / agg.runs : null,
-        avgInput: agg ? agg.input / agg.runs : null,
-        avgCached: agg ? agg.cached / agg.runs : null,
-        avgOutput: agg ? agg.output / agg.runs : null,
-        avgAttempts: agg ? agg.attempts / agg.runs : null,
+        avgCost: agg && agg.runs > 0 ? agg.cost / agg.runs : null,
+        avgInput: agg && agg.runs > 0 ? agg.input / agg.runs : null,
+        avgCached: agg && agg.runs > 0 ? agg.cached / agg.runs : null,
+        avgOutput: agg && agg.runs > 0 ? agg.output / agg.runs : null,
+        avgAttempts: agg && agg.runs > 0 ? agg.attempts / agg.runs : null,
         storedCount: agg?.stored ?? 0,
         costPerStored: agg && agg.stored > 0 ? agg.cost / agg.stored : null,
         projectedAvgCost:
           projected != null && costedRuns > 0 ? projected / costedRuns : null,
       };
     })
-    .sort((a, b) => b.runs - a.runs || a.model.localeCompare(b.model));
+    .sort(
+      (a, b) =>
+        b.runs + b.unpricedRuns - (a.runs + a.unpricedRuns) ||
+        a.model.localeCompare(b.model)
+    );
 
   const days: AiSpendDay[] = [];
-  for (let i = 0; i < AI_SPEND_WINDOW_DAYS; i++) {
-    const day = utcDateString(nowMs - (AI_SPEND_WINDOW_DAYS - 1 - i) * DAY_MS);
+  for (let i = 0; i < AI_SPEND_CHART_DAYS; i++) {
+    const day = utcDateString(nowMs - (AI_SPEND_CHART_DAYS - 1 - i) * DAY_MS);
     const dayMap = byDay.get(day);
     days.push({
       day,
@@ -1507,13 +1516,20 @@ export type NewAiModelPrice = Pick<
   | "effective_from"
 >;
 
-/** Adds a price row; the table is insert-only so past spend keeps its price. */
-export async function insertAiModelPrice(
+/**
+ * Saves a price row. Same model and date overwrites (so a typo can be fixed
+ * the day it was made); a new date adds to the history and past runs keep
+ * the price in force on their day.
+ */
+export async function saveAiModelPrice(
   price: NewAiModelPrice,
   userId: string
 ): Promise<void> {
   const { error } = await supabase
     .from("ai_model_prices")
-    .insert({ ...price, created_by: userId });
+    .upsert(
+      { ...price, created_by: userId },
+      { onConflict: "provider,model,effective_from" }
+    );
   if (error) throw error;
 }

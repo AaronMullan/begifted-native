@@ -3,11 +3,13 @@
 -- rather than in code because the PM reprices without a release, and the
 -- backend can later read the same rows.
 --
--- Insert-only history: a reprice is a new row with a later effective_from,
--- and a run is costed at the newest row whose effective_from is on or before
--- the run's UTC date, so past spend stays correct when a provider changes
--- its list price. Prices are USD per million tokens. Cached input is the
--- rate for the prompt-cache share of input_tokens.
+-- Dated history: a reprice is a new row with a later effective_from, and a
+-- run is costed at the newest row whose effective_from is on or before the
+-- run's UTC date, so past spend stays correct when a provider changes its
+-- list price. Saving the same model and date again overwrites that row, so a
+-- typo can be corrected the day it was made. Prices are USD per million
+-- tokens. Cached input is the rate for the prompt-cache share of
+-- input_tokens.
 CREATE TABLE IF NOT EXISTS public.ai_model_prices (
   id BIGSERIAL PRIMARY KEY,
   provider TEXT NOT NULL,
@@ -33,6 +35,13 @@ DROP POLICY IF EXISTS "Admins can insert ai_model_prices" ON public.ai_model_pri
 CREATE POLICY "Admins can insert ai_model_prices"
   ON public.ai_model_prices FOR INSERT
   TO authenticated
+  WITH CHECK ((SELECT public.is_admin()));
+
+DROP POLICY IF EXISTS "Admins can update ai_model_prices" ON public.ai_model_prices;
+CREATE POLICY "Admins can update ai_model_prices"
+  ON public.ai_model_prices FOR UPDATE
+  TO authenticated
+  USING ((SELECT public.is_admin()))
   WITH CHECK ((SELECT public.is_admin()));
 
 -- Seed the two models the Sol-vs-Astra decision is about, dated to the day

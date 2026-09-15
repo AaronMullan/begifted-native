@@ -13,7 +13,7 @@ import {
 } from "@/components/admin/dashboard-primitives";
 import { useAppConfig } from "@/hooks/use-app-config";
 import { useAuth } from "@/hooks/use-auth";
-import { fetchAiSpendMetrics, insertAiModelPrice } from "@/lib/api";
+import { fetchAiSpendMetrics, saveAiModelPrice } from "@/lib/api";
 import type { AiSpendMetrics, NewAiModelPrice } from "@/lib/api";
 import { AdminTheme } from "@/lib/admin-theme";
 import type { Provider } from "@/lib/ai-models";
@@ -33,12 +33,15 @@ import {
   Text,
   TextInput,
 } from "react-native-paper";
-import Svg, { Rect } from "react-native-svg";
+import Svg, { Rect, Text as SvgText } from "react-native-svg";
 
 // Third series color for a window where more than two models ran; beyond
 // that, additional models share it and the legend still names each.
 const SERIES_COLORS = [SERIES, SERIES_ALT, AdminTheme.good];
 const SEGMENT_GAP = 2;
+// Room above the bars for the two direct value labels, drawn inside the SVG
+// because thirty bars are too narrow for a per-bar label row.
+const LABEL_HEIGHT = 16;
 
 const money = (v: number): string => `$${v.toFixed(2)}`;
 const thousands = (v: number): string => `${(v / 1000).toFixed(1)}k`;
@@ -80,10 +83,11 @@ export const AiSpendSection: React.FC = () => {
     production?.provider === provider && production?.model === model;
 
   // The tile compares against the first priced model that is not the one in
-  // production, which is the candidate the team is weighing.
-  const comparison = m?.projections.find(
-    (p) => !isProduction(p.provider, p.model)
-  );
+  // production, which is the candidate the team is weighing. Until the
+  // production model is known there is nothing to compare against.
+  const comparison = production
+    ? m?.projections.find((p) => !isProduction(p.provider, p.model))
+    : undefined;
   const colorFor = (model: string): string => {
     const idx = m?.byModel.findIndex((r) => r.model === model) ?? -1;
     return SERIES_COLORS[Math.min(Math.max(idx, 0), SERIES_COLORS.length - 1)];
@@ -97,9 +101,9 @@ export const AiSpendSection: React.FC = () => {
         </Text>
         {m && (
           <Text variant="bodySmall" style={styles.headingNote}>
-            {`Last 30 days, UTC · token tracking began ${longDate(
+            {`Since ${longDate(
               m.trackingStart
-            )}`}
+            )}, when token tracking began · UTC days`}
           </Text>
         )}
       </View>
@@ -207,6 +211,14 @@ export const AiSpendSection: React.FC = () => {
                             production
                           </Text>
                         )}
+                        {r.unpricedRuns > 0 && (
+                          <Text
+                            variant="bodySmall"
+                            style={styles.productionTag}
+                          >
+                            {`${r.unpricedRuns} unpriced`}
+                          </Text>
+                        )}
                       </View>
                       <Text variant="bodyMedium" style={cell}>
                         {String(r.runs)}
@@ -217,9 +229,11 @@ export const AiSpendSection: React.FC = () => {
                       >
                         {r.avgCost != null
                           ? money(r.avgCost)
-                          : r.projectedAvgCost != null
-                            ? `${money(r.projectedAvgCost)} proj.`
-                            : "—"}
+                          : r.unpricedRuns > 0
+                            ? "no price set"
+                            : r.projectedAvgCost != null
+                              ? `${money(r.projectedAvgCost)} proj.`
+                              : "—"}
                       </Text>
                       <Text variant="bodyMedium" style={cell}>
                         {r.avgInput == null ? "—" : thousands(r.avgInput)}
@@ -248,7 +262,7 @@ export const AiSpendSection: React.FC = () => {
             )}
           </Section>
 
-          <Section title="Spend by day">
+          <Section title="Spend by day, last 30 days">
             <DailyBars data={m} colorFor={colorFor} />
           </Section>
 
@@ -260,10 +274,6 @@ export const AiSpendSection: React.FC = () => {
                 ) : (
                   <SourceBars data={m.bySource} />
                 )}
-                <Text variant="bodySmall" style={primitiveStyles.chartFootnote}>
-                  Playground runs live in a different table and are not counted
-                  here.
-                </Text>
               </Section>
             </View>
             <View style={styles.twoUpCol}>
@@ -365,7 +375,7 @@ function completenessText(m: AiSpendMetrics): string {
   parts.push(
     `Spend before ${longDate(
       m.trackingStart
-    )} was not tracked per run; the provider's dashboard remains the source for the lifetime total.`
+    )} was not tracked per run; the provider's dashboard remains the source for the lifetime total. Playground runs live in a different table and are not counted here.`
   );
   return parts.join(" ");
 }
@@ -381,7 +391,11 @@ const DailyBars: React.FC<{
   const spend = totals.reduce((s, t) => s + t, 0);
   const barWidth =
     days.length > 0 ? (width - BAR_GAP * (days.length - 1)) / days.length : 0;
-  const labeled = new Set<number>([totals.indexOf(max), days.length - 1]);
+  // Direct labels on the peak and the latest day only; the peak label is
+  // dropped when it would sit on top of the latest one.
+  const last = days.length - 1;
+  const peak = totals.indexOf(max);
+  const labeled = new Set<number>(last - peak < 2 ? [last] : [peak, last]);
   const seriesInWindow = data.byModel.filter((r) => r.runs > 0);
   const hasUntracked = days.some((d) => !d.tracked);
 
@@ -392,26 +406,16 @@ const DailyBars: React.FC<{
       ) : (
         width > 0 && (
           <>
-            <View style={primitiveStyles.chartLabelRow}>
-              {days.map((d, i) => (
-                <Text
-                  key={d.day}
-                  variant="bodySmall"
-                  style={[primitiveStyles.barValueLabel, { width: barWidth }]}
-                >
-                  {labeled.has(i) && totals[i] > 0 ? money(totals[i]) : " "}
-                </Text>
-              ))}
-            </View>
-            <Svg width={width} height={CHART_HEIGHT}>
+            <Svg width={width} height={CHART_HEIGHT + LABEL_HEIGHT}>
               {days.map((d, i) => {
                 const x = i * (barWidth + BAR_GAP);
+                const baseline = CHART_HEIGHT + LABEL_HEIGHT;
                 if (!d.tracked || totals[i] === 0) {
                   return (
                     <Rect
                       key={d.day}
                       x={x}
-                      y={CHART_HEIGHT - 2}
+                      y={baseline - 2}
                       width={barWidth}
                       height={2}
                       rx={1}
@@ -421,11 +425,30 @@ const DailyBars: React.FC<{
                 }
                 // Stack in series order from the baseline up, with a surface
                 // gap between segments; the plot leaves headroom so the
-                // busiest day's top segment is not clipped by the SVG edge.
+                // busiest day's top segment is not clipped by its label.
                 const plotHeight = CHART_HEIGHT - SEGMENT_GAP * 2 - 3;
-                let y = CHART_HEIGHT;
+                let y = baseline;
+                const topOfBar =
+                  baseline - Math.max((totals[i] / max) * plotHeight, 3);
+                // Anchor the label inside the SVG at the last bar so the
+                // text does not run past the chart's right edge.
+                const anchor =
+                  i === last ? "end" : i === 0 ? "start" : "middle";
+                const labelX =
+                  i === last ? x + barWidth : i === 0 ? x : x + barWidth / 2;
                 return (
                   <React.Fragment key={d.day}>
+                    {labeled.has(i) && (
+                      <SvgText
+                        x={labelX}
+                        y={topOfBar - SEGMENT_GAP * 2 - 3}
+                        fontSize={11}
+                        fill={AdminTheme.muted}
+                        textAnchor={anchor}
+                      >
+                        {money(totals[i])}
+                      </SvgText>
+                    )}
                     {seriesInWindow.map((s) => {
                       const cost =
                         d.byModel.find((x) => x.model === s.model)?.cost ?? 0;
@@ -512,7 +535,7 @@ const parsePrice = (s: string): number | null => {
   return s.trim() === "" || !Number.isFinite(n) || n < 0 ? null : n;
 };
 
-/** Adds a price row; prices are insert-only so past spend keeps its price. */
+/** Saves a price row; same model and date overwrites, a new date adds history. */
 const EditPriceDialog: React.FC<{
   visible: boolean;
   onDismiss: () => void;
@@ -530,7 +553,7 @@ const EditPriceDialog: React.FC<{
   );
 
   const mutation = useMutation({
-    mutationFn: (price: NewAiModelPrice) => insertAiModelPrice(price, user!.id),
+    mutationFn: (price: NewAiModelPrice) => saveAiModelPrice(price, user!.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.aiSpend });
       setInput("");
@@ -561,7 +584,8 @@ const EditPriceDialog: React.FC<{
         <Dialog.Content>
           <Text variant="bodySmall" style={styles.dialogHint}>
             USD per million tokens. Applies from the date below; earlier runs
-            keep the price that was in force on their day.
+            keep the price that was in force on their day. Saving the same model
+            and date again replaces that entry.
           </Text>
           <SegmentedButtons
             value={provider}
