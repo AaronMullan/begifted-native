@@ -67,6 +67,7 @@ export const queryKeys = {
   // Admin — Traction dashboard
   tractionMetrics: ["tractionMetrics"] as const,
   aiSpend: ["aiSpend"] as const,
+  publishedModelPrices: ["publishedModelPrices"] as const,
 
   // Admin — Beta UX check-in responses viewer
   betaFeedback: ["betaFeedback"] as const,
