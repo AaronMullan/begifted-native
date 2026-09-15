@@ -5,9 +5,11 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { Button, Text } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Updates from "expo-updates";
 import { useAppConfig } from "../hooks/use-app-config";
 import type { WhatsNewSection } from "../lib/api";
@@ -17,6 +19,15 @@ import { Typography } from "../lib/typography";
 // Chip fill pixel-sampled from the What's New mock (no palette token binds to
 // it, same situation as Colors.brand.destructiveRed).
 const CHIP_BACKGROUND = "#E5E8E5";
+
+// Clearance kept between the card and the safe-area edges when it hits its
+// height bound.
+const CARD_VERTICAL_MARGIN = 24;
+
+// Caps scaling on the header and the CTA label: the header would otherwise
+// fill the card at accessibility sizes, and the label is clipped by the
+// button's fixed content height.
+const FIXED_TEXT_MAX_FONT_SCALE = 1.4;
 
 const MONTH_NAMES = [
   "January",
@@ -61,6 +72,8 @@ const FALLBACK_SECTIONS: WhatsNewSection[] = [
 const OtaUpdateGate: React.FC = () => {
   const [cardVisible, setCardVisible] = useState(false);
   const { data: appConfig } = useAppConfig();
+  const { height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   // Refs, not state: the AppState listener would otherwise close over stale
   // values and re-check (or re-prompt) after the update is already fetched.
   const checking = useRef(false);
@@ -109,6 +122,12 @@ const OtaUpdateGate: React.FC = () => {
     : FALLBACK_SECTIONS;
   const chipDate = formatChipDate(whatsNew?.date);
 
+  // An absolute bound rather than a percentage: a percentage maxHeight depends
+  // on the modal's parent having a definite height at measure time, and when
+  // it doesn't the cap silently vanishes and the card grows past the screen.
+  const cardMaxHeight =
+    windowHeight - insets.top - insets.bottom - CARD_VERTICAL_MARGIN * 2;
+
   return (
     <Modal
       visible={cardVisible}
@@ -116,18 +135,35 @@ const OtaUpdateGate: React.FC = () => {
       animationType="fade"
       onRequestClose={dismiss}
     >
-      <Pressable style={styles.scrim} onPress={dismiss}>
-        {/* Stop card taps from falling through to the dismissing scrim. */}
-        <Pressable style={styles.card} onPress={() => {}}>
-          <Text style={styles.title}>What&apos;s New</Text>
-          {chipDate && (
-            <View style={styles.chip}>
-              <Text style={styles.chipLabel}>{chipDate}</Text>
-            </View>
-          )}
-          {/* Shrinkable, so a long release list scrolls instead of pushing
-              the restart CTA off screen. */}
-          <ScrollView style={styles.sectionsScroll}>
+      <View style={styles.scrim}>
+        {/* A sibling behind the card, never its ancestor: a Pressable above
+            the ScrollView claims the touch at start, so slow drags are eaten
+            as presses and only fast flicks scroll. */}
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={dismiss}
+          accessibilityLabel="Dismiss What's New"
+        />
+        <View style={[styles.card, { maxHeight: cardMaxHeight }]}>
+          {/* Everything above the CTA scrolls, so no fixed header can crowd
+              out the list; the CTA stays pinned and always reachable. */}
+          <ScrollView style={styles.scroll}>
+            <Text
+              style={styles.title}
+              maxFontSizeMultiplier={FIXED_TEXT_MAX_FONT_SCALE}
+            >
+              What&apos;s New
+            </Text>
+            {chipDate && (
+              <View style={styles.chip}>
+                <Text
+                  style={styles.chipLabel}
+                  maxFontSizeMultiplier={FIXED_TEXT_MAX_FONT_SCALE}
+                >
+                  {chipDate}
+                </Text>
+              </View>
+            )}
             <View style={styles.sections}>
               {sections.map((section) => (
                 <View key={section.title} style={styles.section}>
@@ -146,11 +182,12 @@ const OtaUpdateGate: React.FC = () => {
             style={styles.cta}
             contentStyle={styles.ctaContent}
             labelStyle={styles.ctaLabel}
+            maxFontSizeMultiplier={FIXED_TEXT_MAX_FONT_SCALE}
           >
             Let&apos;s Go
           </Button>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 };
@@ -167,7 +204,6 @@ const styles = StyleSheet.create({
     borderRadius: 36,
     paddingVertical: 36,
     paddingHorizontal: 28,
-    maxHeight: "80%",
   },
   title: {
     ...Typography.h1,
@@ -186,15 +222,15 @@ const styles = StyleSheet.create({
     ...Typography.tagLabel,
     color: Colors.brand.mediumTeal,
   },
-  // RN defaults flexShrink to 0; without it the list overflows the capped
+  // RN defaults flexShrink to 0; without it the content overflows the bounded
   // card instead of scrolling.
-  sectionsScroll: {
+  scroll: {
     flexGrow: 0,
     flexShrink: 1,
-    marginTop: 28,
   },
   sections: {
     gap: 20,
+    marginTop: 28,
   },
   section: {},
   sectionTitle: {
