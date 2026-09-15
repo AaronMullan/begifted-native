@@ -364,6 +364,10 @@ const GUIDE: { term: string; def: string }[] = [
     term: "Same runs on another model",
     def: "The window's runs repriced at another model's rates with the same token counts. A floor, not a forecast — a different model may use more or fewer tokens.",
   },
+  {
+    term: "Prices used",
+    def: "Providers' published rates per million tokens. A nightly check against LiteLLM's public copy of the price lists adds a dated row when a rate changes; a price saved by hand holds for seven days first. Each run is costed at the rate in force on its day.",
+  },
 ];
 
 const HowToRead: React.FC = () => {

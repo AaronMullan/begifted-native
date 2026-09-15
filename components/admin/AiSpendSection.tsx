@@ -307,9 +307,19 @@ export const AiSpendSection: React.FC = () => {
                     </View>
                     {m.prices.map((p) => (
                       <View key={p.id} style={styles.tableRow}>
-                        <Text variant="bodyMedium" style={styles.colModel}>
-                          {p.model}
-                        </Text>
+                        <View style={styles.colModelStack}>
+                          <Text variant="bodyMedium" style={styles.cellText}>
+                            {p.model}
+                          </Text>
+                          <Text
+                            variant="bodySmall"
+                            style={styles.productionTag}
+                          >
+                            {`since ${longDate(p.effective_from)} · ${
+                              p.created_by ? "by hand" : "synced"
+                            }`}
+                          </Text>
+                        </View>
                         <Text variant="bodyMedium" style={styles.cell}>
                           {money(p.input_per_m)}
                         </Text>
@@ -334,9 +344,14 @@ export const AiSpendSection: React.FC = () => {
                   Edit prices
                 </Button>
                 <Text variant="bodySmall" style={primitiveStyles.chartFootnote}>
-                  A run on a model with no price here shows as unpriced, never
-                  $0. A new price applies from the date entered; earlier runs
-                  keep the price in force on their day.
+                  These are the providers&apos; published rates. The first rows
+                  were entered from OpenAI&apos;s price list; each night a check
+                  against LiteLLM&apos;s public copy of the published lists adds
+                  a dated row when a rate changes. A price saved by hand applies
+                  from the date entered and holds for seven days before the
+                  nightly check can replace it. Earlier runs keep the rate in
+                  force on their day, and a run on a model with no price is left
+                  out of every total rather than counted as $0.
                 </Text>
               </Section>
             </View>
@@ -663,9 +678,10 @@ const EditPriceDialog: React.FC<{
         <Dialog.Title>Set a price</Dialog.Title>
         <Dialog.Content>
           <Text variant="bodySmall" style={styles.dialogHint}>
-            USD per million tokens. Applies from the date below; earlier runs
-            keep the price that was in force on their day. Saving the same model
-            and date again replaces that entry.
+            USD per million tokens. Applies from the date below and holds for
+            seven days, after which the nightly check replaces it if the
+            published rate differs. Earlier runs keep the price in force on
+            their day. Saving the same model and date again replaces that entry.
           </Text>
           <SegmentedButtons
             value={provider}
@@ -812,6 +828,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    color: AdminTheme.text,
+  },
+  colModelStack: {
+    flex: 2.2,
+    gap: 2,
+  },
+  cellText: {
     color: AdminTheme.text,
   },
   swatch: {
