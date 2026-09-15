@@ -13,7 +13,12 @@ import {
 } from "@/components/admin/dashboard-primitives";
 import { useAppConfig } from "@/hooks/use-app-config";
 import { useAuth } from "@/hooks/use-auth";
-import { fetchAiSpendMetrics, saveAiModelPrice } from "@/lib/api";
+import {
+  fetchAiSpendMetrics,
+  fetchPublishedModelPrices,
+  lookupPublishedPrice,
+  saveAiModelPrice,
+} from "@/lib/api";
 import type { AiSpendMetrics, NewAiModelPrice } from "@/lib/api";
 import { AdminTheme } from "@/lib/admin-theme";
 import type { Provider } from "@/lib/ai-models";
@@ -553,36 +558,74 @@ const EditPriceDialog: React.FC<{
   const [provider, setProvider] = useState<Provider>("openai");
   const [model, setModel] = useState<string>(PROVIDER_MODELS.openai[0]);
   const [modelMenu, setModelMenu] = useState(false);
-  const [input, setInput] = useState("");
-  const [cached, setCached] = useState("");
-  const [output, setOutput] = useState("");
+  // null means "not typed yet": the field shows the published price for the
+  // selected model, so picking a model resets to its suggestion without an
+  // effect syncing query data into state.
+  const [input, setInput] = useState<string | null>(null);
+  const [cached, setCached] = useState<string | null>(null);
+  const [output, setOutput] = useState<string | null>(null);
   const [effectiveFrom, setEffectiveFrom] = useState(
     new Date().toISOString().slice(0, 10)
   );
+
+  const publishedQuery = useQuery({
+    queryKey: queryKeys.publishedModelPrices,
+    queryFn: fetchPublishedModelPrices,
+    enabled: visible,
+    staleTime: 60 * 60 * 1000,
+    retry: 1,
+  });
+  const suggestion = publishedQuery.data
+    ? lookupPublishedPrice(publishedQuery.data, provider, model)
+    : null;
+  // Trim float noise from per-token rates scaled up (4.000000000000001).
+  const suggest = (v: number | undefined): string =>
+    v == null ? "" : String(Number(v.toFixed(4)));
+  const inputText = input ?? suggest(suggestion?.input_per_m);
+  const cachedText = cached ?? suggest(suggestion?.cached_input_per_m);
+  const outputText = output ?? suggest(suggestion?.output_per_m);
+  const suggestionNote = publishedQuery.isLoading
+    ? "Looking up the published price…"
+    : publishedQuery.error
+      ? "Couldn't load the published price list; enter the price by hand."
+      : suggestion
+        ? "Filled from LiteLLM's public price list. Check it before saving."
+        : `No published price for ${model}; enter it by hand.`;
 
   const mutation = useMutation({
     mutationFn: (price: NewAiModelPrice) => saveAiModelPrice(price, user!.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.aiSpend });
-      setInput("");
-      setCached("");
-      setOutput("");
+      setInput(null);
+      setCached(null);
+      setOutput(null);
       onDismiss();
     },
   });
 
-  const inputN = parsePrice(input);
-  const cachedN = parsePrice(cached);
-  const outputN = parsePrice(output);
+  const inputN = parsePrice(inputText);
+  const cachedN = parsePrice(cachedText);
+  const outputN = parsePrice(outputText);
   const valid =
     inputN != null &&
     cachedN != null &&
     outputN != null &&
     isoDate.test(effectiveFrom);
 
+  const resetTyped = () => {
+    setInput(null);
+    setCached(null);
+    setOutput(null);
+  };
   const selectProvider = (p: Provider) => {
     setProvider(p);
     setModel(PROVIDER_MODELS[p][0]);
+    resetTyped();
+  };
+  const selectModel = (mName: string) => {
+    setModel(mName);
+    setModelMenu(false);
+    resetTyped();
   };
 
   return (
@@ -620,17 +663,17 @@ const EditPriceDialog: React.FC<{
               <Menu.Item
                 key={mName}
                 title={mName}
-                onPress={() => {
-                  setModel(mName);
-                  setModelMenu(false);
-                }}
+                onPress={() => selectModel(mName)}
               />
             ))}
           </Menu>
+          <Text variant="bodySmall" style={styles.suggestionNote}>
+            {suggestionNote}
+          </Text>
           <TextInput
             mode="outlined"
             label="Input"
-            value={input}
+            value={inputText}
             onChangeText={setInput}
             keyboardType="decimal-pad"
             style={styles.dialogField}
@@ -638,7 +681,7 @@ const EditPriceDialog: React.FC<{
           <TextInput
             mode="outlined"
             label="Cached input"
-            value={cached}
+            value={cachedText}
             onChangeText={setCached}
             keyboardType="decimal-pad"
             style={styles.dialogField}
@@ -646,7 +689,7 @@ const EditPriceDialog: React.FC<{
           <TextInput
             mode="outlined"
             label="Output"
-            value={output}
+            value={outputText}
             onChangeText={setOutput}
             keyboardType="decimal-pad"
             style={styles.dialogField}
@@ -835,6 +878,10 @@ const styles = StyleSheet.create({
   },
   dialogField: {
     marginTop: 8,
+  },
+  suggestionNote: {
+    color: AdminTheme.muted,
+    marginTop: 12,
   },
   menuButtonContent: {
     flexDirection: "row-reverse",

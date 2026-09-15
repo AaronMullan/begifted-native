@@ -1533,3 +1533,68 @@ export async function saveAiModelPrice(
     );
   if (error) throw error;
 }
+
+/** USD per million tokens as published for a model, for prefilling a price row. */
+export type PublishedModelPrice = Pick<
+  AiModelPrice,
+  "input_per_m" | "cached_input_per_m" | "output_per_m"
+>;
+
+export type PublishedPriceTable = { [modelKey: string]: PublishedModelPrice };
+
+// LiteLLM maintains a public list of provider list prices, keyed by model id.
+// It matches OpenAI's published rates for the models we run (checked
+// 2026-09-14); OpenRouter's models endpoint does not, so it is not used.
+const PUBLISHED_PRICES_URL =
+  "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json";
+
+/**
+ * Downloads the published price list (about 2.4 MB) and keeps only the three
+ * per-token rates, scaled to per million. Entries without a numeric input
+ * price are dropped.
+ */
+export async function fetchPublishedModelPrices(): Promise<PublishedPriceTable> {
+  const res = await fetch(PUBLISHED_PRICES_URL);
+  if (!res.ok) throw new Error(`Price list returned ${res.status}`);
+  const raw = (await res.json()) as {
+    [key: string]: {
+      input_cost_per_token?: unknown;
+      cache_read_input_token_cost?: unknown;
+      output_cost_per_token?: unknown;
+    };
+  };
+  const table: PublishedPriceTable = {};
+  for (const [key, entry] of Object.entries(raw)) {
+    if (!entry || typeof entry !== "object") continue;
+    const input = entry.input_cost_per_token;
+    const output = entry.output_cost_per_token;
+    if (typeof input !== "number" || typeof output !== "number") continue;
+    const cached = entry.cache_read_input_token_cost;
+    table[key] = {
+      input_per_m: input * 1_000_000,
+      // Models with no cache tier bill cached input at the full input rate.
+      cached_input_per_m:
+        (typeof cached === "number" ? cached : input) * 1_000_000,
+      output_per_m: output * 1_000_000,
+    };
+  }
+  return table;
+}
+
+/** Bare model id first; some providers are keyed with a prefix. */
+export function lookupPublishedPrice(
+  table: PublishedPriceTable,
+  provider: string,
+  model: string
+): PublishedModelPrice | null {
+  const prefixes = [
+    "",
+    `${provider}/`,
+    ...(provider === "google" ? ["gemini/", "vertex_ai/"] : []),
+  ];
+  for (const prefix of prefixes) {
+    const hit = table[`${prefix}${model}`];
+    if (hit) return hit;
+  }
+  return null;
+}
