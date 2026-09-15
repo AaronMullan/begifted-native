@@ -21,6 +21,9 @@ AUTOFIX_ROOT="$HOME/development/autofix"
 LOG_DIR="$HOME/Library/Logs/begifted-autofix"
 LOCK_DIR="$LOG_DIR/.lock"
 CLAUDE_BIN="$HOME/.local/bin/claude"
+# Pin the model: the CLI default shares its usage limit with daytime interactive
+# sessions, and hitting that limit fails every remaining pass of the run.
+CLAUDE_MODEL=opus
 AUTOFIX_TIMEOUT_SECS=3600
 # The feedback pass also downloads and reads TestFlight screenshots now.
 FEEDBACK_TIMEOUT_SECS=1800
@@ -72,7 +75,7 @@ retry() {
 run_claude() {
   local prompt="$1" budget="$2" label="${3:-$1}" status=0
   echo "--- $label ($(date '+%H:%M:%S')) ---"
-  "$CLAUDE_BIN" -p "$prompt" --dangerously-skip-permissions &
+  "$CLAUDE_BIN" -p "$prompt" --model "$CLAUDE_MODEL" --dangerously-skip-permissions &
   local claude_pid=$!
   (
     sleep "$budget"
