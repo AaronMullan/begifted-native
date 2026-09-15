@@ -19,6 +19,12 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-09-15 — OTA 2
+
+### App
+
+- The What's New card now scrolls with a slow drag as well as a flick, the whole note scrolls under a Let's Go button that stays in place, and the card stays within the screen at any text size. It appears on the card for the update after the one that carries this fix (DEV-445).
+
 ## 2026-09-15 — OTA
 
 ### App
