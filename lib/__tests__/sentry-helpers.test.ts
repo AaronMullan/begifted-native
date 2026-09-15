@@ -13,15 +13,32 @@ describe("isOfflineError", () => {
     expect(isOfflineError(new Error("Network request timed out"))).toBe(true);
   });
 
-  it("matches Expo fetch's native transport failure wrapper", () => {
+  it.each([
+    "The network connection was lost.",
+    "The request timed out.",
+    "The Internet connection appears to be offline.",
+    "Could not connect to the server.",
+  ])("matches Expo fetch's offline failure: %s", (osMessage) => {
     expect(
       isOfflineError(
         new Error(
-          "fetch failed: UnexpectedException: The network connection was lost. (at ExpoModulesCore/Promise.swift:56)"
+          `fetch failed: UnexpectedException: ${osMessage} (at ExpoModulesCore/Promise.swift:56)`
         )
       )
     ).toBe(true);
   });
+
+  it.each([
+    "UnexpectedException: A server with the specified hostname could not be found.",
+    "UnexpectedException: An SSL error has occurred and a secure connection to the server cannot be made.",
+    "Redirect is not allowed when redirect mode is 'error'",
+    "Unknown error",
+  ])(
+    "reports Expo fetch failures that signal a broken release: %s",
+    (message) => {
+      expect(isOfflineError(new Error(`fetch failed: ${message}`))).toBe(false);
+    }
+  );
 
   it("ignores unrelated errors", () => {
     expect(isOfflineError(new Error("Cannot read property 'id'"))).toBe(false);

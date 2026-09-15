@@ -21,15 +21,34 @@ export function toError(value: unknown): Error {
 // pollers like unreadCount). Substring-match the common "Network request"
 // stem so all variants are treated as expected offline noise, not bugs.
 //
-// Expo's WinterCG fetch is the global `fetch` on native, and it wraps every
-// native transport failure as "fetch failed: <OS message>" (e.g. "The network
-// connection was lost", "The request timed out") — a shape that never carries
-// the "Network request" stem. Anything behind that prefix failed below the
-// HTTP layer, so it is offline noise by construction.
+// Expo's fetch is the global `fetch` on native and prefixes every failure
+// below the HTTP layer with "fetch failed:". That prefix alone is too broad:
+// it also wraps TLS/ATS rejections, unresolvable hosts, redirect refusals, and
+// unknown errors, which signal a broken release and must still reach Sentry.
+// Match only the OS messages for a lost or absent connection. The native
+// URLError code would be the sturdier signal, but Expo's bridge keeps only the
+// localized description, so these strings are all JS ever sees. On a
+// non-English device they won't match and get reported, which is the safe
+// direction to fail.
+const EXPO_FETCH_PREFIX = "fetch failed:";
+const EXPO_OFFLINE_MESSAGES = [
+  "The network connection was lost",
+  "The request timed out",
+  "The Internet connection appears to be offline",
+  "Could not connect to the server",
+];
+
+function isExpoFetchOfflineError(message: string): boolean {
+  return (
+    message.includes(EXPO_FETCH_PREFIX) &&
+    EXPO_OFFLINE_MESSAGES.some((m) => message.includes(m))
+  );
+}
+
 export function isOfflineError(err: Error): boolean {
   return (
     err.message.includes("Network request") ||
-    err.message.includes("fetch failed:")
+    isExpoFetchOfflineError(err.message)
   );
 }
 
