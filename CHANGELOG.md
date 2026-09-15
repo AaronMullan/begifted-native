@@ -19,6 +19,26 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-09-15 — OTA 2
+
+### App
+
+- The What's New card now scrolls with a slow drag as well as a flick, the whole note scrolls under a Let's Go button that stays in place, and the card stays within the screen at any text size. It appears on the card for the update after the one that carries this fix (DEV-445).
+
+## 2026-09-15 — OTA
+
+### App
+
+- A dropped connection mid-tap no longer registers as an app error; it is treated as the network hiccup it is. (DEV-439)
+- The admin Traction page now shows what gift generation costs since token tracking began: spend, cost per run and per gift by model, a daily chart, and what the same runs would have cost on another model, with editable prices (DEV-446).
+- Setting a model's price in the admin console now starts from the publicly listed rate for that model, so you check a number instead of typing one (DEV-447).
+- The admin prices card now says where each rate came from and when it took effect, and explains the nightly price check (DEV-449).
+
+### Backend
+
+- Bugs filed through TestFlight's own screenshot and crash feedback now reach the nightly triage sweep and become Jira tickets, the same as in-app Report a Bug submissions (DEV-441).
+- Customer.io now learns when someone first adds a person and an occasion (early activated) and when they reach 3+ people, 3+ occasions and a recommendation click (qualified trial user), so lifecycle journeys can key off real engagement. Existing accounts that already qualify are marked without sending the events (DEV-451).
+
 ## 2026-09-14 — OTA
 
 ### App
