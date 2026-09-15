@@ -1572,6 +1572,9 @@ export async function fetchPublishedModelPrices(): Promise<PublishedPriceTable |
   } catch {
     return null;
   }
+  // A 200 with a non-object body (an HTML error page, a bare null) is a
+  // failed load too, not a crash.
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const table: PublishedPriceTable = {};
   for (const [key, entry] of Object.entries(raw)) {
     if (!entry || typeof entry !== "object") continue;

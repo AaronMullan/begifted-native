@@ -570,13 +570,14 @@ const EditPriceDialog: React.FC<{
 
   // The 2.4 MB list is fetched once per session: it is a suggestion, and a
   // stale copy costs nothing until Save, where the admin checks the numbers.
+  // A failed load resolves null (never throws), which counts as data, so it
+  // is marked stale at once or the next open would never retry.
   const publishedQuery = useQuery({
     queryKey: queryKeys.publishedModelPrices,
     queryFn: fetchPublishedModelPrices,
     enabled: visible,
-    staleTime: Infinity,
+    staleTime: (query) => (query.state.data ? Infinity : 0),
     gcTime: Infinity,
-    retry: 1,
   });
   const suggestion = publishedQuery.data
     ? lookupPublishedPrice(publishedQuery.data, provider, model)
