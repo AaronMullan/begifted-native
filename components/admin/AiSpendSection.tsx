@@ -344,14 +344,15 @@ export const AiSpendSection: React.FC = () => {
                   Edit prices
                 </Button>
                 <Text variant="bodySmall" style={primitiveStyles.chartFootnote}>
-                  These are the providers&apos; published rates. The first rows
-                  were entered from OpenAI&apos;s price list; each night a check
-                  against LiteLLM&apos;s public copy of the published lists adds
-                  a dated row when a rate changes. A price saved by hand applies
-                  from the date entered and holds for seven days before the
-                  nightly check can replace it. Earlier runs keep the rate in
-                  force on their day, and a run on a model with no price is left
-                  out of every total rather than counted as $0.
+                  These are the providers&apos; published rates per million
+                  tokens. The first rows were entered from OpenAI&apos;s price
+                  list; each night a check against LiteLLM&apos;s public copy of
+                  the published lists adds a dated row when a rate changes.
+                  Every price applies from its date, and one saved by hand holds
+                  for seven days before the nightly check can add a newer rate
+                  on top of it. Earlier runs keep the rate in force on their
+                  day, and a run on a model with no price is left out of every
+                  total rather than counted as $0.
                 </Text>
               </Section>
             </View>
@@ -679,8 +680,8 @@ const EditPriceDialog: React.FC<{
         <Dialog.Content>
           <Text variant="bodySmall" style={styles.dialogHint}>
             USD per million tokens. Applies from the date below and holds for
-            seven days, after which the nightly check replaces it if the
-            published rate differs. Earlier runs keep the price in force on
+            seven days, after which the nightly check can add a newer rate if
+            the published one differs. Earlier runs keep the price in force on
             their day. Saving the same model and date again replaces that entry.
           </Text>
           <SegmentedButtons
