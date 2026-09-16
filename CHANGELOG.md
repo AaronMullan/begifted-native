@@ -19,6 +19,16 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-09-16 — OTA
+
+### App
+
+- The options under a gift's "..." respond every time. Before, the menu could open without its gift attached, and tapping an option did nothing. (DEV-455)
+- The On the Horizon cards on Home no longer run under the bottom navigation. When the page can't fit everything, it scrolls so the cards show in full. (DEV-456)
+- When you tell Add Person someone's age, it's now saved, whether or not you know their birthday. The "Year optional" hint on their Information screen only appears when their age is still unknown. (DEV-459)
+- If text on Home grows after it first lays out, such as a longer name arriving, the page now scrolls, so the bottom cards no longer sit under the nav bar. (DEV-464)
+- In Add a Moment, an incomplete date now shows its MM-DD message right above the Add Moment button, even with the number pad open. (DEV-465)
+
 ## 2026-09-15 — OTA 2
 
 ### App
