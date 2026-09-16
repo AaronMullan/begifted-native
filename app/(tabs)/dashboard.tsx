@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
+import type { LayoutChangeEvent } from "react-native";
 import { Text, ActivityIndicator } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../lib/colors";
@@ -98,6 +99,19 @@ export default function Dashboard() {
     viewportH > 0 &&
     naturalH > viewportH &&
     naturalH - compressibleBy <= viewportH;
+
+  // `sig` can't see content that grows after measuring (Dynamic Type, a
+  // refetched name wrapping), and bounded mode ignores onContentSizeChange. So
+  // watch where the column actually ends: past the content box's inner bottom,
+  // the gaps have nothing left to give — drop the cache to re-measure at design
+  // gaps, which re-bounds with the new height or falls back to scrolling. The
+  // column's own height can't signal this; bounded mode caps it at the
+  // viewport. The 1pt slack keeps sub-pixel rounding from re-measuring forever.
+  const handleColumnEndLayout = (e: LayoutChangeEvent) => {
+    if (!fitsCompressed) return;
+    const innerBottom = viewportH - navClearance - Spacing.homeBottomInset;
+    if (e.nativeEvent.layout.y > innerBottom + 1) setMeasured(null);
+  };
 
   if (authLoading) {
     return (
@@ -215,6 +229,7 @@ export default function Dashboard() {
               No upcoming occasions yet.
             </Text>
           )}
+          <View onLayout={handleColumnEndLayout} />
         </View>
       </ScrollView>
     </View>
