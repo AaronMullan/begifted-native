@@ -55,20 +55,32 @@ const GiftActionDrawerProvider: React.FC<ProviderProps> = ({ children }) => {
   // the retry interval, so a healthy open may be dismissed here too — which is
   // why dismissing must never clear `state` (see onDismiss below). Capped so a
   // sheet that never opens doesn't flicker forever.
-  const openedRef = useRef(false);
+  //
+  // Retrying stops once the sheet reports open, or on any dismissal the retry
+  // didn't cause (swipe, Skip/Done, route change) — otherwise the next tick
+  // would re-present a drawer the user just closed. A recovery dismiss only
+  // produces an onDismiss when a sheet is mounted, so `mountedRef` decides
+  // whether to expect one.
+  const settledRef = useRef(false);
+  const mountedRef = useRef(false);
+  const recoveryDismissPendingRef = useRef(false);
   useEffect(() => {
     if (!state) return;
-    openedRef.current = false;
+    settledRef.current = false;
+    recoveryDismissPendingRef.current = false;
     sheetRef.current?.present();
+    mountedRef.current = true;
     let attempts = 0;
     const retry = setInterval(() => {
-      if (openedRef.current || attempts >= MAX_PRESENT_RETRIES) {
+      if (settledRef.current || attempts >= MAX_PRESENT_RETRIES) {
         clearInterval(retry);
         return;
       }
       attempts += 1;
+      recoveryDismissPendingRef.current = mountedRef.current;
       sheetRef.current?.dismiss();
       sheetRef.current?.present();
+      mountedRef.current = true;
     }, 800);
     return () => clearInterval(retry);
   }, [state]);
@@ -93,9 +105,16 @@ const GiftActionDrawerProvider: React.FC<ProviderProps> = ({ children }) => {
           // and re-presents, so clearing state here would let the sheet come
           // back with no gift and every row tap would silently no-op. Each
           // openDrawer sets a fresh object, so reopening still re-presents.
-          onDismiss={() => {}}
+          onDismiss={() => {
+            mountedRef.current = false;
+            if (recoveryDismissPendingRef.current) {
+              recoveryDismissPendingRef.current = false;
+              return;
+            }
+            settledRef.current = true;
+          }}
           onChange={(index) => {
-            if (index >= 0) openedRef.current = true;
+            if (index >= 0) settledRef.current = true;
           }}
         />
       </BottomSheetModalProvider>
