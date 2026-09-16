@@ -14,6 +14,8 @@ import GiftActionDrawer, {
   type GiftActionDrawerState,
 } from "./GiftActionDrawer";
 
+const MAX_PRESENT_RETRIES = 3;
+
 type GiftActionDrawerContextValue = {
   openDrawer: (suggestion: GiftSuggestion, occasionId?: string | null) => void;
   closeDrawer: () => void;
@@ -49,19 +51,38 @@ const GiftActionDrawerProvider: React.FC<ProviderProps> = ({ children }) => {
   // reaches the screen, and every later present() no-ops — the drawer then
   // looks permanently dead. Same failure ContactPicker recovers from: confirm
   // the sheet actually opened via onChange, and if it hasn't after a beat,
-  // force a dismiss and re-present.
-  const openedRef = useRef(false);
+  // force a dismiss and re-present. onChange can legitimately arrive later than
+  // the retry interval, so a healthy open may be dismissed here too — which is
+  // why dismissing must never clear `state` (see onDismiss below). Capped so a
+  // sheet that never opens doesn't flicker forever.
+  //
+  // Retrying stops once the sheet reports open, or on any dismissal the retry
+  // didn't cause (swipe, Skip/Done, route change) — otherwise the next tick
+  // would re-present a drawer the user just closed. A recovery dismiss only
+  // produces an onDismiss when a sheet is mounted, so `mountedRef` decides
+  // whether to expect one.
+  const settledRef = useRef(false);
+  const mountedRef = useRef(false);
+  const recoveryDismissPendingRef = useRef(false);
   useEffect(() => {
     if (!state) return;
-    openedRef.current = false;
+    settledRef.current = false;
+    // A sheet still mounted here is mid-close from the previous open; its
+    // late onDismiss must not read as the user dismissing this one.
+    recoveryDismissPendingRef.current = mountedRef.current;
     sheetRef.current?.present();
+    mountedRef.current = true;
+    let attempts = 0;
     const retry = setInterval(() => {
-      if (openedRef.current) {
+      if (settledRef.current || attempts >= MAX_PRESENT_RETRIES) {
         clearInterval(retry);
         return;
       }
+      attempts += 1;
+      recoveryDismissPendingRef.current = mountedRef.current;
       sheetRef.current?.dismiss();
       sheetRef.current?.present();
+      mountedRef.current = true;
     }, 800);
     return () => clearInterval(retry);
   }, [state]);
@@ -82,9 +103,20 @@ const GiftActionDrawerProvider: React.FC<ProviderProps> = ({ children }) => {
         <GiftActionDrawer
           sheetRef={sheetRef}
           state={state}
-          onDismiss={() => setState(null)}
+          // Keep the last gift after a dismiss. The recovery above dismisses
+          // and re-presents, so clearing state here would let the sheet come
+          // back with no gift and every row tap would silently no-op. Each
+          // openDrawer sets a fresh object, so reopening still re-presents.
+          onDismiss={() => {
+            mountedRef.current = false;
+            if (recoveryDismissPendingRef.current) {
+              recoveryDismissPendingRef.current = false;
+              return;
+            }
+            settledRef.current = true;
+          }}
           onChange={(index) => {
-            if (index >= 0) openedRef.current = true;
+            if (index >= 0) settledRef.current = true;
           }}
         />
       </BottomSheetModalProvider>
