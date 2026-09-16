@@ -90,6 +90,7 @@ type MomentDateSectionProps = {
   dateError: string;
   onDateChange: (text: string) => void;
   onDateFocus: () => void;
+  onDateErrorLayout: () => void;
   suggestionDates: Record<string, string>;
 };
 
@@ -102,6 +103,7 @@ const MomentDateSection: React.FC<MomentDateSectionProps> = ({
   dateError,
   onDateChange,
   onDateFocus,
+  onDateErrorLayout,
   suggestionDates,
 }) => {
   const slug = slugifyOccasionName(momentName);
@@ -127,7 +129,11 @@ const MomentDateSection: React.FC<MomentDateSectionProps> = ({
           style={styles.input}
         />
       )}
-      {!!dateError && <Text style={styles.errorText}>{dateError}</Text>}
+      {!!dateError && (
+        <Text style={styles.errorText} onLayout={onDateErrorLayout}>
+          {dateError}
+        </Text>
+      )}
     </>
   );
 };
@@ -158,6 +164,13 @@ export const AddMomentDrawer: React.FC<AddMomentDrawerProps> = ({
   // lets the keyboard's resize settle before we scroll.
   const handleDateFocus = () => {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 250);
+  };
+
+  // The error is added below the date field, where it lands behind the pinned
+  // footer while the number-pad is up. Scrolling on layout (not on save) waits
+  // until the new content height exists to scroll to.
+  const handleDateErrorLayout = () => {
+    scrollRef.current?.scrollToEnd({ animated: true });
   };
 
   useImperativeHandle(handleRef, () => ({
@@ -290,6 +303,7 @@ export const AddMomentDrawer: React.FC<AddMomentDrawerProps> = ({
             dateError={dateError}
             onDateChange={handleDateChange}
             onDateFocus={handleDateFocus}
+            onDateErrorLayout={handleDateErrorLayout}
             suggestionDates={suggestionDates}
           />
         )}
