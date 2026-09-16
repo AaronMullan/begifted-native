@@ -27,13 +27,29 @@ import GradientBackground from "../../components/GradientBackground";
  * With room to spare it grows to a cap symmetric to that floor, anchoring the
  * column top and bottom; past the cap the column top-anchors.
  */
-function FlexGap({ min, design }: { min: number; design: number }) {
+function FlexGap({
+  min,
+  design,
+  compress,
+}: {
+  min: number;
+  design: number;
+  compress: boolean;
+}) {
   return (
     <View
       style={{
         flexBasis: design,
-        flexShrink: 1,
-        minHeight: min,
+        // Yoga weights shrink by basis × flexShrink; normalizing to the
+        // compressible range makes every gap give up its share of the
+        // overflow proportionally, so none clamps at its floor early and the
+        // full compressibleBy is actually recoverable.
+        flexShrink: (design - min) / design,
+        // Yoga lays these out from minHeight upward (the basis doesn't hold in
+        // the unbounded scroll container), so the design value must be the
+        // floor there — otherwise the natural-height measurement already sits
+        // at the comp floors and the bounded mode has nothing left to recover.
+        minHeight: compress ? min : design,
         flexGrow: design - min,
         maxHeight: 2 * design - min,
       }}
@@ -162,28 +178,14 @@ export default function Dashboard() {
         contentInsetAdjustmentBehavior="never"
         bounces={false}
       >
-        <View
-          style={styles.content}
-          onLayout={(e) => {
-            // The cache is keyed only to occasion ids, so content that grows
-            // afterwards (text reflow, late data) can outgrow what the gaps can
-            // absorb. Bounded, that overflow sits under the nav with scrolling
-            // off — drop the stale measurement so the column re-measures and
-            // falls back to scroll mode.
-            if (
-              fitsCompressed &&
-              e.nativeEvent.layout.height > viewportH - navClearance + 0.5
-            ) {
-              setMeasured(null);
-            }
-          }}
-        >
+        <View style={styles.content}>
           {groups.hero && (
             <>
               <HomeHeroCard occasion={groups.hero} />
               <FlexGap
                 min={Spacing.moduleStackGapMin}
                 design={Spacing.moduleStackGap}
+                compress={fitsCompressed}
               />
             </>
           )}
@@ -193,6 +195,7 @@ export default function Dashboard() {
               <FlexGap
                 min={Spacing.heroToSectionGapMin}
                 design={Spacing.heroToSectionGap}
+                compress={fitsCompressed}
               />
               <NextUpCarousel occasions={groups.nextUp} />
             </>
@@ -202,6 +205,7 @@ export default function Dashboard() {
               <FlexGap
                 min={Spacing.sectionGapMin}
                 design={Spacing.sectionGap}
+                compress={fitsCompressed}
               />
               <OnTheHorizonGrid occasions={groups.horizon} />
             </>
@@ -237,6 +241,9 @@ const styles = StyleSheet.create({
     // height (top/bottom-anchored column); vertical gaps live in the spacers,
     // not a column `gap`.
     flexGrow: 1,
+    // Lets the bounded mode cap the column at the viewport so its negative
+    // free space reaches the FlexGaps instead of overflowing under the nav.
+    flexShrink: 1,
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: Spacing.homeBottomInset,
