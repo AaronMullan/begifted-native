@@ -13,10 +13,12 @@ Take a Jira ticket from investigation to merged-ready PR. The ticket ID is passe
 
    ```bash
    .claude/scripts/jira-api get '/rest/api/2/issue/<KEY>?fields=summary,description,status,priority,labels,issuelinks,attachment' \
-     | jq '{key, summary: .fields.summary, status: .fields.status.name, description: .fields.description, links: [.fields.issuelinks[]? | {type: .type.name, key: (.inwardIssue.key // .outwardIssue.key)}], attachments: [.fields.attachment[]? | {filename, content}]}'
+     | jq '{key, summary: .fields.summary, status: .fields.status.name, labels: .fields.labels, description: .fields.description, links: [.fields.issuelinks[]? | {type: .type.name, key: (.inwardIssue.key // .outwardIssue.key)}], attachments: [.fields.attachment[]? | {filename, content}]}'
    ```
 
    Capture summary, description, acceptance criteria, linked designs/PRs. If the description cites prior-art/related tickets, glance at them for context (same `jira-api get` on each key). **Pull any attached screenshots** — download each attachment's `content` URL with `.claude/scripts/jira-api download <url> <scratchpad-path>` and Read the file — the original reporter's screenshot (e.g. carried over from a Slack report) usually shows the concrete error/UI better than the text. Identify which repo(s) are affected — this app (`begifted-native`) and/or the sibling `be-gifted` backend repo. If the ticket links a Figma/PDF design, confirm the interaction model and exact components/icons before coding (see CLAUDE.md → _Implementing from Designs_).
+
+   **Check for a fix that shipped after the report.** Feedback-sourced tickets can describe a binary weeks older than `main`. If the ticket carries the `verify-first` label, or its `Reported … build N` date predates recent Done work on the same screen, reproduce the bug on current `main` first (`/drive-sim`) before writing code. If it no longer reproduces: comment which ticket/commit fixed it and whether that fix is live (binary build or OTA), what you checked, and transition to **Done** — no branch, no PR, no Slack draft. Then stop.
 
 2. **Scope it first.** Before writing code, give a 3-line plan: root cause, the smallest change that fixes it, and which files. Start with the narrowest fix that satisfies the ticket — do not expand scope or refactor unless required. Pause for sign-off if scope is ambiguous or any change is destructive.
 

@@ -85,18 +85,22 @@ For each genuine item, draft:
   1. **Short-ID:** `.claude/scripts/jira-api search 'project = DEV AND text ~ "<SHORT-ID>"' 'summary,status' 10` — catches this exact feedback already filed by a prior run. Jira `text ~` is tokenized, so a short-ID query matches every ticket mentioning any `REACT-NATIVE-*` ID; a hit only counts if the ticket body actually carries this ID — confirm by reading, never by hit-count. For TestFlight items search the submission id the same way; the seen-table check in Step 1b is the primary guard, this is the backstop.
   2. **Prior feedback tickets:** `.claude/scripts/jira-api search 'project = DEV AND labels = user-feedback AND statusCategory != Done' 'summary,status' 20` — a different user reporting the same thing maps to the existing key.
   3. **Keywords:** `.claude/scripts/jira-api search 'project = DEV AND statusCategory != Done AND text ~ "<keywords>"' 'summary,status' 10` — feedback often overlaps prior tickets (DEV-200/DEV-201 came from earlier sweeps). If an _open_ ticket covers it, map to that key instead of drafting a duplicate.
+  4. **Fixed since the report:** the three checks above only see open tickets, so a report sent from an old binary about a bug fixed days later still looks new. Feedback can be weeks old by the time it's swept, so run this on every item that survives 1–3:
+     - **Pin the reporter's code.** Resolve the build to its commit: `eas build:list --platform ios --limit 30 --non-interactive --json` and take the **latest** entry whose `appBuildVersion` matches and whose `createdAt` is before the submission date — a build number can be cut more than once (build 60 was cut 2026-08-15 and again 2026-09-10), so the number alone is ambiguous. Sentry items: use the event's `release`/`dist` tags for the build number. If `eas` fails, fall back to the report date alone and say so in the ticket.
+     - **Look for a later fix.** `.claude/scripts/jira-api search 'project = DEV AND statusCategory = Done AND resolved >= "<report date>" AND text ~ "<keywords>"' 'summary,status,resolutiondate' 10`, and `git log --format='%h %cs %s' <build commit>..origin/main -- <the path:line files located above>` — commit subjects carry ticket keys. A Done ticket or commit that addresses the same symptom on the same screen is a **likely fix**; read it, don't match on keywords alone.
+     - A likely fix doesn't suppress the item — the reporter may have hit a variant the fix missed — but it changes how it's filed (Steps 3–4). The build commit goes in the body either way: `Reported … build 60 (2357ec0) …`.
 
 - **Related-but-declined** — surface any closed/declined ticket that overlaps. Not a dupe (don't suppress the draft), but cite the key. Headless: note the key in the new ticket's body rather than deciding to revive anything.
 
 ## Step 3 — Approval gate (interactive) / rubric gate (headless)
 
-**Interactive:** present the items as a table (Sentry ID · Summary · Type · Priority · New/Duplicate→KEY · Related), with dropped-junk and low-confidence items noted beneath so nothing is silently swallowed. **Do not file anything yet.** Wait for explicit sign-off; apply edits and re-show if changes are substantial.
+**Interactive:** present the items as a table (Sentry ID · Summary · Type · Priority · New/Duplicate→KEY/Likely fixed by KEY · Related), with dropped-junk and low-confidence items noted beneath so nothing is silently swallowed. **Do not file anything yet.** Wait for explicit sign-off; apply edits and re-show if changes are substantial.
 
-**Headless:** no gate. An item is filed only if it passed the junk filter cleanly, has a concrete actionable ask, and dedup found no open match. Anything else is skipped with a one-line reason in the report. Enforce the ≤ 20 cap here, ordered by severity.
+**Headless:** no gate. An item is filed only if it passed the junk filter cleanly, has a concrete actionable ask, and dedup found no open match. A likely-fixed item still files, with the `verify-first` label (Step 4). Anything else is skipped with a one-line reason in the report. Enforce the ≤ 20 cap here, ordered by severity.
 
 ## Step 4 — File the tickets
 
-For each approved (interactive) or rubric-clean (headless) item, `jira_create_issue` — project `DEV`, one at a time, **label `user-feedback`** via `additional_fields: {"labels": ["user-feedback"]}`. The label marks "filed from user feedback, not yet human-vetted" — tickets land in **To Do** and stay there until a human re-prioritizes (`labels = user-feedback` finds them all). Carry the research into the body — the Sentry URL and `Sentry: <SHORT-ID>` line, the `path:line` pointers, related/declined keys — so `/ticket` inherits the context instead of re-discovering it. For items that mapped to an existing key, don't refile; if the new feedback adds signal (new repro, another user), `jira_add_comment` on the existing ticket with the quote + Sentry URL. Collect resulting keys + URLs.
+For each approved (interactive) or rubric-clean (headless) item, `jira_create_issue` — project `DEV`, one at a time, **label `user-feedback`** via `additional_fields: {"labels": ["user-feedback"]}`. The label marks "filed from user feedback, not yet human-vetted" — tickets land in **To Do** and stay there until a human re-prioritizes (`labels = user-feedback` finds them all). Carry the research into the body — the Sentry URL and `Sentry: <SHORT-ID>` line, the `path:line` pointers, related/declined keys — so `/ticket` inherits the context instead of re-discovering it. A **likely-fixed** item (dedup check 4) gets labels `["user-feedback", "verify-first"]` and a body line `Likely fixed by: DEV-xxx (<commit>, after the reporter's build) — reproduce on current main before writing code`; `/ticket` reads that label and closes the ticket if the bug no longer reproduces. For items that mapped to an existing key, don't refile; if the new feedback adds signal (new repro, another user), `jira_add_comment` on the existing ticket with the quote + Sentry URL. Collect resulting keys + URLs.
 
 ## Step 5 — Close the Sentry-side loop
 
@@ -144,6 +148,7 @@ End with a summary block; every item pulled in Step 1 appears on exactly one lin
 ```
 FEEDBACK RUN <date>
   filed:      DEV-xxx <summary> (REACT-NATIVE-X → resolved)
+  verify:     DEV-xxx <summary> (likely fixed by DEV-yyy after build 60 — verify-first)
   duplicate:  REACT-NATIVE-Y → DEV-yyy (commented, resolved)
   junk:       REACT-NATIVE-Z (ignored — placeholder text)
   skipped:    REACT-NATIVE-W (borderline — <what a human should look at>)
