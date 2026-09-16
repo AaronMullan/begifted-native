@@ -83,7 +83,11 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
   }
 
   const birthdayInvalid = isInvalidBirthdayInput(birthday);
-  const birthdayHasKnownYear = birthdayHasYear(normalizeBirthday(birthday));
+  // birth_year holds the year when the birthday carries none (an age given
+  // without a date); profile synthesis derives the age from it.
+  const ageIsKnown =
+    birthdayHasYear(normalizeBirthday(birthday)) ||
+    recipient.birth_year != null;
   const canSave =
     name.trim().length > 0 &&
     relationshipType.trim().length > 0 &&
@@ -170,7 +174,7 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
                     "Use a date like August 18, 1985, or August 18 if you don't know the year."
                   }
                 </HelperText>
-              ) : birthdayHasKnownYear ? null : (
+              ) : ageIsKnown ? null : (
                 <HelperText type="info">
                   Year optional — add it so we can show their age accurately.
                 </HelperText>
