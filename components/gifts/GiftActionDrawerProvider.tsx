@@ -67,7 +67,9 @@ const GiftActionDrawerProvider: React.FC<ProviderProps> = ({ children }) => {
   useEffect(() => {
     if (!state) return;
     settledRef.current = false;
-    recoveryDismissPendingRef.current = false;
+    // A sheet still mounted here is mid-close from the previous open; its
+    // late onDismiss must not read as the user dismissing this one.
+    recoveryDismissPendingRef.current = mountedRef.current;
     sheetRef.current?.present();
     mountedRef.current = true;
     let attempts = 0;
