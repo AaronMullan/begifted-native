@@ -162,7 +162,22 @@ export default function Dashboard() {
         contentInsetAdjustmentBehavior="never"
         bounces={false}
       >
-        <View style={styles.content}>
+        <View
+          style={styles.content}
+          onLayout={(e) => {
+            // The cache is keyed only to occasion ids, so content that grows
+            // afterwards (text reflow, late data) can outgrow what the gaps can
+            // absorb. Bounded, that overflow sits under the nav with scrolling
+            // off — drop the stale measurement so the column re-measures and
+            // falls back to scroll mode.
+            if (
+              fitsCompressed &&
+              e.nativeEvent.layout.height > viewportH - navClearance + 0.5
+            ) {
+              setMeasured(null);
+            }
+          }}
+        >
           {groups.hero && (
             <>
               <HomeHeroCard occasion={groups.hero} />
