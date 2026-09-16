@@ -13,10 +13,15 @@ Take a Jira ticket from investigation to merged-ready PR. The ticket ID is passe
 
    ```bash
    .claude/scripts/jira-api get '/rest/api/2/issue/<KEY>?fields=summary,description,status,priority,labels,issuelinks,attachment' \
-     | jq '{key, summary: .fields.summary, status: .fields.status.name, description: .fields.description, links: [.fields.issuelinks[]? | {type: .type.name, key: (.inwardIssue.key // .outwardIssue.key)}], attachments: [.fields.attachment[]? | {filename, content}]}'
+     | jq '{key, summary: .fields.summary, status: .fields.status.name, labels: .fields.labels, description: .fields.description, links: [.fields.issuelinks[]? | {type: .type.name, key: (.inwardIssue.key // .outwardIssue.key)}], attachments: [.fields.attachment[]? | {filename, content}]}'
    ```
 
    Capture summary, description, acceptance criteria, linked designs/PRs. If the description cites prior-art/related tickets, glance at them for context (same `jira-api get` on each key). **Pull any attached screenshots** — download each attachment's `content` URL with `.claude/scripts/jira-api download <url> <scratchpad-path>` and Read the file — the original reporter's screenshot (e.g. carried over from a Slack report) usually shows the concrete error/UI better than the text. Identify which repo(s) are affected — this app (`begifted-native`) and/or the sibling `be-gifted` backend repo. If the ticket links a Figma/PDF design, confirm the interaction model and exact components/icons before coding (see CLAUDE.md → _Implementing from Designs_).
+
+   **`verify-first` tickets: reproduce before coding.** The feedback sweep adds this label when a fix for the same symptom merged after the reporter's last OTA (the body names it on a `Likely fixed by:` line). Try to reproduce the bug on current `main` first (`/drive-sim`). If it reproduces, carry on with step 2 — the named fix missed a case. If it doesn't:
+   - Confirm the named fix is **live** — its merge commit is in a production OTA **for the reporter's runtime version** (the `expo.version` their build shipped with — an OTA only reaches binaries on the same runtime; `eas update:view <group> --json` → `gitCommitHash`, then `git merge-base --is-ancestor`), or in a released store build newer than theirs. Merged-but-unshipped is not fixed for testers.
+   - Stop and ask before closing — this is a pause condition even in autonomous mode, since a simulator can't reproduce every device- or data-specific report. Present what you checked, the fix, and where it shipped.
+   - On a yes: comment those findings and transition to **Done**. No branch, PR, or Slack draft.
 
 2. **Scope it first.** Before writing code, give a 3-line plan: root cause, the smallest change that fixes it, and which files. Start with the narrowest fix that satisfies the ticket — do not expand scope or refactor unless required. Pause for sign-off if scope is ambiguous or any change is destructive.
 
@@ -81,6 +86,7 @@ Run the whole pipeline end-to-end without stopping between steps. The done-state
 - Scope is ambiguous or the ticket is underspecified (ask a focused question, don't guess).
 - A change is destructive or hard to reverse (schema drop, prod data mutation, edge-function deploy) — surface it for sign-off first.
 - Typecheck/lint can't be made clean with a narrow fix (report what's blocking instead of expanding scope).
+- A `verify-first` ticket no longer reproduces (step 1) — confirm before closing it without code.
 
 Otherwise keep going. Do not stop at "wrote the code" — commit, PR, review, merge, transition, and draft the summary. Review findings are handled inline per step 9 (fix behavior-level findings, defer scope-expanding ones to the report) — they are not a pause condition.
 
