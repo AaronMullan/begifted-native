@@ -16,6 +16,7 @@ import {
 } from "react-native-paper";
 import type { Recipient } from "../../types/recipient";
 import {
+  birthdayHasYear,
   formatBirthdayDisplay,
   isInvalidBirthdayInput,
   normalizeBirthday,
@@ -82,6 +83,7 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
   }
 
   const birthdayInvalid = isInvalidBirthdayInput(birthday);
+  const birthdayHasKnownYear = birthdayHasYear(normalizeBirthday(birthday));
   const canSave =
     name.trim().length > 0 &&
     relationshipType.trim().length > 0 &&
@@ -162,11 +164,17 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
                 placeholder="August 18, 1985 or August 18"
                 style={styles.input}
               />
-              <HelperText type={birthdayInvalid ? "error" : "info"}>
-                {birthdayInvalid
-                  ? "Use a date like August 18, 1985, or August 18 if you don't know the year."
-                  : "Year optional — add it so we can show their age accurately."}
-              </HelperText>
+              {birthdayInvalid ? (
+                <HelperText type="error">
+                  {
+                    "Use a date like August 18, 1985, or August 18 if you don't know the year."
+                  }
+                </HelperText>
+              ) : birthdayHasKnownYear ? null : (
+                <HelperText type="info">
+                  Year optional — add it so we can show their age accurately.
+                </HelperText>
+              )}
               <TextInput
                 mode="outlined"
                 label="Address"
