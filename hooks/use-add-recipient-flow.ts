@@ -511,6 +511,8 @@ export function useAddRecipientFlow(
         relationship_type: extracted.relationship_type,
         interests: extracted.interests || [],
         birthday: extracted.birthday || initialBirthday || undefined,
+        // saveRecipient turns a stated age into the birth year.
+        age: extracted.age ?? undefined,
         emotional_tone_preference:
           extracted.emotional_tone_preference || undefined,
         // Parent/household signal captured during the conversation, so the
