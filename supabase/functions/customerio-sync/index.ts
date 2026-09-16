@@ -156,7 +156,7 @@ serve(async (req: Request) => {
     const { data: profile } = await supabase
       .from("profiles")
       .select(
-        "full_name, trial_status, trial_start_date, trial_end_date, account_status, early_activated_at, qualified_trial_user_at, subscription_status, subscription_plan, marketing_email_status, lifecycle_email_status"
+        "full_name, trial_status, trial_start_date, trial_end_date, account_status, early_activated_at, qualified_trial_user_at, subscription_status, subscription_plan, subscription_end_date, marketing_email_status, lifecycle_email_status"
       )
       .eq("id", userId)
       .maybeSingle();
@@ -206,6 +206,12 @@ serve(async (req: Request) => {
         : undefined,
       subscription_status: profileAttr(profile?.subscription_status),
       subscription_plan: profileAttr(profile?.subscription_plan),
+      // An attribute rather than an event property so any message can quote
+      // the date access ends; the identify in this request runs before the
+      // event POST, so it is current by the time a journey fires.
+      subscription_end_date: profileAttr(
+        toUnixSeconds(profile?.subscription_end_date)
+      ),
       marketing_email_status: profileAttr(profile?.marketing_email_status),
       lifecycle_email_status: profileAttr(profile?.lifecycle_email_status),
       people_count: countOrOmit(peopleCount, "people_count"),
