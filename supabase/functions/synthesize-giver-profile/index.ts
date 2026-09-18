@@ -31,28 +31,23 @@ Draw from ALL available signals:
 Write in third person. Never write "this user" or "the user". Be specific and concrete — avoid generic labels like "thoughtful" unless the source text uses them. Preserve the user's distinctive voice and values.`;
 
 /**
- * Only an explicit self-introduction counts as the user naming themselves. A
- * self-description names recipients far more often than the giver, and the
- * model cannot tell the two apart: told it may use "a name the text gives as
- * the user's own", it reliably titles the profile "Sarah is..." from "Sarah is
- * the hardest person to buy for". Whether a name may be used is therefore
- * decided here, never left to the prompt.
+ * Only a phrase whose whole job is to state a name counts as the user naming
+ * themselves. A self-description names recipients far more often than the
+ * giver, and the model cannot tell the two apart: told it may use "a name the
+ * text gives as the user's own", it reliably titles the profile "Sarah is..."
+ * from "Sarah is the hardest person to buy for". Whether a name may be used is
+ * therefore decided here, never left to the prompt.
+ *
+ * "I'm X" is deliberately excluded despite being the most natural phrasing. It
+ * precedes a name no more often than a nationality, a role, or a recipient's
+ * possessive ("I'm Sarah's husband"), and no production self-description uses
+ * it to give a name — so it can only cost accuracy here.
  */
 const SELF_INTRODUCTION =
-  /(?:\b[Mm]y name(?:'s|’s| is)\s+|\bI(?:'m|’m| am)\s+|\b[Cc]all me\s+)(\p{Lu}[\p{Ll}'’]{1,19})(?=[.,!?;:]|\s|$)/u;
-
-/**
- * A self-introduction lead-in also precedes plenty of non-names ("I'm American",
- * "I'm Dad to two"), so a candidate is only taken when the sentence offers no
- * competing reading — a capitalized word that is a nationality, a role, or a
- * place reads as a description of the user, not as their name.
- */
-const NOT_A_NAME =
-  /^(?:American|British|Canadian|Australian|Irish|Scottish|Italian|Mexican|Indian|Chinese|Japanese|Korean|German|French|Spanish|Dutch|Jewish|Catholic|Christian|Muslim|Hindu|Buddhist|Dad|Mom|Mum|Mama|Papa|Grandma|Grandpa|New|Southern|Northern|Eastern|Western|Midwestern)$/;
+  /(?:\b[Mm]y name(?:'s|’s| is)\s+|\b[Cc]alls? me\s+|\bI(?:'m|’m| am) called\s+|\bI go by\s+)(\p{Lu}[\p{L}'’-]{0,19})(?=[.,!?;:]|\s|$)/u;
 
 function extractSelfIntroducedName(userDescription: string): string {
-  const candidate = SELF_INTRODUCTION.exec(userDescription)?.[1] ?? "";
-  return NOT_A_NAME.test(candidate) ? "" : candidate;
+  return SELF_INTRODUCTION.exec(userDescription)?.[1] ?? "";
 }
 
 /**
