@@ -28,7 +28,20 @@ Draw from ALL available signals:
 - Gifting style text: their stated approach, priorities, and budget philosophy
 - Gift history patterns: types of gifts they've given and price points
 
-Write in third person, referring to the user by their first name from the Name field (e.g. "Aaron is..."). Never write "this user" or "the user". Be specific and concrete — avoid generic labels like "thoughtful" unless the source text uses them. Preserve the user's distinctive voice and values.`;
+Write in third person. Never write "this user" or "the user". Be specific and concrete — avoid generic labels like "thoughtful" unless the source text uses them. Preserve the user's distinctive voice and values.`;
+
+/**
+ * The naming rule carries the user's own first name rather than an example,
+ * because a literal example name in the prompt becomes the answer whenever no
+ * name is supplied: the model has no other first name to reach for.
+ */
+function buildNamingInstruction(fullName: string): string {
+  const firstName = fullName.split(/\s+/)[0] ?? "";
+  if (firstName) {
+    return `The user's first name is ${firstName}. Refer to them as "${firstName}" throughout — open with "${firstName} is...". Use the first name alone, never the full name.`;
+  }
+  return `The user's name is not known. Never invent, guess, or borrow a name — no name appearing anywhere in these instructions belongs to this user. If the information below states the user's own name, use that first name. Otherwise write about them as "they", without naming them and without writing "this user" or "the user".`;
+}
 
 const JSON_INSTRUCTION = `Return ONLY valid JSON:
 {
@@ -237,6 +250,7 @@ serve(async (req) => {
     // writing guidance and let the model discard the chat-only parts.
     const systemPrompt = [
       SYSTEM_PROMPT_BODY,
+      buildNamingInstruction(fullName),
       voicePrinciple &&
         `Write the profile in this voice. The guidance below is shared with BeGifted's conversational UI — apply the writing principles; ignore anything that only applies to chat interactions:
 
