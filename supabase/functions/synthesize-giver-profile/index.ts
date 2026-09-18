@@ -28,7 +28,52 @@ Draw from ALL available signals:
 - Gifting style text: their stated approach, priorities, and budget philosophy
 - Gift history patterns: types of gifts they've given and price points
 
-Write in third person, referring to the user by their first name from the Name field (e.g. "Aaron is..."). Never write "this user" or "the user". Be specific and concrete — avoid generic labels like "thoughtful" unless the source text uses them. Preserve the user's distinctive voice and values.`;
+Write in third person. Never write "this user" or "the user". Be specific and concrete — avoid generic labels like "thoughtful" unless the source text uses them. Preserve the user's distinctive voice and values.`;
+
+/**
+ * Only a phrase whose whole job is to state a name counts as the user naming
+ * themselves. A self-description names recipients far more often than the
+ * giver, and the model cannot tell the two apart: told it may use "a name the
+ * text gives as the user's own", it reliably titles the profile "Sarah is..."
+ * from "Sarah is the hardest person to buy for". Whether a name may be used is
+ * therefore decided here, never left to the prompt.
+ *
+ * "I'm X" is deliberately excluded despite being the most natural phrasing. It
+ * precedes a name no more often than a nationality, a role, or a recipient's
+ * possessive ("I'm Sarah's husband"), and no production self-description uses
+ * it to give a name — so it can only cost accuracy here.
+ */
+const SELF_INTRODUCTION =
+  /(?:\b[Mm]y name(?:'s|’s| is)\s+|\b[Cc]alls? me\s+|\bI(?:'m|’m| am) called\s+|\bI go by\s+)(\p{Lu}[\p{L}'’-]{0,19})(?=[.,!?;:]|\s|$)/u;
+
+function extractSelfIntroducedName(userDescription: string): string {
+  return SELF_INTRODUCTION.exec(userDescription)?.[1] ?? "";
+}
+
+/**
+ * The naming rule carries the user's own name rather than an example, because a
+ * literal example name in the prompt becomes the answer whenever no name is
+ * supplied: the model has no other first name to reach for.
+ *
+ * A stored name is handed over whole for the model to pick the first name out
+ * of — extracting a leading token here would name titled ("Dr. Ahmed Khan") and
+ * inverted ("Smith, John") records after the wrong word.
+ */
+function buildNamingInstruction(
+  fullName: string,
+  userDescription: string
+): string {
+  if (fullName) {
+    return `The user's name is: ${fullName}. Refer to them by their first name alone — open the profile with that first name followed by "is...". Never use their full name, surname, or any title.`;
+  }
+
+  const selfIntroduced = extractSelfIntroducedName(userDescription);
+  if (selfIntroduced) {
+    return `The user's name is ${selfIntroduced}. Refer to them as "${selfIntroduced}" throughout — open the profile with "${selfIntroduced} is...". Use no other name.`;
+  }
+
+  return `The user's name is not known. Never name them: no name appearing in these instructions or in the information below belongs to this user — every personal name in that text is someone they give gifts to. Write about them as "they", without writing "this user" or "the user".`;
+}
 
 const JSON_INSTRUCTION = `Return ONLY valid JSON:
 {
@@ -104,9 +149,8 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch user preferences and the user's name. Without the name the model
-    // has nothing to satisfy the prompt's third-person instruction and falls
-    // back to "This user is..." in the About You card.
+    // full_name decides how the profile addresses the user, so it is fetched
+    // alongside the preferences rather than left to the model to infer.
     const [{ data: prefs }, { data: profileRow }, conversationPrompt] =
       await Promise.all([
         supabase
@@ -237,6 +281,7 @@ serve(async (req) => {
     // writing guidance and let the model discard the chat-only parts.
     const systemPrompt = [
       SYSTEM_PROMPT_BODY,
+      buildNamingInstruction(fullName, userDescription),
       voicePrinciple &&
         `Write the profile in this voice. The guidance below is shared with BeGifted's conversational UI — apply the writing principles; ignore anything that only applies to chat interactions:
 
