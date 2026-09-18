@@ -31,16 +31,53 @@ Draw from ALL available signals:
 Write in third person. Never write "this user" or "the user". Be specific and concrete — avoid generic labels like "thoughtful" unless the source text uses them. Preserve the user's distinctive voice and values.`;
 
 /**
- * The naming rule carries the user's own first name rather than an example,
- * because a literal example name in the prompt becomes the answer whenever no
- * name is supplied: the model has no other first name to reach for.
+ * Only an explicit self-introduction counts as the user naming themselves. A
+ * self-description names recipients far more often than the giver, and the
+ * model cannot tell the two apart: told it may use "a name the text gives as
+ * the user's own", it reliably titles the profile "Sarah is..." from "Sarah is
+ * the hardest person to buy for". Whether a name may be used is therefore
+ * decided here, never left to the prompt.
  */
-function buildNamingInstruction(fullName: string): string {
-  const firstName = fullName.split(/\s+/)[0] ?? "";
-  if (firstName) {
-    return `The user's first name is ${firstName}. Refer to them as "${firstName}" throughout — open with "${firstName} is...". Use the first name alone, never the full name.`;
+const SELF_INTRODUCTION =
+  /(?:\b[Mm]y name(?:'s|’s| is)\s+|\bI(?:'m|’m| am)\s+|\b[Cc]all me\s+)(\p{Lu}[\p{Ll}'’]{1,19})(?=[.,!?;:]|\s|$)/u;
+
+/**
+ * A self-introduction lead-in also precedes plenty of non-names ("I'm American",
+ * "I'm Dad to two"), so a candidate is only taken when the sentence offers no
+ * competing reading — a capitalized word that is a nationality, a role, or a
+ * place reads as a description of the user, not as their name.
+ */
+const NOT_A_NAME =
+  /^(?:American|British|Canadian|Australian|Irish|Scottish|Italian|Mexican|Indian|Chinese|Japanese|Korean|German|French|Spanish|Dutch|Jewish|Catholic|Christian|Muslim|Hindu|Buddhist|Dad|Mom|Mum|Mama|Papa|Grandma|Grandpa|New|Southern|Northern|Eastern|Western|Midwestern)$/;
+
+function extractSelfIntroducedName(userDescription: string): string {
+  const candidate = SELF_INTRODUCTION.exec(userDescription)?.[1] ?? "";
+  return NOT_A_NAME.test(candidate) ? "" : candidate;
+}
+
+/**
+ * The naming rule carries the user's own name rather than an example, because a
+ * literal example name in the prompt becomes the answer whenever no name is
+ * supplied: the model has no other first name to reach for.
+ *
+ * A stored name is handed over whole for the model to pick the first name out
+ * of — extracting a leading token here would name titled ("Dr. Ahmed Khan") and
+ * inverted ("Smith, John") records after the wrong word.
+ */
+function buildNamingInstruction(
+  fullName: string,
+  userDescription: string
+): string {
+  if (fullName) {
+    return `The user's name is: ${fullName}. Refer to them by their first name alone — open the profile with that first name followed by "is...". Never use their full name, surname, or any title.`;
   }
-  return `The user's name is not known. Never invent, guess, or borrow a name — no name appearing anywhere in these instructions belongs to this user. If the information below states the user's own name, use that first name. Otherwise write about them as "they", without naming them and without writing "this user" or "the user".`;
+
+  const selfIntroduced = extractSelfIntroducedName(userDescription);
+  if (selfIntroduced) {
+    return `The user's name is ${selfIntroduced}. Refer to them as "${selfIntroduced}" throughout — open the profile with "${selfIntroduced} is...". Use no other name.`;
+  }
+
+  return `The user's name is not known. Never name them: no name appearing in these instructions or in the information below belongs to this user — every personal name in that text is someone they give gifts to. Write about them as "they", without writing "this user" or "the user".`;
 }
 
 const JSON_INSTRUCTION = `Return ONLY valid JSON:
@@ -117,9 +154,8 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch user preferences and the user's name. Without the name the model
-    // has nothing to satisfy the prompt's third-person instruction and falls
-    // back to "This user is..." in the About You card.
+    // full_name decides how the profile addresses the user, so it is fetched
+    // alongside the preferences rather than left to the model to infer.
     const [{ data: prefs }, { data: profileRow }, conversationPrompt] =
       await Promise.all([
         supabase
@@ -250,7 +286,7 @@ serve(async (req) => {
     // writing guidance and let the model discard the chat-only parts.
     const systemPrompt = [
       SYSTEM_PROMPT_BODY,
-      buildNamingInstruction(fullName),
+      buildNamingInstruction(fullName, userDescription),
       voicePrinciple &&
         `Write the profile in this voice. The guidance below is shared with BeGifted's conversational UI — apply the writing principles; ignore anything that only applies to chat interactions:
 
