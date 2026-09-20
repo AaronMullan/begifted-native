@@ -190,20 +190,35 @@ export default function RecipientEditPage() {
     tab === "details" || tab === "gifts" ? tab : (previous ?? "gifts")
   );
 
-  // Tabs are local state, so a details→gifts switch pushes nothing onto the
-  // navigation stack. The Gift Ideas chevron must unwind that switch itself
-  // instead of popping the route (which lands on whatever pushed it). Keyed on
-  // the tab param so a fresh navigation straight to gifts resets it.
-  const [giftsReachedFromDetails, setGiftsReachedFromDetails] =
-    useParamDrivenState<string | undefined, boolean>(params.tab, () => false);
+  // Tabs are local state, so a tab switch pushes nothing onto the navigation
+  // stack; each header's back affordance has to unwind that switch itself
+  // instead of popping the route (which lands on whatever pushed it). This is a
+  // one-deep in-screen back stack: a forward switch records the tab left
+  // behind, and going back *consumes* it, so back can never bounce between the
+  // two tabs forever. Null means the current tab was reached by navigation, so
+  // back belongs to the router. Keyed on the tab param so a fresh navigation
+  // into either tab resets it.
+  const [innerBackTab, setInnerBackTab] = useParamDrivenState<
+    string | undefined,
+    "details" | "gifts" | null
+  >(params.tab, () => null);
+
+  const goBackFromTab = (previous: "details" | "gifts") => {
+    if (innerBackTab !== previous) {
+      router.back();
+      return;
+    }
+    setInnerBackTab(null);
+    setActiveTab(previous);
+  };
 
   const showDetailsFromGifts = () => {
-    setGiftsReachedFromDetails(false);
+    setInnerBackTab("gifts");
     setActiveTab("details");
   };
 
   const showGiftsFromDetails = () => {
-    setGiftsReachedFromDetails(true);
+    setInnerBackTab("details");
     setActiveTab("gifts");
   };
 
@@ -655,9 +670,7 @@ export default function RecipientEditPage() {
       {activeTab === "gifts" ? (
         <View style={styles.hero}>
           <Pressable
-            onPress={() =>
-              giftsReachedFromDetails ? showDetailsFromGifts() : router.back()
-            }
+            onPress={() => goBackFromTab("details")}
             style={styles.backButton}
             accessibilityRole="button"
             accessibilityLabel="Go back"
@@ -683,10 +696,12 @@ export default function RecipientEditPage() {
       ) : (
         <View style={styles.detailsHeader}>
           <Pressable
-            onPress={showGiftsFromDetails}
+            onPress={() => goBackFromTab("gifts")}
             style={styles.detailsBackLink}
             accessibilityRole="button"
-            accessibilityLabel="Back to Gift Ideas"
+            accessibilityLabel={
+              innerBackTab === "gifts" ? "Back to Gift Ideas" : "Go back"
+            }
             hitSlop={8}
           >
             <MaterialIcons
@@ -694,7 +709,9 @@ export default function RecipientEditPage() {
               size={20}
               color={Colors.brand.darkTeal}
             />
-            <Text style={styles.detailsBackText}>Gift Ideas</Text>
+            <Text style={styles.detailsBackText}>
+              {innerBackTab === "gifts" ? "Gift Ideas" : "Back"}
+            </Text>
           </Pressable>
         </View>
       )}
