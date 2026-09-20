@@ -18,7 +18,7 @@ import {
 } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
 import { AdminTheme } from "@/lib/admin-theme";
-import { PROMPT_REGISTRY } from "@/lib/prompt-registry";
+import { PROMPT_REGISTRY, findMissingSections } from "@/lib/prompt-registry";
 import type { SystemPromptVersion } from "@/lib/api";
 import type { PromptDefinition } from "@/lib/prompt-registry";
 
@@ -37,6 +37,15 @@ const PromptsScreen: React.FC = () => {
   );
 
   const selectedDef = PROMPT_REGISTRY.find((p) => p.key === selectedPromptKey);
+
+  // Rolling back is the normal response to a bad prompt, which makes it the
+  // likeliest way to re-activate a version predating a heading that other code
+  // slices this prompt at. Nothing downstream errors when that happens, so the
+  // loss has to be named here.
+  const rollbackMissingSections = findMissingSections(
+    selectedDef,
+    rollbackTarget?.prompt_text ?? ""
+  );
 
   const activeQuery = useQuery({
     queryKey: queryKeys.activeSystemPrompt(selectedPromptKey),
@@ -236,6 +245,14 @@ const PromptsScreen: React.FC = () => {
               {rollbackTarget?.version}? This will make it the active production
               prompt.
             </Text>
+            {rollbackTarget && rollbackMissingSections.length > 0 && (
+              <Text variant="bodyMedium" style={styles.rollbackWarning}>
+                Version {rollbackTarget.version} does not contain{" "}
+                {rollbackMissingSections.join(", ")}. Other parts of BeGifted
+                read that section out of the live prompt by its heading, and
+                lose it with no error when it is absent.
+              </Text>
+            )}
             {rollbackTarget?.change_notes && (
               <Text variant="bodySmall" style={styles.rollbackNotes}>
                 Notes: {rollbackTarget.change_notes}
@@ -330,6 +347,10 @@ const styles = StyleSheet.create({
   emptyText: {
     color: AdminTheme.text,
     padding: 12,
+  },
+  rollbackWarning: {
+    marginTop: 8,
+    color: AdminTheme.warn,
   },
   rollbackNotes: {
     marginTop: 8,

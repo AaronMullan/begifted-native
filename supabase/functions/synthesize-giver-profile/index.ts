@@ -6,6 +6,11 @@ import { callAI, getApiKey, CONVERSATION_MODEL } from "../_shared/ai-client.ts";
 import { internalErrorResponse } from "../_shared/error-response.ts";
 import { loadActivePrompt } from "../_shared/prompt-loader.ts";
 import { requireUser } from "../_shared/require-user.ts";
+import {
+  extractVoicePrinciple,
+  VOICE_HEADING,
+  VOICE_PROMPT_KEY,
+} from "../_shared/voice-principle.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -80,24 +85,6 @@ const JSON_INSTRUCTION = `Return ONLY valid JSON:
   "synthesized_giver_profile": "3-5 sentence profile here"
 }`;
 
-const VOICE_HEADING = "BEGIFTED VOICE PRINCIPLE:";
-
-/**
- * The brand voice is maintained in the active add_recipient_conversation
- * prompt (edited through the admin playground), so it must be referenced at
- * runtime — copying it into this file would let the two drift apart. The
- * section runs from the VOICE_HEADING line to the next all-caps heading;
- * returns "" if the heading is gone so the caller can synthesize without it.
- */
-function extractVoicePrinciple(promptText: string): string {
-  const start = promptText.indexOf(VOICE_HEADING);
-  if (start === -1) return "";
-  const rest = promptText.slice(start + VOICE_HEADING.length);
-  const nextHeading = rest.match(/^[A-Z][A-Z0-9 &'/-]*:\s*$/m);
-  const body = nextHeading ? rest.slice(0, nextHeading.index) : rest;
-  return body.trim();
-}
-
 type SynthesizeGiverProfileRequest = { userId?: unknown };
 
 /**
@@ -151,7 +138,7 @@ serve(async (req) => {
 
     // full_name decides how the profile addresses the user, so it is fetched
     // alongside the preferences rather than left to the model to infer.
-    const [{ data: prefs }, { data: profileRow }, conversationPrompt] =
+    const [{ data: prefs }, { data: profileRow }, voiceSourcePrompt] =
       await Promise.all([
         supabase
           .from("user_preferences")
@@ -163,12 +150,7 @@ serve(async (req) => {
           .select("full_name")
           .eq("id", userId)
           .maybeSingle(),
-        loadActivePrompt(
-          supabaseUrl,
-          supabaseServiceKey,
-          "add_recipient_conversation",
-          ""
-        ),
+        loadActivePrompt(supabaseUrl, supabaseServiceKey, VOICE_PROMPT_KEY, ""),
       ]);
 
     const fullName =
@@ -270,22 +252,37 @@ serve(async (req) => {
       .filter(Boolean)
       .join("\n\n");
 
-    const voicePrinciple = extractVoicePrinciple(conversationPrompt);
-    if (!voicePrinciple) {
-      console.warn(
-        `synthesize-giver-profile: "${VOICE_HEADING}" section not found in the active add_recipient_conversation prompt; synthesizing without voice guidance`
+    const voicePrinciple = extractVoicePrinciple(voiceSourcePrompt);
+    if (voicePrinciple) {
+      console.log(
+        `synthesize-giver-profile: voice section attached (${voicePrinciple.length} chars from ${VOICE_PROMPT_KEY})`
+      );
+    } else {
+      // Error level, not warn: this degrades every profile from here on and is
+      // invisible in the output, so it has to be reachable by a log query that
+      // filters on severity.
+      console.error(
+        `synthesize-giver-profile: "${VOICE_HEADING}" section not found in the active ${VOICE_PROMPT_KEY} prompt; synthesizing without voice guidance`
       );
     }
 
-    // The voice section is written for conversational UI, so frame it as
-    // writing guidance and let the model discard the chat-only parts.
+    // The voice section governs the copy attached to gift suggestions, so
+    // frame it as writing guidance and let the model discard the rules that
+    // only bind those fields.
+    //
+    // It also carries "use the recipient's name only when it improves the
+    // sentence" — about the gift recipient, but the model reads it as being
+    // about whoever the text names. That contradicts the naming rule outright,
+    // so the naming rule is both carved out below and placed after the voice
+    // block: whichever way the model resolves the conflict, it resolves it the
+    // same way.
     const systemPrompt = [
       SYSTEM_PROMPT_BODY,
-      buildNamingInstruction(fullName, userDescription),
       voicePrinciple &&
-        `Write the profile in this voice. The guidance below is shared with BeGifted's conversational UI — apply the writing principles; ignore anything that only applies to chat interactions:
+        `Write the profile in this voice. The guidance below is BeGifted's house voice, written for the copy that accompanies gift suggestions — apply the writing principles; ignore the parts that govern specific output fields (reason_short, reason_full, tags), their character limits, the JSON they belong to, and anything it says about when to use a name:
 
 ${voicePrinciple}`,
+      buildNamingInstruction(fullName, userDescription),
       JSON_INSTRUCTION,
     ]
       .filter(Boolean)
