@@ -21,6 +21,7 @@ import {
 } from "../../lib/legal-acceptance";
 import { Spacing } from "@/lib/spacing";
 import { KEYBOARD_CTA_GAP } from "@/lib/constants";
+import { confirmSignUpNameSaved } from "@/lib/signup-name";
 
 type IntroSignUpProps = {
   onSignedUp: () => Promise<void> | void;
@@ -46,11 +47,18 @@ async function performSignUp(
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    // On web the verification link keeps the default Site URL redirect; on
-    // native it must deep-link back into the app (see app/auth/callback.tsx).
-    ...(Platform.OS === "web"
-      ? {}
-      : { options: { emailRedirectTo: EMAIL_CONFIRM_REDIRECT_URL } }),
+    options: {
+      // The on_auth_user_created trigger copies full_name out of this metadata
+      // as it inserts the profile row, which is the only path that works while
+      // email confirmation is pending: there is no session yet, so a client
+      // write would be RLS-filtered to zero rows and still report success.
+      data: { full_name: name },
+      // On web the verification link keeps the default Site URL redirect; on
+      // native it must deep-link back into the app (see app/auth/callback.tsx).
+      ...(Platform.OS === "web"
+        ? {}
+        : { emailRedirectTo: EMAIL_CONFIRM_REDIRECT_URL }),
+    },
   });
 
   if (error) return { error: error.message };
@@ -61,13 +69,8 @@ async function performSignUp(
     };
   }
 
-  if (data.user) {
-    await supabase
-      .from("profiles")
-      .upsert({ id: data.user.id, full_name: name }, { onConflict: "id" });
-  }
-
   if (!data.session) return { needsVerification: true };
+  if (data.user) await confirmSignUpNameSaved(data.user.id, name);
   return { ok: true };
 }
 

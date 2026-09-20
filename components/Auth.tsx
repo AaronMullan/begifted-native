@@ -26,6 +26,7 @@ import { Colors } from "../lib/colors";
 import { Typography, Radii } from "../lib/typography";
 import { Spacing } from "../lib/spacing";
 import { KEYBOARD_CTA_GAP } from "@/lib/constants";
+import { confirmSignUpNameSaved } from "@/lib/signup-name";
 
 type FormData = {
   email: string;
@@ -39,6 +40,7 @@ export default function Auth() {
   const [message, setMessage] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [acceptedLegal, setAcceptedLegal] = useState(false);
+  const [name, setName] = useState("");
 
   const {
     control,
@@ -99,14 +101,23 @@ export default function Auth() {
       // If config fetch fails, allow signup to proceed
     }
 
+    const trimmedName = name.trim();
     const { data: signUpData, error } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
-      // On web the verification link keeps the default Site URL redirect; on
-      // native it must deep-link back into the app (see app/auth/callback.tsx).
-      ...(Platform.OS === "web"
-        ? {}
-        : { options: { emailRedirectTo: EMAIL_CONFIRM_REDIRECT_URL } }),
+      options: {
+        // The on_auth_user_created trigger copies full_name out of this
+        // metadata as it inserts the profile row, which is the only path that
+        // works while email confirmation is pending: there is no session yet,
+        // so a client write would be RLS-filtered to zero rows and still
+        // report success.
+        data: { full_name: trimmedName },
+        // On web the verification link keeps the default Site URL redirect; on
+        // native it must deep-link back into the app (see app/auth/callback.tsx).
+        ...(Platform.OS === "web"
+          ? {}
+          : { emailRedirectTo: EMAIL_CONFIRM_REDIRECT_URL }),
+      },
     });
 
     if (error) {
@@ -116,9 +127,13 @@ export default function Auth() {
         "Error: An account with this email already exists. Try signing in instead."
       );
     } else if (signUpData.session) {
+      if (signUpData.user) {
+        await confirmSignUpNameSaved(signUpData.user.id, trimmedName);
+      }
       // Fire-and-forget: recording must not delay the signed-in transition,
       // and failures are Sentry-reported inside the helper.
       void recordLegalAcceptance("signup_checkbox");
+      setName("");
       reset();
     } else {
       // No session yet, so the acceptance can't be recorded until the user
@@ -197,12 +212,32 @@ export default function Auth() {
           </Text>
           <Text style={[Typography.copyblock, styles.subtitle]}>
             {isSignUp
-              ? "Enter your email and a password to get started"
+              ? "Enter your name, email and a password to get started"
               : "Sign in with your email and password"}
           </Text>
 
+          {isSignUp && (
+            <View style={[styles.verticallySpaced, styles.mt20]}>
+              <TextInput
+                mode="outlined"
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="words"
+                autoComplete="name"
+                textContentType="name"
+                outlineColor={Colors.brand.mediumTeal}
+                activeOutlineColor={Colors.brand.darkTeal}
+                outlineStyle={styles.inputOutline}
+                style={styles.input}
+              />
+              <Text style={[Typography.fieldLabel, styles.fieldLabel]}>
+                Name
+              </Text>
+            </View>
+          )}
+
           {/* Email Field */}
-          <View style={[styles.verticallySpaced, styles.mt20]}>
+          <View style={[styles.verticallySpaced, !isSignUp && styles.mt20]}>
             <Controller
               control={control}
               name="email"
@@ -308,7 +343,9 @@ export default function Auth() {
             <PrimaryCta
               label={isSignUp ? "Create Account" : "Sign In"}
               state={loading ? "loading" : "idle"}
-              disabled={isSignUp && !acceptedLegal}
+              disabled={
+                isSignUp && (!acceptedLegal || name.trim().length === 0)
+              }
               onPress={handleSubmit(isSignUp ? handleSignUp : handleSignIn)}
             />
             <Button
