@@ -1,5 +1,4 @@
 import { useState } from "react";
-import * as Sentry from "@sentry/react-native";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -22,6 +21,7 @@ import {
 } from "../../lib/legal-acceptance";
 import { Spacing } from "@/lib/spacing";
 import { KEYBOARD_CTA_GAP } from "@/lib/constants";
+import { confirmSignUpNameSaved } from "@/lib/signup-name";
 
 type IntroSignUpProps = {
   onSignedUp: () => Promise<void> | void;
@@ -70,42 +70,8 @@ async function performSignUp(
   }
 
   if (!data.session) return { needsVerification: true };
-  if (data.user) await confirmNameSaved(data.user.id, name);
+  if (data.user) await confirmSignUpNameSaved(data.user.id, name);
   return { ok: true };
-}
-
-/**
- * A profile write that changes nothing looks identical to one that worked, so
- * the name is verified by reading it back rather than by the absence of an
- * error. Requires the session signUp just returned; without one the read is
- * RLS-filtered too and proves nothing. Repair failures go to Sentry instead of
- * blocking the user, whose account already exists by this point.
- */
-async function confirmNameSaved(userId: string, name: string): Promise<void> {
-  try {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("full_name")
-      .eq("id", userId)
-      .maybeSingle();
-    if (error) throw error;
-    if (data?.full_name === name) return;
-
-    // .single() turns an RLS-filtered no-op into an error, which a bare
-    // update would not surface.
-    const { error: repairError } = await supabase
-      .from("profiles")
-      .update({ full_name: name })
-      .eq("id", userId)
-      .select("full_name")
-      .single();
-    if (repairError) throw repairError;
-  } catch (err) {
-    Sentry.captureException(
-      err instanceof Error ? err : new Error(String(err)),
-      { tags: { feature: "signup-name" } }
-    );
-  }
 }
 
 export default function IntroSignUp({
