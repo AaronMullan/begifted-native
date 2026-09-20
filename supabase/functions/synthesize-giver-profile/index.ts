@@ -269,13 +269,20 @@ serve(async (req) => {
     // The voice section governs the copy attached to gift suggestions, so
     // frame it as writing guidance and let the model discard the rules that
     // only bind those fields.
+    //
+    // It also carries "use the recipient's name only when it improves the
+    // sentence" — about the gift recipient, but the model reads it as being
+    // about whoever the text names. That contradicts the naming rule outright,
+    // so the naming rule is both carved out below and placed after the voice
+    // block: whichever way the model resolves the conflict, it resolves it the
+    // same way.
     const systemPrompt = [
       SYSTEM_PROMPT_BODY,
-      buildNamingInstruction(fullName, userDescription),
       voicePrinciple &&
-        `Write the profile in this voice. The guidance below is BeGifted's house voice, written for the copy that accompanies gift suggestions — apply the writing principles; ignore the parts that govern specific output fields (reason_short, reason_full, tags), their character limits, and the JSON they belong to:
+        `Write the profile in this voice. The guidance below is BeGifted's house voice, written for the copy that accompanies gift suggestions — apply the writing principles; ignore the parts that govern specific output fields (reason_short, reason_full, tags), their character limits, the JSON they belong to, and anything it says about when to use a name:
 
 ${voicePrinciple}`,
+      buildNamingInstruction(fullName, userDescription),
       JSON_INSTRUCTION,
     ]
       .filter(Boolean)
