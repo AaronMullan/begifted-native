@@ -27,6 +27,13 @@ export type PromptDefinition = {
    * Users can still override via the model dropdown.
    */
   taskModel: TaskModel;
+  /**
+   * Headings that code elsewhere slices this prompt at. Renaming one severs a
+   * runtime dependency without any error — the consumer just proceeds with a
+   * missing section — so the Deploy dialog is the only place a human is
+   * present to be warned. Keep in step with the consumer's own constant.
+   */
+  requiredSections?: string[];
 };
 
 export const APP_CONFIG_MODEL: TaskModel = {
@@ -48,6 +55,10 @@ export const PROMPT_REGISTRY: PromptDefinition[] = [
     defaultPrompt: "",
     templateVariables: [],
     taskModel: APP_CONFIG_MODEL,
+    // synthesize-giver-profile reads BeGifted's voice out of this section at
+    // runtime (supabase/functions/_shared/voice-principle.ts) rather than
+    // keeping a copy that could drift.
+    requiredSections: ["EDITORIAL VOICE AND REASON QUALITY:"],
   },
   {
     key: "add_recipient_conversation",
@@ -245,4 +256,17 @@ Return ONLY valid JSON:
 
 export function getPromptByKey(key: string): PromptDefinition | undefined {
   return PROMPT_REGISTRY.find((p) => p.key === key);
+}
+
+/**
+ * Which of a prompt's `requiredSections` the edited text no longer contains.
+ * Matched as a plain substring, the same way the consuming code finds them.
+ */
+export function findMissingSections(
+  definition: PromptDefinition | undefined,
+  promptText: string
+): string[] {
+  return (definition?.requiredSections ?? []).filter(
+    (heading) => !promptText.includes(heading)
+  );
 }
