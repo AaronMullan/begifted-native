@@ -151,6 +151,7 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
                 label="Name"
                 defaultValue={name}
                 onChangeText={setName}
+                autoCapitalize="words"
                 style={styles.input}
               />
               <TextInput

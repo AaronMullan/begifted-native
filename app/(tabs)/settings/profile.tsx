@@ -408,6 +408,7 @@ export default function ProfileSettings() {
                     onChangeText={setFullName}
                     onBlur={() => persistOnBlur()}
                     placeholder="Enter your full name"
+                    autoCapitalize="words"
                     style={styles.input}
                   />
                 </View>

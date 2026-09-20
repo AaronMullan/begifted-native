@@ -129,6 +129,7 @@ export function DataReviewView({
               value={extractedData.name || ""}
               onChangeText={(value) => updateField("name", value)}
               placeholder="Enter name"
+              autoCapitalize="words"
               style={styles.input}
             />
           </View>

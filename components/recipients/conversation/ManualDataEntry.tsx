@@ -128,6 +128,7 @@ export function ManualDataEntry({
                 value={name}
                 onChangeText={setName}
                 placeholder="Enter name"
+                autoCapitalize="words"
                 style={styles.input}
               />
             </View>
