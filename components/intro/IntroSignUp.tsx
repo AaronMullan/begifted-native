@@ -1,4 +1,5 @@
 import { useState } from "react";
+import * as Sentry from "@sentry/react-native";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -46,11 +47,18 @@ async function performSignUp(
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    // On web the verification link keeps the default Site URL redirect; on
-    // native it must deep-link back into the app (see app/auth/callback.tsx).
-    ...(Platform.OS === "web"
-      ? {}
-      : { options: { emailRedirectTo: EMAIL_CONFIRM_REDIRECT_URL } }),
+    options: {
+      // The on_auth_user_created trigger copies full_name out of this metadata
+      // as it inserts the profile row, which is the only path that works while
+      // email confirmation is pending: there is no session yet, so a client
+      // write would be RLS-filtered to zero rows and still report success.
+      data: { full_name: name },
+      // On web the verification link keeps the default Site URL redirect; on
+      // native it must deep-link back into the app (see app/auth/callback.tsx).
+      ...(Platform.OS === "web"
+        ? {}
+        : { emailRedirectTo: EMAIL_CONFIRM_REDIRECT_URL }),
+    },
   });
 
   if (error) return { error: error.message };
@@ -61,14 +69,43 @@ async function performSignUp(
     };
   }
 
-  if (data.user) {
-    await supabase
-      .from("profiles")
-      .upsert({ id: data.user.id, full_name: name }, { onConflict: "id" });
-  }
-
   if (!data.session) return { needsVerification: true };
+  if (data.user) await confirmNameSaved(data.user.id, name);
   return { ok: true };
+}
+
+/**
+ * A profile write that changes nothing looks identical to one that worked, so
+ * the name is verified by reading it back rather than by the absence of an
+ * error. Requires the session signUp just returned; without one the read is
+ * RLS-filtered too and proves nothing. Repair failures go to Sentry instead of
+ * blocking the user, whose account already exists by this point.
+ */
+async function confirmNameSaved(userId: string, name: string): Promise<void> {
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error) throw error;
+    if (data?.full_name === name) return;
+
+    // .single() turns an RLS-filtered no-op into an error, which a bare
+    // update would not surface.
+    const { error: repairError } = await supabase
+      .from("profiles")
+      .update({ full_name: name })
+      .eq("id", userId)
+      .select("full_name")
+      .single();
+    if (repairError) throw repairError;
+  } catch (err) {
+    Sentry.captureException(
+      err instanceof Error ? err : new Error(String(err)),
+      { tags: { feature: "signup-name" } }
+    );
+  }
 }
 
 export default function IntroSignUp({
