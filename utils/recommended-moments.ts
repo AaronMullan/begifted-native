@@ -8,48 +8,28 @@ const FATHER_ROLES = /father|\bdad\b|\bgrandpa\b/;
 const MAX_CHIPS = 4;
 
 /**
- * Traditions that make Christmas the wrong December default even though the
- * phrase names no holiday we hold a date for. Matching one suppresses the chip
- * rather than substituting a guess.
+ * A December chip to promote into the recommended row, or null.
  *
- * Deliberately narrow. The fallback has to stay Christmas: the phrase is free
- * text in the user's own words, and the extractor's own examples include
- * "practicing Catholic" and "Italian-American family traditions" — contexts
- * that name no holiday but where Christmas is exactly right. Suppressing on
- * every unmatched phrase would strip the chip from them.
- */
-// Plurals and -ism forms are spelled out rather than suffixed with \w*, which
-// would swallow unrelated words (islam\w* matches Islamabad). \b after the
-// stem keeps "jew" from matching "jewelry".
-const NON_CHRISTMAS_TRADITIONS =
-  /\b(muslims?|islam|islamic|eid|ramadan|jews?|jewish|judaism|hindus?|hinduism|buddhists?|buddhism|sikhs?|sikhism|atheists?|agnostics?)\b/;
-
-/**
- * The December chip the recipient actually gifts on, from the phrase the user
- * typed. Shares the named-holiday branches with `resolveWinterHoliday` in the
- * recipient-conversation edge function, so a person who keeps Hanukkah is
- * offered it by both the deterministic chips and the AI suggestions.
+ * Only ever fires on an explicit statement. Christmas and Hanukkah already sit
+ * in the common row for everyone, so a promotion here means "we have a reason
+ * to think this is the one they keep", not "this is the default". With nothing
+ * stated there is no such reason, and the common row has it covered — which is
+ * also why an unrecognised phrase promotes nothing rather than guessing.
  *
- * Three divergences from that function, none of them accidental:
- *  - On an unmatched phrase it suppresses and this returns Christmas. Its rule
- *    strips the chip from "practicing Catholic" and "Italian-American family
- *    traditions" — the extractor's own examples — so it is the one that should
- *    move. Until it does, the drawer can show a Christmas chip the AI half
- *    won't propose.
- *  - It gates the default on the relationship being close enough to gift at
- *    Christmas; this doesn't.
- *  - It suppresses Hanukkah/Diwali once its date tables run out rather than
- *    falling back to an approximation.
+ * Shares its named branches with `resolveWinterHoliday` in the
+ * recipient-conversation edge function, which gates the same choice for
+ * AI-suggested occasions. Two differences remain there: it also gates on the
+ * relationship being close enough to gift at Christmas, and it suppresses
+ * Hanukkah/Diwali once its date tables run out rather than approximating.
  */
 function winterHolidayFor(culturalContext: string | null | undefined) {
   const context = (culturalContext ?? "").trim().toLowerCase();
-  if (!context) return "Christmas";
+  if (!context) return null;
   if (/christmas/.test(context)) return "Christmas";
   if (/hanukkah|chanukah/.test(context)) return "Hanukkah";
   if (/diwali/.test(context)) return "Diwali";
   if (/kwanzaa|kwanza/.test(context)) return "Kwanzaa";
-  if (NON_CHRISTMAS_TRADITIONS.test(context)) return null;
-  return "Christmas";
+  return null;
 }
 
 /**
