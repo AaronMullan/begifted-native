@@ -10,6 +10,7 @@ import { logProductEvent } from "../../lib/api";
 import { useAuth } from "../../hooks/use-auth";
 import { useRecipient } from "../../hooks/use-recipient";
 import { useGiftSuggestions } from "../../hooks/use-gift-suggestions";
+import GradientBackground from "../../components/GradientBackground";
 import GiftSuggestionsList from "../../components/gifts/GiftSuggestionsList";
 import PastGiftsSection from "../../components/gifts/PastGiftsSection";
 import { partitionSuggestions } from "../../components/gifts/partition";
@@ -126,6 +127,7 @@ export default function GiftIdeasPage() {
   if (isLoading && suggestions.length === 0) {
     return (
       <View style={styles.centered}>
+        <GradientBackground />
         <ActivityIndicator size="large" color={Colors.brand.darkTeal} />
       </View>
     );
@@ -133,6 +135,7 @@ export default function GiftIdeasPage() {
 
   return (
     <View style={styles.root}>
+      <GradientBackground />
       <ScrollView
         ref={scrollRef}
         style={styles.scroll}
