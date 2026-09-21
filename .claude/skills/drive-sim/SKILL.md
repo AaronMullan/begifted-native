@@ -41,6 +41,25 @@ UDID=$(xcrun simctl list devices booted | grep -oE '[0-9A-F-]{36}' | head -1)
 
 - **Metro must be running** (`npm start`) — it serves the current working tree,
   so whatever branch is checked out is what you're testing.
+
+  **Never start it with `CI=1`/`CI=true`.** That disables file watching, so Metro
+  keeps serving the bundle it first built and silently ignores every later edit —
+  a fix under test looks like it did nothing, and the honest-looking conclusion
+  ("tried it, no change") is wrong. Launching it detached needs only
+  `< /dev/null` to avoid the interactive TTY prompt:
+
+  ```bash
+  nohup npx expo start --port 8081 < /dev/null > /tmp/metro.log 2>&1 &
+  until curl -s -o /dev/null --max-time 3 http://localhost:8081/status; do sleep 2; done
+  ```
+
+  Before trusting any before/after comparison, confirm watch mode is live —
+  `grep -i "CI mode" /tmp/metro.log` must find nothing. A port-8081 listener is
+  not proof Metro is healthy; check `/status` responds. After each edit, the log
+  should show a fresh `iOS Bundled …` line; if it doesn't, the screenshot you are
+  about to read is stale. Relaunching the app does **not** rebuild a watch-disabled
+  bundle.
+
 - The app (`com.begifted.app`) must be **installed and logged in** on the sim.
   If it isn't installed, run `npm run ios` first. If it isn't logged in, the
   flows that need auth will redirect to `/`.
@@ -55,6 +74,20 @@ coordinates as explicit separate args, never a single `"x y"` string):
 IDB=/tmp/idbenv/bin/idb
 U=54277495-...   # the booted UDID from setup
 ```
+
+**0. Attach the app to Metro.** A cold launch lands on the dev-client launcher
+("Searching for development servers…"), and deep links fired at that screen are
+dropped. Point it at Metro first and give the first bundle time to build (~40-70s;
+later launches are faster):
+
+```bash
+xcrun simctl terminate booted com.begifted.app 2>/dev/null
+xcrun simctl openurl booted "begifted://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081"
+```
+
+Screenshot before going further — if the app shows "There was a problem loading
+the project", Metro isn't actually serving; fix that rather than deep-linking into
+a dead client.
 
 **1. Deep-link to a route** (scheme is `begifted`; drop the `(tabs)` group from
 the path):
@@ -73,6 +106,18 @@ xcrun simctl io booted screenshot /tmp/s.png
 
 Then `Read /tmp/s.png`. The screen renders in a **420×912 point** space (idb
 coords), while the PNG is 1260×2736 device px — don't mix them.
+
+For colour questions (backgrounds, seams, token drift), sample pixels instead of
+eyeballing the image — a gradient and a flat fill read alike at thumbnail size:
+
+```bash
+magick /tmp/s.png -format "%[pixel:p{20,450}]" info:            # one point
+magick /tmp/s.png -format "%c" histogram:info:- | grep -i F2F2F2  # is a colour present at all
+```
+
+`#F2F2F2` (`rgb(242,242,242)`) is the React Navigation scene default — seeing it
+means no `GradientBackground` is painting on that route. A few hundred such pixels
+are just text/card antialiasing; a flat panel is tens of thousands.
 
 **3. Find interactive elements** (frames are in idb's 420×912 point space):
 

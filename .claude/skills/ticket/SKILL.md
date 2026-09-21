@@ -61,6 +61,12 @@ Take a Jira ticket from investigation to merged-ready PR. The ticket ID is passe
 
 9. **Fresh-context code review.** These PRs self-merge — this step is the only review they get. Do **not** review the diff yourself: the context that wrote the code carries the assumptions that produced any bug in it. Spawn a subagent via the Agent tool with a prompt containing (a) the ticket summary and acceptance criteria, (b) an instruction to run `git diff origin/main...HEAD` and adversarially review it for defects. The reviewer must report **only findings that change behavior** — bugs, broken edge cases, violated repo invariants (Paper-only UI, the `react-native-url-polyfill` import rules, reasoning-model token budgets, GradientBackground placement, migration idempotency) — never style nits or refactor suggestions; each finding needs a concrete failure scenario, not a hunch.
 
+   **The reviewer must not write to the repo.** Use `subagent_type: "Explore"`, which has no Edit/Write tools — a general-purpose reviewer will "just try something" to test a hypothesis and leave your fix reverted in the working tree. State it in the prompt as well: _"Review only. Do not use Edit or Write. Do not modify any file, even temporarily, and do not stash, checkout, or reset anything — the working tree holds the committed fix. To test a hypothesis you cannot settle by reading, describe the experiment in your report and let the caller run it."_
+
+   Whatever the reviewer reports, run `git status --porcelain` afterwards. If the tree is dirty, `git checkout --` the affected paths and confirm `git rev-parse HEAD origin/<branch>` still match before merging.
+
+   Reviewers routinely flag the fix as a possible no-op ("this looks redundant with X"). Answer that from evidence you already hold — the before/after measurement that proved the bug — not by re-running the whole investigation. If you have no such measurement, that is the real gap: go get one.
+
    Then:
    - **Confirmed behavior-level findings:** fix them, re-run `npm run typecheck && npm run lint`, push. At most **one** re-review, scoped to the fix itself — then proceed to merge regardless. No open-ended review-fix loops.
    - **Findings that would expand scope beyond the ticket:** don't fix them; record them in the final report (or propose a follow-up ticket).
