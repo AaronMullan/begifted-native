@@ -148,6 +148,22 @@ describe("lookupOccasionDate", () => {
   it("uses the lookup table for lunar-calendar holidays", () => {
     expect(lookupOccasionDate("diwali")).toBe("2026-11-08");
     expect(lookupOccasionDate("hanukkah")).toBe("2026-12-04");
+    expect(lookupOccasionDate("lunar_new_year")).toBe("2027-02-06");
+  });
+
+  it("resolves Eid under both the typed and slugified spellings", () => {
+    // Chips hand over a slugified name (eid_al_fitr); a typed label only has
+    // its spaces collapsed, keeping the hyphen (eid_al-fitr).
+    expect(lookupOccasionDate("Eid al-Fitr")).toBe("2027-03-09");
+    expect(lookupOccasionDate("eid_al_fitr")).toBe("2027-03-09");
+    expect(lookupOccasionDate("eid")).toBe("2027-03-09");
+    expect(lookupOccasionDate("Eid al-Adha", 2026)).toBe("2026-05-27");
+  });
+
+  it("drifts Islamic holidays earlier once the table runs out", () => {
+    // 2033 is past the table; the Islamic calendar runs ~11 days earlier per
+    // Gregorian year, so the approximation must fall before 2032's entry.
+    expect(lookupOccasionDate("eid_al_fitr", 2033)).toBe("2033-01-01");
   });
 
   it("returns null for unknown or user-specific occasions", () => {
