@@ -158,6 +158,9 @@ describe("lookupOccasionDate", () => {
     expect(lookupOccasionDate("Passover", 2027)).toBe("2027-04-21");
     expect(lookupOccasionDate("pesach", 2029)).toBe("2029-03-30");
     expect(lookupOccasionDate("passover", 2032)).toBe("2032-03-26");
+    // Naming the meal rather than the festival is just as common.
+    expect(lookupOccasionDate("Seder", 2027)).toBe("2027-04-21");
+    expect(lookupOccasionDate("First Seder", 2027)).toBe("2027-04-21");
   });
 
   it("resolves Eid under both the typed and slugified spellings", () => {

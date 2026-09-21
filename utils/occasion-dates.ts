@@ -239,6 +239,11 @@ const VARIABLE_HOLIDAY_CALCULATORS: Record<string, HolidayCalculator> = {
   passover: calculatePassoverDate,
   pesach: calculatePassoverDate,
   pesah: calculatePassoverDate,
+  // People name the meal rather than the festival as often as not.
+  seder: calculatePassoverDate,
+  first_seder: calculatePassoverDate,
+  passover_seder: calculatePassoverDate,
+  pesach_seder: calculatePassoverDate,
   lunar_new_year: calculateLunarNewYearDate,
   chinese_new_year: calculateLunarNewYearDate,
   // lookupOccasionDate only collapses whitespace, so a typed "Eid al-Fitr"
