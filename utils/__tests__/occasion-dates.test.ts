@@ -186,6 +186,27 @@ describe("lookupOccasionDate", () => {
     expect(lookupOccasionDate("eid_al_fitr", 2034)).toBe("2034-12-12");
   });
 
+  it("takes the earliest occurrence in a double year on either side of the table", () => {
+    // A double year below the table used to resolve to its December date,
+    // because the old fallback walked backwards and stopped at the first hit.
+    // Earliest-wins in both directions, so the explicit-year answer no longer
+    // depends on which side of the table the year sits on.
+    expect(lookupOccasionDate("eid_al_fitr", 2000)).toBe("2000-01-08");
+    expect(lookupOccasionDate("eid_al_adha", 2006)).toBe("2006-01-09");
+    expect(lookupOccasionDate("eid_al_fitr", 2033)).toBe("2033-01-02");
+  });
+
+  it("reaches the second Eid in a year that holds two", () => {
+    // 2033 has Eid al-Fitr in both January and December. Rolling a passed
+    // date forward a whole Gregorian year would skip the December one and
+    // report 2034 for the eleven months in between.
+    jest.setSystemTime(new Date(2033, 2, 1));
+    expect(lookupOccasionDate("eid_al_fitr")).toBe("2033-12-23");
+    // Before the first one has passed, it is still the next occurrence.
+    jest.setSystemTime(new Date(2032, 11, 20));
+    expect(lookupOccasionDate("eid_al_fitr")).toBe("2033-01-02");
+  });
+
   it("holds a lunisolar holiday in its season past the end of its table", () => {
     // Hanukkah is late-November-to-late-December, always. A per-year drift
     // term used to walk it into the following February.

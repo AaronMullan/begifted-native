@@ -46,6 +46,12 @@ jobs:
       - name: Run tests
         run: npm test
 
+      # The main run pins TZ=UTC, which is exactly the zone where reading a
+      # local-midnight Date back as UTC looks correct. Re-run the date suite
+      # east of Greenwich so that class of bug fails here instead of shipping.
+      - name: Run date tests east of Greenwich
+        run: npm run test:tz
+
   deno-test:
     runs-on: ubuntu-latest
     steps:
