@@ -73,15 +73,13 @@ function parseEnteredMonthDay(input: string): string | null {
 // common ones outlined; tapping either drops the label into the Moment Name
 // field (the field is the single source of what gets saved).
 const RECOMMENDED_MOMENTS = ["Birthday", "Anniversary"];
-// Life events first, then named gifting holidays. The generic "Holiday" chip
-// reads as Christmas to everyone else, so anyone who gifts at Hanukkah,
-// Diwali, Eid or Lunar New Year was left typing it by hand. Each named holiday
-// must resolve through utils/occasion-dates — one that doesn't costs the user
-// an MM-DD entry for a date they'd have to go look up (the life-event chips
-// have no fixed date and are meant to ask). Christmas is absent because the
-// recommended row offers it to everyone; the holidays that *are* here can also
-// be promoted into that row for a given recipient, so the two rows are deduped
-// at render rather than kept disjoint by hand.
+// Life events plus the two holidays a majority of this market keeps. Christmas
+// belongs here rather than in the recommended row: it is the common moment,
+// and a row shown to everyone identically is the right home for something that
+// needs no reason to appear. The holidays that DO need a reason — Diwali,
+// Kwanzaa, Eid, Lunar New Year, Passover — are promoted into the recommended
+// row when the recipient's stated context names one, and stay reachable by
+// typing, where utils/occasion-dates resolves each one's date.
 const COMMON_MOMENTS = [
   "Graduation",
   "Wedding",
@@ -91,11 +89,8 @@ const COMMON_MOMENTS = [
   "Get Well Soon",
   "Housewarming",
   "Retirement",
+  "Christmas",
   "Hanukkah",
-  "Passover",
-  "Diwali",
-  "Eid al-Fitr",
-  "Lunar New Year",
 ];
 
 type MomentDateSectionProps = {
