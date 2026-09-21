@@ -8,28 +8,47 @@ const FATHER_ROLES = /father|\bdad\b|\bgrandpa\b/;
 const MAX_CHIPS = 4;
 
 /**
- * A December chip to promote into the recommended row, or null.
+ * The holiday to promote into the recommended row, or null.
  *
  * Only ever fires on an explicit statement. Christmas and Hanukkah already sit
- * in the common row for everyone, so a promotion here means "we have a reason
- * to think this is the one they keep", not "this is the default". With nothing
- * stated there is no such reason, and the common row has it covered — which is
- * also why an unrecognised phrase promotes nothing rather than guessing.
+ * in the common row for everyone, so a promotion means "we have a reason to
+ * believe this is the one they keep", not "this is the default" — and an
+ * unrecognised phrase promotes nothing rather than guessing.
  *
- * Shares its named branches with `resolveWinterHoliday` in the
- * recipient-conversation edge function, which gates the same choice for
- * AI-suggested occasions. Two differences remain there: it also gates on the
- * relationship being close enough to gift at Christmas, and it suppresses
- * Hanukkah/Diwali once its date tables run out rather than approximating.
+ * Ordering is load-bearing: a named holiday beats a named tradition, so
+ * "Jewish, we do Passover" promotes Passover rather than the tradition's usual
+ * gift day. Every label here must slug to a key utils/occasion-dates resolves,
+ * or the chip costs the user an MM-DD entry.
+ *
+ * Wider than `resolveWinterHoliday` in the recipient-conversation edge
+ * function, which knows only the four December holidays and gates them on the
+ * relationship. Where both fire they agree; this one additionally promotes
+ * Passover, Eid and Lunar New Year, which that function has no branch for.
  */
-function winterHolidayFor(culturalContext: string | null | undefined) {
+const STATED_HOLIDAYS: [RegExp, string][] = [
+  [/christmas/, "Christmas"],
+  [/hanukkah|chanukah/, "Hanukkah"],
+  [/passover|pesach|pesah|seder/, "Passover"],
+  [/diwali|deepavali/, "Diwali"],
+  [/kwanzaa|kwanza/, "Kwanzaa"],
+  [/\beid\b|ramadan/, "Eid al-Fitr"],
+  [/lunar new year|chinese new year/, "Lunar New Year"],
+  // A stated tradition maps to its principal gifting day. The religion itself
+  // is never inferred — the extractor refuses to read one off a name, food or
+  // language — but given one the user typed, naming its main gift day is a
+  // suggestion they can decline, not a fact we store. Word boundaries keep
+  // these off Islamabad, Hindustan and jewelry.
+  [/\bmuslims?\b|\bislam\b|\bislamic\b/, "Eid al-Fitr"],
+  [/\bjews?\b|\bjewish\b|\bjudaism\b/, "Hanukkah"],
+  [/\bhindus?\b|\bhinduism\b/, "Diwali"],
+];
+
+function statedHolidayFor(culturalContext: string | null | undefined) {
   const context = (culturalContext ?? "").trim().toLowerCase();
   if (!context) return null;
-  if (/christmas/.test(context)) return "Christmas";
-  if (/hanukkah|chanukah/.test(context)) return "Hanukkah";
-  if (/diwali/.test(context)) return "Diwali";
-  if (/kwanzaa|kwanza/.test(context)) return "Kwanzaa";
-  return null;
+  return (
+    STATED_HOLIDAYS.find(([pattern]) => pattern.test(context))?.[1] ?? null
+  );
 }
 
 /**
@@ -58,8 +77,8 @@ export function recommendedMomentsFor(
   if (FATHER_ROLES.test(relationship)) {
     candidates.push("Father's Day");
   }
-  const winterHoliday = winterHolidayFor(culturalContext);
-  if (winterHoliday) candidates.push(winterHoliday);
+  const statedHoliday = statedHolidayFor(culturalContext);
+  if (statedHoliday) candidates.push(statedHoliday);
 
   const existing = new Set(
     existingOccasionTypes.map((t) => slugifyOccasionName(t))
