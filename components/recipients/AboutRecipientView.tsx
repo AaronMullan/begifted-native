@@ -395,6 +395,15 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
                 </Text>
               </View>
             </View>
+
+            <View style={styles.splitRow}>
+              <View style={styles.splitRowLead}>
+                <Text style={styles.fieldLabel}>Holidays they celebrate</Text>
+                <Text style={styles.fieldValue}>
+                  {recipient.cultural_context?.trim() || "—"}
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
       </Pressable>

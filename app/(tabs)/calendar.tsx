@@ -499,7 +499,8 @@ export default function Calendar() {
                 (o) => o.occasion_type
               )
             : [],
-          interestSuggestions.names
+          interestSuggestions.names,
+          momentRecipient?.cultural_context
         )}
       />
       <AddNewPersonDrawer

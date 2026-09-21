@@ -790,7 +790,8 @@ export default function RecipientEditPage() {
         recommendedMoments={recommendedMomentsFor(
           recipient.relationship_type,
           recipientOccasions.map((o) => o.occasion_type),
-          interestSuggestions.names
+          interestSuggestions.names,
+          recipient.cultural_context
         )}
         suggestionDates={interestSuggestions.dateBySlug}
         onSave={handleSaveMoment}

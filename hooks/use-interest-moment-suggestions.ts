@@ -77,7 +77,7 @@ export function useInterestMomentSuggestions(
                 })),
                 importantDates: [],
                 knownOccasions: [],
-                culturalContext: "",
+                culturalContext: recipient!.cultural_context ?? "",
                 synthesized_profile: recipient!.synthesized_profile ?? "",
               },
             },

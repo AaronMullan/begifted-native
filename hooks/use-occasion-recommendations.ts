@@ -4,6 +4,9 @@ import { invokeWithRetry } from "../lib/edge-retry";
 import type { ExtractedData } from "./use-conversation-flow";
 import { getNextOccurrence, lookupOccasionDate } from "../utils/occasion-dates";
 import { parseBirthdayParts } from "../utils/birthday";
+import { slugifyOccasionName } from "../utils/occasion-slug";
+
+export { slugifyOccasionName };
 
 const ISO_DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -71,15 +74,6 @@ const CATEGORY_TYPES = new Set([
   "relationship_based_occasion",
   "interest_based_observance",
 ]);
-
-export function slugifyOccasionName(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/['’]/g, "")
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
-}
 
 export interface OccasionRecommendation {
   type: string;
