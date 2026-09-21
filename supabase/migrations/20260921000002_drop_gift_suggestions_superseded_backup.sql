@@ -1,0 +1,14 @@
+-- Undo record for the DEV-442 data repair, which cleared superseded_at on 148
+-- gift_suggestions rows that a too-broad refresh had wrongly retired.
+--
+-- Dropped rather than secured. Restoring it would mean re-hiding those rows —
+-- reinstating the bug testers reported — and the repair is confirmed good: all
+-- 148 rows are still present and only 2 have been retired again through normal
+-- churn in the ten days since. An undo nobody would ever run is not worth the
+-- exposure of keeping it.
+--
+-- The exposure: created outside this directory and never given RLS, so anon
+-- held SELECT/INSERT/UPDATE/DELETE/TRUNCATE on it through the publishable key
+-- that ships in the app bundle. Contents were opaque ids and timestamps, so the
+-- risk was destruction of the record rather than disclosure.
+DROP TABLE IF EXISTS public.gift_suggestions_superseded_backup_dev442;
