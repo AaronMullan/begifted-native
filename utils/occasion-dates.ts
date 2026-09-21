@@ -465,8 +465,11 @@ function calculateDiwaliDate(year: number): string {
       2029: "2029-11-05",
       2030: "2030-10-26",
     },
+    // Diwali falls between Oct 17 and Nov 14; Oct 31 is the middle of that.
+    // The anchor has to sit inside the window — a date the holiday can never
+    // land on is wrong every year rather than merely imprecise.
     9,
-    15
+    31
   );
 }
 

@@ -220,6 +220,24 @@ describe("lookupOccasionDate", () => {
     expect(lookupOccasionDate("eid_al_fitr")).toBe("2033-01-02");
   });
 
+  it("keeps every season anchor inside the window its holiday can fall in", () => {
+    // The anchor is what a lunisolar holiday resolves to once its table runs
+    // out. One outside the real window is wrong every single year rather than
+    // merely imprecise — Diwali's used to be Oct 15, a date it never falls on.
+    const windows: Record<string, [string, string]> = {
+      diwali: ["10-17", "11-14"],
+      hanukkah: ["11-27", "12-26"],
+      passover: ["03-25", "04-24"],
+      holi: ["03-01", "03-30"],
+      lunar_new_year: ["01-21", "02-20"],
+    };
+    // 2200 is far past every table, so each lookup returns its bare anchor.
+    for (const [holiday, [earliest, latest]] of Object.entries(windows)) {
+      const anchor = lookupOccasionDate(holiday, 2200)!.slice(5);
+      expect(anchor >= earliest && anchor <= latest).toBe(true);
+    }
+  });
+
   it("holds a lunisolar holiday in its season past the end of its table", () => {
     // Hanukkah is late-November-to-late-December, always. A per-year drift
     // term used to walk it into the following February.
