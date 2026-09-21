@@ -236,6 +236,14 @@ const VARIABLE_HOLIDAY_CALCULATORS: Record<string, HolidayCalculator> = {
   holi: calculateHoliDate,
   hanukkah: calculateHanukkahDate,
   chanukah: calculateHanukkahDate,
+  passover: calculatePassoverDate,
+  pesach: calculatePassoverDate,
+  pesah: calculatePassoverDate,
+  // People name the meal rather than the festival as often as not.
+  seder: calculatePassoverDate,
+  first_seder: calculatePassoverDate,
+  passover_seder: calculatePassoverDate,
+  pesach_seder: calculatePassoverDate,
   lunar_new_year: calculateLunarNewYearDate,
   chinese_new_year: calculateLunarNewYearDate,
   // lookupOccasionDate only collapses whitespace, so a typed "Eid al-Fitr"
@@ -493,6 +501,32 @@ function calculateHanukkahDate(year: number): string {
     },
     11,
     10
+  );
+}
+
+// Seder night, not the first full day. A Hebrew date begins at sunset, so
+// 15 Nisan opens on the evening of the Gregorian date below — the night people
+// actually gather, and the same convention the Hanukkah table uses (its 2025
+// entry is the first candle, not the first full day).
+function calculatePassoverDate(year: number): string {
+  return lookupOrApproximate(
+    year,
+    {
+      2024: "2024-04-22",
+      2025: "2025-04-12",
+      2026: "2026-04-01",
+      2027: "2027-04-21",
+      2028: "2028-04-10",
+      2029: "2029-03-30",
+      2030: "2030-04-17",
+      2031: "2031-04-07",
+      2032: "2032-03-26",
+      2033: "2033-04-13",
+      2034: "2034-04-03",
+      2035: "2035-04-23",
+    },
+    3,
+    9
   );
 }
 

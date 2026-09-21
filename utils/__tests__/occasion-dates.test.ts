@@ -151,6 +151,18 @@ describe("lookupOccasionDate", () => {
     expect(lookupOccasionDate("lunar_new_year")).toBe("2027-02-06");
   });
 
+  it("resolves Passover on seder night, under either spelling", () => {
+    // A Hebrew date opens at sunset, so 15 Nisan begins the evening of the
+    // date below — the night people gather, and the convention the Hanukkah
+    // table already uses.
+    expect(lookupOccasionDate("Passover", 2027)).toBe("2027-04-21");
+    expect(lookupOccasionDate("pesach", 2029)).toBe("2029-03-30");
+    expect(lookupOccasionDate("passover", 2032)).toBe("2032-03-26");
+    // Naming the meal rather than the festival is just as common.
+    expect(lookupOccasionDate("Seder", 2027)).toBe("2027-04-21");
+    expect(lookupOccasionDate("First Seder", 2027)).toBe("2027-04-21");
+  });
+
   it("resolves Eid under both the typed and slugified spellings", () => {
     // Chips hand over a slugified name (eid_al_fitr); a typed label only has
     // its spaces collapsed, keeping the hyphen (eid_al-fitr).
@@ -167,6 +179,7 @@ describe("lookupOccasionDate", () => {
       "eid_al_fitr",
       "eid_al_adha",
       "lunar_new_year",
+      "passover",
       "hanukkah",
       "diwali",
       "holi",
