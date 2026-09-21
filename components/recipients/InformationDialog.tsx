@@ -82,6 +82,10 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
       setCity(recipient.city ?? "");
       setState(recipient.state ?? "");
       setZipCode(recipient.zip_code ?? "");
+      // Load-bearing in a way the fields above are not: this one saves an
+      // empty box as a deletion, so a seed left stale by a refetch that
+      // landed after mount would erase a phrase the user never touched.
+      setCulturalContext(recipient.cultural_context ?? "");
     }
   }
 

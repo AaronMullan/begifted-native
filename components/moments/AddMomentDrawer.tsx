@@ -78,9 +78,10 @@ const RECOMMENDED_MOMENTS = ["Birthday", "Anniversary"];
 // Diwali, Eid or Lunar New Year was left typing it by hand. Each named holiday
 // must resolve through utils/occasion-dates — one that doesn't costs the user
 // an MM-DD entry for a date they'd have to go look up (the life-event chips
-// have no fixed date and are meant to ask). Christmas is deliberately absent:
-// recommendedMomentsFor already offers it to every recipient who isn't already
-// tracking it, so listing it here too would render the same chip twice.
+// have no fixed date and are meant to ask). Christmas is absent because the
+// recommended row offers it to everyone; the holidays that *are* here can also
+// be promoted into that row for a given recipient, so the two rows are deduped
+// at render rather than kept disjoint by hand.
 const COMMON_MOMENTS = [
   "Graduation",
   "Wedding",
@@ -192,6 +193,13 @@ export const AddMomentDrawer: React.FC<AddMomentDrawerProps> = ({
 
   const trimmedName = momentName.trim();
 
+  // A holiday promoted into the recommended row for this recipient must not
+  // also render here — same label, same resulting moment, two chips.
+  const recommendedSlugs = new Set(recommendedMoments.map(slugifyOccasionName));
+  const commonMoments = COMMON_MOMENTS.filter(
+    (label) => !recommendedSlugs.has(slugifyOccasionName(label))
+  );
+
   const handleNameChange = (text: string) => {
     setMomentName(text);
     setDateError("");
@@ -296,7 +304,7 @@ export const AddMomentDrawer: React.FC<AddMomentDrawerProps> = ({
         )}
         <Text style={styles.sectionLabel}>COMMON MOMENTS</Text>
         <View style={styles.chipRow}>
-          {COMMON_MOMENTS.map((label) => chip(label, false))}
+          {commonMoments.map((label) => chip(label, false))}
         </View>
         <Text style={styles.sectionLabel}>ADD YOUR OWN</Text>
         <Text style={styles.fieldLabel}>Moment Name</Text>

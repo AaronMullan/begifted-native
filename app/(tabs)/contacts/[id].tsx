@@ -516,6 +516,16 @@ export default function RecipientEditPage() {
       }
     }
 
+    // The extractor names this one in camelCase, so the sweep above can't see
+    // it. Set-only on purpose: an update conversation that simply doesn't
+    // mention the subject must not erase what intake captured — deleting it is
+    // the About field's job, where the user can see what they're removing.
+    const statedContext = (extracted as Record<string, unknown>)
+      .culturalContext;
+    if (typeof statedContext === "string" && statedContext.trim()) {
+      updates.cultural_context = statedContext.trim();
+    }
+
     // Interests are reconciled, never overwritten. The extractor runs on just
     // this update conversation, so its `interests` are only the freshly-liked
     // ones and `interests_removed` are the ones the user dropped ("not into
@@ -744,6 +754,13 @@ export default function RecipientEditPage() {
               // avatar stays stale until the next background refetch.
               queryClient.invalidateQueries({
                 queryKey: queryKeys.occasions(user.id),
+              });
+              // The AI moment suggestions are prompted with cultural_context
+              // and cached for a day across restarts, so clearing that field
+              // would keep yielding suggestions derived from it while the
+              // deterministic chips in the same drawer had already moved on.
+              queryClient.invalidateQueries({
+                queryKey: queryKeys.momentSuggestions(updated.id),
               });
             }}
             onOpenUpdateChat={() => updateDrawerRef.current?.present()}

@@ -97,16 +97,23 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
     } = await supabase.auth.getSession();
     if (!session?.user) return;
 
-    const { error } = await supabase
+    // Read the row back rather than trusting a null error: RLS filters an
+    // UPDATE to the rows the policy matches instead of rejecting it, so a
+    // write that touched nothing resolves cleanly. This screen promises the
+    // user that clearing a field deletes it, and that promise cannot rest on
+    // the absence of an error.
+    const { data: saved, error } = await supabase
       .from("recipients")
       .update({ ...fields, updated_at: new Date().toISOString() })
       .eq("id", recipient.id)
-      .eq("user_id", session.user.id);
-    if (error) {
-      console.error("Failed to update recipient:", error);
+      .eq("user_id", session.user.id)
+      .select()
+      .maybeSingle();
+    if (error || !saved) {
+      console.error("Failed to update recipient:", error ?? "no row updated");
       return;
     }
-    onRecipientUpdated({ ...recipient, ...fields });
+    onRecipientUpdated({ ...recipient, ...saved });
     if (triggerResync) {
       onResynthesize();
     }
