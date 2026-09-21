@@ -13,9 +13,18 @@ function hasPassed(date: Date): boolean {
   return d < today;
 }
 
-/** Format a Date as YYYY-MM-DD. */
+/**
+ * Format a Date as YYYY-MM-DD from its *local* calendar fields. Every Date in
+ * this file is built as local midnight (`new Date(y, m - 1, d)`), which for a
+ * user east of Greenwich is the previous day in UTC — so reading it back with
+ * `toISOString()` shifted every calculated holiday a day early for them.
+ * The one genuine UTC instant here (the Meeus equinox/solstice) is converted
+ * to a local-midnight Date before it reaches this function.
+ */
 function toISO(date: Date): string {
-  return date.toISOString().split("T")[0];
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
 }
 
 /**
@@ -192,9 +201,15 @@ export function lookupOccasionDate(
   // Variable holidays that need calculation. Calculators are exact for the
   // requested year; only a today-relative lookup (no explicit year) rolls a
   // passed date forward to the next year's occurrence.
+  //
+  // `notBefore` matters for the Islamic holidays alone: their lunar year is
+  // ~11 days short of the Gregorian one, so a year occasionally holds two
+  // occurrences. Asking for the first one on or after today keeps the second
+  // reachable — without it, a passed January occurrence rolls a whole year
+  // forward and skips the December one entirely.
   const calculator = VARIABLE_HOLIDAY_CALCULATORS[normalized];
   if (!calculator) return null;
-  const resolved = calculator(targetYear);
+  const resolved = calculator(targetYear, year ? undefined : toISO(new Date()));
   if (!year) {
     const parsed = parseISODateLocal(resolved);
     if (parsed && hasPassed(parsed)) return calculator(targetYear + 1);
@@ -202,7 +217,9 @@ export function lookupOccasionDate(
   return resolved;
 }
 
-const VARIABLE_HOLIDAY_CALCULATORS: Record<string, (year: number) => string> = {
+type HolidayCalculator = (year: number, notBefore?: string) => string;
+
+const VARIABLE_HOLIDAY_CALCULATORS: Record<string, HolidayCalculator> = {
   easter: calculateEasterDate,
   thanksgiving: calculateThanksgivingDate,
   mothers_day: calculateMothersDayDate,
@@ -294,8 +311,20 @@ function calculateFathersDayDate(year: number): string {
 
 // ── Equinox / Solstice (Meeus algorithm, accurate 1951-2050) ──────────
 
+/**
+ * The Julian Ephemeris Day is a true UTC instant, and equinox/solstice dates
+ * are published against UTC — so take the UTC calendar day and rebuild it as
+ * local midnight. Handing the raw instant to toISO would instead read it in
+ * the viewer's zone, moving the solstice a day whenever it falls near local
+ * midnight.
+ */
 function meeusDate(jde: number): Date {
-  return new Date((jde - 2440587.5) * 86400000);
+  const instant = new Date((jde - 2440587.5) * 86400000);
+  return new Date(
+    instant.getUTCFullYear(),
+    instant.getUTCMonth(),
+    instant.getUTCDate()
+  );
 }
 
 function calculateSpringEquinox(year: number): string {
@@ -377,32 +406,43 @@ function lookupOrApproximate(
 /** Mean length of a 12-month Islamic year. */
 const LUNAR_YEAR_DAYS = 354.367;
 
+/** Mean length of the Gregorian year, for converting between the two. */
+const GREGORIAN_YEAR_DAYS = 365.2425;
+
 /**
  * Fallback for a purely lunar (Islamic) holiday past the end of its table:
- * step whole lunar years from the nearest tabulated date until the result
- * lands in the requested Gregorian year. The lunar year is ~11 days short of
- * the Gregorian one, so a year occasionally holds two occurrences — this takes
- * the first — and never zero, which is why the walk terminates.
+ * step whole lunar years from the nearest tabulated date to find every
+ * occurrence inside the requested Gregorian year. The lunar year is ~11 days
+ * short of the Gregorian one, so a year holds one occurrence or two, never
+ * zero. `notBefore` picks the first one on or after that date — the whole
+ * point of collecting both, since a year whose first occurrence has passed
+ * still has a second the caller must be able to reach.
  */
 function lookupOrStepLunarYears(
   year: number,
-  table: Record<number, string>
+  table: Record<number, string>,
+  notBefore?: string
 ): string {
-  const exact = table[year];
-  if (exact) return exact;
+  const tabulated = table[year];
+  if (tabulated) return tabulated;
   const anchorYear = Object.keys(table)
     .map(Number)
     .reduce((a, b) => (Math.abs(b - year) < Math.abs(a - year) ? b : a));
   const anchor = parseISODateLocal(table[anchorYear]);
   if (!anchor) return toISO(new Date(year, 0, 1));
-  const at = (steps: number) =>
-    addDays(anchor, Math.round(steps * LUNAR_YEAR_DAYS));
-  const direction = year >= anchorYear ? 1 : -1;
-  for (let steps = 0; Math.abs(steps) <= 400; steps += direction) {
-    const candidate = at(steps);
-    if (candidate.getFullYear() === year) return toISO(candidate);
+  // Land near the target, then sweep either side — a window this wide catches
+  // both occurrences of a double year whichever way the rounding fell.
+  const near = Math.round(
+    ((year - anchorYear) * GREGORIAN_YEAR_DAYS) / LUNAR_YEAR_DAYS
+  );
+  const inYear: string[] = [];
+  for (let steps = near - 3; steps <= near + 3; steps++) {
+    const candidate = addDays(anchor, Math.round(steps * LUNAR_YEAR_DAYS));
+    if (candidate.getFullYear() === year) inYear.push(toISO(candidate));
   }
-  return toISO(new Date(year, 0, 1));
+  if (inYear.length === 0) return toISO(new Date(year, 0, 1));
+  inYear.sort();
+  return inYear.find((d) => !notBefore || d >= notBefore) ?? inYear[0];
 }
 
 function calculateDiwaliDate(year: number): string {
@@ -483,30 +523,38 @@ function calculateLunarNewYearDate(year: number): string {
 // and far better than making the user look the date up themselves. The table
 // stops at 2032 because 1454 AH puts two Eid al-Fitrs inside 2033, which a
 // year-keyed table can't express.
-function calculateEidAlFitrDate(year: number): string {
-  return lookupOrStepLunarYears(year, {
-    2024: "2024-04-10",
-    2025: "2025-03-30",
-    2026: "2026-03-20",
-    2027: "2027-03-09",
-    2028: "2028-02-26",
-    2029: "2029-02-14",
-    2030: "2030-02-04",
-    2031: "2031-01-25",
-    2032: "2032-01-14",
-  });
+function calculateEidAlFitrDate(year: number, notBefore?: string): string {
+  return lookupOrStepLunarYears(
+    year,
+    {
+      2024: "2024-04-10",
+      2025: "2025-03-30",
+      2026: "2026-03-20",
+      2027: "2027-03-09",
+      2028: "2028-02-26",
+      2029: "2029-02-14",
+      2030: "2030-02-04",
+      2031: "2031-01-25",
+      2032: "2032-01-14",
+    },
+    notBefore
+  );
 }
 
-function calculateEidAlAdhaDate(year: number): string {
-  return lookupOrStepLunarYears(year, {
-    2024: "2024-06-16",
-    2025: "2025-06-06",
-    2026: "2026-05-27",
-    2027: "2027-05-16",
-    2028: "2028-05-05",
-    2029: "2029-04-24",
-    2030: "2030-04-13",
-    2031: "2031-04-02",
-    2032: "2032-03-22",
-  });
+function calculateEidAlAdhaDate(year: number, notBefore?: string): string {
+  return lookupOrStepLunarYears(
+    year,
+    {
+      2024: "2024-06-16",
+      2025: "2025-06-06",
+      2026: "2026-05-27",
+      2027: "2027-05-16",
+      2028: "2028-05-05",
+      2029: "2029-04-24",
+      2030: "2030-04-13",
+      2031: "2031-04-02",
+      2032: "2032-03-22",
+    },
+    notBefore
+  );
 }

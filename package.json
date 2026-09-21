@@ -16,6 +16,7 @@
     "build": "expo export --platform web",
     "typecheck": "tsc --noEmit",
     "test": "TZ=UTC jest",
+    "test:tz": "TZ=Asia/Tokyo jest utils/__tests__/occasion-dates.test.ts",
     "prepare": "husky"
   },
   "expo": {
