@@ -160,10 +160,37 @@ describe("lookupOccasionDate", () => {
     expect(lookupOccasionDate("Eid al-Adha", 2026)).toBe("2026-05-27");
   });
 
-  it("drifts Islamic holidays earlier once the table runs out", () => {
-    // 2033 is past the table; the Islamic calendar runs ~11 days earlier per
-    // Gregorian year, so the approximation must fall before 2032's entry.
-    expect(lookupOccasionDate("eid_al_fitr", 2033)).toBe("2033-01-01");
+  it("keeps table-backed holidays inside the year they were asked for", () => {
+    // lookupOccasionDate rolls a passed date forward exactly once, so any
+    // fallback that leaves the requested year strands that roll in the past.
+    for (const holiday of [
+      "eid_al_fitr",
+      "eid_al_adha",
+      "lunar_new_year",
+      "hanukkah",
+      "diwali",
+      "holi",
+    ]) {
+      for (let year = 2024; year <= 2060; year++) {
+        expect(lookupOccasionDate(holiday, year)).toMatch(
+          new RegExp(`^${year}-`)
+        );
+      }
+    }
+  });
+
+  it("steps whole lunar years past the end of an Islamic table", () => {
+    // The table stops at 2032-01-14; the lunar year is ~354 days, so each
+    // later year lands ~11 days earlier than the Gregorian anniversary.
+    expect(lookupOccasionDate("eid_al_fitr", 2033)).toBe("2033-01-02");
+    expect(lookupOccasionDate("eid_al_fitr", 2034)).toBe("2034-12-12");
+  });
+
+  it("holds a lunisolar holiday in its season past the end of its table", () => {
+    // Hanukkah is late-November-to-late-December, always. A per-year drift
+    // term used to walk it into the following February.
+    expect(lookupOccasionDate("hanukkah", 2035)).toBe("2035-12-10");
+    expect(lookupOccasionDate("lunar_new_year", 2040)).toBe("2040-02-05");
   });
 
   it("returns null for unknown or user-specific occasions", () => {
