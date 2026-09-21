@@ -25,6 +25,8 @@ export interface Recipient {
   synthesized_profile?: string | null;
   known_roles?: string[];
   household_context?: string | null;
+  /** Verbatim phrase the user stated; never inferred. Empty means deleted. */
+  cultural_context?: string | null;
   created_at: string;
   updated_at?: string;
 }

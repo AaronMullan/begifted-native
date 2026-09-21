@@ -58,6 +58,9 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
   const [city, setCity] = useState(recipient.city ?? "");
   const [state, setState] = useState(recipient.state ?? "");
   const [zipCode, setZipCode] = useState(recipient.zip_code ?? "");
+  const [culturalContext, setCulturalContext] = useState(
+    recipient.cultural_context ?? ""
+  );
   const [saving, setSaving] = useState(false);
 
   // Re-seed the editable fields only when the dialog opens — never while it's
@@ -79,6 +82,10 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
       setCity(recipient.city ?? "");
       setState(recipient.state ?? "");
       setZipCode(recipient.zip_code ?? "");
+      // Load-bearing in a way the fields above are not: this one saves an
+      // empty box as a deletion, so a seed left stale by a refetch that
+      // landed after mount would erase a phrase the user never touched.
+      setCulturalContext(recipient.cultural_context ?? "");
     }
   }
 
@@ -111,6 +118,10 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
       city: city.trim() || undefined,
       state: state.trim() || undefined,
       zip_code: zipCode.trim() || undefined,
+      // Unlike the fields above, empty means delete rather than "no change".
+      // The recipient never consented to this being stored, so clearing the
+      // box has to actually remove it.
+      cultural_context: culturalContext.trim() || null,
     });
     setSaving(false);
   };
@@ -180,6 +191,18 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
                   Year optional — add it so we can show their age accurately.
                 </HelperText>
               )}
+              <TextInput
+                mode="outlined"
+                label="Holidays they celebrate"
+                defaultValue={culturalContext}
+                onChangeText={setCulturalContext}
+                multiline
+                style={styles.input}
+              />
+              <HelperText type="info" visible>
+                Only what you tell us — we never guess this. Clear the box to
+                remove it.
+              </HelperText>
               <TextInput
                 mode="outlined"
                 label="Address"

@@ -385,6 +385,9 @@ export function useAddRecipientFlow(
         zip_code: data.zip_code?.trim() || null,
         country: data.country?.trim() || "US",
         photo_url: photoUrl,
+        // Only ever the user's own words — the extractor refuses to infer this
+        // from a name, language or food, and nothing here may add to it.
+        cultural_context: data.culturalContext?.trim() || null,
       };
 
       // Insert recipient
