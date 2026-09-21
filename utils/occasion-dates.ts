@@ -219,6 +219,22 @@ const VARIABLE_HOLIDAY_CALCULATORS: Record<string, (year: number) => string> = {
   holi: calculateHoliDate,
   hanukkah: calculateHanukkahDate,
   chanukah: calculateHanukkahDate,
+  lunar_new_year: calculateLunarNewYearDate,
+  chinese_new_year: calculateLunarNewYearDate,
+  // lookupOccasionDate only collapses whitespace, so a typed "Eid al-Fitr"
+  // normalizes with its hyphen intact; slugifyOccasionName turns the same
+  // label into eid_al_fitr. Both spellings have to resolve.
+  eid_al_fitr: calculateEidAlFitrDate,
+  "eid_al-fitr": calculateEidAlFitrDate,
+  eid_ul_fitr: calculateEidAlFitrDate,
+  "eid_ul-fitr": calculateEidAlFitrDate,
+  eid_al_adha: calculateEidAlAdhaDate,
+  "eid_al-adha": calculateEidAlAdhaDate,
+  eid_ul_adha: calculateEidAlAdhaDate,
+  "eid_ul-adha": calculateEidAlAdhaDate,
+  // Bare "Eid" resolves to al-Fitr: it closes Ramadan and is the Eid people
+  // most often exchange gifts on.
+  eid: calculateEidAlFitrDate,
   record_store_day: (year) => calculateThirdSaturdayOfMonth(year, 4),
 };
 
@@ -328,17 +344,65 @@ function calculateWinterSolstice(year: number): string {
 
 // ── Lunar-calendar holidays (lookup tables + approximation fallback) ──
 
+/**
+ * Every calculator must return a date inside the year it was asked for.
+ * lookupOccasionDate rolls a passed date forward exactly once, so a fallback
+ * that wanders out of the requested year leaves that single roll unable to
+ * reach a future date — callers that trust the result as upcoming
+ * (AddMomentDrawer's save, utils/upcoming-occasion) then take a date in the
+ * past. The two fallbacks below each guarantee the in-year property.
+ */
+
+/** Add days without crossing DST wrong — always lands on local midnight. */
+function addDays(date: Date, days: number): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+}
+
+/**
+ * Fallback for a lunisolar holiday (Hanukkah, Diwali, Holi, Lunar New Year)
+ * past the end of its table: the season's anchor day in the requested year.
+ * These are pinned to a season and wobble inside a ~30-day window, so a fixed
+ * anchor is off by weeks at worst. A per-year drift term would instead walk
+ * the holiday clean out of its season — Hanukkah landing in February.
+ */
 function lookupOrApproximate(
   year: number,
   table: Record<number, string>,
   fallbackMonth: number,
   fallbackDay: number
 ): string {
-  if (table[year]) return table[year];
-  const baseDate = new Date(year, fallbackMonth, fallbackDay);
-  const daysOffset = (year - 2024) * 11;
-  const approx = new Date(baseDate.getTime() + daysOffset * 86400000);
-  return toISO(approx);
+  return table[year] ?? toISO(new Date(year, fallbackMonth, fallbackDay));
+}
+
+/** Mean length of a 12-month Islamic year. */
+const LUNAR_YEAR_DAYS = 354.367;
+
+/**
+ * Fallback for a purely lunar (Islamic) holiday past the end of its table:
+ * step whole lunar years from the nearest tabulated date until the result
+ * lands in the requested Gregorian year. The lunar year is ~11 days short of
+ * the Gregorian one, so a year occasionally holds two occurrences — this takes
+ * the first — and never zero, which is why the walk terminates.
+ */
+function lookupOrStepLunarYears(
+  year: number,
+  table: Record<number, string>
+): string {
+  const exact = table[year];
+  if (exact) return exact;
+  const anchorYear = Object.keys(table)
+    .map(Number)
+    .reduce((a, b) => (Math.abs(b - year) < Math.abs(a - year) ? b : a));
+  const anchor = parseISODateLocal(table[anchorYear]);
+  if (!anchor) return toISO(new Date(year, 0, 1));
+  const at = (steps: number) =>
+    addDays(anchor, Math.round(steps * LUNAR_YEAR_DAYS));
+  const direction = year >= anchorYear ? 1 : -1;
+  for (let steps = 0; Math.abs(steps) <= 400; steps += direction) {
+    const candidate = at(steps);
+    if (candidate.getFullYear() === year) return toISO(candidate);
+  }
+  return toISO(new Date(year, 0, 1));
 }
 
 function calculateDiwaliDate(year: number): string {
@@ -390,4 +454,59 @@ function calculateHanukkahDate(year: number): string {
     11,
     10
   );
+}
+
+function calculateLunarNewYearDate(year: number): string {
+  return lookupOrApproximate(
+    year,
+    {
+      2024: "2024-02-10",
+      2025: "2025-01-29",
+      2026: "2026-02-17",
+      2027: "2027-02-06",
+      2028: "2028-01-26",
+      2029: "2029-02-13",
+      2030: "2030-02-03",
+      2031: "2031-01-23",
+      2032: "2032-02-11",
+      2033: "2033-01-31",
+      2034: "2034-02-19",
+      2035: "2035-02-08",
+    },
+    1,
+    5
+  );
+}
+
+// Eid dates are astronomical estimates; the observed day can shift by one
+// either way on local moon sighting. Close enough to put a gift reminder on,
+// and far better than making the user look the date up themselves. The table
+// stops at 2032 because 1454 AH puts two Eid al-Fitrs inside 2033, which a
+// year-keyed table can't express.
+function calculateEidAlFitrDate(year: number): string {
+  return lookupOrStepLunarYears(year, {
+    2024: "2024-04-10",
+    2025: "2025-03-30",
+    2026: "2026-03-20",
+    2027: "2027-03-09",
+    2028: "2028-02-26",
+    2029: "2029-02-14",
+    2030: "2030-02-04",
+    2031: "2031-01-25",
+    2032: "2032-01-14",
+  });
+}
+
+function calculateEidAlAdhaDate(year: number): string {
+  return lookupOrStepLunarYears(year, {
+    2024: "2024-06-16",
+    2025: "2025-06-06",
+    2026: "2026-05-27",
+    2027: "2027-05-16",
+    2028: "2028-05-05",
+    2029: "2029-04-24",
+    2030: "2030-04-13",
+    2031: "2031-04-02",
+    2032: "2032-03-22",
+  });
 }

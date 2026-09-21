@@ -148,6 +148,49 @@ describe("lookupOccasionDate", () => {
   it("uses the lookup table for lunar-calendar holidays", () => {
     expect(lookupOccasionDate("diwali")).toBe("2026-11-08");
     expect(lookupOccasionDate("hanukkah")).toBe("2026-12-04");
+    expect(lookupOccasionDate("lunar_new_year")).toBe("2027-02-06");
+  });
+
+  it("resolves Eid under both the typed and slugified spellings", () => {
+    // Chips hand over a slugified name (eid_al_fitr); a typed label only has
+    // its spaces collapsed, keeping the hyphen (eid_al-fitr).
+    expect(lookupOccasionDate("Eid al-Fitr")).toBe("2027-03-09");
+    expect(lookupOccasionDate("eid_al_fitr")).toBe("2027-03-09");
+    expect(lookupOccasionDate("eid")).toBe("2027-03-09");
+    expect(lookupOccasionDate("Eid al-Adha", 2026)).toBe("2026-05-27");
+  });
+
+  it("keeps table-backed holidays inside the year they were asked for", () => {
+    // lookupOccasionDate rolls a passed date forward exactly once, so any
+    // fallback that leaves the requested year strands that roll in the past.
+    for (const holiday of [
+      "eid_al_fitr",
+      "eid_al_adha",
+      "lunar_new_year",
+      "hanukkah",
+      "diwali",
+      "holi",
+    ]) {
+      for (let year = 2024; year <= 2060; year++) {
+        expect(lookupOccasionDate(holiday, year)).toMatch(
+          new RegExp(`^${year}-`)
+        );
+      }
+    }
+  });
+
+  it("steps whole lunar years past the end of an Islamic table", () => {
+    // The table stops at 2032-01-14; the lunar year is ~354 days, so each
+    // later year lands ~11 days earlier than the Gregorian anniversary.
+    expect(lookupOccasionDate("eid_al_fitr", 2033)).toBe("2033-01-02");
+    expect(lookupOccasionDate("eid_al_fitr", 2034)).toBe("2034-12-12");
+  });
+
+  it("holds a lunisolar holiday in its season past the end of its table", () => {
+    // Hanukkah is late-November-to-late-December, always. A per-year drift
+    // term used to walk it into the following February.
+    expect(lookupOccasionDate("hanukkah", 2035)).toBe("2035-12-10");
+    expect(lookupOccasionDate("lunar_new_year", 2040)).toBe("2040-02-05");
   });
 
   it("returns null for unknown or user-specific occasions", () => {
