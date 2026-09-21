@@ -31,6 +31,32 @@ describe("recommendedMomentsFor", () => {
     ).toEqual(["Birthday"]);
   });
 
+  it("suppresses on plural and -ism spellings, not just the bare stem", () => {
+    // These all fell through to Christmas while only the singular matched,
+    // which is the outcome the suppression list exists to prevent.
+    for (const phrase of [
+      "Orthodox Jew",
+      "the family are Muslims",
+      "practices Hinduism",
+      "practices Buddhism",
+      "Sikhs",
+      "Buddhists",
+    ]) {
+      expect(recommendedMomentsFor("friend", [], [], phrase)).toEqual([
+        "Birthday",
+      ]);
+    }
+  });
+
+  it("does not suppress on words that merely contain a tradition stem", () => {
+    for (const phrase of ["grew up in Islamabad", "collects jewelry"]) {
+      expect(recommendedMomentsFor("friend", [], [], phrase)).toEqual([
+        "Birthday",
+        "Christmas",
+      ]);
+    }
+  });
+
   it("keeps Christmas for a stated context that names no holiday but still keeps it", () => {
     // Both are the extractor's own documented examples. Neither says
     // "Christmas", and suppressing on every unmatched phrase stripped the

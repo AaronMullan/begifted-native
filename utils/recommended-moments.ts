@@ -18,19 +18,28 @@ const MAX_CHIPS = 4;
  * that name no holiday but where Christmas is exactly right. Suppressing on
  * every unmatched phrase would strip the chip from them.
  */
+// Plurals and -ism forms are spelled out rather than suffixed with \w*, which
+// would swallow unrelated words (islam\w* matches Islamabad). \b after the
+// stem keeps "jew" from matching "jewelry".
 const NON_CHRISTMAS_TRADITIONS =
-  /\b(muslim|islam|islamic|eid|ramadan|jewish|judaism|hindu|buddhist|sikh|atheist|agnostic)\b/;
+  /\b(muslims?|islam|islamic|eid|ramadan|jews?|jewish|judaism|hindus?|hinduism|buddhists?|buddhism|sikhs?|sikhism|atheists?|agnostics?)\b/;
 
 /**
  * The December chip the recipient actually gifts on, from the phrase the user
- * typed. Mirrors `resolveWinterHoliday` in the recipient-conversation edge
- * function so the deterministic chips and the AI-suggested occasions agree on
- * which holiday a person keeps.
+ * typed. Shares the named-holiday branches with `resolveWinterHoliday` in the
+ * recipient-conversation edge function, so a person who keeps Hanukkah is
+ * offered it by both the deterministic chips and the AI suggestions.
  *
- * Two known divergences from that function, both pre-existing: it also gates
- * the default on the relationship being close enough to gift at Christmas, and
- * it suppresses Hanukkah/Diwali once its date tables run out rather than
- * falling back to an approximation.
+ * Three divergences from that function, none of them accidental:
+ *  - On an unmatched phrase it suppresses and this returns Christmas. Its rule
+ *    strips the chip from "practicing Catholic" and "Italian-American family
+ *    traditions" — the extractor's own examples — so it is the one that should
+ *    move. Until it does, the drawer can show a Christmas chip the AI half
+ *    won't propose.
+ *  - It gates the default on the relationship being close enough to gift at
+ *    Christmas; this doesn't.
+ *  - It suppresses Hanukkah/Diwali once its date tables run out rather than
+ *    falling back to an approximation.
  */
 function winterHolidayFor(culturalContext: string | null | undefined) {
   const context = (culturalContext ?? "").trim().toLowerCase();

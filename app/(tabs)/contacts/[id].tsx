@@ -134,6 +134,11 @@ async function persistUpdateChatOccasions(
   }
 }
 
+// Mirrors PLACEHOLDER_STRINGS in the extractor: the model returns these as
+// literal strings, and a free-text field has no required-field gate to catch
+// them before they reach the user.
+const PLACEHOLDER_ECHOES = new Set(["null", "undefined", "none", "n/a", ""]);
+
 const GIFT_POLL_INTERVAL_MS = 10000;
 const GIFT_POLL_MAX_MS = 300000; // 5 minutes
 const RESYNC_POLL_INTERVAL_MS = 4000;
@@ -522,7 +527,14 @@ export default function RecipientEditPage() {
     // the About field's job, where the user can see what they're removing.
     const statedContext = (extracted as Record<string, unknown>)
       .culturalContext;
-    if (typeof statedContext === "string" && statedContext.trim()) {
+    // The model echoes "null"/"none" as strings often enough that extraction
+    // coerces them for the required fields; this one is free text with no
+    // required-field gate to catch it, so it would render verbatim under
+    // "Holidays they celebrate" and reach the occasion prompt.
+    if (
+      typeof statedContext === "string" &&
+      !PLACEHOLDER_ECHOES.has(statedContext.trim().toLowerCase())
+    ) {
       updates.cultural_context = statedContext.trim();
     }
 
@@ -599,6 +611,15 @@ export default function RecipientEditPage() {
         queryClient.invalidateQueries({
           queryKey: queryKeys.recipients(user.id),
         });
+        // This path can now set cultural_context too, and the AI suggestions
+        // are prompted with it — without this the deterministic chips swap to
+        // the stated holiday while the AI half of the same drawer keeps
+        // serving a day of suggestions computed without it.
+        if (updates.cultural_context !== undefined) {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.momentSuggestions(recipient.id),
+          });
+        }
       }
     }
 
@@ -742,6 +763,10 @@ export default function RecipientEditPage() {
             onResynthesize={() => resynthesizeProfile()}
             onRecipientUpdated={(updated) => {
               if (!user) return;
+              const previousContext =
+                queryClient.getQueryData<Recipient>(
+                  queryKeys.recipient(user.id, updated.id)
+                )?.cultural_context ?? null;
               queryClient.setQueryData<Recipient>(
                 queryKeys.recipient(user.id, updated.id),
                 updated
@@ -755,13 +780,15 @@ export default function RecipientEditPage() {
               queryClient.invalidateQueries({
                 queryKey: queryKeys.occasions(user.id),
               });
-              // The AI moment suggestions are prompted with cultural_context
-              // and cached for a day across restarts, so clearing that field
-              // would keep yielding suggestions derived from it while the
-              // deterministic chips in the same drawer had already moved on.
-              queryClient.invalidateQueries({
-                queryKey: queryKeys.momentSuggestions(updated.id),
-              });
+              // Only when the phrase itself moved. The suggestions are capped
+              // at one AI call per recipient per day precisely so browsing a
+              // profile costs nothing, and this callback also fires for photo,
+              // address and preference edits.
+              if (previousContext !== (updated.cultural_context ?? null)) {
+                queryClient.invalidateQueries({
+                  queryKey: queryKeys.momentSuggestions(updated.id),
+                });
+              }
             }}
             onOpenUpdateChat={() => updateDrawerRef.current?.present()}
             onAddOccasion={presentAddMoment}
