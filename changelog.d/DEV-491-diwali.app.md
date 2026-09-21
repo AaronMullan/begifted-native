@@ -1,1 +1,0 @@
-- Diwali will keep landing in the right part of the year once its known dates run out in 2030. The fallback pointed at October 15, a day Diwali never falls on (DEV-491).
