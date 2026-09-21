@@ -92,6 +92,7 @@ const COMMON_MOMENTS = [
   "Housewarming",
   "Retirement",
   "Hanukkah",
+  "Passover",
   "Diwali",
   "Eid al-Fitr",
   "Lunar New Year",
