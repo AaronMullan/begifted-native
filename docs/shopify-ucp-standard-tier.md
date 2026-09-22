@@ -1,0 +1,234 @@
+# Shopify UCP — what a standard-tier integration would involve
+
+Companion to `docs/agentic-commerce-readiness.md`, which establishes _why_ this is
+worth looking at: 57% of our outbound clicks land on Shopify-hosted merchants,
+and Shopify's agent surface has been self-serve since June 17, 2026. This
+document is the _what_ — read from Shopify's developer documentation and the UCP
+specification rather than from coverage, and mapped against the pipeline we
+already run.
+
+Scope: the **standard tier** only. That means discovery and cart building, with
+the buyer finishing on the merchant's own checkout. Completing a purchase
+in-app is deliberately out of scope; see "The tier we would not use."
+
+## The problem this solves
+
+Our suggestion pipeline verifies well and discovers badly.
+
+Verification is built and reasonably careful. `lib/services/link-check.ts` in
+the sibling `be-gifted` repo reads each product page through three readers in
+order — Shopify storefront product JSON, JSON-LD, then OpenGraph — and returns
+price, price range, and availability. Generation applies it once;
+`lib/services/suggestion-recheck.ts` applies it again on notification day,
+retires anything dead or sold out so the slot can be refilled, and corrects a
+stored price that has drifted more than 15% from the page. A blocked or
+unreadable page is explicitly treated as unknown rather than as a verdict.
+
+Discovery is the weak half, and it is weak by construction: **the model invents
+a product URL and we find out afterwards whether anything is there.** The cost
+is visible in the check's own telemetry (`gift_generation_runs.link_check`, 157
+links since mid-September):
+
+| outcome         | count | share |
+| --------------- | ----: | ----: |
+| readable        |   107 |   68% |
+| blocked         |    25 |   16% |
+| unreadable      |    17 |   11% |
+| unknown         |     5 |    3% |
+| dead            |     3 |       |
+| out_of_stock    |     3 |       |
+| price_corrected |     5 |       |
+
+Just under a third of the links we generate cannot be verified at all. Those
+suggestions still ship — treating a bot wall as "probably fine" is the right
+call when the alternative is retiring good products — but it means roughly one
+card in three rests on the model's word.
+
+There is a second cost. The Shopify reader fetches `/products/<handle>.js` as an
+unauthenticated visitor, and carries a 429 backoff because Shopify's storefront
+limiter throttles us. We are already a rate-limited guest at the door of the
+API this document is about.
+
+## What the standard tier gives us
+
+Three MCP endpoints, JSON-RPC 2.0, conforming to the
+[UCP specification](https://ucp.dev/2026-08-25/specification/overview/):
+
+- **Global Catalog** — `https://catalog.shopify.com/api/ucp/mcp`. One endpoint,
+  every Shopify merchant. `search_catalog` takes free text, an image, or a set
+  of product IDs to find similar items; `lookup_catalog` resolves known
+  identifiers; `get_product` returns full variant detail and a seller checkout
+  link for the chosen variant. Results cluster by Universal Product ID across
+  merchants, so the same item from three shops arrives as one row with three
+  offers.
+- **Cart** — `https://{shop-domain}/api/ucp/mcp`, per merchant. Build and
+  iterate on a cart across conversational turns, estimate totals, apply
+  localization.
+- **Checkout** — same per-merchant endpoint. Convert a cart to a checkout and
+  receive a `continue_url` that hands the buyer to the merchant's own storefront
+  to pay. The docs are explicit that this is the normal path: "For general
+  access, directing buyers to that `continue_url` is how checkout completes; you
+  do not call `complete_checkout`."
+
+Filters that matter for gifting: `filters.available` defaults to true, so
+discovery returns only sale-ready items — out-of-stock stops being something we
+detect after the fact. `filters.ships_to` takes country, region and postal code,
+which is the question "will this reach them" asked at selection time rather than
+at checkout.
+
+Two capabilities worth noting for later rather than now. `catalog.like` accepts
+an image for visual-similarity or multimodal search. And `metadata.attributes`
+carries inferred attributes including occasion — though Shopify flags every
+inferred field as "discovery and merchandising signals, not merchant-authored
+source text," which is a lower evidentiary bar than our suggestions should rest
+on.
+
+## Which tier, and what it costs us in commitments
+
+Access is classified into three tiers by how the agent identifies itself.
+
+| tier          | how                                                     | catalog | cart | checkout build | `complete_checkout` | orders |
+| ------------- | ------------------------------------------------------- | ------- | ---- | -------------- | ------------------- | ------ |
+| **Anonymous** | no credential, no signature                             | yes     | yes  | yes            | no                  | no     |
+| **Signed**    | ECDSA P-256 HTTP Message Signatures (RFC 9421)          | yes     | yes  | yes            | no                  | no     |
+| **Token**     | credential issued through Shopify's developer dashboard | yes     | yes  | yes            | with shop grant     | yes    |
+
+Rate limits scale with identification — anonymous lowest, token highest. Shopify
+publishes no numbers anywhere, only the relative ordering.
+
+Every request carries `meta.ucp-agent.profile`, a URL pointing at a JSON
+document **we host ourselves** declaring our protocol version and capabilities.
+Shopify fetches it, intersects our declared capabilities with what the shop
+supports, and settles on the active set for the session. This is the detail that
+settles the readiness doc's open question: the profile is a self-published
+capability declaration, not a registration with anybody. Publishing one does not
+make us "the registered agent" that rule two forbids. The natural home is
+`/.well-known/ucp` on a domain we control — the `be-gifted` Next.js app can
+serve it.
+
+**Start anonymous.** It reaches the catalog, costs nothing, commits to nothing,
+and tells us within a day whether the results are good enough to build on. Move
+to signed only if the rate limits bind; that is a keypair and a signing
+middleware, still no account.
+
+## The tier we would not use
+
+`complete_checkout` requires the token tier _and_ a token "granted the required
+permission to complete purchases on the shop's behalf" — a per-merchant grant,
+not a blessing Shopify hands out once. The doc's existing reasoning applies
+unchanged: completing a purchase on our say-so is where responsibility for the
+choice stops being shared, and Stripe's Agent Services terms already show how
+the written allocation lands on the agent developer. Nothing here changes that.
+
+The point of this integration is a better click-out, not a step toward autonomy.
+
+## The flow, mapped to what we run now
+
+Today:
+
+1. The model generates a suggestion including a product URL it invents.
+2. `checkProductLink` fetches the page; the Shopify reader pulls
+   `/products/<handle>.js` for price, variants, availability.
+3. Dead or sold out is retired and the slot refilled; price drift over 15% is
+   corrected.
+4. The notification-day recheck repeats step 2 against the visible cards.
+5. The user taps View Product, opens the retailer in a browser, and we log the
+   domain to `outbound_clicks`.
+
+With the catalog:
+
+1. The model produces a **description of the right gift** — what the CIS is
+   actually for — instead of a URL.
+2. `search_catalog` turns that into real candidates across every Shopify
+   merchant, already filtered to in-stock and ships-to-them.
+3. The model chooses among real products. This is the change that matters: it
+   ranks things that exist rather than inventing one and hoping.
+4. `get_product` resolves the variant — the size, the color — from what we know
+   about the recipient, and returns a checkout link for that exact variant.
+5. The user taps through to a correct product page with the right SKU selected.
+
+Steps 2–4 of the current flow mostly fold into step 2 of the new one: the
+catalog is authoritative about stock and price, so there is less to verify after
+the fact. The existing link-check does not go away — it still covers the ~43%
+of clicks that go somewhere other than Shopify, and it stays the fallback when
+the catalog returns nothing good. This is additive.
+
+For a single-item gift, Cart and Checkout MCP may not be needed at all:
+`get_product` already yields a variant-level seller checkout link. Cart building
+earns its place only if we ever bundle.
+
+## Affiliate revenue, and the trap in it
+
+Promoted placements extend the Global Catalog with a paid-placement flow: 0.3%
+base commission on attributed purchases, last-click, 7-day window, applied to
+every item in the attributed order rather than only the clicked product.
+Merchants can add more on top. It requires the developer dashboard and is
+invite-led during a Developer Preview, so it is not available on day one.
+
+This is the first credible answer to step 1 of "What we do now" — wiring up
+affiliate revenue — because it covers 57% of our outbound clicks through one
+integration instead of per-retailer network deals.
+
+The trap is obvious: paid placement distorts the pick, and editorial
+independence is a real part of what we are selling. The documentation suggests a
+configuration that avoids it. Promoted variants are identifiable by a
+`placement` object, organic variants omit it, and — the important part — "in an
+authorized response, all variant URLs include `shclid` and `shcgid` attribution
+parameters, whether the variant is promoted or organic." So attribution and
+commission are available on products chosen purely on merit. Whether blending
+can be switched off is "server-managed configuration" and not something the docs
+let us confirm from outside.
+
+The rule to hold if we go near this: take the commission on a product we would
+have picked anyway; never let `placement` touch the ranking. Disclosure is
+required where a material connection exists, and Shopify's own guidance says to
+label promoted results and not bury the disclosure.
+
+## What to settle before building
+
+- **Is the result quality actually better?** One day at the anonymous tier
+  answers this. Take a sample of recent suggestions, run the same intent through
+  `search_catalog`, and compare against what the model invented. If the catalog's
+  long tail is thin for the kind of specific, characterful gifts we recommend,
+  none of the rest matters.
+- **Which agreement governs a UCP agent.** Shopify has published no
+  agent-specific terms and the agent docs link to no legal instrument. The API
+  License and Terms of Use is written for apps a merchant installs, which is not
+  what a catalog client is. Whether it binds us is a lawyer's question.
+- **Whether the training restriction reaches the CIS.** If those terms do apply,
+  they forbid using merchant data "including any anonymous, aggregate, or
+  derived forms of data" to train, fine-tune or improve any model without
+  consent. Reading catalog results to choose a gift is plainly fine. Whether
+  outcome data — what landed, what was returned — learned against
+  catalog-sourced products counts as derived merchant data is not obvious, and
+  it points straight at the asset the readiness doc says we are building.
+- **Real rate limits at the anonymous tier**, which are published only as
+  "lowest." Our daily generation cron is the load that has to fit.
+- **Whether promoted-placement blending can be disabled** while keeping
+  attribution.
+- **What happens to our ranking.** The suggestion prompt deliberately ranks
+  brand sites first, specialty shops second, big-box last. A catalog search
+  returns what Shopify's index returns. Keeping our editorial order on top of
+  their relevance order is a design problem, not a configuration setting.
+
+## Sources
+
+All read from primary documentation, September 22, 2026.
+
+- [Build commerce agents with UCP](https://shopify.dev/docs/agents) — the
+  four-stage flow.
+- [Auth and rate limiting](https://shopify.dev/docs/agents/profiles/auth-and-rate-limiting)
+  — the three tiers and the capability matrix.
+- [Agent profiles and UCP negotiation](https://shopify.dev/docs/agents/profiles)
+  — self-hosted profile JSON, capability intersection.
+- [Global Catalog MCP](https://shopify.dev/docs/agents/catalog/global-catalog) —
+  `search_catalog`, `lookup_catalog`, `get_product`, filters, inferred fields.
+- [Cart MCP](https://shopify.dev/docs/agents/carts-and-checkout/cart-mcp) and
+  [Checkout MCP](https://shopify.dev/docs/agents/carts-and-checkout/checkout-mcp)
+  — `continue_url` handoff, `complete_checkout`, escalation states.
+- [Earn with promoted placements](https://shopify.dev/docs/agents/catalog/promoted-placement)
+  — commission, attribution parameters, disclosure.
+- [UCP specification](https://ucp.dev/2026-08-25/specification/overview/).
+- [Shopify API License and Terms of Use](https://www.shopify.com/legal/api-terms)
+  — the $100 liability cap, the developer indemnity, the model-training
+  restriction.
