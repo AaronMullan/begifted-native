@@ -13,7 +13,13 @@ in-app is deliberately out of scope; see "The tier we would not use."
 
 ## The problem this solves
 
-Our suggestion pipeline verifies well and discovers badly.
+Our pipeline finds real products and then struggles to read them.
+
+Discovery is already grounded. Generation runs through a provider web-search
+tool — OpenAI `web_search`, Gemini `googleSearch`, Anthropic `web_search_20250305`
+— and the run records its search queries and cited URLs. The model is choosing
+among pages that search returned, not recalling URLs from training. The
+telemetry says so: **3 dead links out of 154**, about 2%.
 
 Verification is built and reasonably careful. `lib/services/link-check.ts` in
 the sibling `be-gifted` repo reads each product page through three readers in
@@ -24,10 +30,10 @@ retires anything dead or sold out so the slot can be refilled, and corrects a
 stored price that has drifted more than 15% from the page. A blocked or
 unreadable page is explicitly treated as unknown rather than as a verdict.
 
-Discovery is the weak half, and it is weak by construction: **the model invents
-a product URL and we find out afterwards whether anything is there.** The cost
-is visible in the check's own telemetry (`gift_generation_runs.link_check`, 157
-links since mid-September):
+The weak link is between the two: **the page exists, and we often can't read
+it.** Product facts live in HTML written for browsers, behind bot defenses that
+don't care why we're asking (`gift_generation_runs.link_check`, 154 links since
+mid-September):
 
 | outcome         | count | share |
 | --------------- | ----: | ----: |
@@ -39,10 +45,13 @@ links since mid-September):
 | out_of_stock    |     3 |       |
 | price_corrected |     5 |       |
 
-Just under a third of the links we generate cannot be verified at all. Those
-suggestions still ship — treating a bot wall as "probably fine" is the right
-call when the alternative is retiring good products — but it means roughly one
-card in three rests on the model's word.
+Just under a third of the products we recommend ship without us confirming
+price, stock or variant — 16% because the store blocked us, 11% because the
+page carried no structure we could parse, 3% because the read timed out. Those
+suggestions still go out, and should: treating a bot wall as "probably fine"
+beats retiring good products over our own inability to read a page. But it
+means roughly one card in three is a real product we are describing partly on
+the search result's word.
 
 There is a second cost. The Shopify reader fetches `/products/<handle>.js` as an
 unauthenticated visitor, and carries a 429 backoff because Shopify's storefront
@@ -126,8 +135,9 @@ The point of this integration is a better click-out, not a step toward autonomy.
 
 Today:
 
-1. The model generates a suggestion including a product URL it invents.
-2. `checkProductLink` fetches the page; the Shopify reader pulls
+1. A provider web-search tool returns candidate pages; the model picks among
+   them and emits the product URL with its suggestion.
+2. `checkProductLink` fetches that page; the Shopify reader pulls
    `/products/<handle>.js` for price, variants, availability.
 3. Dead or sold out is retired and the slot refilled; price drift over 15% is
    corrected.
@@ -138,20 +148,29 @@ Today:
 With the catalog:
 
 1. The model produces a **description of the right gift** — what the CIS is
-   actually for — instead of a URL.
-2. `search_catalog` turns that into real candidates across every Shopify
-   merchant, already filtered to in-stock and ships-to-them.
-3. The model chooses among real products. This is the change that matters: it
-   ranks things that exist rather than inventing one and hoping.
+   actually for.
+2. `search_catalog` turns that into candidates across every Shopify merchant,
+   already filtered to in-stock and ships-to-them, returned as structured data
+   rather than as pages to be scraped.
+3. The model chooses among them. It is doing the same job as today, on better
+   evidence: facts the merchant published rather than whatever we could parse
+   out of a page that may not have let us in.
 4. `get_product` resolves the variant — the size, the color — from what we know
    about the recipient, and returns a checkout link for that exact variant.
 5. The user taps through to a correct product page with the right SKU selected.
 
-Steps 2–4 of the current flow mostly fold into step 2 of the new one: the
-catalog is authoritative about stock and price, so there is less to verify after
-the fact. The existing link-check does not go away — it still covers the ~43%
-of clicks that go somewhere other than Shopify, and it stays the fallback when
-the catalog returns nothing good. This is additive.
+The change is not that discovery starts working; web search already finds real
+products. It is that steps 2–4 of the current flow collapse into step 2 of the
+new one. Price, stock and variant arrive as data instead of being reconstructed
+from HTML, so the third of cards we currently can't confirm mostly stops
+existing — over the Shopify share. The existing link-check does not go away: it
+still covers the clicks that land elsewhere, and it stays the fallback when the
+catalog returns nothing good. This is additive.
+
+The genuinely new capability is variant resolution. A search result is a page;
+`get_product` is a grid of sizes and colors with stock per cell. That is the
+sizing problem the readiness doc keeps flagging, and no amount of better
+searching solves it.
 
 For a single-item gift, Cart and Checkout MCP may not be needed at all:
 `get_product` already yields a variant-level seller checkout link. Cart building
@@ -188,7 +207,7 @@ label promoted results and not bury the disclosure.
 
 - **Is the result quality actually better?** One day at the anonymous tier
   answers this. Take a sample of recent suggestions, run the same intent through
-  `search_catalog`, and compare against what the model invented. If the catalog's
+  `search_catalog`, and compare against what web search returned. If the catalog's
   long tail is thin for the kind of specific, characterful gifts we recommend,
   none of the rest matters.
 - **Which agreement governs a UCP agent.** Shopify has published no
