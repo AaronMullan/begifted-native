@@ -203,17 +203,65 @@ have picked anyway; never let `placement` touch the ranking. Disclosure is
 required where a material connection exists, and Shopify's own guidance says to
 label promoted results and not bury the disclosure.
 
+## What the probe found
+
+Run against the live Global Catalog on September 22, 2026, anonymous tier, no
+credential, using Shopify's published test profile fixture. The sample was 40
+real current suggestions — their actual titles, prices and retailer domains.
+
+| result                                           | count | share |
+| ------------------------------------------------ | ----: | ----: |
+| found on the brand's own store, price within 10% |    14 |   35% |
+| found on the brand's own store, different price  |     5 |   13% |
+| found only through a marketplace reseller        |    17 |   43% |
+| not found at a usable match                      |     4 |   10% |
+
+**The characterful long tail is there.** Lumio's Lito Limited Edition at exactly
+$200, Onggi's matte black fermentation crock at $195, Imaginary Authors' A Whiff
+of Waffle Cone at $115, Artifact Puzzles' Ecru wooden jigsaw at $50, Two Gether
+Studios' Illimat gift set at $57.95 — each from the brand's own store, each
+matching the price we had already published. The worry that the index would only
+hold mass-market goods is not borne out. Three of the four misses are Uncommon
+Goods exclusives, and Uncommon Goods does not run on Shopify, so their absence
+is correct rather than a gap.
+
+Every matched variant carried an availability flag and a variant-level
+`checkout_url`.
+
+**Reseller noise is the real constraint.** For 43% of the sample the only match
+was a marketplace seller rather than the brand, and those listings are often not
+the same product at all: a $25 listing against our $199 set, $289.95 against our
+$124.95, a $29.99 keychain matched to a $125 framed print. Dropped into the
+pipeline unfiltered, catalog results would make recommendations _worse_ than
+what we ship today.
+
+The mitigation is available. Seller identity comes back on every variant, so the
+existing editorial preference — brand sites first, specialty shops next — is
+expressible as a filter rather than lost to Shopify's relevance order. That
+turns the doc's standing worry about ranking into a solved problem, provided we
+actually do it.
+
+**What this test does not show.** It asks the catalog to find products we had
+already chosen by web search, which is backwards from how we would use it. Real
+retrieval would search by intent and let the model choose among candidates.
+Spot-checking that direction — "a gift for someone who ferments vegetables at
+home" — returned a coherent set of fermentation kits from several merchants, but
+judging whether those picks are _good_ needs a person, not a string comparison.
+So read 35% as a floor on a deliberately unfavourable test, not as a hit rate.
+
 ## What to settle before building
 
-- **Is the result quality actually better?** One day at the anonymous tier
-  answers this. Take a sample of recent suggestions, run the same intent through
-  `search_catalog`, and compare against what web search returned. If the catalog's
-  long tail is thin for the kind of specific, characterful gifts we recommend,
-  none of the rest matters.
-- **Which agreement governs a UCP agent.** Shopify has published no
-  agent-specific terms and the agent docs link to no legal instrument. The API
-  License and Terms of Use is written for apps a merchant installs, which is not
-  what a catalog client is. Whether it binds us is a lawyer's question.
+- ~~Does the catalog carry the kind of gifts we recommend?~~ **Tested — yes,
+  with a caveat that becomes the main design constraint.** See "What the probe
+  found" above.
+- **Which agreement governs a UCP agent.** Checked again on September 22, 2026
+  across the whole agent documentation set, the quickstart, the catalog
+  extension reference and the CLI repository (MIT licensed): not one reference
+  to terms of use, acceptable use, or any agreement. The API License and Terms
+  of Use is the nearest candidate and is written for apps a merchant installs,
+  which is not what a catalog client is. Whether it binds us is a lawyer's
+  question, and worth asking before we ship on this rather than before we test
+  on it.
 - **Whether the training restriction reaches the CIS.** If those terms do apply,
   they forbid using merchant data "including any anonymous, aggregate, or
   derived forms of data" to train, fine-tune or improve any model without
