@@ -122,12 +122,29 @@ middleware, still no account.
 
 ## The tier we would not use
 
-`complete_checkout` requires the token tier _and_ a token "granted the required
-permission to complete purchases on the shop's behalf" — a per-merchant grant,
-not a blessing Shopify hands out once. The doc's existing reasoning applies
-unchanged: completing a purchase on our say-so is where responsibility for the
-choice stops being shared, and Stripe's Agent Services terms already show how
-the written allocation lands on the agent developer. Nothing here changes that.
+`complete_checkout` is gated twice, and neither gate is ours to open. Shopify
+staff set it out in the developer forum on September 2, 2026: completion needs
+"both (1) the checkout permission on your client's token, and (2) the merchant
+having your agent's channel enabled on their shop," and "the merchant side isn't
+a toggle a merchant can flip for an arbitrary agent. It's tied to the agent
+being onboarded for native checkout." The first gate has no public route:
+"granted on a case by case basis and there isn't a public application or waitlist
+for self-serve platforms," absent from dashboard credentials, and not addable
+from the scope picker. A developer in the same thread confirmed it from the
+outside — requesting `dev.ucp.shopping.checkout:manage` returns `access_denied`
+for an unapproved client while an invented scope returns `invalid_scope`, so the
+scope is real and switched on per client while being invisible in the dashboard.
+
+This is the readiness doc's Path B with Shopify in the gatekeeper's seat, and the
+clearest evidence yet for that doc's predicted access order: discovery opened to
+an app our size self-serve, purchasing did not. Three named companies have been
+blocked on it since early August, one of them already placing Shopify orders
+through browser automation and asking to graduate.
+
+The existing reasoning applies on top of that: completing a purchase on our
+say-so is where responsibility for the choice stops being shared, and Stripe's
+Agent Services terms show how the written allocation lands on the agent
+developer.
 
 The point of this integration is a better click-out, not a step toward autonomy.
 
@@ -269,6 +286,11 @@ So read 35% as a floor on a deliberately unfavourable test, not as a hit rate.
   outcome data — what landed, what was returned — learned against
   catalog-sourced products counts as derived merchant data is not obvious, and
   it points straight at the asset the readiness doc says we are building.
+- **What actually earns a checkout-completion grant.** Shopify gives no criteria
+  and runs no application. The only agent publicly known to hold it is Meta's,
+  which points at scale or a commercial relationship rather than a bar a small
+  app can clear. Worth re-checking Shopify's changelog, which staff said is where
+  any change would be announced.
 - **Real rate limits at the anonymous tier**, which are published only as
   "lowest." Our daily generation cron is the load that has to fit.
 - **Whether promoted-placement blending can be disabled** while keeping
