@@ -2,6 +2,8 @@ import { useState } from "react";
 import { View, StyleSheet, Platform } from "react-native";
 import { Button, Text } from "react-native-paper";
 import { DeviceContact } from "../hooks/use-device-contacts";
+import { vCardAnniversary } from "../utils/contact-dates";
+import { isValidMonthDay } from "../utils/occasion-dates";
 import { Typography } from "../lib/typography";
 
 interface Props {
@@ -201,6 +203,9 @@ function parseVCard(text: string): DeviceContact[] {
       }
     }
 
+    const anniversary = vCardAnniversary(card);
+    if (anniversary) contact.anniversary = anniversary;
+
     if (adrMatch) {
       contact.addresses = [
         {
@@ -256,6 +261,17 @@ function parseCSV(text: string): DeviceContact[] {
           contact.birthday = {
             month: parseInt(dateMatch[1]),
             day: parseInt(dateMatch[2]),
+            year: dateMatch[3] ? parseInt(dateMatch[3]) : undefined,
+          };
+        }
+      } else if (header.includes("anniversary")) {
+        const dateMatch = value.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
+        const month = dateMatch ? parseInt(dateMatch[1]) : NaN;
+        const day = dateMatch ? parseInt(dateMatch[2]) : NaN;
+        if (dateMatch && isValidMonthDay(month, day)) {
+          contact.anniversary = {
+            month,
+            day,
             year: dateMatch[3] ? parseInt(dateMatch[3]) : undefined,
           };
         }

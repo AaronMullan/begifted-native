@@ -39,6 +39,29 @@ type InitialAddress = Partial<
   Pick<ExtractedData, "address" | "city" | "state" | "zip_code" | "country">
 >;
 
+/**
+ * Set the address-book anniversary as the recipient's anniversary occasion.
+ * The contact's date replaces any anniversary the conversation extracted —
+ * the address book is the user's own record, extraction is a guess. Dated to
+ * its next occurrence so the occasions screen keeps it as a verified date.
+ */
+function withContactAnniversary(
+  occasions: ExtractedData["occasions"],
+  anniversary: string | undefined
+): ExtractedData["occasions"] {
+  if (!anniversary) return occasions;
+  const others = (occasions ?? []).filter(
+    (occasion) => occasion.occasion_type !== "anniversary"
+  );
+  return [
+    ...others,
+    {
+      occasion_type: "anniversary",
+      date: getNextAnnualOccurrence(anniversary),
+    },
+  ];
+}
+
 function joinWithAnd(items: string[]): string {
   if (items.length <= 1) return items[0] ?? "";
   if (items.length === 2) return `${items[0]} and ${items[1]}`;
@@ -58,7 +81,8 @@ function joinWithAnd(items: string[]): string {
 function buildInitialUserMessage(
   name?: string,
   birthday?: string,
-  address?: InitialAddress
+  address?: InitialAddress,
+  anniversary?: string
 ): string | undefined {
   const trimmedName = name?.trim();
   if (!trimmedName) return undefined;
@@ -67,6 +91,10 @@ function buildInitialUserMessage(
   const readableBirthday = formatBirthdayDisplay(birthday);
   if (readableBirthday) {
     known.push(`their birthday (${readableBirthday})`);
+  }
+  const readableAnniversary = formatBirthdayDisplay(anniversary);
+  if (readableAnniversary) {
+    known.push(`their anniversary (${readableAnniversary})`);
   }
   const hasAddress = !!(
     address &&
@@ -122,6 +150,7 @@ export function useAddRecipientFlow(
   initialBirthday?: string,
   initialPhotoUri?: string,
   initialNote?: string,
+  initialAnniversary?: string,
   draftOptions?: {
     /** Parked draft to restore; null starts fresh. */
     resume: AddRecipientDraft | null;
@@ -188,7 +217,8 @@ export function useAddRecipientFlow(
     buildInitialUserMessage(
       initialContactName,
       initialBirthday,
-      initialAddress
+      initialAddress,
+      initialAnniversary
     );
 
   // Single assembly point for the parked draft, shared by the state-driven
@@ -213,6 +243,7 @@ export function useAddRecipientFlow(
         seed: {
           name: initialContactName,
           birthday: initialBirthday,
+          anniversary: initialAnniversary,
           photoUri: cachedPhotoUri.current ?? undefined,
           address: initialAddress ?? {},
           note: initialNote,
@@ -273,7 +304,13 @@ export function useAddRecipientFlow(
           if (!merged.country && initialAddress.country)
             merged.country = initialAddress.country;
         }
-        if (initialAddress || initialBirthday) {
+        if (initialAnniversary) {
+          merged.occasions = withContactAnniversary(
+            merged.occasions,
+            initialAnniversary
+          );
+        }
+        if (initialAddress || initialBirthday || initialAnniversary) {
           genericSetExtractedData(merged);
         }
         setShowDataReview(true);
@@ -535,7 +572,9 @@ export function useAddRecipientFlow(
         state: extracted.state || initialAddress?.state || undefined,
         zip_code: extracted.zip_code || initialAddress?.zip_code || undefined,
         country: extracted.country || initialAddress?.country || "US",
-        occasions: extracted.occasions || undefined,
+        occasions:
+          withContactAnniversary(extracted.occasions, initialAnniversary) ||
+          undefined,
       };
 
       genericSetExtractedData(mappedData);
@@ -582,16 +621,21 @@ export function useAddRecipientFlow(
     if (!extractedData) return;
     // Skip bypasses the review screen, so AI-extracted occasion dates reach
     // the DB unreviewed — sanitize them (known types resolve via lookup,
-    // Jan-1 placeholders become null/undated).
+    // Jan-1 placeholders become null/undated). The contact's anniversary is
+    // re-applied afterwards: it is a real date, and a January 1 anniversary
+    // would otherwise read as a placeholder.
     await saveRecipient({
       ...extractedData,
-      occasions: extractedData.occasions?.map((occasion) => ({
-        ...occasion,
-        date: sanitizeExtractedOccasionDate(
-          occasion.occasion_type,
-          occasion.date
-        ),
-      })),
+      occasions: withContactAnniversary(
+        extractedData.occasions?.map((occasion) => ({
+          ...occasion,
+          date: sanitizeExtractedOccasionDate(
+            occasion.occasion_type,
+            occasion.date
+          ),
+        })),
+        initialAnniversary
+      ),
     });
   };
 
