@@ -4,6 +4,7 @@
 
 import { supabase } from "../supabase";
 import type { GiftSuggestion } from "../../types/recipient";
+import { replayActiveBand } from "../gift-band";
 
 /**
  * Fetch gift suggestions for a recipient
@@ -27,19 +28,56 @@ export async function fetchGiftSuggestions(
       .order("generated_at", { ascending: false }),
     supabase
       .from("gift_feedback")
-      .select("gift_suggestion_id")
+      .select("gift_suggestion_id, created_at")
       .eq("recipient_id", recipientId)
-      .in("action", GIFT_REMOVAL_ACTIONS),
+      .in("action", GIFT_REMOVAL_ACTIONS)
+      .order("created_at", { ascending: true }),
   ]);
 
   if (suggestionsRes.error) throw suggestionsRes.error;
   if (removedRes.error) throw removedRes.error;
 
-  const removedIds = new Set(
-    (removedRes.data ?? []).map((row) => row.gift_suggestion_id)
-  );
+  const rows = suggestionsRes.data ?? [];
 
-  return (suggestionsRes.data ?? []).filter((s) => !removedIds.has(s.id));
+  // Earliest removal per gift: feedback is append-only, so a gift can carry
+  // several removal rows and only the first one actually emptied its slot.
+  const removedAt = new Map<string, string>();
+  for (const row of removedRes.data ?? []) {
+    if (!removedAt.has(row.gift_suggestion_id)) {
+      removedAt.set(row.gift_suggestion_id, row.created_at);
+    }
+  }
+
+  const toBandRow = (s: (typeof rows)[number]) => ({
+    id: s.id,
+    generated_at: s.generated_at,
+    removedAt: removedAt.get(s.id) ?? null,
+  });
+
+  // The replay runs once per scope the app renders. Removed rows stay in the
+  // input — they held slots, and leaving them out would let past rows slide up
+  // into the gap all over again (DEV-488).
+  const activeInRecipient = replayActiveBand(rows.map(toBandRow));
+
+  const activeInOccasion = new Set<string>();
+  const byOccasion = new Map<string, typeof rows>();
+  for (const s of rows) {
+    const key = s.occasion_id ?? "";
+    byOccasion.set(key, [...(byOccasion.get(key) ?? []), s]);
+  }
+  for (const group of byOccasion.values()) {
+    for (const id of replayActiveBand(group.map(toBandRow))) {
+      activeInOccasion.add(id);
+    }
+  }
+
+  return rows
+    .filter((s) => !removedAt.has(s.id))
+    .map((s) => ({
+      ...s,
+      active_in_recipient: activeInRecipient.has(s.id),
+      active_in_occasion: activeInOccasion.has(s.id),
+    }));
 }
 
 export const GIFT_FEEDBACK_ACTIONS = [

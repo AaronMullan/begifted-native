@@ -22,8 +22,13 @@ type SubmitGiftFeedbackVars = {
   notes?: string | null;
 };
 
-/** Target number of visible gift ideas the list backfills toward (DEV-118). */
+/** Target number of active gift ideas the list backfills toward (DEV-118). */
 const VISIBLE_TARGET = 3;
+
+/** Rows holding one of the recipient's active slots. Scoped recipient-wide to
+ * match the deficit the backfill endpoint computes. */
+const activeCount = (rows: GiftSuggestion[]) =>
+  rows.filter((s) => s.active_in_recipient).length;
 
 /**
  * After triggering a backfill, the backend generation runs async (seconds), so
@@ -36,7 +41,7 @@ function pollForBackfill(queryClient: QueryClient, recipientId: string) {
   for (const delay of delaysMs) {
     setTimeout(() => {
       const current = queryClient.getQueryData<GiftSuggestion[]>(key) ?? [];
-      if (current.length >= VISIBLE_TARGET) return; // already refilled
+      if (activeCount(current) >= VISIBLE_TARGET) return; // already refilled
       queryClient.invalidateQueries({ queryKey: key });
     }, delay);
   }
@@ -80,15 +85,19 @@ export function useSubmitGiftFeedback() {
         );
       }
     },
-    // When a removal drops the visible list below 3, immediately ask the backend
-    // to backfill the deficit and poll for the replacement to land (DEV-118).
+    // When a removal empties one of the three active slots, immediately ask the
+    // backend to backfill the deficit and poll for the replacement to land
+    // (DEV-118).
     onSuccess: (_data, vars) => {
       if (!GIFT_REMOVAL_ACTIONS.includes(vars.action)) return;
       const remaining =
         queryClient.getQueryData<GiftSuggestion[]>(
           queryKeys.giftSuggestions(vars.recipientId)
         ) ?? [];
-      if (remaining.length >= VISIBLE_TARGET) return;
+      // Count active slots, not the whole list: a recipient with a Past Gifts
+      // band always had 3+ rows left, so this gate used to swallow every
+      // removal they made and no replacement was ever requested (DEV-488).
+      if (activeCount(remaining) >= VISIBLE_TARGET) return;
       triggerGiftBackfill(vars.recipientId, vars.occasionId);
       pollForBackfill(queryClient, vars.recipientId);
     },
