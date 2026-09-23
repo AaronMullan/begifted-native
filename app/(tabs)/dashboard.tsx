@@ -16,6 +16,7 @@ import OnTheHorizonGrid from "../../components/home/OnTheHorizonGrid";
 import AddPeopleTile from "../../components/home/AddPeopleTile";
 import HomeEmptyState from "../../components/home/HomeEmptyState";
 import GradientBackground from "../../components/GradientBackground";
+import LoadFailedState from "../../components/LoadFailedState";
 
 /**
  * Flexible vertical gap for the anchored home column, sized by which of the
@@ -66,8 +67,13 @@ export default function Dashboard() {
   // height so the bottom-anchored column lands exactly homeBottomInset above
   // the nav, not behind it.
   const navClearance = NAV_CONTENT_HEIGHT + Math.max(insets.bottom, 12);
-  const { data: recipients = [], isLoading: loadingRecipients } =
-    useRecipients();
+  const {
+    data: recipients = [],
+    isLoading: loadingRecipients,
+    isError: recipientsFailed,
+    isFetching: refetchingRecipients,
+    refetch: refetchRecipients,
+  } = useRecipients();
   const { data: occasions = [], isLoading: loadingOccasions } = useOccasions();
 
   const isLoading = loadingRecipients || loadingOccasions;
@@ -153,6 +159,22 @@ export default function Dashboard() {
             Loading dashboard...
           </Text>
         </View>
+      </View>
+    );
+  }
+
+  // A failed fetch leaves `recipients` empty too, which the welcome state below
+  // would report as "you have nobody yet" — onboarding shown to a user with a
+  // full account. Only an empty list we actually received means that.
+  if (recipientsFailed && recipients.length === 0) {
+    return (
+      <View style={styles.container}>
+        <GradientBackground />
+        <LoadFailedState
+          message="Couldn't load your people."
+          onRetry={refetchRecipients}
+          retrying={refetchingRecipients}
+        />
       </View>
     );
   }

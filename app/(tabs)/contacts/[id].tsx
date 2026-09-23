@@ -43,6 +43,7 @@ import { recommendedMomentsFor } from "../../../utils/recommended-moments";
 import { useInterestMomentSuggestions } from "../../../hooks/use-interest-moment-suggestions";
 import { slugifyOccasionName } from "../../../hooks/use-occasion-recommendations";
 import { invokeWithRetry } from "../../../lib/edge-retry";
+import { captureMutationError } from "../../../lib/sentry-helpers";
 import type { ExtractedData } from "../../../hooks/use-conversation-flow";
 import { useUserPreferences } from "../../../hooks/use-user-preferences";
 import { formatShortName } from "../../../lib/format-name";
@@ -595,31 +596,42 @@ export default function RecipientEditPage() {
       if (birthYear) updates.birth_year = birthYear;
     }
 
-    if (Object.keys(updates).length > 0) {
-      const { error } = await supabase
+    const hasFieldUpdates = Object.keys(updates).length > 0;
+    if (hasFieldUpdates) {
+      const { data: updated, error } = await supabase
         .from("recipients")
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq("id", recipient.id)
-        .eq("user_id", user.id);
-      if (error) {
+        .eq("user_id", user.id)
+        .select("id");
+      // RLS filters a non-matching UPDATE to zero rows and still resolves
+      // without an error, so an empty result is a write that didn't happen.
+      // Reporting success here would close the drawer over unsaved edits while
+      // the screen keeps showing the stale value, which reads as saved.
+      if (error || !updated?.length) {
         console.error("Failed to apply update from chat:", error);
-      } else {
-        queryClient.setQueryData<Recipient>(
-          queryKeys.recipient(user.id, recipient.id),
-          (prev) => (prev ? { ...prev, ...updates } : prev)
+        captureMutationError(
+          error ?? new Error("Recipient update matched no rows"),
+          queryKeys.recipient(user.id, recipient.id)
         );
+        showSnackbar("Couldn't save that — please try again.");
+        return false;
+      }
+      queryClient.setQueryData<Recipient>(
+        queryKeys.recipient(user.id, recipient.id),
+        (prev) => (prev ? { ...prev, ...updates } : prev)
+      );
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.recipients(user.id),
+      });
+      // This path can now set cultural_context too, and the AI suggestions
+      // are prompted with it — without this the deterministic chips swap to
+      // the stated holiday while the AI half of the same drawer keeps
+      // serving a day of suggestions computed without it.
+      if (updates.cultural_context !== undefined) {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.recipients(user.id),
+          queryKey: queryKeys.momentSuggestions(recipient.id),
         });
-        // This path can now set cultural_context too, and the AI suggestions
-        // are prompted with it — without this the deterministic chips swap to
-        // the stated holiday while the AI half of the same drawer keeps
-        // serving a day of suggestions computed without it.
-        if (updates.cultural_context !== undefined) {
-          queryClient.invalidateQueries({
-            queryKey: queryKeys.momentSuggestions(recipient.id),
-          });
-        }
       }
     }
 
@@ -638,6 +650,14 @@ export default function RecipientEditPage() {
       await queryClient.invalidateQueries({
         queryKey: queryKeys.recipientOccasions(recipient.id),
       });
+    }
+
+    // Extraction can come back with nothing this handler is allowed to store —
+    // then there is no profile change to claim, and nothing for a resynthesis
+    // to work from either.
+    if (!hasFieldUpdates && insertedOccasions === 0) {
+      showSnackbar("Nothing new to add from that note.");
+      return true;
     }
 
     setGenBaseline({
