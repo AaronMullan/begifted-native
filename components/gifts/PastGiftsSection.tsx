@@ -13,11 +13,17 @@ import { partitionSuggestions } from "./partition";
  * titles (matches CollapsedGiftCard/PrimaryGiftCard content inset). */
 const CARD_INNER_PADDING = 23;
 
+const LIST_BOTTOM = 24;
+
 type PastGiftsSectionProps = {
   suggestions: GiftSuggestion[];
   /** When set, only this occasion's suggestions populate the section, matching
    * the filtered active list. */
   occasionId?: string | null;
+  /** Clearance for the absolutely-positioned bottom nav. Applied inside the
+   * band (not as scroll padding below it) so the band's fill runs under the
+   * nav instead of stopping short and exposing page background. */
+  bottomInset?: number;
 };
 
 /**
@@ -31,6 +37,7 @@ type PastGiftsSectionProps = {
 const PastGiftsSection: React.FC<PastGiftsSectionProps> = ({
   suggestions,
   occasionId = null,
+  bottomInset = 0,
 }) => {
   // Accordion local to the section: one past card open at a time. Independent
   // of the active list's featured card — the two zones don't share a card.
@@ -60,7 +67,9 @@ const PastGiftsSection: React.FC<PastGiftsSectionProps> = ({
       <View style={styles.headerRow}>
         <Text style={styles.headerText}>Past Gift Recommendations</Text>
       </View>
-      <View style={styles.list}>{past.map(renderCard)}</View>
+      <View style={[styles.list, { paddingBottom: LIST_BOTTOM + bottomInset }]}>
+        {past.map(renderCard)}
+      </View>
     </View>
   );
 };
@@ -70,6 +79,8 @@ export default PastGiftsSection;
 const styles = StyleSheet.create({
   band: {
     backgroundColor: Colors.brand.pastZone,
+    // Fills the rest of a short page so the band still meets the nav.
+    flexGrow: 1,
   },
   headerRow: {
     height: 56,
@@ -81,14 +92,12 @@ const styles = StyleSheet.create({
   headerText: {
     ...Typography.h2,
     color: Colors.brand.darkTeal,
-    flex: 1,
   },
   list: {
     // Re-inset past cards to the screen gutter so they line up with the
     // active cards above the band.
     paddingHorizontal: Spacing.screenGutter,
     paddingTop: 16,
-    paddingBottom: 24,
     gap: 16,
   },
 });

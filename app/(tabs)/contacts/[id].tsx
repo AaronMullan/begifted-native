@@ -334,10 +334,12 @@ export default function RecipientEditPage() {
   // list actually renders (an occasion filter can leave the screen empty
   // while older suggestions for other occasions exist).
   const isFocused = useIsFocused();
-  const visibleSuggestionCount = partitionSuggestions(
-    suggestions,
-    occasionFilter
-  ).visible.length;
+  const { visible, past } = partitionSuggestions(suggestions, occasionFilter);
+  const visibleSuggestionCount = visible.length;
+  // When the past band renders it is the last thing in the scroll, so it
+  // carries the nav clearance itself and its fill reaches the nav.
+  const navClearance = BOTTOM_NAV_HEIGHT + Math.max(insets.bottom, 0);
+  const hasPastBand = activeTab !== "details" && past.length > 0;
   const giftsReady =
     isFocused &&
     activeTab === "gifts" &&
@@ -786,7 +788,8 @@ export default function RecipientEditPage() {
         ref={scrollRef}
         style={styles.content}
         contentContainerStyle={{
-          paddingBottom: BOTTOM_NAV_HEIGHT + Math.max(insets.bottom, 0),
+          flexGrow: 1,
+          paddingBottom: hasPastBand ? 0 : navClearance,
         }}
         keyboardShouldPersistTaps="handled"
       >
@@ -851,6 +854,7 @@ export default function RecipientEditPage() {
               <PastGiftsSection
                 suggestions={suggestions}
                 occasionId={occasionFilter}
+                bottomInset={navClearance}
               />
             </View>
           </>
@@ -972,6 +976,7 @@ const styles = StyleSheet.create({
   pastSection: {
     // Active cards → band gap from the frame (4306:1620: 20pt).
     marginTop: 20,
+    flexGrow: 1,
   },
   dialog: {
     borderRadius: 18,
