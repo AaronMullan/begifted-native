@@ -68,12 +68,13 @@ export default function Dashboard() {
   // the nav, not behind it.
   const navClearance = NAV_CONTENT_HEIGHT + Math.max(insets.bottom, 12);
   const {
-    data: recipients = [],
+    data: recipientsData,
     isLoading: loadingRecipients,
     isError: recipientsFailed,
     isFetching: refetchingRecipients,
     refetch: refetchRecipients,
   } = useRecipients();
+  const recipients = recipientsData ?? [];
   const { data: occasions = [], isLoading: loadingOccasions } = useOccasions();
 
   const isLoading = loadingRecipients || loadingOccasions;
@@ -165,16 +166,20 @@ export default function Dashboard() {
 
   // A failed fetch leaves `recipients` empty too, which the welcome state below
   // would report as "you have nobody yet" — onboarding shown to a user with a
-  // full account. Only an empty list we actually received means that.
-  if (recipientsFailed && recipients.length === 0) {
+  // full account. Test the raw value, not the defaulted one: a query that
+  // errored on a later refetch keeps the data it already had, and a genuinely
+  // empty account must still get the welcome rather than a load failure.
+  if (recipientsFailed && recipientsData === undefined) {
     return (
       <View style={styles.container}>
         <GradientBackground />
-        <LoadFailedState
-          message="Couldn't load your people."
-          onRetry={refetchRecipients}
-          retrying={refetchingRecipients}
-        />
+        <View style={styles.loadingContainer}>
+          <LoadFailedState
+            message="Couldn't load your people."
+            onRetry={refetchRecipients}
+            retrying={refetchingRecipients}
+          />
+        </View>
       </View>
     );
   }

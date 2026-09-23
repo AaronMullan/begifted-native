@@ -39,10 +39,14 @@ const LoadFailedState: React.FC<Props> = ({
 );
 
 const styles = StyleSheet.create({
+  // Intrinsic height, not `flex: 1` — mounted inside an auto-height parent (a
+  // ScrollView's content view) a flex basis of 0 has no space to grow into and
+  // collapses the whole state to nothing, which is the blank screen this
+  // component exists to prevent. Callers own vertical placement.
   root: {
-    flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: Spacing.marginStandard,
     paddingHorizontal: Spacing.screenGutter,
   },
   message: {
@@ -51,7 +55,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   button: {
-    marginTop: 20,
+    marginTop: Spacing.marginCompact,
   },
 });
 

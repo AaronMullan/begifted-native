@@ -61,13 +61,15 @@ import { reconcileInterests } from "../../../utils/interests";
 // Insert occasions captured by the general "Update what we know" chat into the
 // occasions table, de-duplicating against the recipient's existing occasions by
 // (date, type) so re-mentioning one never creates a copy. Returns the number of
-// rows inserted. Swallows its own errors (logging them) so a failed occasion
-// write never fails the surrounding profile update (DEV-125).
+// rows inserted, or null if the write failed. Callers must not treat a failure
+// as zero: a note whose only content was a moment would then be reported as
+// holding nothing new. A failure still never fails a profile update that did
+// succeed (DEV-125) — that is the caller's call to make, not this helper's.
 async function persistUpdateChatOccasions(
   userId: string,
   recipientId: string,
   occasions: { date: string | null; occasion_type: string }[]
-): Promise<number> {
+): Promise<number | null> {
   // AI dates are advisory: known types resolve through the holiday lookup,
   // Jan-1 placeholders are rejected, and anything still undated is dropped
   // (the update chat has no review screen where a date could be added).
@@ -115,7 +117,7 @@ async function persistUpdateChatOccasions(
     const { error } = await supabase.from("occasions").insert(rows);
     if (error) {
       console.error("Failed to persist occasions from update chat:", error);
-      return 0;
+      return null;
     }
     logProductEvents(
       userId,
@@ -131,7 +133,7 @@ async function persistUpdateChatOccasions(
     return rows.length;
   } catch (error) {
     console.error("Failed to persist occasions from update chat:", error);
-    return 0;
+    return null;
   }
 }
 
@@ -608,6 +610,10 @@ export default function RecipientEditPage() {
       // without an error, so an empty result is a write that didn't happen.
       // Reporting success here would close the drawer over unsaved edits while
       // the screen keeps showing the stale value, which reads as saved.
+      //
+      // Bailing here also skips the occasion write below. That is safe because
+      // the drawer stays open holding the note, and a retry re-submits the whole
+      // thing — occasions de-duplicate by (date, type), so nothing doubles.
       if (error || !updated?.length) {
         console.error("Failed to apply update from chat:", error);
         captureMutationError(
@@ -643,7 +649,7 @@ export default function RecipientEditPage() {
       recipient.id,
       Array.isArray(extracted.occasions) ? extracted.occasions : []
     );
-    if (insertedOccasions > 0) {
+    if (insertedOccasions !== null && insertedOccasions > 0) {
       await queryClient.invalidateQueries({
         queryKey: queryKeys.occasions(user.id),
       });
@@ -652,12 +658,21 @@ export default function RecipientEditPage() {
       });
     }
 
-    // Extraction can come back with nothing this handler is allowed to store —
-    // then there is no profile change to claim, and nothing for a resynthesis
-    // to work from either.
-    if (!hasFieldUpdates && insertedOccasions === 0) {
-      showSnackbar("Nothing new to add from that note.");
-      return true;
+    if (!hasFieldUpdates) {
+      // A moment was the note's only content and storing it failed, so there is
+      // nothing saved to report. Where a field update did land, the same
+      // failure stays quiet on purpose (DEV-125).
+      if (insertedOccasions === null) {
+        showSnackbar("Couldn't save that — please try again.");
+        return false;
+      }
+      // Extraction can come back with nothing this handler is allowed to store.
+      // Then there is no profile change to claim, and nothing for a resynthesis
+      // to work from either.
+      if (insertedOccasions === 0) {
+        showSnackbar("Nothing new to add from that note.");
+        return true;
+      }
     }
 
     setGenBaseline({

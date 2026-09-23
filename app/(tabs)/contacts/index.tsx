@@ -25,12 +25,13 @@ export default function Contacts() {
   const router = useRouter();
   const { user } = useAuth();
   const {
-    data: recipients = [],
+    data: recipientsData,
     isLoading: loading,
     isError: recipientsFailed,
     isFetching: refetchingRecipients,
     refetch: refetchRecipients,
   } = useRecipients();
+  const recipients = recipientsData ?? [];
   const { data: occasions = [] } = useAllOccasions();
 
   // Group occasions by recipient so each card can show its soonest moment.
@@ -108,16 +109,14 @@ export default function Contacts() {
 
           {loading && recipients.length === 0 ? (
             <Text style={styles.loadingText}>Loading…</Text>
-          ) : recipientsFailed && recipients.length === 0 ? (
+          ) : recipientsFailed && recipientsData === undefined ? (
             // An empty list we never received is not the same as an account
             // with nobody in it; "No people yet." would deny the user's people.
-            <View style={styles.emptyState}>
-              <LoadFailedState
-                message="Couldn't load your people."
-                onRetry={refetchRecipients}
-                retrying={refetchingRecipients}
-              />
-            </View>
+            <LoadFailedState
+              message="Couldn't load your people."
+              onRetry={refetchRecipients}
+              retrying={refetchingRecipients}
+            />
           ) : recipients.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyText}>No people yet.</Text>
