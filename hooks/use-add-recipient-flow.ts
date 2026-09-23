@@ -39,6 +39,40 @@ type InitialAddress = Partial<
   Pick<ExtractedData, "address" | "city" | "state" | "zip_code" | "country">
 >;
 
+/**
+ * Set the address-book anniversary as the recipient's anniversary occasion.
+ * The contact's date replaces any anniversary the conversation extracted —
+ * the address book is the user's own record, extraction is a guess. A known
+ * year is kept as the wedding date (the occasion prompt reads milestones from
+ * it; the occasions screen and the save roll it forward). A yearless date is
+ * rolled forward here, since only ISO dates survive the occasions screen.
+ */
+// Types that name the same date as a contact's anniversary. A work or dating
+// anniversary is a different occasion and is left alone.
+const CONTACT_ANNIVERSARY_TYPES = new Set([
+  "anniversary",
+  "wedding_anniversary",
+]);
+
+function withContactAnniversary(
+  occasions: ExtractedData["occasions"],
+  anniversary: string | undefined
+): ExtractedData["occasions"] {
+  if (!anniversary) return occasions;
+  const others = (occasions ?? []).filter(
+    (occasion) => !CONTACT_ANNIVERSARY_TYPES.has(occasion.occasion_type)
+  );
+  return [
+    ...others,
+    {
+      occasion_type: "anniversary",
+      date: anniversary.startsWith("--")
+        ? getNextAnnualOccurrence(anniversary)
+        : anniversary,
+    },
+  ];
+}
+
 function joinWithAnd(items: string[]): string {
   if (items.length <= 1) return items[0] ?? "";
   if (items.length === 2) return `${items[0]} and ${items[1]}`;
@@ -58,7 +92,8 @@ function joinWithAnd(items: string[]): string {
 function buildInitialUserMessage(
   name?: string,
   birthday?: string,
-  address?: InitialAddress
+  address?: InitialAddress,
+  anniversary?: string
 ): string | undefined {
   const trimmedName = name?.trim();
   if (!trimmedName) return undefined;
@@ -67,6 +102,10 @@ function buildInitialUserMessage(
   const readableBirthday = formatBirthdayDisplay(birthday);
   if (readableBirthday) {
     known.push(`their birthday (${readableBirthday})`);
+  }
+  const readableAnniversary = formatBirthdayDisplay(anniversary);
+  if (readableAnniversary) {
+    known.push(`their anniversary (${readableAnniversary})`);
   }
   const hasAddress = !!(
     address &&
@@ -122,6 +161,7 @@ export function useAddRecipientFlow(
   initialBirthday?: string,
   initialPhotoUri?: string,
   initialNote?: string,
+  initialAnniversary?: string,
   draftOptions?: {
     /** Parked draft to restore; null starts fresh. */
     resume: AddRecipientDraft | null;
@@ -188,7 +228,8 @@ export function useAddRecipientFlow(
     buildInitialUserMessage(
       initialContactName,
       initialBirthday,
-      initialAddress
+      initialAddress,
+      initialAnniversary
     );
 
   // Single assembly point for the parked draft, shared by the state-driven
@@ -213,6 +254,7 @@ export function useAddRecipientFlow(
         seed: {
           name: initialContactName,
           birthday: initialBirthday,
+          anniversary: initialAnniversary,
           photoUri: cachedPhotoUri.current ?? undefined,
           address: initialAddress ?? {},
           note: initialNote,
@@ -273,7 +315,13 @@ export function useAddRecipientFlow(
           if (!merged.country && initialAddress.country)
             merged.country = initialAddress.country;
         }
-        if (initialAddress || initialBirthday) {
+        if (initialAnniversary) {
+          merged.occasions = withContactAnniversary(
+            merged.occasions,
+            initialAnniversary
+          );
+        }
+        if (initialAddress || initialBirthday || initialAnniversary) {
           genericSetExtractedData(merged);
         }
         setShowDataReview(true);
@@ -409,10 +457,12 @@ export function useAddRecipientFlow(
         const occasionsData = data.occasions.map((occasion) => ({
           user_id: userId,
           recipient_id: recipient.id,
-          // A birthday occasion is annual: a hand-entered birth date must land
-          // on the next birthday, not decades in the past.
+          // Birthdays and anniversaries are annual: a birth or wedding date
+          // must land on its next occurrence, not decades in the past.
           date:
-            occasion.occasion_type === "birthday" && occasion.date
+            (occasion.occasion_type === "birthday" ||
+              occasion.occasion_type === "anniversary") &&
+            occasion.date
               ? getNextAnnualOccurrence(occasion.date)
               : occasion.date,
           occasion_type: occasion.occasion_type || "custom",
@@ -535,7 +585,9 @@ export function useAddRecipientFlow(
         state: extracted.state || initialAddress?.state || undefined,
         zip_code: extracted.zip_code || initialAddress?.zip_code || undefined,
         country: extracted.country || initialAddress?.country || "US",
-        occasions: extracted.occasions || undefined,
+        occasions:
+          withContactAnniversary(extracted.occasions, initialAnniversary) ||
+          undefined,
       };
 
       genericSetExtractedData(mappedData);
@@ -582,16 +634,21 @@ export function useAddRecipientFlow(
     if (!extractedData) return;
     // Skip bypasses the review screen, so AI-extracted occasion dates reach
     // the DB unreviewed — sanitize them (known types resolve via lookup,
-    // Jan-1 placeholders become null/undated).
+    // Jan-1 placeholders become null/undated). The contact's anniversary is
+    // re-applied afterwards: it is a real date, and a January 1 anniversary
+    // would otherwise read as a placeholder.
     await saveRecipient({
       ...extractedData,
-      occasions: extractedData.occasions?.map((occasion) => ({
-        ...occasion,
-        date: sanitizeExtractedOccasionDate(
-          occasion.occasion_type,
-          occasion.date
-        ),
-      })),
+      occasions: withContactAnniversary(
+        extractedData.occasions?.map((occasion) => ({
+          ...occasion,
+          date: sanitizeExtractedOccasionDate(
+            occasion.occasion_type,
+            occasion.date
+          ),
+        })),
+        initialAnniversary
+      ),
     });
   };
 
@@ -642,8 +699,20 @@ export function useAddRecipientFlow(
   }, [extractedData, genericSetExtractedData]);
 
   // Wrapper for setExtractedData to maintain interface
+  // Manual entry replaces extractedData wholesale, so re-apply the contact's
+  // anniversary or that path would save without it.
   const setExtractedData = (data: ExtractedData | null) => {
-    genericSetExtractedData(data);
+    genericSetExtractedData(
+      data && initialAnniversary
+        ? {
+            ...data,
+            occasions: withContactAnniversary(
+              data.occasions,
+              initialAnniversary
+            ),
+          }
+        : data
+    );
   };
 
   return {

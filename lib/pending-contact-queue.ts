@@ -3,6 +3,8 @@ import type { ExtractedData } from "../hooks/use-conversation-flow";
 export type PendingContactSeed = {
   name?: string;
   birthday?: string;
+  /** YYYY-MM-DD, or --MM-DD when the address book has no year. */
+  anniversary?: string;
   photoUri?: string;
   address: Partial<
     Pick<ExtractedData, "address" | "city" | "state" | "zip_code" | "country">

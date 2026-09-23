@@ -4,13 +4,16 @@ import { useState } from "react";
 import * as Contacts from "expo-contacts/legacy";
 import * as Sentry from "@sentry/react-native";
 import { Platform } from "react-native";
+import { contactAnniversary } from "../utils/contact-dates";
+import type { ContactDateParts } from "../utils/contact-dates";
 
 export interface DeviceContact {
   id: string;
   name: string;
   phoneNumbers?: string[];
   emails?: string[];
-  birthday?: { month: number; day: number; year?: number };
+  birthday?: ContactDateParts;
+  anniversary?: ContactDateParts;
   addresses?: {
     street?: string;
     city?: string;
@@ -45,6 +48,7 @@ export function useDeviceContacts() {
     Contacts.Fields.PhoneNumbers,
     Contacts.Fields.Emails,
     Contacts.Fields.Birthday,
+    Contacts.Fields.Dates,
     Contacts.Fields.Addresses,
   ];
 
@@ -123,6 +127,7 @@ export function useDeviceContacts() {
                 year: contact.birthday.year,
               }
             : undefined,
+          anniversary: contactAnniversary(contact.dates),
           addresses: contact.addresses?.map((addr) => ({
             street: addr.street,
             city: addr.city,

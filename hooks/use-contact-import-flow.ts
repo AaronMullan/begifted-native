@@ -9,13 +9,16 @@ import {
   DeviceContact,
   useDeviceContacts,
 } from "./use-device-contacts";
+import type { ContactDateParts } from "../utils/contact-dates";
 
 // iOS contacts can omit the year. Emit the vCard partial form (--MM-DD) so we
-// don't fudge a current-year birthday and so normalizeBirthday at the save
+// don't fudge a current-year date and so normalizeBirthday at the save
 // boundary keeps it intact.
-function contactBirthdayString(contact: DeviceContact): string | undefined {
-  if (!contact.birthday) return undefined;
-  const { year, month, day } = contact.birthday;
+function contactDateString(
+  date: ContactDateParts | undefined
+): string | undefined {
+  if (!date) return undefined;
+  const { year, month, day } = date;
   const m = String(month).padStart(2, "0");
   const d = String(day).padStart(2, "0");
   return year ? `${year}-${m}-${d}` : `--${m}-${d}`;
@@ -48,7 +51,8 @@ function buildContactSeed(
   const addr = contact.addresses?.[0];
   return {
     name: contact.name,
-    birthday: contactBirthdayString(contact),
+    birthday: contactDateString(contact.birthday),
+    anniversary: contactDateString(contact.anniversary),
     photoUri,
     address: {
       ...(addr?.street && { address: addr.street }),
@@ -104,7 +108,8 @@ export function useContactImportFlow() {
   const selectContact = async (contact: DeviceContact) => {
     setPickerVisible(false);
     const addr = contact.addresses?.[0];
-    const birthdayStr = contactBirthdayString(contact);
+    const birthdayStr = contactDateString(contact.birthday);
+    const anniversaryStr = contactDateString(contact.anniversary);
 
     const { uri: stablePhotoUri, outcome: copyOutcome } =
       await cacheContactPhoto(contact);
@@ -127,6 +132,7 @@ export function useContactImportFlow() {
       params: {
         name: contact.name,
         ...(birthdayStr && { birthday: birthdayStr }),
+        ...(anniversaryStr && { anniversary: anniversaryStr }),
         ...(addr?.street && { address: addr.street }),
         ...(addr?.city && { city: addr.city }),
         // Not `state`: react-navigation reserves params.state for a serialized

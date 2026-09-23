@@ -35,6 +35,7 @@ const AddRecipient = () => {
   const params = useLocalSearchParams<{
     name?: string;
     birthday?: string;
+    anniversary?: string;
     address?: string;
     city?: string;
     region?: string;
@@ -58,6 +59,8 @@ const AddRecipient = () => {
   const [paramSeed] = useState<AddRecipientDraftSeed>(() => ({
     name: typeof params.name === "string" ? params.name : undefined,
     birthday: typeof params.birthday === "string" ? params.birthday : undefined,
+    anniversary:
+      typeof params.anniversary === "string" ? params.anniversary : undefined,
     photoUri:
       typeof params.photo_url === "string" ? params.photo_url : undefined,
     note:
@@ -252,6 +255,7 @@ const AddRecipientFlowInner = ({
     seed.name ||
     seed.note ||
     seed.birthday ||
+    seed.anniversary ||
     seed.photoUri ||
     Object.keys(seed.address).length > 0
   );
@@ -315,6 +319,7 @@ const AddRecipientFlowInner = ({
     effectiveSeed.birthday,
     effectiveSeed.photoUri,
     effectiveSeed.note,
+    effectiveSeed.anniversary,
     { resume, persist: !onSaved }
   );
 
