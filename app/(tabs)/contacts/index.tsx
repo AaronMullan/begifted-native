@@ -5,6 +5,7 @@ import { Text } from "react-native-paper";
 import { Colors } from "../../../lib/colors";
 import { FontFamily, Typography } from "../../../lib/typography";
 import GradientBackground from "../../../components/GradientBackground";
+import LoadFailedState from "../../../components/LoadFailedState";
 import ContactFileImport from "../../../components/ContactFileImport";
 import ContactPicker from "../../../components/ContactPicker";
 import ContactsAccessIntro from "../../../components/ContactsAccessIntro";
@@ -23,7 +24,13 @@ import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 export default function Contacts() {
   const router = useRouter();
   const { user } = useAuth();
-  const { data: recipients = [], isLoading: loading } = useRecipients();
+  const {
+    data: recipients = [],
+    isLoading: loading,
+    isError: recipientsFailed,
+    isFetching: refetchingRecipients,
+    refetch: refetchRecipients,
+  } = useRecipients();
   const { data: occasions = [] } = useAllOccasions();
 
   // Group occasions by recipient so each card can show its soonest moment.
@@ -101,6 +108,16 @@ export default function Contacts() {
 
           {loading && recipients.length === 0 ? (
             <Text style={styles.loadingText}>Loading…</Text>
+          ) : recipientsFailed && recipients.length === 0 ? (
+            // An empty list we never received is not the same as an account
+            // with nobody in it; "No people yet." would deny the user's people.
+            <View style={styles.emptyState}>
+              <LoadFailedState
+                message="Couldn't load your people."
+                onRetry={refetchRecipients}
+                retrying={refetchingRecipients}
+              />
+            </View>
           ) : recipients.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyText}>No people yet.</Text>
