@@ -77,10 +77,12 @@ export default function GiftIdeasPage() {
   // actually loaded and there is something to view. The count must be the
   // partition the list renders: an occasion filter can leave the screen on
   // its empty state while older suggestions for other occasions exist.
-  const visibleSuggestionCount = partitionSuggestions(
-    suggestions,
-    occasionFilter
-  ).visible.length;
+  const { visible, past } = partitionSuggestions(suggestions, occasionFilter);
+  const visibleSuggestionCount = visible.length;
+  // When the past band renders it is the last thing in the scroll, so it
+  // carries the nav clearance itself and its fill reaches the nav.
+  const navClearance = BOTTOM_NAV_HEIGHT + 32;
+  const hasPastBand = past.length > 0;
   const loggedViewRef = useRef(false);
   useEffect(() => {
     if (loggedViewRef.current) return;
@@ -139,7 +141,10 @@ export default function GiftIdeasPage() {
       <ScrollView
         ref={scrollRef}
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: hasPastBand ? 0 : navClearance },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <View ref={contentRef} style={styles.content}>
@@ -157,6 +162,7 @@ export default function GiftIdeasPage() {
           <PastGiftsSection
             suggestions={suggestions}
             occasionId={occasionFilter}
+            bottomInset={navClearance}
           />
         </View>
       </ScrollView>
@@ -178,7 +184,6 @@ const styles = StyleSheet.create({
     // begins below it — only a small gap is needed (Figma: title ~20pt below the
     // header). Adding HEADER_HEIGHT here double-counted the header (~120pt).
     paddingTop: 20,
-    paddingBottom: BOTTOM_NAV_HEIGHT + 32,
   },
   content: {
     paddingHorizontal: 20,
@@ -204,6 +209,7 @@ const styles = StyleSheet.create({
   pastSection: {
     // Active cards → band gap from the frame (4306:1620: 20pt).
     marginTop: 20,
+    flexGrow: 1,
   },
   centered: {
     flex: 1,
