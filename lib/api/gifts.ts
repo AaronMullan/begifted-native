@@ -4,6 +4,7 @@
 
 import { supabase } from "../supabase";
 import type { GiftSuggestion } from "../../types/recipient";
+import { replayActiveBand } from "../gift-band";
 
 /**
  * Fetch gift suggestions for a recipient
@@ -27,7 +28,7 @@ export async function fetchGiftSuggestions(
       .order("generated_at", { ascending: false }),
     supabase
       .from("gift_feedback")
-      .select("gift_suggestion_id")
+      .select("gift_suggestion_id, created_at")
       .eq("recipient_id", recipientId)
       .in("action", GIFT_REMOVAL_ACTIONS),
   ]);
@@ -35,11 +36,56 @@ export async function fetchGiftSuggestions(
   if (suggestionsRes.error) throw suggestionsRes.error;
   if (removedRes.error) throw removedRes.error;
 
-  const removedIds = new Set(
-    (removedRes.data ?? []).map((row) => row.gift_suggestion_id)
-  );
+  const rows = suggestionsRes.data ?? [];
 
-  return (suggestionsRes.data ?? []).filter((s) => !removedIds.has(s.id));
+  // Earliest removal per gift: feedback is append-only, so a gift can carry
+  // several removal rows and only the first one actually emptied its slot.
+  // Taken by comparison rather than by query order so a row cap can't decide
+  // which removal counts.
+  const removedAt = new Map<string, string>();
+  for (const row of removedRes.data ?? []) {
+    const seen = removedAt.get(row.gift_suggestion_id);
+    if (seen === undefined || row.created_at < seen) {
+      removedAt.set(row.gift_suggestion_id, row.created_at);
+    }
+  }
+
+  const toBandRow = (s: (typeof rows)[number]) => ({
+    id: s.id,
+    generated_at: s.generated_at,
+    removedAt: removedAt.get(s.id) ?? null,
+  });
+
+  // The replay runs once per scope the app renders. Removed rows stay in the
+  // input — they held slots, and leaving them out would let past rows slide up
+  // into the gap all over again (DEV-488).
+  const recipientBand = replayActiveBand(rows.map(toBandRow));
+
+  // Each occasion bands separately: a recipient's newest three overall are not
+  // the newest three within one occasion, and the filtered view partitions on
+  // its own scope.
+  const byOccasion = new Map<string, typeof rows>();
+  for (const s of rows) {
+    const key = s.occasion_id ?? "";
+    byOccasion.set(key, [...(byOccasion.get(key) ?? []), s]);
+  }
+  const occasionBands = new Map<string, ReturnType<typeof replayActiveBand>>();
+  for (const [key, group] of byOccasion) {
+    occasionBands.set(key, replayActiveBand(group.map(toBandRow)));
+  }
+
+  return rows
+    .filter((s) => !removedAt.has(s.id))
+    .map((s) => {
+      const occasionBand = occasionBands.get(s.occasion_id ?? "");
+      return {
+        ...s,
+        active_in_recipient: recipientBand.active.has(s.id),
+        active_in_occasion: occasionBand?.active.has(s.id) ?? false,
+        peak_in_recipient: recipientBand.peak,
+        peak_in_occasion: occasionBand?.peak ?? 0,
+      };
+    });
 }
 
 export const GIFT_FEEDBACK_ACTIONS = [

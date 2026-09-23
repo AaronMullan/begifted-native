@@ -41,4 +41,15 @@ export interface GiftSuggestion {
   image_url?: string;
   generated_at: string;
   occasion_id?: string;
+  /** Holds one of the recipient's three active slots, replayed from the
+   * generate/remove timeline by `fetchGiftSuggestions` (DEV-488). Banding is
+   * per scope: the newest three overall are not the newest three within a
+   * single occasion, and the two views partition independently. */
+  active_in_recipient: boolean;
+  active_in_occasion: boolean;
+  /** Most slots the scope ever held at once. The shortfall against the active
+   * rows is the gap a removal left, which is what the backfill generates
+   * against — a scope that never reached three has no gap. */
+  peak_in_recipient: number;
+  peak_in_occasion: number;
 }

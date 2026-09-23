@@ -8,6 +8,7 @@ import type { GiftSuggestion } from "../../types/recipient";
 import PrimaryGiftCard from "./PrimaryGiftCard";
 import CollapsedGiftCard from "./CollapsedGiftCard";
 import GiftGenerationWaiting from "./GiftGenerationWaiting";
+import PendingGiftCard from "./PendingGiftCard";
 import { partitionSuggestions } from "./partition";
 
 type GiftSuggestionsListProps = {
@@ -61,8 +62,11 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
 
   // The active recommendation cards; the "Past Gifts" remainder is rendered
   // separately by PastGiftsSection, placed after this list by the host.
-  const { visible: visibleSuggestions, active: activeSuggestions } =
-    partitionSuggestions(suggestions, occasionId);
+  const {
+    visible: visibleSuggestions,
+    active: activeSuggestions,
+    pendingSlots,
+  } = partitionSuggestions(suggestions, occasionId);
 
   // If the currently open gift was just removed (or filtered out of view), the
   // stale `expandedId` would match no card and collapse the page to a list-only
@@ -159,6 +163,11 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
 
       <View style={styles.list}>
         {activeSuggestions.map((s) => renderCard(s))}
+        {/* Holds each slot a removal emptied so no past row slides up into it
+            while the replacement generates (DEV-488). */}
+        {Array.from({ length: pendingSlots }, (_, i) => (
+          <PendingGiftCard key={`pending-${i}`} />
+        ))}
       </View>
     </View>
   );
