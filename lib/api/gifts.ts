@@ -30,8 +30,7 @@ export async function fetchGiftSuggestions(
       .from("gift_feedback")
       .select("gift_suggestion_id, created_at")
       .eq("recipient_id", recipientId)
-      .in("action", GIFT_REMOVAL_ACTIONS)
-      .order("created_at", { ascending: true }),
+      .in("action", GIFT_REMOVAL_ACTIONS),
   ]);
 
   if (suggestionsRes.error) throw suggestionsRes.error;
@@ -41,9 +40,12 @@ export async function fetchGiftSuggestions(
 
   // Earliest removal per gift: feedback is append-only, so a gift can carry
   // several removal rows and only the first one actually emptied its slot.
+  // Taken by comparison rather than by query order so a row cap can't decide
+  // which removal counts.
   const removedAt = new Map<string, string>();
   for (const row of removedRes.data ?? []) {
-    if (!removedAt.has(row.gift_suggestion_id)) {
+    const seen = removedAt.get(row.gift_suggestion_id);
+    if (seen === undefined || row.created_at < seen) {
       removedAt.set(row.gift_suggestion_id, row.created_at);
     }
   }
@@ -57,27 +59,33 @@ export async function fetchGiftSuggestions(
   // The replay runs once per scope the app renders. Removed rows stay in the
   // input — they held slots, and leaving them out would let past rows slide up
   // into the gap all over again (DEV-488).
-  const activeInRecipient = replayActiveBand(rows.map(toBandRow));
+  const recipientBand = replayActiveBand(rows.map(toBandRow));
 
-  const activeInOccasion = new Set<string>();
+  // Each occasion bands separately: a recipient's newest three overall are not
+  // the newest three within one occasion, and the filtered view partitions on
+  // its own scope.
   const byOccasion = new Map<string, typeof rows>();
   for (const s of rows) {
     const key = s.occasion_id ?? "";
     byOccasion.set(key, [...(byOccasion.get(key) ?? []), s]);
   }
-  for (const group of byOccasion.values()) {
-    for (const id of replayActiveBand(group.map(toBandRow))) {
-      activeInOccasion.add(id);
-    }
+  const occasionBands = new Map<string, ReturnType<typeof replayActiveBand>>();
+  for (const [key, group] of byOccasion) {
+    occasionBands.set(key, replayActiveBand(group.map(toBandRow)));
   }
 
   return rows
     .filter((s) => !removedAt.has(s.id))
-    .map((s) => ({
-      ...s,
-      active_in_recipient: activeInRecipient.has(s.id),
-      active_in_occasion: activeInOccasion.has(s.id),
-    }));
+    .map((s) => {
+      const occasionBand = occasionBands.get(s.occasion_id ?? "");
+      return {
+        ...s,
+        active_in_recipient: recipientBand.active.has(s.id),
+        active_in_occasion: occasionBand?.active.has(s.id) ?? false,
+        peak_in_recipient: recipientBand.peak,
+        peak_in_occasion: occasionBand?.peak ?? 0,
+      };
+    });
 }
 
 export const GIFT_FEEDBACK_ACTIONS = [

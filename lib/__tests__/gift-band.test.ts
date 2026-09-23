@@ -7,7 +7,13 @@ const row = (id: string, generatedAt: string, removedAt?: string): BandRow => ({
   removedAt: removedAt ? `2026-09-01T00:${removedAt}:00Z` : null,
 });
 
-const band = (rows: BandRow[]) => [...replayActiveBand(rows)].sort();
+const band = (rows: BandRow[]) => [...replayActiveBand(rows).active].sort();
+const peak = (rows: BandRow[]) => replayActiveBand(rows).peak;
+/** Slots a removal emptied and nothing has refilled. */
+const pending = (rows: BandRow[]) => {
+  const { active, peak: p } = replayActiveBand(rows);
+  return Math.max(0, p - active.size);
+};
 
 describe("replayActiveBand", () => {
   it("keeps the newest three and pushes the rest into past gifts", () => {
@@ -102,5 +108,44 @@ describe("replayActiveBand", () => {
 
   it("returns an empty band for a recipient with no rows", () => {
     expect(band([])).toEqual([]);
+    expect(peak([])).toBe(0);
+  });
+
+  it("reports a pending slot only where a removal emptied one", () => {
+    const full = [row("a2", "03"), row("a1", "04"), row("a0", "05")];
+    expect(pending(full)).toBe(0);
+
+    // One idea in the run came back unpriced, so the scope only ever held two.
+    // That is not a gap: nothing will ever generate against it.
+    const neverFull = [row("a1", "04"), row("a0", "05")];
+    expect(pending(neverFull)).toBe(0);
+    expect(peak(neverFull)).toBe(2);
+
+    const removed = [row("a2", "03"), row("a1", "04", "06"), row("a0", "05")];
+    expect(pending(removed)).toBe(1);
+  });
+
+  it("keeps a removed row out of the band even if its removal predates it", () => {
+    // Clock skew between the two writers must not resurrect a rejected gift as
+    // a live recommendation.
+    const rows = [row("a2", "03"), row("a1", "04", "01"), row("a0", "05")];
+    expect(band(rows)).toEqual(["a0", "a2"]);
+  });
+
+  it("is deterministic when a batch insert gives several rows one timestamp", () => {
+    // Postgres stamps every row of one insert with the same now(), and 50
+    // recipient/timestamp groups in production carry 4-5 such rows. Sort
+    // stability alone would let the surviving three vary between refetches.
+    const tied = [
+      row("id-a", "05"),
+      row("id-b", "05"),
+      row("id-c", "05"),
+      row("id-d", "05"),
+      row("id-e", "05"),
+    ];
+    const first = band(tied);
+    expect(first).toHaveLength(3);
+    expect(band([...tied].reverse())).toEqual(first);
+    expect(band([tied[2], tied[0], tied[4], tied[1], tied[3]])).toEqual(first);
   });
 });

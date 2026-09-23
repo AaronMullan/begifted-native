@@ -25,12 +25,21 @@ export function partitionSuggestions(
 
   const active = visible.filter(isActive);
 
+  // Measured against the scope's own high-water mark, not ACTIVE_COUNT: a
+  // shortfall is a slot a removal emptied. A scope that never reached three —
+  // a run where one idea came back unpriced, a recipient still generating —
+  // has no gap, and holding a slot open there would spin forever because only
+  // a removal starts a backfill (DEV-488).
+  const peak = visible[0]
+    ? occasionId
+      ? visible[0].peak_in_occasion
+      : visible[0].peak_in_recipient
+    : 0;
+
   return {
     visible,
     active,
     past: visible.filter((s) => !isActive(s)),
-    // A gap here means a removed card is awaiting its replacement, which is
-    // what the backfill generates against (DEV-488).
-    pendingSlots: Math.max(0, ACTIVE_COUNT - active.length),
+    pendingSlots: Math.max(0, Math.min(peak, ACTIVE_COUNT) - active.length),
   };
 }

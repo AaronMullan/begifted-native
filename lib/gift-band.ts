@@ -16,6 +16,16 @@ export type BandRow = {
   removedAt: string | null;
 };
 
+export type Band = {
+  /** Ids currently holding an active slot. */
+  active: Set<string>;
+  /** The most slots this scope ever held at once. The shortfall against
+   * `active` is what a removal emptied, which is the only gap worth generating
+   * against — a scope that never reached three (one unpriced row in the run,
+   * a recipient still mid-generation) has no gap at all. */
+  peak: number;
+};
+
 /**
  * Replays the generate/remove timeline to decide which rows currently hold an
  * active slot.
@@ -35,32 +45,42 @@ export type BandRow = {
  * and must include rows hidden by removal feedback: those held slots too, and
  * dropping them makes the replay promote past rows all over again.
  */
-export function replayActiveBand(rows: BandRow[]): Set<string> {
+export function replayActiveBand(rows: BandRow[]): Band {
   // Every generation and removal as one chronological stream. A removal sorts
   // after a generation at the same instant so a row is never removed before it
-  // has been placed.
-  const events: { at: string; add: string | null; remove: string | null }[] = [
-    ...rows.map((r) => ({ at: r.generated_at, add: r.id, remove: null })),
+  // has been placed; id breaks the remaining ties because a batch insert gives
+  // every row in it one `now()` — without it the surviving three would depend
+  // on sort stability and could differ between refetches.
+  const events: { at: string; id: string; add: boolean }[] = [
+    ...rows.map((r) => ({ at: r.generated_at, id: r.id, add: true })),
     ...rows
       .filter((r) => r.removedAt !== null)
-      .map((r) => ({ at: r.removedAt as string, add: null, remove: r.id })),
-  ].sort((a, b) =>
-    a.at === b.at
-      ? Number(a.add === null) - Number(b.add === null)
-      : a.at < b.at
-        ? -1
-        : 1
+      // Never earlier than the row itself: a removal stamped before its own
+      // gift (clock skew on either writer) would otherwise land as a no-op and
+      // leave the row sitting in the band as a live recommendation.
+      .map((r) => ({
+        at: r.removedAt! < r.generated_at ? r.generated_at : r.removedAt!,
+        id: r.id,
+        add: false,
+      })),
+  ].sort(
+    (a, b) =>
+      a.at.localeCompare(b.at) ||
+      Number(b.add) - Number(a.add) ||
+      a.id.localeCompare(b.id)
   );
 
   // Newest-first, capped at ACTIVE_COUNT. Rows pushed off the end are past and
   // never re-enter.
   let band: string[] = [];
+  let peak = 0;
   for (const event of events) {
-    if (event.add !== null) {
-      band = [event.add, ...band].slice(0, ACTIVE_COUNT);
+    if (event.add) {
+      band = [event.id, ...band].slice(0, ACTIVE_COUNT);
+      peak = Math.max(peak, band.length);
     } else {
-      band = band.filter((id) => id !== event.remove);
+      band = band.filter((id) => id !== event.id);
     }
   }
-  return new Set(band);
+  return { active: new Set(band), peak };
 }

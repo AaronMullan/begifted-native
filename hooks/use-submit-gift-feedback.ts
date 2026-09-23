@@ -12,6 +12,7 @@ import {
   type InsertGiftFeedbackInput,
 } from "../lib/api";
 import type { GiftSuggestion } from "../types/recipient";
+import { partitionSuggestions } from "../components/gifts/partition";
 import { useAuth } from "./use-auth";
 
 type SubmitGiftFeedbackVars = {
@@ -22,26 +23,31 @@ type SubmitGiftFeedbackVars = {
   notes?: string | null;
 };
 
-/** Target number of active gift ideas the list backfills toward (DEV-118). */
-const VISIBLE_TARGET = 3;
-
-/** Rows holding one of the recipient's active slots. Scoped recipient-wide to
- * match the deficit the backfill endpoint computes. */
-const activeCount = (rows: GiftSuggestion[]) =>
-  rows.filter((s) => s.active_in_recipient).length;
+/** Slots a removal emptied in the scope the user is looking at, which is the
+ * deficit the backfill generates against. Asking the partition keeps the
+ * trigger and the on-screen pending cards in agreement, and keeps it scoped:
+ * a card removed from an occasion-filtered list empties an occasion slot, and
+ * counting recipient-wide would call that list full and never ask for a
+ * replacement (DEV-488). */
+const emptySlots = (rows: GiftSuggestion[], occasionId?: string | null) =>
+  partitionSuggestions(rows, occasionId ?? null).pendingSlots;
 
 /**
  * After triggering a backfill, the backend generation runs async (seconds), so
  * refetch the suggestions a few times until the replacement lands or we give up.
  * Bounded so a recipient the model can't fill a 3rd idea for won't poll forever.
  */
-function pollForBackfill(queryClient: QueryClient, recipientId: string) {
+function pollForBackfill(
+  queryClient: QueryClient,
+  recipientId: string,
+  occasionId?: string | null
+) {
   const key = queryKeys.giftSuggestions(recipientId);
   const delaysMs = [8000, 16000, 25000, 35000, 50000];
   for (const delay of delaysMs) {
     setTimeout(() => {
       const current = queryClient.getQueryData<GiftSuggestion[]>(key) ?? [];
-      if (activeCount(current) >= VISIBLE_TARGET) return; // already refilled
+      if (emptySlots(current, occasionId) === 0) return; // already refilled
       queryClient.invalidateQueries({ queryKey: key });
     }, delay);
   }
@@ -94,12 +100,12 @@ export function useSubmitGiftFeedback() {
         queryClient.getQueryData<GiftSuggestion[]>(
           queryKeys.giftSuggestions(vars.recipientId)
         ) ?? [];
-      // Count active slots, not the whole list: a recipient with a Past Gifts
+      // Count emptied slots, not the whole list: a recipient with a Past Gifts
       // band always had 3+ rows left, so this gate used to swallow every
       // removal they made and no replacement was ever requested (DEV-488).
-      if (activeCount(remaining) >= VISIBLE_TARGET) return;
+      if (emptySlots(remaining, vars.occasionId) === 0) return;
       triggerGiftBackfill(vars.recipientId, vars.occasionId);
-      pollForBackfill(queryClient, vars.recipientId);
+      pollForBackfill(queryClient, vars.recipientId, vars.occasionId);
     },
     onSettled: (_data, _err, vars) => {
       queryClient.invalidateQueries({
