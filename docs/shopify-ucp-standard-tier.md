@@ -305,19 +305,29 @@ and a same-store catalog lookup side by side over 378 recent suggestion links
 | unknown          |    12 |          4 |                0 |
 | dead             |     4 |          2 |                0 |
 
-The third of links we cannot confirm is not a Shopify problem. Of the 99 the
-link check cannot read, 15 are on Shopify; the rest are Target, Walmart, Best
-Buy, REI, Williams-Sonoma, Crate & Barrel, B&H and similar, which the catalog
-does not carry. Shopify stores are already readable — 193 of the 206 readable
-Shopify links came through the storefront product JSON reader — so the catalog
-would confirm 4 links the check misses today, about 1% of what we ship.
+The links we cannot confirm are not a Shopify problem. Of the 99 the link
+check cannot read, 15 are known Shopify stores, 40 are known not to be, and 44
+could not be classified because their homepages block us as well — among them
+Target, Walmart, Best Buy, REI, Williams-Sonoma, Crate & Barrel and B&H. The
+classification is not what the verdict rests on: the catalog was queried for
+every link, and for all 84 gap links outside the known Shopify set it found
+nothing on the same store, against a same-store find for 85% of links we know
+are Shopify because we read their product JSON. Four of the 15 Shopify gap
+links are not product pages at all. Shopify stores are already readable — 193
+of the 206 readable Shopify links came through the storefront product JSON
+reader — so the catalog would confirm 4 links the check misses today (6
+counting two same-product matches under a different handle), about 1–2% of
+the sample. The sample takes at most three links per store, which
+under-weights the large retailers, so the true share of what we ship is if
+anything lower.
 
 Where both sources read the same product (144 links), the page price fell
 inside the catalog's price range 136 times. Stock disagreed on 6, but the
-catalog reports one featured variant while the link check reports the product
-as a whole, so those are not evidence either way. Matching was workable — the
+probe compared a single catalog variant against the link check's product-level
+reading, so those are not evidence either way. Matching was workable — the
 same-store lookup found the exact product handle for 148 of 223 Shopify links —
-and the anonymous tier throttled 62 of 382 calls at four concurrent requests,
+and the anonymous tier answered 62 of about 444 requests (14%) with a 429 at
+four concurrent requests,
 which a daily cron would have to design around.
 
 **Verdict: drop.** The link-confirmation gap is real, but it sits with large
