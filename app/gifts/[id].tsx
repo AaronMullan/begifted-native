@@ -106,7 +106,9 @@ export default function GiftIdeasPage() {
   // Scroll a freshly-expanded gift card so its top lands just below the header.
   // Measuring against the content view (not the screen) yields the card's offset
   // within the scroll content; the viewport already begins below the in-flow
-  // header, and the nav clearance at the end of the scroll content (on the past band, or as bottom padding when there is none) keeps the card clear of the bottom nav.
+  // header, and the nav clearance at the end of the scroll content (inside the
+  // past band, or as bottom padding when there is none) keeps the card clear of
+  // the bottom nav.
   // The card top is a stable anchor (it depends only on the fixed-height
   // collapsed rows above it), so a late-loading image never moves it (DEV-185).
   const handleScrollCardIntoView = (node: View | null) => {
