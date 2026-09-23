@@ -35,6 +35,19 @@ describe("contactAnniversary", () => {
     ).toEqual({ month: 7, day: 4, year: undefined });
   });
 
+  it("ignores a non-Gregorian date", () => {
+    expect(
+      contactAnniversary([
+        { label: "anniversary", month: 0, day: 15, format: "hebrew" },
+      ])
+    ).toBeUndefined();
+    expect(
+      contactAnniversary([
+        { label: "anniversary", month: 0, day: 15, format: "gregorian" },
+      ])
+    ).toEqual({ month: 1, day: 15, year: undefined });
+  });
+
   it("drops an impossible date", () => {
     expect(
       contactAnniversary([{ label: "anniversary", month: 1, day: 30 }])

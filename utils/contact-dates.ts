@@ -13,7 +13,8 @@ export function contactAnniversary(
   const date = dates?.find(
     (d) => d.label?.trim().toLowerCase() === "anniversary"
   );
-  if (!date) return undefined;
+  // A lunar or other non-Gregorian date's month/day isn't a Gregorian date.
+  if (!date || (date.format && date.format !== "gregorian")) return undefined;
   // expo-contacts emits months 0-indexed, like the birthday; `??` keeps
   // January (0) from reading as missing.
   const month = (date.month ?? -1) + 1;

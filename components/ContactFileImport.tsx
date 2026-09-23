@@ -272,7 +272,10 @@ function parseCSV(text: string): DeviceContact[] {
           contact.anniversary = {
             month,
             day,
-            year: dateMatch[3] ? parseInt(dateMatch[3]) : undefined,
+            // A 2-digit year ("2/3/04") can't be stored as a date; keep
+            // only month and day rather than guess the century.
+            year:
+              dateMatch[3]?.length === 4 ? parseInt(dateMatch[3]) : undefined,
           };
         }
       } else if (header.includes("address") || header.includes("street")) {

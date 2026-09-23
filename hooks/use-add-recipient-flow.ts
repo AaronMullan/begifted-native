@@ -42,22 +42,33 @@ type InitialAddress = Partial<
 /**
  * Set the address-book anniversary as the recipient's anniversary occasion.
  * The contact's date replaces any anniversary the conversation extracted —
- * the address book is the user's own record, extraction is a guess. Dated to
- * its next occurrence so the occasions screen keeps it as a verified date.
+ * the address book is the user's own record, extraction is a guess. A known
+ * year is kept as the wedding date (the occasion prompt reads milestones from
+ * it; the occasions screen and the save roll it forward). A yearless date is
+ * rolled forward here, since only ISO dates survive the occasions screen.
  */
+// Types that name the same date as a contact's anniversary. A work or dating
+// anniversary is a different occasion and is left alone.
+const CONTACT_ANNIVERSARY_TYPES = new Set([
+  "anniversary",
+  "wedding_anniversary",
+]);
+
 function withContactAnniversary(
   occasions: ExtractedData["occasions"],
   anniversary: string | undefined
 ): ExtractedData["occasions"] {
   if (!anniversary) return occasions;
   const others = (occasions ?? []).filter(
-    (occasion) => occasion.occasion_type !== "anniversary"
+    (occasion) => !CONTACT_ANNIVERSARY_TYPES.has(occasion.occasion_type)
   );
   return [
     ...others,
     {
       occasion_type: "anniversary",
-      date: getNextAnnualOccurrence(anniversary),
+      date: anniversary.startsWith("--")
+        ? getNextAnnualOccurrence(anniversary)
+        : anniversary,
     },
   ];
 }
@@ -446,10 +457,12 @@ export function useAddRecipientFlow(
         const occasionsData = data.occasions.map((occasion) => ({
           user_id: userId,
           recipient_id: recipient.id,
-          // A birthday occasion is annual: a hand-entered birth date must land
-          // on the next birthday, not decades in the past.
+          // Birthdays and anniversaries are annual: a birth or wedding date
+          // must land on its next occurrence, not decades in the past.
           date:
-            occasion.occasion_type === "birthday" && occasion.date
+            (occasion.occasion_type === "birthday" ||
+              occasion.occasion_type === "anniversary") &&
+            occasion.date
               ? getNextAnnualOccurrence(occasion.date)
               : occasion.date,
           occasion_type: occasion.occasion_type || "custom",
@@ -686,8 +699,20 @@ export function useAddRecipientFlow(
   }, [extractedData, genericSetExtractedData]);
 
   // Wrapper for setExtractedData to maintain interface
+  // Manual entry replaces extractedData wholesale, so re-apply the contact's
+  // anniversary or that path would save without it.
   const setExtractedData = (data: ExtractedData | null) => {
-    genericSetExtractedData(data);
+    genericSetExtractedData(
+      data && initialAnniversary
+        ? {
+            ...data,
+            occasions: withContactAnniversary(
+              data.occasions,
+              initialAnniversary
+            ),
+          }
+        : data
+    );
   };
 
   return {
