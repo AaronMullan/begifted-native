@@ -11,6 +11,12 @@ Scope: the **standard tier** only. That means discovery and cart building, with
 the buyer finishing on the merchant's own checkout. Completing a purchase
 in-app is deliberately out of scope; see "The tier we would not use."
 
+**Status, September 23, 2026: not pursuing.** Two spikes tested both uses of
+the catalog — finding gifts with it, and confirming gifts web search had
+already found — and neither earns an integration. See "What the September 23
+spikes found." The rest of this document is the design as it stood before
+those tests.
+
 ## The problem this solves
 
 Our pipeline finds real products and then struggles to read them.
@@ -185,9 +191,12 @@ still covers the clicks that land elsewhere, and it stays the fallback when the
 catalog returns nothing good. This is additive.
 
 The genuinely new capability is variant resolution. A search result is a page;
-`get_product` is a grid of sizes and colors with stock per cell. That is the
-sizing problem the readiness doc keeps flagging, and no amount of better
-searching solves it.
+`get_product` resolves a size and color to a specific in-stock variant. It is
+not a full grid: it returns the variants matching the options you pass in, each
+with its own stock flag and cart link, and marks every other option value
+available or not relative to that selection. Enough to answer "is the 4–5 in
+stock, and in which colors," which is the sizing question the readiness doc
+keeps flagging.
 
 For a single-item gift, Cart and Checkout MCP may not be needed at all:
 `get_product` already yields a variant-level seller checkout link. Cart building
@@ -265,6 +274,65 @@ Spot-checking that direction — "a gift for someone who ferments vegetables at
 home" — returned a coherent set of fermentation kits from several merchants, but
 judging whether those picks are _good_ needs a person, not a string comparison.
 So read 35% as a floor on a deliberately unfavourable test, not as a hit rate.
+
+## What the September 23 spikes found
+
+Both spikes ran against the live catalog at the anonymous tier with Shopify's
+test profile fixture.
+
+**The catalog as the way we find gifts: ruled out.** Fifteen real recipients
+went through the production prompt and model (`gpt-5.6-sol`, prompt v18) with
+the catalog as the only retrieval tool, once restricted to brand stores and
+once to brand stores plus specialty retailers. Every run returned three gifts,
+including brand-only runs where 12% of searches left fewer than three
+candidates; the model searched more and chose among what was there. That is
+the problem. When catalog picks are worse, nothing signals it, so there is no
+point where code could fall back to web search, and giving the model both
+tools at once is a mixed pool rather than a fallback. The runs were also
+slower: 77–94 seconds median against 49 for the web-search runs they were
+compared with.
+
+**The catalog as a way to confirm what web search found: almost nothing to
+confirm.** `be-gifted/scripts/probe-catalog.ts` ran the existing link check
+and a same-store catalog lookup side by side over 378 recent suggestion links
+(45 days, at most three per store):
+
+| link check today | links | on Shopify | catalog confirms |
+| ---------------- | ----: | ---------: | ---------------: |
+| readable         |   275 |        206 |              144 |
+| blocked          |    54 |          5 |                4 |
+| unreadable       |    33 |          6 |                0 |
+| unknown          |    12 |          4 |                0 |
+| dead             |     4 |          2 |                0 |
+
+The links we cannot confirm are not a Shopify problem. Of the 99 the link
+check cannot read, 15 are known Shopify stores, 40 are known not to be, and 44
+could not be classified because their homepages block us as well — among them
+Target, Walmart, Best Buy, REI, Williams-Sonoma, Crate & Barrel and B&H. The
+classification is not what the verdict rests on: the catalog was queried for
+every link, and for all 84 gap links outside the known Shopify set it found
+nothing on the same store, against a same-store find for 85% of links we know
+are Shopify because we read their product JSON. Four of the 15 Shopify gap
+links are not product pages at all. Shopify stores are already readable — 193
+of the 206 readable Shopify links came through the storefront product JSON
+reader — so the catalog would confirm 4 links the check misses today (6
+counting two same-product matches under a different handle), about 1–2% of
+the sample. The sample takes at most three links per store, which
+under-weights the large retailers, so the true share of what we ship is if
+anything lower.
+
+Where both sources read the same product (144 links), the page price fell
+inside the catalog's price range 136 times. Stock disagreed on 6, but the
+probe compared a single catalog variant against the link check's product-level
+reading, so those are not evidence either way. Matching was workable — the
+same-store lookup found the exact product handle for 148 of 223 Shopify links —
+and the anonymous tier answered 62 of about 444 requests (14%) with a 429 at
+four concurrent requests,
+which a daily cron would have to design around.
+
+**Verdict: drop.** The link-confirmation gap is real, but it sits with large
+non-Shopify retailers, and nothing in this document reaches them.
+Reproduce with `node scripts/probe-catalog.ts` in `be-gifted`.
 
 ## What to settle before building
 
