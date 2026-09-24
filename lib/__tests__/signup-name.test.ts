@@ -4,7 +4,9 @@ import { flushPendingSignUpName, markPendingSignUpName } from "../signup-name";
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("@react-native-async-storage/async-storage", () =>
-  require("@react-native-async-storage/async-storage/jest/async-storage-mock")
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock"
+  )
 );
 
 const mockMaybeSingle = jest.fn();
