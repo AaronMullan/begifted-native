@@ -17,6 +17,7 @@ import {
   APPLE_STANDARD_EULA_URL,
 } from "../../../lib/legal";
 import type { Session } from "@supabase/supabase-js";
+import GradientBackground from "../../../components/GradientBackground";
 
 type LegalRowProps = {
   label: string;
@@ -71,6 +72,7 @@ export default function LegalSettings() {
   if (loading || !session) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
         <View style={styles.content}>
           <Text style={styles.loadingText}>Loading...</Text>
@@ -81,6 +83,7 @@ export default function LegalSettings() {
 
   return (
     <View style={styles.container}>
+      <GradientBackground />
       <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
       <ScrollView
         style={styles.scrollView}

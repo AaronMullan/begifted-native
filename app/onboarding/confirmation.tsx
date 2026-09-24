@@ -1,6 +1,7 @@
 import { View, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { ProfileReadyInterstitial } from "../../components/ProfileReadyInterstitial";
+import GradientBackground from "../../components/GradientBackground";
 
 /**
  * End of the tell-us-about-yourself intake: the "Your profile is ready"
@@ -11,6 +12,7 @@ export default function OnboardingConfirmation() {
 
   return (
     <View style={styles.container}>
+      <GradientBackground />
       <ProfileReadyInterstitial
         title="Your profile is ready"
         subtitle="Time to add people. Let’s get started!"

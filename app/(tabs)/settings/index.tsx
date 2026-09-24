@@ -9,6 +9,7 @@ import type { Href } from "expo-router";
 import { Colors } from "../../../lib/colors";
 import { Typography } from "../../../lib/typography";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
+import GradientBackground from "../../../components/GradientBackground";
 
 type SettingsRowProps = {
   label: string;
@@ -71,6 +72,7 @@ export default function Settings() {
   if (loading) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={styles.content}>
           <Text variant="bodyLarge" style={styles.loadingText}>
             Loading...
@@ -83,6 +85,7 @@ export default function Settings() {
   if (!session) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={styles.content}>
           <Text style={styles.title}>Settings</Text>
           <Text style={styles.subtitle}>
@@ -97,6 +100,7 @@ export default function Settings() {
 
   return (
     <View style={styles.container}>
+      <GradientBackground />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}

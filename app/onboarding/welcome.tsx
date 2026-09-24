@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../lib/colors";
 import { Typography } from "../../lib/typography";
+import GradientBackground from "../../components/GradientBackground";
 
 export default function OnboardingWelcome() {
   const router = useRouter();
@@ -11,6 +12,7 @@ export default function OnboardingWelcome() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 60 }]}>
+      <GradientBackground />
       <View style={styles.content}>
         <Text style={styles.headline}>Welcome to BeGifted</Text>
         <Text variant="bodyLarge" style={styles.body}>

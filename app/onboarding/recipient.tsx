@@ -12,6 +12,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "../../lib/query-keys";
 import { useBetaCheckIn } from "../../components/beta/BetaCheckInProvider";
 import AddRecipientLegalNotice from "../../components/recipients/AddRecipientLegalNotice";
+import GradientBackground from "../../components/GradientBackground";
 
 export default function OnboardingRecipient() {
   const router = useRouter();
@@ -47,6 +48,7 @@ export default function OnboardingRecipient() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 60 }]}>
+      <GradientBackground />
       <View style={styles.content}>
         <Text style={styles.headline}>Add your first person</Text>
         <Text variant="bodyLarge" style={styles.body}>

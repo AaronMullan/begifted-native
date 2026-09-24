@@ -27,6 +27,7 @@ import {
 } from "../../../lib/add-recipient-draft";
 import type { AddRecipientDraftSeed } from "../../../lib/add-recipient-draft";
 import { Spacing } from "../../../lib/spacing";
+import GradientBackground from "../../../components/GradientBackground";
 
 const AddRecipient = () => {
   const router = useRouter();
@@ -112,7 +113,12 @@ const AddRecipient = () => {
   }, [queue, user, authLoading]);
 
   if (!queue) {
-    return <AddRecipientFlow seed={paramSeed} />;
+    return (
+      <View style={styles.queueContainer}>
+        <GradientBackground />
+        <AddRecipientFlow seed={paramSeed} />
+      </View>
+    );
   }
 
   const total = queue.length;
@@ -157,6 +163,7 @@ const AddRecipient = () => {
 
   return (
     <View style={styles.queueContainer}>
+      <GradientBackground />
       <Text style={styles.progressLabel}>
         {queueIndex + 1} of {total}
       </Text>
