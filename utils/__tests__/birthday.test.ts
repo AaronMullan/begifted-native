@@ -8,6 +8,7 @@ import {
   birthYearFromAge,
   birthYearFromYearOnly,
   birthdayFromOccasionDate,
+  birthdayAfterOccasionEdit,
 } from "../birthday";
 
 // Year validation ("no future years") and age backfill both key off the
@@ -222,5 +223,42 @@ describe("birthdayFromOccasionDate", () => {
   it("returns null for anything unparseable", () => {
     expect(birthdayFromOccasionDate(null)).toBeNull();
     expect(birthdayFromOccasionDate("soon")).toBeNull();
+  });
+});
+
+describe("birthdayAfterOccasionEdit", () => {
+  it("moves a year-unknown birthday to the moment's new day", () => {
+    expect(birthdayAfterOccasionEdit("2027-08-07", "--08-08")).toBe("--08-07");
+  });
+
+  it("keeps a known birth year when the moment carries only the next occurrence", () => {
+    expect(birthdayAfterOccasionEdit("2026-08-07", "1980-08-08")).toBe(
+      "1980-08-07"
+    );
+  });
+
+  it("takes a past year entered on the moment as the birth year", () => {
+    expect(birthdayAfterOccasionEdit("1975-08-07", "--08-08")).toBe(
+      "1975-08-07"
+    );
+  });
+
+  it("sets a birthday when none was stored", () => {
+    expect(birthdayAfterOccasionEdit("2026-09-11", null)).toBe("--09-11");
+  });
+
+  it("returns null when the birthday already agrees", () => {
+    expect(birthdayAfterOccasionEdit("2027-08-08", "--08-08")).toBeNull();
+    expect(birthdayAfterOccasionEdit("2026-08-08", "1980-08-08")).toBeNull();
+  });
+
+  it("drops the year rather than store an impossible Feb 29", () => {
+    expect(birthdayAfterOccasionEdit("2028-02-29", "1981-03-01")).toBe(
+      "--02-29"
+    );
+  });
+
+  it("returns null for an unparseable date", () => {
+    expect(birthdayAfterOccasionEdit("", "--08-08")).toBeNull();
   });
 });

@@ -31,7 +31,10 @@ import {
 import { slugifyOccasionName } from "../../hooks/use-occasion-recommendations";
 import { GiftPreferencesDialog } from "./GiftPreferencesDialog";
 import { InformationDialog } from "./InformationDialog";
-import { formatBirthdayDisplay } from "../../utils/birthday";
+import {
+  birthdayAfterOccasionEdit,
+  formatBirthdayDisplay,
+} from "../../utils/birthday";
 import { formatOccasionType } from "../../utils/home-occasions";
 import { formatOccasionDate } from "../../utils/occasion-dates";
 import { cleanRelationship } from "../../lib/format-name";
@@ -91,11 +94,11 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
   const handleSavePartial = async (
     fields: Partial<Recipient>,
     triggerResync: boolean
-  ) => {
+  ): Promise<boolean> => {
     const {
       data: { session },
     } = await supabase.auth.getSession();
-    if (!session?.user) return;
+    if (!session?.user) return false;
 
     // Read the row back rather than trusting a null error: RLS filters an
     // UPDATE to the rows the policy matches instead of rejecting it, so a
@@ -111,12 +114,13 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
       .maybeSingle();
     if (error || !saved) {
       console.error("Failed to update recipient:", error ?? "no row updated");
-      return;
+      return false;
     }
     onRecipientUpdated({ ...recipient, ...saved });
     if (triggerResync) {
       onResynthesize();
     }
+    return true;
   };
 
   // Pick from the library, upload via the service_role edge function (direct
@@ -471,7 +475,7 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
         occasion={editingOccasion}
         handleRef={manageMomentRef}
         onDelete={(occasion) => setOccasionToDelete(occasion)}
-        onSave={(date, name, isAnnual) => {
+        onSave={(date, name, isAnnual, dateEdited) => {
           if (!editingOccasion) return;
           // occasion_type doubles as the display name (there is no separate
           // title column), so a rename is a slug update.
@@ -491,6 +495,28 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
                 : {}),
             },
           });
+          // Only an explicit date edit (or a moment becoming the birthday)
+          // syncs: the drawer re-emits its seeded date on every save, and
+          // that stale occasion day must not overwrite a birthday edited
+          // elsewhere.
+          const becomesBirthday =
+            (slug || editingOccasion.occasion_type) === "birthday";
+          const nextBirthday =
+            becomesBirthday &&
+            (dateEdited || editingOccasion.occasion_type !== "birthday")
+              ? birthdayAfterOccasionEdit(date, recipient.birthday)
+              : null;
+          if (nextBirthday) {
+            void handleSavePartial({ birthday: nextBirthday }, false).then(
+              (saved) => {
+                if (!saved) {
+                  showSnackbar(
+                    "Couldn't update their birthday. Please try again."
+                  );
+                }
+              }
+            );
+          }
         }}
       />
 
