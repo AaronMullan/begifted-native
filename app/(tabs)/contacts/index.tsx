@@ -48,6 +48,8 @@ export default function Contacts() {
     importFailedVisible,
     isAddingContacts,
     deviceContacts,
+    limitedAccess,
+    chooseMoreContacts,
     openAccessIntro,
     closeAccessIntro,
     closePicker,
@@ -159,6 +161,7 @@ export default function Contacts() {
           onAdd={addSelectedContacts}
           onClose={closePicker}
           isAdding={isAddingContacts}
+          onChooseMore={limitedAccess ? chooseMoreContacts : undefined}
         />
         <ContactsImportFailedModal
           visible={importFailedVisible}

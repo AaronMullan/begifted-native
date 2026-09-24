@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Keyboard, Pressable, StyleSheet, View } from "react-native";
-import { Text } from "react-native-paper";
+import { Button, Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
   BottomSheetFlatList,
@@ -21,6 +21,9 @@ type ContactPickerProps = {
   onAdd: (contacts: DeviceContact[]) => void;
   onClose: () => void;
   isAdding?: boolean;
+  // Set when iOS granted access to selected contacts only; the list then holds
+  // just those, so the drawer offers a way to share more.
+  onChooseMore?: () => void;
 };
 
 /**
@@ -39,6 +42,7 @@ export default function ContactPicker({
   onAdd,
   onClose,
   isAdding = false,
+  onChooseMore,
 }: ContactPickerProps) {
   const sheetRef = useRef<BottomSheetModal>(null);
   const insets = useSafeAreaInsets();
@@ -189,6 +193,23 @@ export default function ContactPicker({
               {searchQuery ? "No matching contacts" : "No contacts found"}
             </Text>
           }
+          ListFooterComponent={
+            onChooseMore ? (
+              <View style={styles.chooseMore}>
+                <Text style={styles.chooseMoreHint}>
+                  Only the contacts you’ve shared with BeGifted appear here.
+                </Text>
+                <Button
+                  mode="text"
+                  onPress={onChooseMore}
+                  textColor={Colors.brand.darkTeal}
+                  labelStyle={styles.chooseMoreLabel}
+                >
+                  Choose more contacts
+                </Button>
+              </View>
+            ) : null
+          }
         />
         <View style={styles.footer}>
           <PrimaryCta
@@ -292,6 +313,19 @@ const styles = StyleSheet.create({
     color: Colors.brand.mediumTeal,
     textAlign: "center",
     paddingVertical: 24,
+  },
+  chooseMore: {
+    alignItems: "center",
+    paddingVertical: 16,
+    gap: 4,
+  },
+  chooseMoreHint: {
+    ...Typography.body13,
+    color: Colors.brand.mediumTeal,
+    textAlign: "center",
+  },
+  chooseMoreLabel: {
+    ...Typography.largeCta,
   },
   footer: {
     alignItems: "center",

@@ -1,7 +1,7 @@
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sentry from "@sentry/react-native";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { setPendingContactQueue } from "../lib/pending-contact-queue";
 import type { PendingContactSeed } from "../lib/pending-contact-queue";
 import {
@@ -71,7 +71,12 @@ export function useContactImportFlow() {
   const [importFailedVisible, setImportFailedVisible] = useState(false);
   const [isAddingContacts, setIsAddingContacts] = useState(false);
   const [deviceContacts, setDeviceContacts] = useState<DeviceContact[]>([]);
-  const { loading: contactsLoading, getDeviceContacts } = useDeviceContacts();
+  const [limitedAccess, setLimitedAccess] = useState(false);
+  const {
+    loading: contactsLoading,
+    getDeviceContacts,
+    chooseMoreContacts: requestMoreContacts,
+  } = useDeviceContacts();
 
   const openAccessIntro = () => setAccessIntroVisible(true);
   const closeAccessIntro = () => setAccessIntroVisible(false);
@@ -80,14 +85,33 @@ export function useContactImportFlow() {
 
   const continueWithAccess = async () => {
     setAccessIntroVisible(false);
-    const contacts = await getDeviceContacts();
-    if (contacts === null) {
+    const result = await getDeviceContacts();
+    if (result === null) {
       setImportFailedVisible(true);
       return;
     }
-    setDeviceContacts(contacts);
-    if (contacts.length > 0) {
+    setDeviceContacts(result.contacts);
+    setLimitedAccess(result.limitedAccess);
+    // Under limited access an empty list still opens the picker — it's the
+    // only place to share more contacts from.
+    if (result.contacts.length > 0 || result.limitedAccess) {
       setPickerVisible(true);
+    }
+  };
+
+  // The system access picker rejects a second presentation while one is open,
+  // so a double tap must not reach it.
+  const choosingMoreRef = useRef(false);
+  const chooseMoreContacts = async () => {
+    if (choosingMoreRef.current) return;
+    choosingMoreRef.current = true;
+    try {
+      const result = await requestMoreContacts();
+      if (result === null) return;
+      setDeviceContacts(result.contacts);
+      setLimitedAccess(result.limitedAccess);
+    } finally {
+      choosingMoreRef.current = false;
     }
   };
 
@@ -100,6 +124,7 @@ export function useContactImportFlow() {
     // File/browser imports bypass getDeviceContacts, so sort here too — the
     // picker must be alphabetical regardless of source.
     setDeviceContacts([...contacts].sort(compareContactsByName));
+    setLimitedAccess(false);
     if (contacts.length > 0) {
       setPickerVisible(true);
     }
@@ -187,6 +212,8 @@ export function useContactImportFlow() {
     importFailedVisible,
     isAddingContacts,
     deviceContacts,
+    limitedAccess,
+    chooseMoreContacts,
     openAccessIntro,
     closeAccessIntro,
     closePicker,

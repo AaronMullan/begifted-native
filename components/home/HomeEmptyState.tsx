@@ -26,6 +26,8 @@ export default function HomeEmptyState() {
     accessIntroVisible,
     importFailedVisible,
     deviceContacts,
+    limitedAccess,
+    chooseMoreContacts,
     openAccessIntro,
     closeAccessIntro,
     closePicker,
@@ -112,6 +114,7 @@ export default function HomeEmptyState() {
         onAdd={addSelectedContacts}
         onClose={closePicker}
         isAdding={isAddingContacts}
+        onChooseMore={limitedAccess ? chooseMoreContacts : undefined}
       />
       <ContactsImportFailedModal
         visible={importFailedVisible}
