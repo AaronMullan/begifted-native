@@ -3,6 +3,9 @@
  */
 
 import { supabase } from "../supabase";
+import { getNextOccurrence } from "../../utils/occasion-dates";
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 export interface Occasion {
   id: string;
@@ -174,6 +177,40 @@ export async function updateOccasion(
     .from("occasions")
     .update(fields)
     .eq("id", occasionId);
+
+  if (error) throw error;
+}
+
+/**
+ * Move a recipient's birthday occasion to the next occurrence of their
+ * birthday. The gift cron only re-dates birthday occasions once the birthday
+ * is inside the notification window, so without this a birthday edited months
+ * ahead leaves the moment on the old day until then. A recipient without a
+ * birthday occasion is left alone rather than given one they may have deleted.
+ */
+export async function redateBirthdayOccasion(
+  userId: string,
+  recipientId: string,
+  birthday: string
+): Promise<void> {
+  const date = getNextOccurrence(birthday);
+  if (!ISO_DATE.test(date)) return;
+  const { error } = await supabase
+    .from("occasions")
+    // Same reset the cron applies when it moves a date. Once the date is
+    // already right the cron sees no change and never clears these, so a
+    // gift chosen for the old cycle would silence the next birthday.
+    .update({
+      date,
+      fulfilled_at: null,
+      last_generated_at: null,
+      last_generation_status: null,
+    })
+    .eq("recipient_id", recipientId)
+    .eq("user_id", userId)
+    .eq("occasion_type", "birthday")
+    // An undated birthday moment gets its date too; neq alone skips NULL.
+    .or(`date.is.null,date.neq.${date}`);
 
   if (error) throw error;
 }

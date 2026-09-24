@@ -38,6 +38,7 @@ import {
 import {
   useCreateOccasion,
   useRecipientOccasions,
+  useRedateBirthdayOccasion,
 } from "../../../hooks/use-occasion-mutations";
 import { recommendedMomentsFor } from "../../../utils/recommended-moments";
 import { useInterestMomentSuggestions } from "../../../hooks/use-interest-moment-suggestions";
@@ -383,6 +384,7 @@ export default function RecipientEditPage() {
   // present so recipient refetches don't re-open a dismissed drawer.
   const addMomentRef = useRef<AddMomentDrawerHandle | null>(null);
   const createOccasion = useCreateOccasion();
+  const redateBirthdayOccasion = useRedateBirthdayOccasion();
   // Shares AboutRecipientView's query, so this adds no extra fetch.
   const { data: recipientOccasions = [], isSuccess: occasionsLoaded } =
     useRecipientOccasions(recipientId);
@@ -632,6 +634,12 @@ export default function RecipientEditPage() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.recipients(user.id),
       });
+      if (updates.birthday && updates.birthday !== recipient.birthday) {
+        redateBirthdayOccasion.mutate({
+          recipientId: recipient.id,
+          birthday: updates.birthday,
+        });
+      }
       // This path can now set cultural_context too, and the AI suggestions
       // are prompted with it — without this the deterministic chips swap to
       // the stated holiday while the AI half of the same drawer keeps
