@@ -5,6 +5,7 @@ import { Button, Dialog, Portal, Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
 import { Radii, Typography } from "../../lib/typography";
+import { Spacing } from "../../lib/spacing";
 import { BOTTOM_NAV_HEIGHT } from "../../lib/constants";
 import { recipientMarkerColor } from "../../lib/recipient-color";
 import { useAuth } from "../../hooks/use-auth";
@@ -647,9 +648,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     alignSelf: "center",
-    width: 204,
-    height: 48,
-    borderRadius: 24,
+    // Sized to the label, not a fixed box: the copy changes length with the
+    // day's contents, and a fixed width wraps the longer label out of the pill.
+    maxWidth: "100%",
+    minHeight: 48,
+    paddingHorizontal: Spacing.screenGutter,
+    paddingVertical: Spacing.cardGap,
+    borderRadius: Radii.pill,
     borderWidth: 1.5,
     borderColor: Colors.brand.gold,
     marginTop: 48,
@@ -657,6 +662,7 @@ const styles = StyleSheet.create({
   addToDayLabel: {
     ...Typography.largeCta,
     color: Colors.brand.darkTeal,
+    flexShrink: 1,
   },
   noPeople: {
     ...Typography.subhead,
