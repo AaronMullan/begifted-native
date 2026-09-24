@@ -30,12 +30,14 @@ export function useUpdateProfile() {
       data,
     }: UpdateProfileVariables): Promise<Profile> => {
       // Use update instead of upsert - profile row should exist from signup trigger.
-      // Only send full_name (omit username to avoid min-3-char constraint).
+      // Send only the fields the caller passed: a column included here as null
+      // is cleared, so a partial save (e.g. the avatar alone) must not carry
+      // full_name. Username is never sent (min-3-char constraint).
       const payload: Record<string, unknown> = {
-        full_name: data.full_name ?? null,
         updated_at: new Date().toISOString(),
       };
 
+      if ("full_name" in data) payload.full_name = data.full_name ?? null;
       if ("avatar_url" in data) payload.avatar_url = data.avatar_url ?? null;
       if ("billing_address_city" in data)
         payload.billing_address_city = data.billing_address_city ?? null;
