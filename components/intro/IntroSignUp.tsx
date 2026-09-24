@@ -21,7 +21,10 @@ import {
 } from "../../lib/legal-acceptance";
 import { Spacing } from "@/lib/spacing";
 import { KEYBOARD_CTA_GAP } from "@/lib/constants";
-import { confirmSignUpNameSaved } from "@/lib/signup-name";
+import {
+  confirmSignUpNameSaved,
+  markPendingSignUpName,
+} from "@/lib/signup-name";
 
 type IntroSignUpProps = {
   onSignedUp: () => Promise<void> | void;
@@ -111,6 +114,7 @@ export default function IntroSignUp({
         // No session yet, so the acceptance can't be recorded until the user
         // verifies and signs in; flushed by app/index.tsx on first load.
         await markPendingLegalAcceptance();
+        await markPendingSignUpName(trimmedEmail, name.trim());
         await onNeedsVerification(trimmedEmail);
         return;
       }

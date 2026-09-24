@@ -20,6 +20,8 @@ import { Colors } from "../lib/colors";
 import GradientBackground from "../components/GradientBackground";
 import { hasSeenIntro, markIntroSeen } from "../lib/intro-storage";
 import { flushPendingLegalAcceptance } from "../lib/legal-acceptance";
+import { flushPendingSignUpName } from "../lib/signup-name";
+import { queryKeys } from "../lib/query-keys";
 
 export default function Index() {
   const [session, setSession] = useState<Session | null>(null);
@@ -38,6 +40,13 @@ export default function Index() {
       // Signup via email verification couldn't record the legal acceptance
       // (no JWT yet); flush any stashed marker now that we have a session.
       void flushPendingLegalAcceptance();
+      void flushPendingSignUpName(session.user).then((wrote) => {
+        if (wrote) {
+          void queryClient.invalidateQueries({
+            queryKey: queryKeys.profile(session.user.id),
+          });
+        }
+      });
       try {
         const { data } = await supabase
           .from("user_preferences")
