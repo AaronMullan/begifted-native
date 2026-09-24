@@ -26,7 +26,10 @@ import { Colors } from "../lib/colors";
 import { Typography, Radii } from "../lib/typography";
 import { Spacing } from "../lib/spacing";
 import { KEYBOARD_CTA_GAP } from "@/lib/constants";
-import { confirmSignUpNameSaved } from "@/lib/signup-name";
+import {
+  confirmSignUpNameSaved,
+  markPendingSignUpName,
+} from "@/lib/signup-name";
 
 type FormData = {
   email: string;
@@ -141,6 +144,7 @@ export default function Auth() {
       // off to the dedicated verify-email screen rather than leaving the user
       // on the sign-up form with only an inline message (DEV-420).
       await markPendingLegalAcceptance();
+      await markPendingSignUpName(data.email.trim(), trimmedName);
       setLoading(false);
       // replace (not push) so a hardware-back press can't return the user to
       // the populated sign-up form — the stranding this fix removes (DEV-420).
