@@ -31,16 +31,29 @@ export function compareContactsByName(a: DeviceContact, b: DeviceContact) {
   return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
 }
 
+export type DeviceContactsResult = {
+  contacts: DeviceContact[];
+  limitedAccess: boolean;
+};
+
 export function useDeviceContacts() {
   const [loading, setLoading] = useState(false);
 
-  async function requestPermission(): Promise<boolean> {
+  // iOS 18+ lets the user share only selected contacts. That still reports
+  // status "granted", but getContactsAsync then returns just those few, so
+  // callers need to know to offer the system's contact-access picker.
+  async function requestPermission(): Promise<{
+    granted: boolean;
+    limited: boolean;
+  }> {
     if (Platform.OS === "web") {
-      return false;
+      return { granted: false, limited: false };
     }
 
-    const { status } = await Contacts.requestPermissionsAsync();
-    return status === "granted";
+    const { status, accessPrivileges } =
+      await Contacts.requestPermissionsAsync();
+    const granted = status === "granted";
+    return { granted, limited: granted && accessPrivileges === "limited" };
   }
 
   const baseFields = [
@@ -76,12 +89,15 @@ export function useDeviceContacts() {
   // Resolves to the imported contacts, or null when the import failed
   // (permission denied or an expo-contacts error) so callers can offer a
   // retry / add-manually fallback.
-  async function getDeviceContacts(): Promise<DeviceContact[] | null> {
+  async function getDeviceContacts(): Promise<DeviceContactsResult | null> {
     setLoading(true);
 
     let hasPermission = false;
+    let limitedAccess = false;
     try {
-      hasPermission = await requestPermission();
+      const permission = await requestPermission();
+      hasPermission = permission.granted;
+      limitedAccess = permission.limited;
     } catch (error) {
       Sentry.captureException(error, {
         tags: { flow: "contact_import", stage: "permission_request" },
@@ -144,7 +160,7 @@ export function useDeviceContacts() {
       // getContactsAsync sort option) so both fetch paths and all platforms
       // agree, and the picker lists names alphabetically.
       filteredContacts.sort(compareContactsByName);
-      return filteredContacts;
+      return { contacts: filteredContacts, limitedAccess };
     } catch (error) {
       console.error("Error fetching contacts:", error);
       Sentry.captureException(error, {
@@ -156,8 +172,22 @@ export function useDeviceContacts() {
     }
   }
 
+  // Opens iOS's picker for sharing additional contacts, then reloads the
+  // list. Resolves like getDeviceContacts.
+  async function chooseMoreContacts(): Promise<DeviceContactsResult | null> {
+    try {
+      await Contacts.presentAccessPickerAsync();
+    } catch (error) {
+      Sentry.captureException(error, {
+        tags: { flow: "contact_import", stage: "access_picker" },
+      });
+    }
+    return getDeviceContacts();
+  }
+
   return {
     loading,
     getDeviceContacts,
+    chooseMoreContacts,
   };
 }

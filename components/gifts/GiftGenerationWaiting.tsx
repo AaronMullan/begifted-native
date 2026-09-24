@@ -39,6 +39,8 @@ const GiftGenerationWaiting: React.FC = () => {
     accessIntroVisible,
     importFailedVisible,
     deviceContacts,
+    limitedAccess,
+    chooseMoreContacts,
     openAccessIntro,
     closeAccessIntro,
     closePicker,
@@ -136,6 +138,7 @@ const GiftGenerationWaiting: React.FC = () => {
         onAdd={addSelectedContacts}
         onClose={closePicker}
         isAdding={isAddingContacts}
+        onChooseMore={limitedAccess ? chooseMoreContacts : undefined}
       />
       <ContactsImportFailedModal
         visible={importFailedVisible}
