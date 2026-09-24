@@ -1,7 +1,7 @@
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sentry from "@sentry/react-native";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { setPendingContactQueue } from "../lib/pending-contact-queue";
 import type { PendingContactSeed } from "../lib/pending-contact-queue";
 import {
@@ -99,11 +99,20 @@ export function useContactImportFlow() {
     }
   };
 
+  // The system access picker rejects a second presentation while one is open,
+  // so a double tap must not reach it.
+  const choosingMoreRef = useRef(false);
   const chooseMoreContacts = async () => {
-    const result = await requestMoreContacts();
-    if (result === null) return;
-    setDeviceContacts(result.contacts);
-    setLimitedAccess(result.limitedAccess);
+    if (choosingMoreRef.current) return;
+    choosingMoreRef.current = true;
+    try {
+      const result = await requestMoreContacts();
+      if (result === null) return;
+      setDeviceContacts(result.contacts);
+      setLimitedAccess(result.limitedAccess);
+    } finally {
+      choosingMoreRef.current = false;
+    }
   };
 
   const retryImport = async () => {
