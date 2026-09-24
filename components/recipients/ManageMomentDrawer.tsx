@@ -33,8 +33,15 @@ type ManageMomentDrawerProps = {
   /**
    * Persist edits. `date` is ISO, or "" meaning "leave the stored date alone"
    * (the date column rejects "" and a NULL would vanish from the calendar).
+   * `dateEdited` is false when the date field still holds its seeded value,
+   * even though `date` is then re-derived from it rather than left "".
    */
-  onSave: (date: string, name: string, isAnnual: boolean) => void;
+  onSave: (
+    date: string,
+    name: string,
+    isAnnual: boolean,
+    dateEdited: boolean
+  ) => void;
   onDelete: (occasion: Occasion) => void;
   handleRef: React.MutableRefObject<ManageMomentDrawerHandle | null>;
 };
@@ -85,6 +92,7 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
   const scrollRef = useRef<BottomSheetScrollViewMethods>(null);
   const [nameInput, setNameInput] = useState("");
   const [dateInput, setDateInput] = useState("");
+  const [dateEdited, setDateEdited] = useState(false);
   const [isAnnual, setIsAnnual] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -109,6 +117,7 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
     if (occasion) {
       setNameInput(formatOccasionType(occasion.occasion_type));
       setDateInput(seedDateInput(occasion));
+      setDateEdited(false);
       setIsAnnual(occasion.is_annual ?? true);
       setErrorMessage("");
     }
@@ -153,6 +162,7 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
     }
 
     setDateInput(formatted);
+    setDateEdited(true);
     setErrorMessage("");
   };
 
@@ -166,7 +176,7 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
     }
 
     if (!trimmed) {
-      onSave("", name, isAnnual);
+      onSave("", name, isAnnual, dateEdited);
       sheetRef.current?.dismiss();
       return;
     }
@@ -176,7 +186,7 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
         const [month, day] = trimmed.split("-").map(Number);
         if (isValidMonthDay(month, day)) {
           // Year is optional for annual occasions — resolve the next occurrence.
-          onSave(getNextOccurrence(`--${trimmed}`), name, isAnnual);
+          onSave(getNextOccurrence(`--${trimmed}`), name, isAnnual, dateEdited);
           sheetRef.current?.dismiss();
           return;
         }
@@ -188,7 +198,7 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
     if (MDY_RE.test(trimmed)) {
       const [month, day, year] = trimmed.split("-").map(Number);
       if (year >= 1900 && isValidMonthDay(month, day)) {
-        onSave(mdyToISO(trimmed), name, isAnnual);
+        onSave(mdyToISO(trimmed), name, isAnnual, dateEdited);
         sheetRef.current?.dismiss();
         return;
       }

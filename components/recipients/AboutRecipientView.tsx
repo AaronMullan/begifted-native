@@ -475,7 +475,7 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
         occasion={editingOccasion}
         handleRef={manageMomentRef}
         onDelete={(occasion) => setOccasionToDelete(occasion)}
-        onSave={(date, name, isAnnual) => {
+        onSave={(date, name, isAnnual, dateEdited) => {
           if (!editingOccasion) return;
           // occasion_type doubles as the display name (there is no separate
           // title column), so a rename is a slug update.
@@ -495,16 +495,15 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
                 : {}),
             },
           });
-          // The drawer re-emits the seeded date on every save, so compare
-          // month-day against the stored date: an untouched date field must
-          // not copy a stale occasion day over a birthday edited elsewhere.
+          // Only an explicit date edit (or a moment becoming the birthday)
+          // syncs: the drawer re-emits its seeded date on every save, and
+          // that stale occasion day must not overwrite a birthday edited
+          // elsewhere.
           const becomesBirthday =
             (slug || editingOccasion.occasion_type) === "birthday";
-          const dateChanged =
-            !!date && date.slice(5) !== editingOccasion.date?.slice(5);
           const nextBirthday =
             becomesBirthday &&
-            (dateChanged || editingOccasion.occasion_type !== "birthday")
+            (dateEdited || editingOccasion.occasion_type !== "birthday")
               ? birthdayAfterOccasionEdit(date, recipient.birthday)
               : null;
           if (nextBirthday) {
