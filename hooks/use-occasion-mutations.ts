@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   deleteOccasion,
   updateOccasion,
+  redateBirthdayOccasion,
   createOccasion,
   fetchRecipientOccasions,
   logProductEvent,
@@ -46,6 +47,38 @@ export function useUpdateOccasion() {
       queryClient,
       label: "useUpdateOccasion",
       errorMessage: "Couldn't save the occasion. Please try again.",
+      invalidateKeys: (_, variables) => [
+        ...(user ? [queryKeys.occasions(user.id)] : []),
+        queryKeys.recipientOccasions(variables.recipientId),
+      ],
+    }),
+  });
+}
+
+type RedateBirthdayOccasionVariables = {
+  recipientId: string;
+  birthday: string;
+};
+
+/**
+ * Hook to move a recipient's birthday moment after their birthday changes
+ */
+export function useRedateBirthdayOccasion() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({
+      recipientId,
+      birthday,
+    }: RedateBirthdayOccasionVariables): Promise<void> => {
+      if (!user) throw new Error("Not authenticated");
+      await redateBirthdayOccasion(user.id, recipientId, birthday);
+    },
+    ...makeMutationHandlers<void, RedateBirthdayOccasionVariables>({
+      queryClient,
+      label: "useRedateBirthdayOccasion",
+      errorMessage: "Couldn't move their birthday moment. Please try again.",
       invalidateKeys: (_, variables) => [
         ...(user ? [queryKeys.occasions(user.id)] : []),
         queryKeys.recipientOccasions(variables.recipientId),
