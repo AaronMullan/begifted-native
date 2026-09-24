@@ -33,6 +33,8 @@ type ChatMessage = {
   text: string;
 };
 
+const MESSAGES: ChatMessage[] = [{ role: "assistant", text: OPENER }];
+
 export default function AboutYou() {
   const insets = useSafeAreaInsets();
   const headerSpacerHeight = Math.max(HEADER_HEIGHT, insets.top + 60);
@@ -43,9 +45,6 @@ export default function AboutYou() {
   const router = useRouter();
 
   const sheetRef = useRef<BottomSheetModal>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: "assistant", text: OPENER },
-  ]);
   const [draft, setDraft] = useState("");
   // A sent message parks here for review; nothing persists until the user
   // confirms with Save Updates (the review step of the shared drawer pattern).
@@ -110,16 +109,11 @@ export default function AboutYou() {
         queryKey: queryKeys.userPreferences(user.id),
       });
 
-      // Back to the conversation with the saved note in the transcript.
-      setMessages((current) => [
-        ...current,
-        { role: "user", text },
-        {
-          role: "assistant",
-          text: "Got it — we've updated what we know about you. What else should BeGifted know?",
-        },
-      ]);
-      setPendingReview(null);
+      // Saving ends the session: closing here rather than returning to the
+      // chat keeps the drawer from asking for another turn. The card behind
+      // it already shows the refreshed profile; the CTA reopens a fresh chat.
+      sheetRef.current?.dismiss();
+      showSnackbar("Added to what BeGifted knows about you.");
     } catch (error) {
       console.error("Error saving about-you input:", error);
       // Stay on the review step so the note isn't lost; the user can retry.
@@ -228,7 +222,7 @@ export default function AboutYou() {
           ) : (
             <>
               <BottomSheetScrollView contentContainerStyle={styles.transcript}>
-                {messages.map((message, index) => (
+                {MESSAGES.map((message, index) => (
                   <View
                     key={index}
                     style={[
