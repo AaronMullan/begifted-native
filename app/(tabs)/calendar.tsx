@@ -663,6 +663,7 @@ const styles = StyleSheet.create({
     ...Typography.largeCta,
     color: Colors.brand.darkTeal,
     flexShrink: 1,
+    textAlign: "center",
   },
   noPeople: {
     ...Typography.subhead,
