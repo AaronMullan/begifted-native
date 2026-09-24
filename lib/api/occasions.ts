@@ -197,11 +197,20 @@ export async function redateBirthdayOccasion(
   if (!ISO_DATE.test(date)) return;
   const { error } = await supabase
     .from("occasions")
-    .update({ date })
+    // Same reset the cron applies when it moves a date. Once the date is
+    // already right the cron sees no change and never clears these, so a
+    // gift chosen for the old cycle would silence the next birthday.
+    .update({
+      date,
+      fulfilled_at: null,
+      last_generated_at: null,
+      last_generation_status: null,
+    })
     .eq("recipient_id", recipientId)
     .eq("user_id", userId)
     .eq("occasion_type", "birthday")
-    .neq("date", date);
+    // An undated birthday moment gets its date too; neq alone skips NULL.
+    .or(`date.is.null,date.neq.${date}`);
 
   if (error) throw error;
 }
