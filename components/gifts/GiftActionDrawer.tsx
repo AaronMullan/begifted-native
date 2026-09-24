@@ -42,8 +42,10 @@ type RowDef = {
   label: string;
   action: GiftFeedbackAction;
   // After the base action saves, offer an always-optional follow-up the user
-  // can Skip.
-  followUp: FollowUp;
+  // can Skip. Rows without one close the sheet on save and acknowledge with
+  // `confirmation` — choosing a gift is the moment to get out of the way.
+  followUp?: FollowUp;
+  confirmation?: string;
 };
 
 // Long enough to cover the sheet's present animation plus a rapid double-tap
@@ -54,10 +56,7 @@ const ROWS: RowDef[] = [
   {
     label: "I chose this gift",
     action: "chose",
-    followUp: {
-      prompt: "What made this feel right?",
-      placeholder: "A word or two is fine.",
-    },
+    confirmation: "Marked as chosen.",
   },
   {
     label: "They already have this",
@@ -112,6 +111,7 @@ export default function GiftActionDrawer({
   const [note, setNote] = useState("");
   const [selectedChip, setSelectedChip] = useState<string | null>(null);
   const [errorVisible, setErrorVisible] = useState(false);
+  const [confirmation, setConfirmation] = useState<string | null>(null);
   // Set when a row tap is swallowed by the open guard, so the rows can dim in
   // response instead of the tap vanishing silently. Cleared when the guard
   // lifts (below) and on dismiss.
@@ -150,7 +150,14 @@ export default function GiftActionDrawer({
         notes: null,
       },
       {
-        onSuccess: () => setActiveRow(row),
+        onSuccess: () => {
+          if (row.followUp) {
+            setActiveRow(row);
+            return;
+          }
+          sheetRef.current?.dismiss();
+          if (row.confirmation) setConfirmation(row.confirmation);
+        },
         onError: () => setErrorVisible(true),
       }
     );
@@ -318,6 +325,13 @@ export default function GiftActionDrawer({
         duration={3000}
       >
         Could not save — please try again.
+      </Snackbar>
+      <Snackbar
+        visible={confirmation !== null}
+        onDismiss={() => setConfirmation(null)}
+        duration={2500}
+      >
+        {confirmation}
       </Snackbar>
     </>
   );
