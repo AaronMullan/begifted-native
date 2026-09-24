@@ -45,6 +45,9 @@ export default function AboutYou() {
   const router = useRouter();
 
   const sheetRef = useRef<BottomSheetModal>(null);
+  // dismiss() on a sheet the user already swiped away poisons the next
+  // present(), so only dismiss while this says the sheet is actually up.
+  const sheetOpenRef = useRef(false);
   const [draft, setDraft] = useState("");
   // A sent message parks here for review; nothing persists until the user
   // confirms with Save Updates (the review step of the shared drawer pattern).
@@ -112,7 +115,10 @@ export default function AboutYou() {
       // Saving ends the session: closing here rather than returning to the
       // chat keeps the drawer from asking for another turn. The card behind
       // it already shows the refreshed profile; the CTA reopens a fresh chat.
-      sheetRef.current?.dismiss();
+      // Clear the review step now, not in onDismiss: it would otherwise stay
+      // mounted through the close animation with Save re-enabled.
+      setPendingReview(null);
+      if (sheetOpenRef.current) sheetRef.current?.dismiss();
       showSnackbar("Added to what BeGifted knows about you.");
     } catch (error) {
       console.error("Error saving about-you input:", error);
@@ -181,7 +187,10 @@ export default function AboutYou() {
             <Text style={styles.cardSummary}>{summary}</Text>
             <View style={styles.cardSpacer} />
             <Pressable
-              onPress={() => sheetRef.current?.present()}
+              onPress={() => {
+                sheetOpenRef.current = true;
+                sheetRef.current?.present();
+              }}
               accessibilityRole="button"
               accessibilityLabel="Continue the conversation"
             >
@@ -209,7 +218,10 @@ export default function AboutYou() {
         android_keyboardInputMode="adjustResize"
         handleIndicatorStyle={styles.sheetHandle}
         backgroundStyle={styles.sheetBackground}
-        onDismiss={() => setPendingReview(null)}
+        onDismiss={() => {
+          sheetOpenRef.current = false;
+          setPendingReview(null);
+        }}
       >
         <View style={styles.sheetContent}>
           <Text style={styles.sheetTitle}>Tell us about you</Text>
