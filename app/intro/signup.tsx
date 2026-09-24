@@ -2,6 +2,7 @@ import { StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import IntroSignUp from "../../components/intro/IntroSignUp";
 import { markIntroSeen } from "../../lib/intro-storage";
+import GradientBackground from "../../components/GradientBackground";
 
 export default function IntroSignUpScreen() {
   const router = useRouter();
@@ -27,6 +28,7 @@ export default function IntroSignUpScreen() {
 
   return (
     <View style={styles.root}>
+      <GradientBackground />
       <IntroSignUp
         onSignedUp={handleSignedUp}
         onGoToSignIn={handleGoToSignIn}

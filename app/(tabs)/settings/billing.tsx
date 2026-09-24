@@ -9,6 +9,7 @@ import { Colors } from "../../../lib/colors";
 import { Typography } from "../../../lib/typography";
 import { Spacing } from "../../../lib/spacing";
 import type { Session } from "@supabase/supabase-js";
+import GradientBackground from "../../../components/GradientBackground";
 
 export default function BillingSettings() {
   const insets = useSafeAreaInsets();
@@ -41,6 +42,7 @@ export default function BillingSettings() {
   if (loading) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
         <View style={styles.content}>
           <Text style={styles.loadingText}>Loading...</Text>
@@ -52,6 +54,7 @@ export default function BillingSettings() {
   if (!session) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
         <View style={styles.content}>
           <Text style={styles.title}>Billing & Subscription</Text>
@@ -68,6 +71,7 @@ export default function BillingSettings() {
   // real subscription management is DEV-262.
   return (
     <View style={styles.container}>
+      <GradientBackground />
       <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
       <ScrollView
         style={styles.scrollView}

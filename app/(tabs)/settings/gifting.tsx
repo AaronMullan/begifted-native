@@ -20,6 +20,7 @@ import { Colors } from "../../../lib/colors";
 import { Typography } from "../../../lib/typography";
 import { Spacing } from "../../../lib/spacing";
 import { HEADER_HEIGHT, BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
+import GradientBackground from "../../../components/GradientBackground";
 
 const OPENER = "What else should BeGifted know?";
 
@@ -132,6 +133,7 @@ export default function AboutYou() {
   if (loading) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
         <View style={styles.content}>
           <Text style={styles.loadingText}>Loading...</Text>
@@ -143,6 +145,7 @@ export default function AboutYou() {
   if (!user) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
         <View style={styles.content}>
           <Text style={styles.title}>About You</Text>
@@ -159,6 +162,7 @@ export default function AboutYou() {
 
   return (
     <View style={styles.container}>
+      <GradientBackground />
       <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
       <ScrollView
         style={styles.scrollView}

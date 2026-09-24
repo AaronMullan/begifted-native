@@ -16,6 +16,7 @@ import { Typography } from "../../lib/typography";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../hooks/use-auth";
 import { KEYBOARD_CTA_GAP } from "@/lib/constants";
+import GradientBackground from "../../components/GradientBackground";
 
 export default function OnboardingIdentity() {
   const router = useRouter();
@@ -84,6 +85,7 @@ export default function OnboardingIdentity() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={KEYBOARD_CTA_GAP}
     >
+      <GradientBackground />
       <Pressable style={styles.flex} onPress={Keyboard.dismiss}>
         <ScrollView
           style={styles.flex}

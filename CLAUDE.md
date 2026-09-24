@@ -168,7 +168,7 @@ Write comments for the next person to read the code — assume that's an LLM wit
 
 ### GradientBackground — render per-screen, not at root
 
-`<GradientBackground />` must be rendered inside the outermost `View` of every top-level screen and folder layout that wants the page gradient. **Do not** render it in `app/_layout.tsx`. Rendering it at the root re-introduces a tab bleed-through bug where inactive tab scenes visually stack behind the active one (`sceneStyle.backgroundColor` is transparent, so root gradients don't occlude). The root container has a `Colors.neutrals.dark` solid fill to cover the Header area instead.
+`<GradientBackground />` must be rendered inside the outermost `View` of every screen that wants the page gradient — including screens nested in a folder `Stack`. **Do not** render it in `app/_layout.tsx`, and don't rely on a folder layout's copy: a gradient rendered as a sibling of a nested `Stack` is covered by the stack's scene, so the screen falls through to the navigator's flat `#F2F2F2` (the layout's `contentStyle` doesn't change this). Every screen needs its own, on every return path (loading/empty states too). Rendering it at the root re-introduces a tab bleed-through bug where inactive tab scenes visually stack behind the active one (`sceneStyle.backgroundColor` is transparent, so root gradients don't occlude). The root container has a `Colors.neutrals.dark` solid fill to cover the Header area instead.
 
 Pattern:
 
@@ -179,7 +179,7 @@ Pattern:
 </View>
 ```
 
-Existing references: tab scenes (`dashboard.tsx`, `calendar.tsx`, `notifications.tsx`), folder layouts (`contacts/_layout.tsx`, `settings/_layout.tsx`, `onboarding/_layout.tsx`, `admin/_layout.tsx`), standalone routes (`index.tsx`, `faq.tsx`).
+Existing references: tab scenes (`dashboard.tsx`, `calendar.tsx`, `notifications.tsx`), nested screens (`contacts/index.tsx`, `contacts/[id].tsx`, `settings/index.tsx`, `gifts/[id].tsx`), standalone routes (`index.tsx`, `faq.tsx`).
 
 ### Fonts
 

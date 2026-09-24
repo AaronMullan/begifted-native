@@ -23,6 +23,7 @@ import { Spacing } from "../../../lib/spacing";
 import type { Session } from "@supabase/supabase-js";
 import { showSnackbar } from "../../../components/GlobalSnackbar";
 import { PrimaryCta } from "../../../components/PrimaryCta";
+import GradientBackground from "../../../components/GradientBackground";
 
 // v4 "input/text-field": label above the box, white fill, sharp corners, no
 // stroke — so the Paper input runs flat with its own label suppressed.
@@ -112,6 +113,7 @@ export default function SupportSettings() {
   if (loading) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
         <View style={styles.content}>
           <Text style={styles.loadingText}>Loading...</Text>
@@ -123,6 +125,7 @@ export default function SupportSettings() {
   if (!session) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
         <View style={styles.content}>
           <Text style={styles.title}>Contact Us</Text>
@@ -135,6 +138,7 @@ export default function SupportSettings() {
   if (sent) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
         <View style={styles.content}>
           <Text style={styles.title}>Message sent</Text>
@@ -158,6 +162,7 @@ export default function SupportSettings() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={KEYBOARD_CTA_GAP}
     >
+      <GradientBackground />
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={styles.flex}>
           <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />

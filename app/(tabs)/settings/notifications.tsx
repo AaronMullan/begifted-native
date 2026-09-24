@@ -20,6 +20,7 @@ import { Typography } from "../../../lib/typography";
 import { Spacing } from "../../../lib/spacing";
 import type { Session } from "@supabase/supabase-js";
 import { showSnackbar } from "../../../components/GlobalSnackbar";
+import GradientBackground from "../../../components/GradientBackground";
 
 // The v4 frame's three-row set. Reminder count is bounded 1–3 by the design's
 // pill selector.
@@ -190,6 +191,7 @@ export default function NotificationsSettings() {
   if (loading) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
         <View style={styles.content}>
           <Text style={styles.loadingText}>Loading...</Text>
@@ -201,6 +203,7 @@ export default function NotificationsSettings() {
   if (!session) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={styles.headerSpacer} />
         <View style={styles.content}>
           <Text style={styles.title}>Notifications</Text>
@@ -214,6 +217,7 @@ export default function NotificationsSettings() {
 
   return (
     <View style={styles.container}>
+      <GradientBackground />
       <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
       <ScrollView
         style={styles.scrollView}

@@ -44,6 +44,7 @@ import {
   normalizeBirthday,
 } from "../../../utils/birthday";
 import { Spacing } from "../../../lib/spacing";
+import GradientBackground from "../../../components/GradientBackground";
 
 const MIN_PASSWORD_LENGTH = 6;
 
@@ -286,6 +287,7 @@ export default function ProfileSettings() {
   if (loading) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={styles.content}>
           <Text style={styles.loadingText}>Loading...</Text>
         </View>
@@ -296,6 +298,7 @@ export default function ProfileSettings() {
   if (!user) {
     return (
       <View style={styles.container}>
+        <GradientBackground />
         <View style={styles.content}>
           <Text style={styles.title}>Account Info</Text>
           <Text style={styles.subtitle}>
@@ -321,6 +324,7 @@ export default function ProfileSettings() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={KEYBOARD_CTA_GAP}
     >
+      <GradientBackground />
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <ScrollView
           style={styles.container}
