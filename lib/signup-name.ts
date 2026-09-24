@@ -72,13 +72,16 @@ export async function markPendingSignUpName(
  * Fills `profiles.full_name` only when it is still NULL, so a repeat signup
  * never overwrites a name the account already has. Only the account the name
  * was typed for gets it; a marker for another email is left for that account.
+ * Resolves true when it wrote a name, so the caller can drop the cached
+ * profile — a stale NULL there would be saved back over the name by the
+ * profile screen's next edit.
  */
-export async function flushPendingSignUpName(user: User): Promise<void> {
+export async function flushPendingSignUpName(user: User): Promise<boolean> {
   try {
     const raw = await AsyncStorage.getItem(PENDING_KEY);
-    if (!raw) return;
+    if (!raw) return false;
     const pending = JSON.parse(raw) as PendingSignUpName;
-    if (pending.email !== user.email?.toLowerCase()) return;
+    if (pending.email !== user.email?.toLowerCase()) return false;
 
     const { data, error } = await supabase
       .from("profiles")
@@ -87,7 +90,8 @@ export async function flushPendingSignUpName(user: User): Promise<void> {
       .maybeSingle();
     if (error) throw error;
 
-    if (!data?.full_name) {
+    const needsName = !data?.full_name;
+    if (needsName) {
       // .select().single() turns an RLS-filtered no-op into an error, which a
       // bare write would not surface.
       const { error: writeError } = await supabase
@@ -98,11 +102,13 @@ export async function flushPendingSignUpName(user: User): Promise<void> {
       if (writeError) throw writeError;
     }
     await AsyncStorage.removeItem(PENDING_KEY);
+    return needsName;
   } catch (err) {
     // Marker stays; retried on the next authenticated load.
     Sentry.captureException(
       err instanceof Error ? err : new Error(String(err)),
       { tags: { feature: "signup-name" } }
     );
+    return false;
   }
 }

@@ -37,8 +37,7 @@ test("fills a NULL name for the account it was typed for", async () => {
   await markPendingSignUpName("Maya@Example.com", "Maya");
   mockMaybeSingle.mockResolvedValue({ data: { full_name: null }, error: null });
 
-  await flushPendingSignUpName(user);
-
+  expect(await flushPendingSignUpName(user)).toBe(true);
   expect(mockUpsert).toHaveBeenCalledWith(
     { id: "user-1", full_name: "Maya" },
     { onConflict: "id" }
@@ -53,8 +52,7 @@ test("never overwrites an existing name", async () => {
     error: null,
   });
 
-  await flushPendingSignUpName(user);
-
+  expect(await flushPendingSignUpName(user)).toBe(false);
   expect(mockUpsert).not.toHaveBeenCalled();
   expect(await AsyncStorage.getAllKeys()).toEqual([]);
 });
