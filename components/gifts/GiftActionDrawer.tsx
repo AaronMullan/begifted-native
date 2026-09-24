@@ -123,7 +123,11 @@ export default function GiftActionDrawer({
   // gift-card "..." would silently file feedback. Ignore row presses until the
   // sheet has had time to settle.
   const openGuardRef = useRef(false);
+  // The open the sheet is currently showing. A slow save resolving after the
+  // user has reopened the sheet (for this or another gift) must not close it.
+  const shownStateRef = useRef(state);
   useEffect(() => {
+    shownStateRef.current = state;
     if (!state) return;
     openGuardRef.current = true;
     const timer = setTimeout(() => {
@@ -133,14 +137,15 @@ export default function GiftActionDrawer({
     return () => clearTimeout(timer);
   }, [state]);
 
-  // Save the base signal on tap, keep the sheet open, and switch to the row's
-  // follow-up screen.
+  // Save the base signal on tap, then either switch to the row's follow-up
+  // screen or close the sheet with its confirmation.
   const handleRowPress = (row: RowDef) => {
     if (!state) return;
     if (openGuardRef.current) {
       setGuardBounced(true);
       return;
     }
+    const tappedState = state;
     submit.mutate(
       {
         recipientId: state.suggestion.recipient_id,
@@ -155,7 +160,9 @@ export default function GiftActionDrawer({
             setActiveRow(row);
             return;
           }
-          sheetRef.current?.dismiss();
+          if (shownStateRef.current === tappedState) {
+            sheetRef.current?.dismiss();
+          }
           if (row.confirmation) setConfirmation(row.confirmation);
         },
         onError: () => setErrorVisible(true),
