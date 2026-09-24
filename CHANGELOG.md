@@ -19,6 +19,40 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-09-23 — OTA
+
+### App
+
+- Add a Moment now names Christmas and Hanukkah in the common list rather than leaving a generic "Holiday" to stand for whichever one you meant, and both fill in their own date. Diwali, Kwanzaa, Eid al-Fitr, Passover and Lunar New Year resolve their dates too — type any of them into the name box and the date is set for you (DEV-461).
+- The Past Gift Recommendations band now runs down to the bottom nav instead of stopping short of it, and its heading sits centered in its row rather than pressed against the top edge (DEV-476).
+- On a Moments day, the "Add another person to this day" button now holds its label neatly, with the + inside the outline (DEV-477).
+- Gift Ideas now carries the same page gradient as the rest of the app. Opening it from a Home card used to drop you onto a flat gray panel that met the header at a hard seam, with the gray showing again between the last card and the Past Gifts band (DEV-478).
+- Typing a full name now capitalizes every word. Last names used to arrive lowercase and stayed that way everywhere the name appeared — corrected in the recipient forms you type into, the recipient edit dialog, and your own profile name (DEV-479).
+- Back out of a recipient now leaves the recipient. Switching between About and Gift Ideas no longer traps the back chevron in a loop between the two tabs (DEV-481).
+- The name you type when creating an account is now saved to your profile. Until now it was discarded at signup, and the only way to have a name on file was to enter it again in Settings (DEV-484).
+- Signing up a second time before confirming your email now keeps the name you typed. (DEV-485)
+- Changing your profile photo no longer clears your name. (DEV-485)
+- Settings, Add a Person, the intro screens and onboarding now carry the same page gradient as the rest of the app, instead of a flat gray panel meeting the header at a hard seam (DEV-487).
+- Turning down a gift idea no longer slides one of your past recommendations up into its place — the slot is held open and filled by a genuinely new suggestion (DEV-488).
+- If you mention during setup that someone keeps Hanukkah, Passover, Diwali, Kwanzaa, Eid or Lunar New Year, BeGifted now remembers it and puts that holiday at the top of Add a Moment for them instead of leaving you to find it. Saying which tradition they follow works too. It's shown on their About page under "Holidays they celebrate", where you can edit it or clear it entirely; we only ever keep what you told us (DEV-490).
+- Passover now resolves its own date, set to seder night rather than the morning after — typing "Passover", "Pesach" or "Seder" into the name box fills it in (DEV-490).
+- Holiday dates are now correct outside the US. Anyone using the app east of Greenwich saw every calculated holiday a day early — Christmas on the 24th, Easter and Mother's Day likewise — because the date was worked out locally and then read back in UTC (DEV-491).
+- Diwali will keep landing in the right part of the year once its known dates run out in 2030; the fallback pointed at October 15, a day Diwali never falls on (DEV-491).
+- Importing someone from your contacts now brings their anniversary with them. If the address book has the date, it appears on the occasions step already filled in, and it comes through vCard and CSV imports too (DEV-497).
+- A profile update that fails to save now says so and keeps the drawer open, instead of reporting "Updated X's profile." over an unsaved edit. A note that contains nothing new to store says that too (DEV-498).
+- Home and the People tab now distinguish a people list that failed to arrive from an account with nobody in it. A failed load offers a retry rather than showing the new-user welcome to someone who already has people (DEV-499).
+- Follow-ups to the load-failure states: the failure message now renders inside a scrolling list instead of collapsing to blank space, a genuinely empty account still gets the welcome when a later refresh fails, and a note whose only content is a moment reports a failed save instead of "nothing new to add" (DEV-500).
+
+### Backend
+
+- Gift Ideas no longer surfaces two versions of the same product. A recipient could end up holding the Garmin inReach Mini 2 and the Mini 3 at once — one current, the others sitting in Past Gift Recommendations — because duplicate detection only caught identical titles. It now recognizes successive generations and colorway, size, and pack variants as the same product (DEV-457).
+- Gift images no longer show up as a small thumbnail stretched to fill the card. A gift whose only available photo is thumbnail-sized now gets a sharper photo from the product page or image search, or no photo, instead of a blurry one (DEV-467).
+- Gift ideas no longer borrow a photo of a different product from the same store. When a store's page can't be read and no image names the gift, the card shows no picture rather than the wrong one (DEV-468).
+- Gift ideas speak to you directly. "Why this fits" had been naming you in the third person — "the kind of craft story Caspian tends to notice" — so you read about yourself as if you were someone else. New ideas say "you"; lists already generated keep the copy they were written with until they next refresh (DEV-472).
+- The About You profile no longer puts a stranger's name on you. If your account has no name saved, the profile uses the name you mention about yourself, or simply writes around it — never a name borrowed from somewhere else (DEV-482).
+- The About You profile is written in BeGifted's voice again. It had been drawing on brand-voice guidance that moved to a different prompt in August, so it read flatter and more generic than the rest of the app (DEV-483).
+- Every occasion reminder now comes with a new set of gift ideas, and the previous set moves to Past Gifts. (DEV-492)
+
 ## 2026-09-16 — OTA
 
 ### App
