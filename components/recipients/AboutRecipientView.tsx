@@ -31,7 +31,10 @@ import {
 import { slugifyOccasionName } from "../../hooks/use-occasion-recommendations";
 import { GiftPreferencesDialog } from "./GiftPreferencesDialog";
 import { InformationDialog } from "./InformationDialog";
-import { formatBirthdayDisplay } from "../../utils/birthday";
+import {
+  birthdayAfterOccasionEdit,
+  formatBirthdayDisplay,
+} from "../../utils/birthday";
 import { formatOccasionType } from "../../utils/home-occasions";
 import { formatOccasionDate } from "../../utils/occasion-dates";
 import { cleanRelationship } from "../../lib/format-name";
@@ -491,6 +494,15 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
                 : {}),
             },
           });
+          const staysBirthday =
+            editingOccasion.occasion_type === "birthday" &&
+            (!slug || slug === "birthday");
+          const nextBirthday = staysBirthday
+            ? birthdayAfterOccasionEdit(date, recipient.birthday)
+            : null;
+          if (nextBirthday) {
+            void handleSavePartial({ birthday: nextBirthday }, false);
+          }
         }}
       />
 

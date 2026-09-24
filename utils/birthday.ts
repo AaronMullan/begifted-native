@@ -291,6 +291,33 @@ export function birthdayFromOccasionDate(
 }
 
 /**
+ * Recipient birthday to persist after the user re-dates a birthday moment, or
+ * null when it already agrees (or the date is unparseable). The gift cron
+ * re-dates birthday occasions from recipients.birthday, so an edit that only
+ * touches the occasion is reverted the next time the cron runs. A birth year
+ * already on file is kept unless the entered date carries a past year of its
+ * own.
+ */
+export function birthdayAfterOccasionEdit(
+  occasionDate: string | null | undefined,
+  existingBirthday: string | null | undefined
+): string | null {
+  const fromOccasion = parseBirthdayParts(
+    birthdayFromOccasionDate(occasionDate)
+  );
+  if (!fromOccasion) return null;
+  const existing = parseBirthdayParts(existingBirthday);
+  const mm = String(fromOccasion.month).padStart(2, "0");
+  const dd = String(fromOccasion.day).padStart(2, "0");
+  const year = fromOccasion.year ?? existing?.year ?? null;
+  // Feb 29 against a known non-leap birth year can't be a full date.
+  const next =
+    (year !== null ? normalizeBirthday(`${year}-${mm}-${dd}`) : null) ??
+    `--${mm}-${dd}`;
+  return next === normalizeBirthday(existingBirthday) ? null : next;
+}
+
+/**
  * Derive a birth year from a user-volunteered current age, for storage on
  * recipients.birth_year when no birthday month/day exists to anchor it to.
  * Same plausibility rules as backfillBirthdayFromAge. The year is stable
