@@ -94,11 +94,11 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
   const handleSavePartial = async (
     fields: Partial<Recipient>,
     triggerResync: boolean
-  ) => {
+  ): Promise<boolean> => {
     const {
       data: { session },
     } = await supabase.auth.getSession();
-    if (!session?.user) return;
+    if (!session?.user) return false;
 
     // Read the row back rather than trusting a null error: RLS filters an
     // UPDATE to the rows the policy matches instead of rejecting it, so a
@@ -114,12 +114,13 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
       .maybeSingle();
     if (error || !saved) {
       console.error("Failed to update recipient:", error ?? "no row updated");
-      return;
+      return false;
     }
     onRecipientUpdated({ ...recipient, ...saved });
     if (triggerResync) {
       onResynthesize();
     }
+    return true;
   };
 
   // Pick from the library, upload via the service_role edge function (direct
@@ -494,14 +495,28 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
                 : {}),
             },
           });
-          const staysBirthday =
-            editingOccasion.occasion_type === "birthday" &&
-            (!slug || slug === "birthday");
-          const nextBirthday = staysBirthday
-            ? birthdayAfterOccasionEdit(date, recipient.birthday)
-            : null;
+          // The drawer re-emits the seeded date on every save, so compare
+          // month-day against the stored date: an untouched date field must
+          // not copy a stale occasion day over a birthday edited elsewhere.
+          const becomesBirthday =
+            (slug || editingOccasion.occasion_type) === "birthday";
+          const dateChanged =
+            !!date && date.slice(5) !== editingOccasion.date?.slice(5);
+          const nextBirthday =
+            becomesBirthday &&
+            (dateChanged || editingOccasion.occasion_type !== "birthday")
+              ? birthdayAfterOccasionEdit(date, recipient.birthday)
+              : null;
           if (nextBirthday) {
-            void handleSavePartial({ birthday: nextBirthday }, false);
+            void handleSavePartial({ birthday: nextBirthday }, false).then(
+              (saved) => {
+                if (!saved) {
+                  showSnackbar(
+                    "Couldn't update their birthday. Please try again."
+                  );
+                }
+              }
+            );
           }
         }}
       />
