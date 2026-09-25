@@ -344,10 +344,15 @@ export default function RecipientEditPage() {
   const visibleSuggestionCount = visible.length;
   // A failed fetch with nothing cached must not read as "no ideas".
   const suggestionsLoadFailed = suggestionsFailed && suggestions.length === 0;
-  const { emptyState, stateOccasionType } = useGiftIdeasState({
+  const {
+    emptyState,
+    stateOccasionType,
+    loading: loadingGiftState,
+  } = useGiftIdeasState({
     recipientId,
     occasionId: occasionFilter,
     listEmpty: visibleSuggestionCount === 0,
+    focused: isFocused && activeTab === "gifts",
     clientGenerating: isGenerating,
     loadFailed: suggestionsLoadFailed,
   });
@@ -864,7 +869,10 @@ export default function RecipientEditPage() {
             <View style={styles.giftsContainer}>
               <GiftSuggestionsList
                 suggestions={suggestions}
-                loading={loadingSuggestions}
+                loading={
+                  loadingSuggestions ||
+                  (loadingGiftState && visibleSuggestionCount === 0)
+                }
                 recipientName={formatShortName(recipient.name)}
                 isGenerating={isGenerating}
                 emptyState={emptyState}

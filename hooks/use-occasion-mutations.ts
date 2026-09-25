@@ -19,13 +19,13 @@ import { useAuth } from "./use-auth";
  */
 export function useRecipientOccasions(
   recipientId: string | undefined,
-  options?: Pick<UseQueryOptions<Occasion[], Error>, "refetchInterval">
+  options?: Pick<UseQueryOptions<Occasion[], Error>, "refetchOnMount">
 ) {
   return useQuery({
     queryKey: queryKeys.recipientOccasions(recipientId || ""),
     queryFn: () => fetchRecipientOccasions(recipientId!),
     enabled: !!recipientId,
-    refetchInterval: options?.refetchInterval,
+    refetchOnMount: options?.refetchOnMount,
   });
 }
 

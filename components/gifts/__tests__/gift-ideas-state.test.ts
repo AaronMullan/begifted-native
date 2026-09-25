@@ -71,7 +71,36 @@ describe("giftIdeasEmptyState", () => {
 
   it("reads an occasion beyond the lead window as not due", () => {
     expect(state(occasion({ date: "2026-12-01" }))).toBe("not_due");
-    expect(state(occasion({ date: null }))).toBe("not_due");
+  });
+
+  it("ignores last cycle's outcome on an annual row not yet re-dated", () => {
+    for (const last_generation_status of ["no_results", "error", "success"]) {
+      expect(
+        state(
+          occasion({
+            date: "2025-12-01",
+            is_annual: true,
+            last_generation_status,
+          })
+        )
+      ).toBe("not_due");
+    }
+    expect(
+      state(
+        occasion({
+          date: "2025-12-01",
+          is_annual: true,
+          fulfilled_at: "2025-11-20T00:00:00Z",
+        })
+      )
+    ).toBe("not_due");
+  });
+
+  it("stops reading an abandoned stamp as failed after a day", () => {
+    const started = new Date(NOW - 25 * 60 * 60 * 1000).toISOString();
+    expect(
+      state(occasion({ date: "2026-12-01", generation_started_at: started }))
+    ).toBe("not_due");
   });
 
   it("uses the next occurrence of a past annual date", () => {
@@ -96,6 +125,7 @@ describe("giftIdeasEmptyState", () => {
       "empty"
     );
     expect(state(occasion({ date: "2026-09-01" }))).toBe("empty");
+    expect(state(occasion({ date: null }))).toBe("empty");
     expect(state(null)).toBe("empty");
   });
 

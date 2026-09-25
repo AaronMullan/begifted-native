@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { ActivityIndicator, Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useIsFocused, useLocalSearchParams, useRouter } from "expo-router";
 import { Colors } from "../../lib/colors";
 import { Typography } from "../../lib/typography";
 import { BOTTOM_NAV_HEIGHT } from "../../lib/constants";
@@ -86,10 +86,16 @@ export default function GiftIdeasPage() {
   const visibleSuggestionCount = visible.length;
   // A failed fetch with nothing cached must not read as "no ideas".
   const loadFailed = suggestionsFailed && suggestions.length === 0;
-  const { emptyState, stateOccasionType } = useGiftIdeasState({
+  const isFocused = useIsFocused();
+  const {
+    emptyState,
+    stateOccasionType,
+    loading: loadingState,
+  } = useGiftIdeasState({
     recipientId: id,
     occasionId: occasionFilter,
     listEmpty: visibleSuggestionCount === 0,
+    focused: isFocused,
     clientGenerating: false,
     loadFailed,
   });
@@ -110,7 +116,10 @@ export default function GiftIdeasPage() {
     });
   }, [user, id, loadingSuggestions, visibleSuggestionCount]);
 
-  const isLoading = loadingRecipient || loadingSuggestions;
+  const isLoading =
+    loadingRecipient ||
+    loadingSuggestions ||
+    (loadingState && visibleSuggestionCount === 0);
   const name = firstName(recipient?.name);
 
   const handleAboutPress = () => {
