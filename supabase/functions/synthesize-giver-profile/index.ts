@@ -205,7 +205,10 @@ serve(async (req) => {
       .select(
         "gift_suggestion_id, recipient_id, occasion_id, action, price, created_at"
       )
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      // Newest first, so a row cap drops old history rather than a gift's
+      // latest decision.
+      .order("created_at", { ascending: false });
     const decisions = latestDecisionPerGift(
       (feedback ?? []).map((f: Omit<FeedbackRow, "gift_title">) => ({
         ...f,
@@ -223,7 +226,10 @@ serve(async (req) => {
       const { data } = await supabase
         .from("gift_suggestions")
         .select("recipient_id, occasion_id, generated_at")
-        .in("recipient_id", chosenRecipientIds);
+        .in("recipient_id", chosenRecipientIds)
+        // Unpriced rows are never shown, so they were never on offer.
+        .gt("price", 0)
+        .order("generated_at", { ascending: false });
       suggestionTimings = (data ?? []) as SuggestionTimingRow[];
     }
 

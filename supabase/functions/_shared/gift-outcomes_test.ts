@@ -93,3 +93,24 @@ Deno.test("recipient context weighs choices against rejections", () => {
   assertStringIncludes(context, "- Pokémon backpack ($40) — for birthday");
   assertStringIncludes(context, "Already owns (do not repeat):\n- Lego set");
 });
+
+Deno.test(
+  "a recurring occasion counts only ideas since the last choice",
+  () => {
+    const ideas = (days: string[]) =>
+      days.map((d) => ({
+        recipient_id: "nephew",
+        occasion_id: "bday",
+        generated_at: `${d}T00:00:00Z`,
+      }));
+    const context = buildGiverChoiceContext(
+      [
+        row({ created_at: "2025-09-10T00:00:00Z" }),
+        row({ gift_suggestion_id: "g2", created_at: "2026-09-10T00:00:00Z" }),
+      ],
+      new Map([["nephew", "nephew"]]),
+      ideas(["2025-09-01", "2025-09-02", "2026-09-01", "2026-09-02"])
+    );
+    assertStringIncludes(context, "median 2 (range 2–2)");
+  }
+);

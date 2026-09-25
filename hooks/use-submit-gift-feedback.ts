@@ -4,7 +4,7 @@ import {
   type QueryClient,
 } from "@tanstack/react-query";
 import { queryKeys } from "../lib/query-keys";
-import { supabase } from "../lib/supabase";
+import { invokeWithRetry } from "../lib/edge-retry";
 import {
   GIFT_REMOVAL_ACTIONS,
   insertGiftFeedback,
@@ -39,19 +39,33 @@ const emptySlots = (rows: GiftSuggestion[], occasionId?: string | null) =>
  * write, which has already landed. Gift generation is skipped because a
  * refresh would retire the chosen gift along with the rest of the set.
  */
-function resynthesizeAfterChoice(userId: string, recipientId: string) {
-  supabase.functions
-    .invoke("synthesize-recipient-profile", {
-      body: { recipientId, skipGiftGeneration: true },
-    })
-    .catch((err) =>
-      console.error("Failed to trigger recipient profile synthesis:", err)
-    );
-  supabase.functions
-    .invoke("synthesize-giver-profile", { body: { userId } })
-    .catch((err) =>
-      console.error("Failed to trigger giver profile synthesis:", err)
-    );
+function resynthesizeAfterChoice(
+  queryClient: QueryClient,
+  userId: string,
+  recipientId: string
+) {
+  const run = async (
+    fn: string,
+    body: Record<string, unknown>,
+    staleKey: readonly unknown[]
+  ) => {
+    const { error } = await invokeWithRetry(fn, { body });
+    if (error) {
+      console.error(`${fn} after choice failed:`, error);
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: staleKey });
+  };
+  run(
+    "synthesize-recipient-profile",
+    { recipientId, skipGiftGeneration: true },
+    queryKeys.recipient(userId, recipientId)
+  ).catch((err) => console.error("Recipient re-synthesis threw:", err));
+  run(
+    "synthesize-giver-profile",
+    { userId },
+    queryKeys.userPreferences(userId)
+  ).catch((err) => console.error("Giver re-synthesis threw:", err));
 }
 
 /**
@@ -118,7 +132,7 @@ export function useSubmitGiftFeedback() {
     // (DEV-118).
     onSuccess: (data, vars) => {
       if (vars.action === "chose") {
-        resynthesizeAfterChoice(data.user_id, vars.recipientId);
+        resynthesizeAfterChoice(queryClient, data.user_id, vars.recipientId);
       }
       if (!GIFT_REMOVAL_ACTIONS.includes(vars.action)) return;
       const remaining =

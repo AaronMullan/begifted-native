@@ -73,7 +73,7 @@ function priceSummary(prices: number[]): string {
  *
  * `relationshipByRecipient` maps recipient id → relationship_type.
  * `suggestions` are the recipients' generated ideas (superseded ones included —
- * they were shown), used to count how many were on offer by the time of the
+ * they were shown), used to count how many were on offer in the run-up to the
  * choice.
  */
 export function buildGiverChoiceContext(
@@ -106,15 +106,26 @@ export function buildGiverChoiceContext(
         )}`
     );
 
-  const ideasSeen = chosen.map(
-    (c) =>
-      suggestions.filter(
-        (s) =>
-          s.recipient_id === c.recipient_id &&
-          (s.occasion_id ?? null) === (c.occasion_id ?? null) &&
-          s.generated_at <= c.created_at
-      ).length
-  );
+  const sameOccasion = (a: FeedbackRow | SuggestionTimingRow, c: FeedbackRow) =>
+    a.recipient_id === c.recipient_id &&
+    (a.occasion_id ?? null) === (c.occasion_id ?? null);
+  // A recurring occasion keeps one id across years, so a choice only counts
+  // the ideas generated since the previous choice for that occasion —
+  // otherwise every year's ideas pile onto the next year's count.
+  const ideasSeen = chosen.map((c) => {
+    const since = chosen
+      .filter((p) => sameOccasion(p, c) && p.created_at < c.created_at)
+      .reduce(
+        (latest, p) => (p.created_at > latest ? p.created_at : latest),
+        ""
+      );
+    return suggestions.filter(
+      (s) =>
+        sameOccasion(s, c) &&
+        s.generated_at > since &&
+        s.generated_at <= c.created_at
+    ).length;
+  });
   const seenCounts = ideasSeen.filter((n) => n > 0);
   const decisionLine =
     seenCounts.length > 0
