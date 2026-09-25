@@ -19,6 +19,7 @@ import GiftActionDrawerProvider from "../components/gifts/GiftActionDrawerProvid
 import BetaCheckInProvider from "../components/beta/BetaCheckInProvider";
 import GlobalSnackbar from "../components/GlobalSnackbar";
 import OtaUpdateGate from "../components/OtaUpdateGate";
+import OfflineBanner from "../components/OfflineBanner";
 import PushNotificationsIntro from "../components/PushNotificationsIntro";
 import { Colors } from "../lib/colors";
 import { useFontsLoader } from "../hooks/use-fonts-loader";
@@ -243,6 +244,7 @@ export default Sentry.wrap(function RootLayout() {
           </ErrorBoundary>
           <GlobalSnackbar />
           <OtaUpdateGate />
+          <OfflineBanner />
           {!splashDone && (
             <AnimatedSplash
               ready={splashReady}

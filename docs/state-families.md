@@ -46,9 +46,12 @@ recipient), the recipient update note, the About-tab photo and birthday,
 the gift action drawer, Settings → Gifting / Notifications / Profile photo and
 password, and the reset-password form.
 
-**Offline** — `StateCopy.offline`. Today it prefixes the save-failure message
-when a mutation fails with a network error. Connectivity detection and a
-standing offline banner are separate work (they need a native module).
+**Offline** — `StateCopy.offline`. `components/OfflineBanner.tsx` shows it
+app-wide while `expo-network` reports no connection, and it prefixes the
+save-failure message when a mutation fails with a network error. Queries keep
+their normal behaviour offline (TanStack's `onlineManager` is not wired — it
+would pause saves rather than fail them), so a load that fails offline still
+shows its load-failure state beneath the banner.
 
 **Permission required** — `StateCopy.permission(permission, benefit)`.
 Photo access (recipient photo, profile photo) and push notifications
