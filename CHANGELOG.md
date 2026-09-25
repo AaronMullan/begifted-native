@@ -19,6 +19,13 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-09-25 — OTA
+
+### App
+
+- Choosing a gift now teaches the app about that person and about how you give. The next ideas for them build on what you picked, and your spending on each kind of relationship takes shape from real choices. What one person received never carries over to anyone else (DEV-496).
+- When something can't load, the Moments calendar, Notifications, Home, the People tab and the Settings screens now say so and offer Try again, instead of showing an empty page. Loading, empty and failed-save messages now use the same wording on every screen. (DEV-503)
+
 ## 2026-09-24 — OTA
 
 ### App
