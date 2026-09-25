@@ -5,6 +5,9 @@ import { Button, Dialog, Portal, Text } from "react-native-paper";
 import type { NavigationAction } from "@react-navigation/native";
 import type { User } from "@supabase/supabase-js";
 import { useAuth } from "../../../hooks/use-auth";
+import { useRecipients } from "../../../hooks/use-recipients";
+import { findExistingRecipient } from "../../../lib/recipient-match";
+import type { Recipient } from "../../../types/recipient";
 import { Typography } from "../../../lib/typography";
 import { Colors } from "../../../lib/colors";
 import { useAddRecipientFlow } from "../../../hooks/use-add-recipient-flow";
@@ -51,6 +54,7 @@ const AddRecipient = () => {
   // StrictMode/concurrent React can replay it) and claim in the effect below.
   const [queue] = useState(() => peekPendingContactQueue());
   const [queueIndex, setQueueIndex] = useState(0);
+  const [addedCount, setAddedCount] = useState(0);
   const [confirmStopVisible, setConfirmStopVisible] = useState(false);
   const pendingLeaveAction = useRef<NavigationAction | null>(null);
   const pendingLeaveHref = useRef<string | null>(null);
@@ -122,18 +126,28 @@ const AddRecipient = () => {
   }
 
   const total = queue.length;
-  const completed = queueIndex;
-  const remaining = total - completed;
+  const remaining = total - queueIndex;
 
-  const handleRecipientSaved = () => {
+  const advanceQueue = (added: number) => {
     if (queueIndex + 1 < total) {
       setQueueIndex(queueIndex + 1);
       return;
     }
     allowLeave.current = true;
-    showSnackbar(`${total} people added`);
+    showSnackbar(
+      added === 0
+        ? "No one new was added."
+        : `${added} ${added === 1 ? "person" : "people"} added`
+    );
     router.replace("/contacts");
   };
+
+  const handleRecipientSaved = () => {
+    setAddedCount(addedCount + 1);
+    advanceQueue(addedCount + 1);
+  };
+
+  const handleRecipientSkipped = () => advanceQueue(addedCount);
 
   const handleKeepAdding = () => {
     pendingLeaveAction.current = null;
@@ -171,6 +185,7 @@ const AddRecipient = () => {
         key={queueIndex}
         seed={queue[queueIndex]}
         onSaved={handleRecipientSaved}
+        onSkip={handleRecipientSkipped}
       />
       <Portal>
         <Dialog
@@ -181,7 +196,7 @@ const AddRecipient = () => {
           <Dialog.Title>Stop adding people?</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">
-              {completed} of {total} {completed === 1 ? "has" : "have"} been
+              {addedCount} of {total} {addedCount === 1 ? "has" : "have"} been
               added.{" "}
               {remaining === 1
                 ? "The remaining person"
@@ -204,13 +219,16 @@ type AddRecipientFlowProps = {
   /** Batch mode: called once after this recipient saves; suppresses the
    * profile-ready interstitial so the queue advances directly. */
   onSaved?: () => void;
+  /** Batch mode: called instead of onSaved when this contact is skipped as
+   * someone the user already has. */
+  onSkip?: () => void;
 };
 
 // Auth gate above the flow: the resume decision below reads the parked draft
 // once, in a state initializer on first render — so the flow must not mount
 // until the user is known (useAuth resolves the session asynchronously, and a
 // null-user first render would silently decide "no draft" every time).
-const AddRecipientFlow = ({ seed, onSaved }: AddRecipientFlowProps) => {
+const AddRecipientFlow = ({ seed, onSaved, onSkip }: AddRecipientFlowProps) => {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   // Bumped by "Start fresh": remounting the inner flow discards the restored
@@ -237,6 +255,7 @@ const AddRecipientFlow = ({ seed, onSaved }: AddRecipientFlowProps) => {
       user={user}
       seed={seed}
       onSaved={onSaved}
+      onSkip={onSkip}
       onStartFresh={() => {
         clearAddRecipientDraft();
         setFlowKey((k) => k + 1);
@@ -249,9 +268,15 @@ const AddRecipientFlowInner = ({
   user,
   seed,
   onSaved,
+  onSkip,
   onStartFresh,
 }: AddRecipientFlowProps & { user: User; onStartFresh: () => void }) => {
+  const router = useRouter();
+  const { data: recipients } = useRecipients();
   const [showManualEntry, setShowManualEntry] = useState(false);
+  // Existing people the user chose to add again anyway — never re-ask.
+  const [dismissedMatchIds, setDismissedMatchIds] = useState<string[]>([]);
+  const [reviewMatch, setReviewMatch] = useState<Recipient | null>(null);
   const [partialData, setPartialData] = useState<any>(null);
   const savedNotified = useRef(false);
 
@@ -377,6 +402,75 @@ const AddRecipientFlowInner = ({
     setPartialData(null);
   };
 
+  // An imported contact's name is known before the conversation starts, so
+  // check it while the chat is up. Gated off during and after a save: the
+  // save refetches recipients, and the new row would match its own seed.
+  const onConversation =
+    !showDataReview && !showOccasionsSelection && !showManualEntry;
+  const seedMatch =
+    recipients && onConversation && !isSaving && !saveSuccess
+      ? findExistingRecipient(effectiveSeed.name, recipients)
+      : null;
+  const duplicateMatch =
+    reviewMatch ??
+    (seedMatch && !dismissedMatchIds.includes(seedMatch.id) ? seedMatch : null);
+
+  // A typed name is only known once extraction lands, so the last check sits
+  // on Data Review's continue — before any row is written.
+  const handleReviewContinue = async () => {
+    const match = recipients
+      ? findExistingRecipient(extractedData?.name, recipients)
+      : null;
+    if (match && !dismissedMatchIds.includes(match.id)) {
+      setReviewMatch(match);
+      return;
+    }
+    await handleDataReviewContinue();
+  };
+
+  const handleAddAnyway = () => {
+    if (!duplicateMatch) return;
+    setDismissedMatchIds([...dismissedMatchIds, duplicateMatch.id]);
+    if (reviewMatch) {
+      setReviewMatch(null);
+      handleDataReviewContinue();
+    }
+  };
+
+  const handleOpenExisting = () => {
+    if (!duplicateMatch) return;
+    clearAddRecipientDraft();
+    router.replace(`/contacts/${duplicateMatch.id}`);
+  };
+
+  const duplicateDialog = (
+    <Portal>
+      <Dialog
+        visible={!!duplicateMatch}
+        dismissable={false}
+        style={{ borderRadius: 16 }}
+      >
+        <Dialog.Title>You already have {duplicateMatch?.name}</Dialog.Title>
+        <Dialog.Content>
+          <Text variant="bodyMedium">
+            Adding them again starts a second profile, and their gifts and
+            moments would be split between the two.
+          </Text>
+        </Dialog.Content>
+        <Dialog.Actions>
+          <Button onPress={handleAddAnyway}>Add anyway</Button>
+          {onSkip ? (
+            <Button onPress={onSkip}>Skip</Button>
+          ) : (
+            <Button onPress={handleOpenExisting}>
+              Open {duplicateMatch?.name.trim().split(/\s+/)[0]}
+            </Button>
+          )}
+        </Dialog.Actions>
+      </Dialog>
+    </Portal>
+  );
+
   // Save complete → the "profile is ready" transition (Figma 5051:7621);
   // auto-advances to the new person's gift ideas, no CTA.
   if (saveSuccess) {
@@ -427,30 +521,36 @@ const AddRecipientFlowInner = ({
 
   if (showDataReview && extractedData) {
     return (
-      <DataReviewView
-        extractedData={extractedData}
-        isSaving={isSaving}
-        onBack={() => setShowDataReview(false)}
-        onDataChange={setExtractedData}
-        onSave={handleDataReviewContinue}
-      />
+      <>
+        <DataReviewView
+          extractedData={extractedData}
+          isSaving={isSaving}
+          onBack={() => setShowDataReview(false)}
+          onDataChange={setExtractedData}
+          onSave={handleReviewContinue}
+        />
+        {duplicateDialog}
+      </>
     );
   }
 
   return (
-    <ConversationView
-      messages={messages}
-      isLoading={isLoading}
-      messagesEndRef={messagesEndRef}
-      onNavigateBack={handleNavigateBack}
-      onSendMessage={sendMessage}
-      onFinishConversation={handleFinishConversationWithFallback}
-      shouldShowNextStepButton={shouldShowNextStepButton}
-      conversationContext={conversationContext}
-      canRetry={canRetrySend}
-      onRetry={retryLastSend}
-      headerNotice={<AddRecipientLegalNotice />}
-    />
+    <>
+      <ConversationView
+        messages={messages}
+        isLoading={isLoading}
+        messagesEndRef={messagesEndRef}
+        onNavigateBack={handleNavigateBack}
+        onSendMessage={sendMessage}
+        onFinishConversation={handleFinishConversationWithFallback}
+        shouldShowNextStepButton={shouldShowNextStepButton}
+        conversationContext={conversationContext}
+        canRetry={canRetrySend}
+        onRetry={retryLastSend}
+        headerNotice={<AddRecipientLegalNotice />}
+      />
+      {duplicateDialog}
+    </>
   );
 };
 
