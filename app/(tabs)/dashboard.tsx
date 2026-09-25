@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import type { LayoutChangeEvent } from "react-native";
-import { Text, ActivityIndicator } from "react-native-paper";
+import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../lib/colors";
 import { Spacing } from "../../lib/spacing";
@@ -16,7 +16,8 @@ import OnTheHorizonGrid from "../../components/home/OnTheHorizonGrid";
 import AddPeopleTile from "../../components/home/AddPeopleTile";
 import HomeEmptyState from "../../components/home/HomeEmptyState";
 import GradientBackground from "../../components/GradientBackground";
-import LoadFailedState from "../../components/LoadFailedState";
+import StateMessage from "../../components/StateMessage";
+import { StateCopy } from "../../lib/state-copy";
 
 /**
  * Flexible vertical gap for the anchored home column, sized by which of the
@@ -75,7 +76,14 @@ export default function Dashboard() {
     refetch: refetchRecipients,
   } = useRecipients();
   const recipients = recipientsData ?? [];
-  const { data: occasions = [], isLoading: loadingOccasions } = useOccasions();
+  const {
+    data: occasionsData,
+    isLoading: loadingOccasions,
+    isError: occasionsFailed,
+    isFetching: refetchingOccasions,
+    refetch: refetchOccasions,
+  } = useOccasions();
+  const occasions = occasionsData ?? [];
 
   const isLoading = loadingRecipients || loadingOccasions;
   const groups = groupHomeOccasions(occasions);
@@ -125,10 +133,10 @@ export default function Dashboard() {
       <View style={styles.container}>
         <GradientBackground />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.black} />
-          <Text variant="bodyMedium" style={styles.loadingText}>
-            Loading...
-          </Text>
+          <StateMessage
+            loading
+            message={StateCopy.inProgress("your upcoming moments")}
+          />
         </View>
       </View>
     );
@@ -155,10 +163,10 @@ export default function Dashboard() {
       <View style={styles.container}>
         <GradientBackground />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.black} />
-          <Text variant="bodyMedium" style={styles.loadingText}>
-            Loading dashboard...
-          </Text>
+          <StateMessage
+            loading
+            message={StateCopy.inProgress("your upcoming moments")}
+          />
         </View>
       </View>
     );
@@ -174,8 +182,8 @@ export default function Dashboard() {
       <View style={styles.container}>
         <GradientBackground />
         <View style={styles.loadingContainer}>
-          <LoadFailedState
-            message="Couldn't load your people."
+          <StateMessage
+            message={StateCopy.loadFailed("your people")}
             onRetry={refetchRecipients}
             retrying={refetchingRecipients}
           />
@@ -251,11 +259,23 @@ export default function Dashboard() {
               <OnTheHorizonGrid occasions={groups.horizon} />
             </>
           )}
-          {!groups.hero && (
-            <Text variant="bodyLarge" style={styles.emptyText}>
-              No upcoming occasions yet.
-            </Text>
-          )}
+          {!groups.hero &&
+            // Same raw-value test as the people check above: a failed fetch
+            // with nothing cached must not read as an empty calendar.
+            (occasionsFailed && occasionsData === undefined ? (
+              <StateMessage
+                message={StateCopy.loadFailed("your upcoming moments")}
+                onRetry={refetchOccasions}
+                retrying={refetchingOccasions}
+              />
+            ) : loadingOccasions ? (
+              <StateMessage
+                loading
+                message={StateCopy.inProgress("your upcoming moments")}
+              />
+            ) : (
+              <StateMessage message={StateCopy.empty("upcoming moments")} />
+            ))}
           <View onLayout={handleColumnEndLayout} />
         </View>
       </ScrollView>
@@ -298,18 +318,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 40,
   },
-  loadingText: {
-    marginTop: 16,
-    color: Colors.grays.text,
-  },
   signInTitle: {
     marginBottom: 8,
     color: Colors.black,
-  },
-  emptyText: {
-    color: Colors.black,
-    opacity: 0.7,
-    textAlign: "center",
-    paddingVertical: 40,
   },
 });

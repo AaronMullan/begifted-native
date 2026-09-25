@@ -21,6 +21,8 @@ import { Spacing } from "../../../lib/spacing";
 import type { Session } from "@supabase/supabase-js";
 import { showSnackbar } from "../../../components/GlobalSnackbar";
 import GradientBackground from "../../../components/GradientBackground";
+import StateMessage from "../../../components/StateMessage";
+import { StateCopy } from "../../../lib/state-copy";
 
 // The v4 frame's three-row set. Reminder count is bounded 1–3 by the design's
 // pill selector.
@@ -80,6 +82,10 @@ export default function NotificationsSettings() {
   const headerSpacerHeight = Math.max(HEADER_HEIGHT, insets.top + 60);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  // Without this a failed read leaves DEFAULT_PREFERENCES on screen as if they
+  // were the user's, and the next toggle writes the whole default set over
+  // their real stored values.
+  const [loadFailed, setLoadFailed] = useState(false);
   const [pushPermissionGranted, setPushPermissionGranted] = useState(true);
   const router = useRouter();
 
@@ -89,6 +95,7 @@ export default function NotificationsSettings() {
   async function fetchPreferences(userId: string) {
     try {
       setLoading(true);
+      setLoadFailed(false);
       const { data, error } = await supabase
         .from("user_preferences")
         .select(
@@ -99,6 +106,8 @@ export default function NotificationsSettings() {
 
       if (error && error.code !== "PGRST116") {
         console.error("Error fetching preferences:", error);
+        setLoadFailed(true);
+        return;
       }
 
       if (data) {
@@ -118,6 +127,7 @@ export default function NotificationsSettings() {
       }
     } catch (error) {
       console.error("Error fetching preferences:", error);
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
@@ -182,9 +192,7 @@ export default function NotificationsSettings() {
     if (error) {
       console.error("Error saving preferences:", error);
       setPreferences(previous);
-      showSnackbar(
-        "Couldn't save your notification settings. Please try again."
-      );
+      showSnackbar(StateCopy.saveFailed("your notification settings"));
     }
   }
 
@@ -194,7 +202,10 @@ export default function NotificationsSettings() {
         <GradientBackground />
         <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
         <View style={styles.content}>
-          <Text style={styles.loadingText}>Loading...</Text>
+          <StateMessage
+            loading
+            message={StateCopy.inProgress("your notification settings")}
+          />
         </View>
       </View>
     );
@@ -215,6 +226,36 @@ export default function NotificationsSettings() {
     );
   }
 
+  const header = (
+    <View style={styles.header}>
+      <IconButton
+        icon="chevron-left"
+        size={20}
+        iconColor={Colors.brand.darkTeal}
+        onPress={() => router.back()}
+        style={styles.backButton}
+      />
+      <Text style={styles.title}>Notifications</Text>
+    </View>
+  );
+
+  if (loadFailed) {
+    const userId = session.user.id;
+    return (
+      <View style={styles.container}>
+        <GradientBackground />
+        <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
+        <View style={styles.content}>
+          {header}
+          <StateMessage
+            message={StateCopy.loadFailed("your notification settings")}
+            onRetry={() => fetchPreferences(userId)}
+          />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <GradientBackground />
@@ -224,16 +265,7 @@ export default function NotificationsSettings() {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.content}>
-          <View style={styles.header}>
-            <IconButton
-              icon="chevron-left"
-              size={20}
-              iconColor={Colors.brand.darkTeal}
-              onPress={() => router.back()}
-              style={styles.backButton}
-            />
-            <Text style={styles.title}>Notifications</Text>
-          </View>
+          {header}
 
           <Rule />
           <ToggleRow
@@ -241,7 +273,10 @@ export default function NotificationsSettings() {
             caption={
               pushPermissionGranted
                 ? "Turn all BeGifted alerts on or off."
-                : "Turn on notifications in Settings so BeGifted can remind you about upcoming occasions"
+                : StateCopy.permission(
+                    "notifications in Settings",
+                    "remind you about upcoming occasions"
+                  )
             }
             value={preferences.push_notifications_enabled}
             onValueChange={(value) =>
@@ -431,11 +466,5 @@ const styles = StyleSheet.create({
   },
   countPillLabelSelected: {
     color: Colors.white,
-  },
-  loadingText: {
-    ...Typography.subhead,
-    textAlign: "center",
-    color: Colors.black,
-    opacity: 0.9,
   },
 });

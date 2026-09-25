@@ -45,6 +45,8 @@ import {
 } from "../../../utils/birthday";
 import { Spacing } from "../../../lib/spacing";
 import GradientBackground from "../../../components/GradientBackground";
+import StateMessage from "../../../components/StateMessage";
+import { StateCopy } from "../../../lib/state-copy";
 
 const MIN_PASSWORD_LENGTH = 6;
 
@@ -57,7 +59,12 @@ type SaveState = "idle" | "saving" | "saved" | "error";
 export default function ProfileSettings() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { data: profile } = useProfile();
+  const {
+    data: profile,
+    isError: profileFailed,
+    isFetching: refetchingProfile,
+    refetch: refetchProfile,
+  } = useProfile();
   const updateProfile = useUpdateProfile();
   const loading = authLoading;
 
@@ -96,7 +103,9 @@ export default function ProfileSettings() {
 
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      showSnackbar("Allow photo access in Settings to add a profile photo.");
+      showSnackbar(
+        StateCopy.permission("photo access in Settings", "add a profile photo")
+      );
       return;
     }
 
@@ -134,7 +143,7 @@ export default function ProfileSettings() {
       Sentry.captureException(err, {
         tags: { flow: "account_settings", step: "avatar_upload" },
       });
-      showSnackbar("Couldn't update your photo. Please try again.");
+      showSnackbar(StateCopy.saveFailed("your photo"));
     } finally {
       setUploadingPhoto(false);
     }
@@ -277,7 +286,7 @@ export default function ProfileSettings() {
       const message =
         err instanceof Error && /reauthentication|session/i.test(err.message)
           ? "For security, sign out and back in, then try again."
-          : "Couldn't update your password. Please try again.";
+          : StateCopy.saveFailed("your new password");
       showSnackbar(message);
     } finally {
       setChangingPassword(false);
@@ -289,7 +298,10 @@ export default function ProfileSettings() {
       <View style={styles.container}>
         <GradientBackground />
         <View style={styles.content}>
-          <Text style={styles.loadingText}>Loading...</Text>
+          <StateMessage
+            loading
+            message={StateCopy.inProgress("your profile")}
+          />
         </View>
       </View>
     );
@@ -304,6 +316,31 @@ export default function ProfileSettings() {
           <Text style={styles.subtitle}>
             Please sign in to manage your profile.
           </Text>
+        </View>
+      </View>
+    );
+  }
+
+  // The form must not open over a profile it never received: blank fields read
+  // as an empty profile, and saving any field sends `full_name` with them,
+  // overwriting the real name with null.
+  if (profile === undefined) {
+    return (
+      <View style={styles.container}>
+        <GradientBackground />
+        <View style={styles.content}>
+          {profileFailed ? (
+            <StateMessage
+              message={StateCopy.loadFailed("your profile")}
+              onRetry={refetchProfile}
+              retrying={refetchingProfile}
+            />
+          ) : (
+            <StateMessage
+              loading
+              message={StateCopy.inProgress("your profile")}
+            />
+          )}
         </View>
       </View>
     );
@@ -711,9 +748,5 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     marginTop: 16,
-  },
-  loadingText: {
-    textAlign: "center",
-    color: Colors.brand.mediumTeal,
   },
 });

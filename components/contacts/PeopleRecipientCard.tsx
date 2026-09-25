@@ -16,11 +16,14 @@ import Avatar from "../Avatar";
 type PeopleRecipientCardProps = {
   recipient: Recipient;
   upcoming: UpcomingOccasion | null;
+  /** False while the moments are loading or failed to load. */
+  momentsKnown: boolean;
 };
 
 const PeopleRecipientCard: React.FC<PeopleRecipientCardProps> = ({
   recipient,
   upcoming,
+  momentsKnown,
 }) => {
   const router = useRouter();
   const { user } = useAuth();
@@ -80,7 +83,9 @@ const PeopleRecipientCard: React.FC<PeopleRecipientCardProps> = ({
                 ? `${formatOccasionType(
                     upcoming.occasionType
                   )}: ${formatOccasionDate(upcoming.date)}`
-                : "No upcoming moments yet"}
+                : momentsKnown
+                  ? "No upcoming moments yet"
+                  : ""}
             </Text>
             {upcoming && (
               <MaterialIcons

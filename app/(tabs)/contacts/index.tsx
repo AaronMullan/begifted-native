@@ -3,9 +3,10 @@ import { useRouter } from "expo-router";
 import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 import { Colors } from "../../../lib/colors";
-import { FontFamily, Typography } from "../../../lib/typography";
+import { Typography } from "../../../lib/typography";
 import GradientBackground from "../../../components/GradientBackground";
-import LoadFailedState from "../../../components/LoadFailedState";
+import StateMessage from "../../../components/StateMessage";
+import { StateCopy } from "../../../lib/state-copy";
 import ContactFileImport from "../../../components/ContactFileImport";
 import ContactPicker from "../../../components/ContactPicker";
 import ContactsAccessIntro from "../../../components/ContactsAccessIntro";
@@ -32,7 +33,16 @@ export default function Contacts() {
     refetch: refetchRecipients,
   } = useRecipients();
   const recipients = recipientsData ?? [];
-  const { data: occasions = [] } = useAllOccasions();
+  const {
+    data: occasionsData,
+    isError: occasionsFailed,
+    isFetching: refetchingOccasions,
+    refetch: refetchOccasions,
+  } = useAllOccasions();
+  const occasions = occasionsData ?? [];
+  // Until the moments arrive, a card without a birthday can't honestly say it
+  // has no upcoming moments.
+  const momentsKnown = occasionsData !== undefined;
 
   // Group occasions by recipient so each card can show its soonest moment.
   const occasionsByRecipient = new Map<string, Occasion[]>();
@@ -110,28 +120,39 @@ export default function Contacts() {
           )}
 
           {loading && recipients.length === 0 ? (
-            <Text style={styles.loadingText}>Loading…</Text>
+            <StateMessage
+              loading
+              message={StateCopy.inProgress("your people")}
+            />
           ) : recipientsFailed && recipientsData === undefined ? (
             // An empty list we never received is not the same as an account
-            // with nobody in it; "No people yet." would deny the user's people.
-            <LoadFailedState
-              message="Couldn't load your people."
+            // with nobody in it; the empty state would deny the user's people.
+            <StateMessage
+              message={StateCopy.loadFailed("your people")}
               onRetry={refetchRecipients}
               retrying={refetchingRecipients}
             />
           ) : recipients.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No people yet.</Text>
+              <Text style={styles.emptyText}>{StateCopy.empty("people")}</Text>
               <Text style={styles.emptySubtext}>
                 Add the first one to get started.
               </Text>
             </View>
           ) : (
             <View style={styles.list}>
+              {occasionsFailed && !momentsKnown && (
+                <StateMessage
+                  message={StateCopy.loadFailed("their upcoming moments")}
+                  onRetry={refetchOccasions}
+                  retrying={refetchingOccasions}
+                />
+              )}
               {recipients.map((recipient) => (
                 <PeopleRecipientCard
                   key={recipient.id}
                   recipient={recipient}
+                  momentsKnown={momentsKnown}
                   upcoming={getNextUpcomingOccasion(
                     recipient.birthday,
                     occasionsByRecipient.get(recipient.id) ?? []
@@ -203,12 +224,6 @@ const styles = StyleSheet.create({
   subtitle: {
     ...Typography.subhead,
     color: Colors.brand.darkTeal,
-  },
-  loadingText: {
-    fontFamily: FontFamily.body.regular,
-    textAlign: "center",
-    color: Colors.black,
-    opacity: 0.7,
   },
   emptyState: {
     padding: 24,

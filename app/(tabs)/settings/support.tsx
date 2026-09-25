@@ -24,6 +24,8 @@ import type { Session } from "@supabase/supabase-js";
 import { showSnackbar } from "../../../components/GlobalSnackbar";
 import { PrimaryCta } from "../../../components/PrimaryCta";
 import GradientBackground from "../../../components/GradientBackground";
+import StateMessage from "../../../components/StateMessage";
+import { StateCopy } from "../../../lib/state-copy";
 
 // v4 "input/text-field": label above the box, white fill, sharp corners, no
 // stroke — so the Paper input runs flat with its own label suppressed.
@@ -116,7 +118,7 @@ export default function SupportSettings() {
         <GradientBackground />
         <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
         <View style={styles.content}>
-          <Text style={styles.loadingText}>Loading...</Text>
+          <StateMessage loading message={StateCopy.inProgress("support")} />
         </View>
       </View>
     );
@@ -290,11 +292,5 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     marginTop: Spacing.fieldToCta,
-  },
-  loadingText: {
-    ...Typography.subhead,
-    textAlign: "center",
-    color: Colors.black,
-    opacity: 0.9,
   },
 });

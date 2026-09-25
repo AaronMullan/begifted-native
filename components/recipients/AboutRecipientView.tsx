@@ -36,9 +36,11 @@ import {
   birthdayAfterOccasionEdit,
   formatBirthdayDisplay,
 } from "../../utils/birthday";
-import { formatOccasionType } from "../../utils/home-occasions";
+import { formatOccasionType, possessive } from "../../utils/home-occasions";
 import { formatOccasionDate } from "../../utils/occasion-dates";
 import { cleanRelationship } from "../../lib/format-name";
+import { StateCopy } from "../../lib/state-copy";
+import StateMessage from "../StateMessage";
 import { Spacing } from "@/lib/spacing";
 
 type AboutRecipientViewProps = {
@@ -78,7 +80,13 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
   onViewGiftIdeas,
   onDelete,
 }) => {
-  const { data: occasions = [] } = useRecipientOccasions(recipient.id);
+  const {
+    data: occasionsData,
+    isError: occasionsFailed,
+    isFetching: refetchingOccasions,
+    refetch: refetchOccasions,
+  } = useRecipientOccasions(recipient.id);
+  const occasions = occasionsData ?? [];
   const updateOccasion = useUpdateOccasion();
   const deleteOccasion = useDeleteOccasion();
   const redateBirthdayOccasion = useRedateBirthdayOccasion();
@@ -132,7 +140,9 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
   const handleChangePhoto = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      showSnackbar("Allow photo access in Settings to add a photo.");
+      showSnackbar(
+        StateCopy.permission("photo access in Settings", "add a photo")
+      );
       return;
     }
 
@@ -151,7 +161,7 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
       await handleSavePartial({ photo_url: url }, false);
       showSnackbar("Photo updated.");
     } catch {
-      showSnackbar("Couldn't update the photo. Please try again.");
+      showSnackbar(StateCopy.saveFailed("the photo"));
     } finally {
       setUploadingPhoto(false);
     }
@@ -217,7 +227,7 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
         <View style={styles.refreshingRow}>
           <ActivityIndicator size={14} color={Colors.blues.medium} />
           <Text style={styles.refreshingText}>
-            Refreshing recipient profile…
+            {StateCopy.inProgress(`${possessive(recipient.name)} profile`)}
           </Text>
         </View>
       )}
@@ -243,8 +253,25 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
       <Text style={[styles.sectionLabel, styles.sectionLabelInset]}>
         MOMENTS
       </Text>
-      {occasions.length === 0 ? (
-        <Text style={styles.emptyText}>No moments yet.</Text>
+      {occasionsData === undefined ? (
+        occasionsFailed ? (
+          <StateMessage
+            message={StateCopy.loadFailed(
+              `${possessive(recipient.name)} moments`
+            )}
+            onRetry={refetchOccasions}
+            retrying={refetchingOccasions}
+          />
+        ) : (
+          <StateMessage
+            loading
+            message={StateCopy.inProgress(
+              `${possessive(recipient.name)} moments`
+            )}
+          />
+        )
+      ) : occasions.length === 0 ? (
+        <Text style={styles.emptyText}>{StateCopy.empty("moments")}</Text>
       ) : (
         <View style={styles.momentsCard}>
           {occasions.map((occasion, index) => (
@@ -512,9 +539,7 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
             void handleSavePartial({ birthday: nextBirthday }, false).then(
               (saved) => {
                 if (!saved) {
-                  showSnackbar(
-                    "Couldn't update their birthday. Please try again."
-                  );
+                  showSnackbar(StateCopy.saveFailed("their birthday"));
                 }
               }
             );

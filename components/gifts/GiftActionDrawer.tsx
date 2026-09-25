@@ -15,6 +15,7 @@ import type { GiftFeedbackAction } from "../../lib/api";
 import { useSubmitGiftFeedback } from "../../hooks/use-submit-gift-feedback";
 import { Colors } from "../../lib/colors";
 import { Typography } from "../../lib/typography";
+import { StateCopy } from "../../lib/state-copy";
 
 export type GiftActionDrawerState = {
   suggestion: GiftSuggestion;
@@ -336,7 +337,7 @@ export default function GiftActionDrawer({
         onDismiss={() => setErrorVisible(false)}
         duration={3000}
       >
-        Could not save — please try again.
+        {StateCopy.saveFailed("that")}
       </Snackbar>
       <Snackbar
         visible={confirmation !== null}

@@ -1,17 +1,25 @@
 import { View, ScrollView, StyleSheet, Pressable } from "react-native";
 import { useState } from "react";
-import { Text, ActivityIndicator } from "react-native-paper";
+import { Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../lib/colors";
 import { Typography } from "../lib/typography";
 import { BOTTOM_NAV_HEIGHT } from "../lib/constants";
 import { useFaqs } from "../hooks/use-faqs";
 import GradientBackground from "../components/GradientBackground";
+import StateMessage from "../components/StateMessage";
+import { StateCopy } from "../lib/state-copy";
 import SubpageHeader, { SUBPAGE_GUTTER } from "../components/SubpageHeader";
 
 export default function FAQ() {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
-  const { data: faqs = [], isLoading, isError } = useFaqs();
+  const {
+    data: faqs = [],
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useFaqs();
 
   const toggleFAQ = (index: number) => {
     setExpandedIndex(expandedIndex === index ? null : index);
@@ -28,14 +36,19 @@ export default function FAQ() {
 
         {isLoading ? (
           <View style={styles.stateContainer}>
-            <ActivityIndicator size="large" color={Colors.brand.darkTeal} />
-            <Text style={styles.stateText}>Loading FAQ…</Text>
+            <StateMessage loading message={StateCopy.inProgress("the FAQ")} />
           </View>
         ) : isError ? (
           <View style={styles.stateContainer}>
-            <Text style={styles.stateText}>
-              Could not load FAQs. Please try again later.
-            </Text>
+            <StateMessage
+              message={StateCopy.loadFailed("the FAQ")}
+              onRetry={refetch}
+              retrying={isFetching}
+            />
+          </View>
+        ) : faqs.length === 0 ? (
+          <View style={styles.stateContainer}>
+            <StateMessage message={StateCopy.empty("questions")} />
           </View>
         ) : (
           <View style={styles.list}>
@@ -114,11 +127,5 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingHorizontal: SUBPAGE_GUTTER,
     alignItems: "center",
-  },
-  stateText: {
-    ...Typography.subhead,
-    marginTop: 16,
-    color: Colors.brand.mediumTeal,
-    textAlign: "center",
   },
 });

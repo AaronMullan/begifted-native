@@ -29,6 +29,7 @@ import { captureMutationError, captureQueryError } from "../lib/sentry-helpers";
 import { openBugReport } from "../lib/feedback";
 import * as Sentry from "@sentry/react-native";
 import * as ImagePicker from "expo-image-picker";
+import { StateCopy } from "../lib/state-copy";
 
 // RN 0.86's experimental VirtualView native component declares an `onModeChange`
 // event whose codegen args don't resolve under the New Architecture, so RN emits
@@ -108,7 +109,7 @@ class ErrorBoundary extends React.Component<
     if (this.state.hasError) {
       return (
         <View style={styles.errorContainer}>
-          <Text variant="titleMedium">Something went wrong.</Text>
+          <Text variant="titleMedium">{StateCopy.fatal}</Text>
           <Text variant="bodyMedium" style={styles.errorBody}>
             Please restart the app.
           </Text>

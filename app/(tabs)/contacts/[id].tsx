@@ -15,6 +15,8 @@ import { logProductEvent, logProductEvents } from "../../../lib/api";
 import { queryKeys } from "../../../lib/query-keys";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import GradientBackground from "../../../components/GradientBackground";
+import StateMessage from "../../../components/StateMessage";
+import { StateCopy } from "../../../lib/state-copy";
 import { Colors } from "../../../lib/colors";
 import { Typography } from "../../../lib/typography";
 import type { Recipient, GiftSuggestion } from "../../../types/recipient";
@@ -269,6 +271,8 @@ export default function RecipientEditPage() {
     data: recipient,
     isPending: recipientPending,
     isError: recipientError,
+    isFetching: refetchingRecipient,
+    refetch: refetchRecipient,
   } = useRecipient(recipientId, {
     refetchInterval: resyncBaseline
       ? () => {
@@ -516,11 +520,11 @@ export default function RecipientEditPage() {
       extracted = data?.extractedData || data || null;
     } catch (error) {
       console.error("Failed to extract update note:", error);
-      showSnackbar("Couldn't save that — please try again.");
+      showSnackbar(StateCopy.saveFailed("that"));
       return false;
     }
     if (!extracted) {
-      showSnackbar("Couldn't save that — please try again.");
+      showSnackbar(StateCopy.saveFailed("that"));
       return false;
     }
 
@@ -643,7 +647,7 @@ export default function RecipientEditPage() {
           error ?? new Error("Recipient update matched no rows"),
           queryKeys.recipient(user.id, recipient.id)
         );
-        showSnackbar("Couldn't save that — please try again.");
+        showSnackbar(StateCopy.saveFailed("that"));
         return false;
       }
       queryClient.setQueryData<Recipient>(
@@ -692,7 +696,7 @@ export default function RecipientEditPage() {
       // nothing saved to report. Where a field update did land, the same
       // failure stays quiet on purpose (DEV-125).
       if (insertedOccasions === null) {
-        showSnackbar("Couldn't save that — please try again.");
+        showSnackbar(StateCopy.saveFailed("that"));
         return false;
       }
       // Extraction can come back with nothing this handler is allowed to store.
@@ -738,7 +742,30 @@ export default function RecipientEditPage() {
       <View style={styles.container}>
         <GradientBackground />
         <View style={styles.loadingPlaceholder}>
-          <Text>Loading...</Text>
+          <StateMessage
+            loading
+            message={StateCopy.inProgress("this person's profile")}
+          />
+        </View>
+      </View>
+    );
+  }
+
+  // `null` is a settled "no such person"; `undefined` after an error is a read
+  // that never arrived and must not be reported as a deleted person.
+  if (recipient === undefined && recipientError) {
+    return (
+      <View style={styles.container}>
+        <GradientBackground />
+        <View style={styles.loadingPlaceholder}>
+          <StateMessage
+            message={StateCopy.loadFailed("this person's profile")}
+            onRetry={refetchRecipient}
+            retrying={refetchingRecipient}
+          />
+          <Button mode="text" onPress={() => router.back()}>
+            Go Back
+          </Button>
         </View>
       </View>
     );

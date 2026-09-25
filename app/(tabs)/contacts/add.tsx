@@ -31,6 +31,8 @@ import {
 import type { AddRecipientDraftSeed } from "../../../lib/add-recipient-draft";
 import { Spacing } from "../../../lib/spacing";
 import GradientBackground from "../../../components/GradientBackground";
+import StateMessage from "../../../components/StateMessage";
+import { StateCopy } from "../../../lib/state-copy";
 
 const AddRecipient = () => {
   const router = useRouter();
@@ -238,8 +240,10 @@ const AddRecipientFlow = ({ seed, onSaved, onSkip }: AddRecipientFlowProps) => {
   if (authLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.black} />
-        <Text style={styles.loadingText}>Loading...</Text>
+        <StateMessage
+          loading
+          message={StateCopy.inProgress("the conversation")}
+        />
       </View>
     );
   }
@@ -562,11 +566,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "transparent",
-  },
-  loadingText: {
-    marginTop: 16,
-    ...Typography.subhead,
-    color: Colors.grays.text,
   },
   container: {
     padding: Spacing.marginStandard,

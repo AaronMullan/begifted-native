@@ -16,6 +16,9 @@ import {
 } from "../../hooks/use-notifications";
 import type { AppNotification } from "../../lib/api";
 import GradientBackground from "../../components/GradientBackground";
+import StateMessage from "../../components/StateMessage";
+import { StateCopy } from "../../lib/state-copy";
+import { useAppConfig } from "../../hooks/use-app-config";
 import { formatOccasionDate } from "../../utils/occasion-dates";
 
 function formatRelativeTime(dateString: string): string {
@@ -48,7 +51,18 @@ export default function NotificationsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
-  const { data: notifications = [], isLoading } = useNotifications();
+  const {
+    data: notificationsData,
+    isLoading,
+    isError: notificationsFailed,
+    isFetching: refetchingNotifications,
+    refetch: refetchNotifications,
+  } = useNotifications();
+  const notifications = notificationsData ?? [];
+  const { data: appConfig } = useAppConfig();
+  // The kill switch disables the query outright, which would otherwise render
+  // as an empty inbox.
+  const feedSwitchedOff = appConfig?.notifications_enabled === false;
   const { data: unreadCount = 0 } = useUnreadCount();
   const { markRead, markAllRead } = useNotificationMutations();
 
@@ -138,9 +152,10 @@ export default function NotificationsScreen() {
       <View style={styles.container}>
         <GradientBackground />
         <View style={styles.content}>
-          <Text variant="bodyLarge" style={styles.loadingText}>
-            Loading...
-          </Text>
+          <StateMessage
+            loading
+            message={StateCopy.inProgress("your notifications")}
+          />
         </View>
       </View>
     );
@@ -180,10 +195,21 @@ export default function NotificationsScreen() {
           </View>
         </Pressable>
 
-        {isLoading ? (
-          <Text variant="bodyLarge" style={styles.loadingText}>
-            Loading...
-          </Text>
+        {feedSwitchedOff ? (
+          <StateMessage
+            message={StateCopy.disabled("The notifications feed")}
+          />
+        ) : isLoading ? (
+          <StateMessage
+            loading
+            message={StateCopy.inProgress("your notifications")}
+          />
+        ) : notificationsFailed && notificationsData === undefined ? (
+          <StateMessage
+            message={StateCopy.loadFailed("your notifications")}
+            onRetry={refetchNotifications}
+            retrying={refetchingNotifications}
+          />
         ) : notifications.length === 0 ? (
           <View style={styles.emptyState}>
             <MaterialIcons
@@ -193,7 +219,7 @@ export default function NotificationsScreen() {
               style={styles.emptyIcon}
             />
             <Text variant="titleMedium" style={styles.emptyText}>
-              No notifications yet
+              {StateCopy.empty("notifications")}
             </Text>
             <Text variant="bodyMedium" style={styles.emptySubtext}>
               You&apos;ll be notified when gift suggestions are ready
@@ -322,12 +348,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.pinks.dark,
     marginLeft: 8,
     zIndex: 1,
-  },
-  loadingText: {
-    textAlign: "center",
-    color: Colors.darks.black,
-    opacity: 0.8,
-    padding: 40,
   },
   emptyState: {
     padding: 60,

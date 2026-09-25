@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabase";
 import { logProductEvent } from "../lib/api";
 import { queryKeys } from "../lib/query-keys";
 import { makeMutationHandlers } from "../lib/mutation-handlers";
+import { StateCopy } from "../lib/state-copy";
 import type { Recipient } from "../types/recipient";
 import { normalizeBirthday } from "../utils/birthday";
 
@@ -78,7 +79,7 @@ export function useCreateRecipient() {
     ...makeMutationHandlers<Recipient, CreateRecipientData>({
       queryClient,
       label: "useCreateRecipient",
-      errorMessage: "Couldn't save this person. Please try again.",
+      errorMessage: StateCopy.saveFailed("this person"),
       // Dashboard derives from recipients and occasions
       invalidateKeys: (_, variables) => [
         queryKeys.recipients(variables.user_id),
@@ -133,7 +134,7 @@ export function useUpdateRecipient() {
     ...makeMutationHandlers<Recipient, UpdateRecipientVariables>({
       queryClient,
       label: "useUpdateRecipient",
-      errorMessage: "Couldn't save your changes. Please try again.",
+      errorMessage: StateCopy.saveFailed("your changes"),
       // Dashboard derives from recipients and occasions
       invalidateKeys: (_, variables) => [
         queryKeys.recipients(variables.userId),

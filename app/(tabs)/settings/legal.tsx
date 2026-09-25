@@ -18,6 +18,8 @@ import {
 } from "../../../lib/legal";
 import type { Session } from "@supabase/supabase-js";
 import GradientBackground from "../../../components/GradientBackground";
+import StateMessage from "../../../components/StateMessage";
+import { StateCopy } from "../../../lib/state-copy";
 
 type LegalRowProps = {
   label: string;
@@ -75,7 +77,10 @@ export default function LegalSettings() {
         <GradientBackground />
         <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
         <View style={styles.content}>
-          <Text style={styles.loadingText}>Loading...</Text>
+          <StateMessage
+            loading
+            message={StateCopy.inProgress("the legal documents")}
+          />
         </View>
       </View>
     );
@@ -203,11 +208,5 @@ const styles = StyleSheet.create({
     ...Typography.copyblock,
     color: Colors.brand.mediumTeal,
     marginTop: 23,
-  },
-  loadingText: {
-    ...Typography.subhead,
-    textAlign: "center",
-    color: Colors.black,
-    opacity: 0.9,
   },
 });

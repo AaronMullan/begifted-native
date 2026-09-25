@@ -12,6 +12,7 @@ import {
 } from "../lib/api";
 import { queryKeys } from "../lib/query-keys";
 import { makeMutationHandlers } from "../lib/mutation-handlers";
+import { StateCopy } from "../lib/state-copy";
 import { useAuth } from "./use-auth";
 
 /**
@@ -52,7 +53,7 @@ export function useUpdateOccasion() {
     ...makeMutationHandlers<void, UpdateOccasionVariables>({
       queryClient,
       label: "useUpdateOccasion",
-      errorMessage: "Couldn't save the occasion. Please try again.",
+      errorMessage: StateCopy.saveFailed("the moment"),
       invalidateKeys: (_, variables) => [
         ...(user ? [queryKeys.occasions(user.id)] : []),
         queryKeys.recipientOccasions(variables.recipientId),
@@ -84,7 +85,7 @@ export function useRedateBirthdayOccasion() {
     ...makeMutationHandlers<void, RedateBirthdayOccasionVariables>({
       queryClient,
       label: "useRedateBirthdayOccasion",
-      errorMessage: "Couldn't move their birthday moment. Please try again.",
+      errorMessage: StateCopy.saveFailed("their new birthday"),
       invalidateKeys: (_, variables) => [
         ...(user ? [queryKeys.occasions(user.id)] : []),
         queryKeys.recipientOccasions(variables.recipientId),
@@ -125,7 +126,7 @@ export function useCreateOccasion() {
       errorMessage: (error) =>
         error instanceof DuplicateOccasionError
           ? error.message
-          : "Couldn't add the occasion. Please try again.",
+          : StateCopy.saveFailed("the moment"),
       invalidateKeys: (_, variables) => [
         ...(user ? [queryKeys.occasions(user.id)] : []),
         queryKeys.recipientOccasions(variables.recipientId),
