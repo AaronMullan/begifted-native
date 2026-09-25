@@ -13,6 +13,11 @@ import {
   safetyDeclinedResponse,
 } from "../_shared/error-response.ts";
 import { requireUser } from "../_shared/require-user.ts";
+import {
+  buildRecipientOutcomeContext,
+  latestDecisionPerGift,
+} from "../_shared/gift-outcomes.ts";
+import type { FeedbackRow } from "../_shared/gift-outcomes.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,6 +42,7 @@ Draw from ALL available signals:
 - Interests and hobbies
 - Emotional tone preference (e.g. sentimental, practical, fun)
 - Budget range
+- Gift outcomes: gifts the giver chose for them, and gifts judged wrong (already owned, not for them, poor quality). Read these together as evidence of taste — what a chosen gift and a rejected one reveal about the person — and describe the person they point to. Do not list or repeat the gifts themselves.
 
 Write in third person (e.g. "Sarah is..."). Be specific and concrete. Surface personality, lifestyle, and values — not gift ideas or upcoming events.
 
@@ -66,7 +72,10 @@ serve(async (req) => {
     const { user, errorResponse } = await requireUser(req, corsHeaders);
     if (errorResponse) return errorResponse;
 
-    const { recipientId } = (await req.json()) as { recipientId?: unknown };
+    const { recipientId, skipGiftGeneration } = (await req.json()) as {
+      recipientId?: unknown;
+      skipGiftGeneration?: unknown;
+    };
 
     if (!recipientId || typeof recipientId !== "string") {
       return new Response(
@@ -100,11 +109,19 @@ serve(async (req) => {
       });
     }
 
-    const { data: occasions } = await supabase
-      .from("occasions")
-      .select("occasion_type, date")
-      .eq("recipient_id", recipientId)
-      .order("date", { ascending: true });
+    const [{ data: occasions }, { data: feedback }] = await Promise.all([
+      supabase
+        .from("occasions")
+        .select("id, occasion_type, date")
+        .eq("recipient_id", recipientId)
+        .order("date", { ascending: true }),
+      supabase
+        .from("gift_feedback")
+        .select(
+          "gift_suggestion_id, recipient_id, occasion_id, action, gift_title, price, created_at"
+        )
+        .eq("recipient_id", recipientId),
+    ]);
 
     // Build context
     const parts: string[] = [];
@@ -201,6 +218,19 @@ serve(async (req) => {
       }
     }
 
+    const outcomeContext = buildRecipientOutcomeContext(
+      latestDecisionPerGift((feedback ?? []) as FeedbackRow[]),
+      new Map(
+        (occasions ?? []).map(
+          (o: { id: string; occasion_type: string | null }) => [
+            o.id,
+            o.occasion_type,
+          ]
+        )
+      )
+    );
+    if (outcomeContext) parts.push(`Gift outcomes:\n${outcomeContext}`);
+
     const recipientContext = parts.join("\n");
 
     const provider = "openai" as const;
@@ -263,28 +293,33 @@ serve(async (req) => {
     const giftGenUrl =
       Deno.env.get("BEGIFTED_API_URL") ?? "https://be-gifted.vercel.app";
     let giftGenStatus: number | null = null;
-    try {
-      // Forward the caller's JWT: /api/generate-gifts requires an
-      // authenticated user and scopes the recipient lookup to them, so an
-      // unauthenticated chain 401s and no gifts are ever generated.
-      const res = await fetch(`${giftGenUrl}/api/generate-gifts`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: req.headers.get("Authorization") ?? "",
-        },
-        body: JSON.stringify({ recipientId }),
-      });
-      giftGenStatus = res.status;
-      if (!res.ok) {
-        console.error(
-          `Gift generation chain failed: ${res.status} ${await res
-            .text()
-            .catch(() => "")}`
-        );
+    // A re-synthesis after a gift is chosen must not regenerate: a refresh
+    // retires the active suggestions, which would take the chosen gift with
+    // them.
+    if (skipGiftGeneration !== true) {
+      try {
+        // Forward the caller's JWT: /api/generate-gifts requires an
+        // authenticated user and scopes the recipient lookup to them, so an
+        // unauthenticated chain 401s and no gifts are ever generated.
+        const res = await fetch(`${giftGenUrl}/api/generate-gifts`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: req.headers.get("Authorization") ?? "",
+          },
+          body: JSON.stringify({ recipientId }),
+        });
+        giftGenStatus = res.status;
+        if (!res.ok) {
+          console.error(
+            `Gift generation chain failed: ${res.status} ${await res
+              .text()
+              .catch(() => "")}`
+          );
+        }
+      } catch (err) {
+        console.error("Failed to trigger gift generation:", err);
       }
-    } catch (err) {
-      console.error("Failed to trigger gift generation:", err);
     }
 
     return new Response(

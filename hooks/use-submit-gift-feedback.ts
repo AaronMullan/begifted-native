@@ -4,6 +4,7 @@ import {
   type QueryClient,
 } from "@tanstack/react-query";
 import { queryKeys } from "../lib/query-keys";
+import { invokeWithRetry } from "../lib/edge-retry";
 import {
   GIFT_REMOVAL_ACTIONS,
   insertGiftFeedback,
@@ -31,6 +32,41 @@ type SubmitGiftFeedbackVars = {
  * replacement (DEV-488). */
 const emptySlots = (rows: GiftSuggestion[], occasionId?: string | null) =>
   partitionSuggestions(rows, occasionId ?? null).pendingSlots;
+
+/**
+ * A choice is the strongest taste signal there is, so both profiles rebuild
+ * from it. Fire-and-forget: a failed synthesis must never fail the feedback
+ * write, which has already landed. Gift generation is skipped because a
+ * refresh would retire the chosen gift along with the rest of the set.
+ */
+function resynthesizeAfterChoice(
+  queryClient: QueryClient,
+  userId: string,
+  recipientId: string
+) {
+  const run = async (
+    fn: string,
+    body: Record<string, unknown>,
+    staleKey: readonly unknown[]
+  ) => {
+    const { error } = await invokeWithRetry(fn, { body });
+    if (error) {
+      console.error(`${fn} after choice failed:`, error);
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: staleKey });
+  };
+  run(
+    "synthesize-recipient-profile",
+    { recipientId, skipGiftGeneration: true },
+    queryKeys.recipient(userId, recipientId)
+  ).catch((err) => console.error("Recipient re-synthesis threw:", err));
+  run(
+    "synthesize-giver-profile",
+    { userId },
+    queryKeys.userPreferences(userId)
+  ).catch((err) => console.error("Giver re-synthesis threw:", err));
+}
 
 /**
  * After triggering a backfill, the backend generation runs async (seconds), so
@@ -94,7 +130,10 @@ export function useSubmitGiftFeedback() {
     // When a removal empties one of the three active slots, immediately ask the
     // backend to backfill the deficit and poll for the replacement to land
     // (DEV-118).
-    onSuccess: (_data, vars) => {
+    onSuccess: (data, vars) => {
+      if (vars.action === "chose") {
+        resynthesizeAfterChoice(queryClient, data.user_id, vars.recipientId);
+      }
       if (!GIFT_REMOVAL_ACTIONS.includes(vars.action)) return;
       const remaining =
         queryClient.getQueryData<GiftSuggestion[]>(
