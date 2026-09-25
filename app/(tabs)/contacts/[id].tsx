@@ -26,6 +26,7 @@ import { useBetaCheckIn } from "../../../components/beta/BetaCheckInProvider";
 import { useAuth } from "../../../hooks/use-auth";
 import { useRecipient } from "../../../hooks/use-recipient";
 import { useGiftSuggestions } from "../../../hooks/use-gift-suggestions";
+import { useGiftIdeasState } from "../../../hooks/use-gift-ideas-state";
 import { useDeleteRecipient } from "../../../hooks/use-recipient-mutations";
 import {
   UpdateKnowledgeDrawer,
@@ -284,23 +285,27 @@ export default function RecipientEditPage() {
   // feedback drawer's mutation (optimistic removal + backfill) and applies the
   // GIFT_REMOVAL_ACTIONS filter, so dismissed gifts disappear and stay gone
   // here too — not only on the standalone Gift Ideas screen (DEV-137).
-  const { data: suggestions = [], isLoading: loadingSuggestions } =
-    useGiftSuggestions(recipientId, {
-      refetchInterval: genBaseline
-        ? () => {
-            // The nav-param start path seeds startedAt=0 (Date.now() is impure
-            // in render); stamp the real start time on the first tick.
-            const startedAt = genBaseline.startedAt || Date.now();
-            if (startedAt !== genBaseline.startedAt) {
-              setGenBaseline({ ...genBaseline, startedAt });
-            } else if (Date.now() - startedAt >= GIFT_POLL_MAX_MS) {
-              setGenBaseline(null);
-              return false;
-            }
-            return GIFT_POLL_INTERVAL_MS;
+  const {
+    data: suggestions = [],
+    isLoading: loadingSuggestions,
+    isError: suggestionsFailed,
+    refetch: refetchSuggestions,
+  } = useGiftSuggestions(recipientId, {
+    refetchInterval: genBaseline
+      ? () => {
+          // The nav-param start path seeds startedAt=0 (Date.now() is impure
+          // in render); stamp the real start time on the first tick.
+          const startedAt = genBaseline.startedAt || Date.now();
+          if (startedAt !== genBaseline.startedAt) {
+            setGenBaseline({ ...genBaseline, startedAt });
+          } else if (Date.now() - startedAt >= GIFT_POLL_MAX_MS) {
+            setGenBaseline(null);
+            return false;
           }
-        : false,
-    });
+          return GIFT_POLL_INTERVAL_MS;
+        }
+      : false,
+  });
 
   // Completion latches, adjusted during render: once the watched value moves
   // past its baseline, the poll is over.
@@ -337,6 +342,15 @@ export default function RecipientEditPage() {
   const isFocused = useIsFocused();
   const { visible, past } = partitionSuggestions(suggestions, occasionFilter);
   const visibleSuggestionCount = visible.length;
+  // A failed fetch with nothing cached must not read as "no ideas".
+  const suggestionsLoadFailed = suggestionsFailed && suggestions.length === 0;
+  const { emptyState, stateOccasionType } = useGiftIdeasState({
+    recipientId,
+    occasionId: occasionFilter,
+    listEmpty: visibleSuggestionCount === 0,
+    clientGenerating: isGenerating,
+    loadFailed: suggestionsLoadFailed,
+  });
   // When the past band renders it is the last thing in the scroll, so it
   // carries the nav clearance itself and its fill reaches the nav.
   const navClearance = BOTTOM_NAV_HEIGHT + Math.max(insets.bottom, 0);
@@ -853,6 +867,11 @@ export default function RecipientEditPage() {
                 loading={loadingSuggestions}
                 recipientName={formatShortName(recipient.name)}
                 isGenerating={isGenerating}
+                emptyState={emptyState}
+                stateOccasionType={stateOccasionType}
+                onRetryLoad={
+                  suggestionsLoadFailed ? () => refetchSuggestions() : undefined
+                }
                 occasionId={occasionFilter}
                 onClearOccasionFilter={() => setOccasionFilter(null)}
               />

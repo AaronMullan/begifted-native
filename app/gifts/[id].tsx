@@ -10,6 +10,7 @@ import { logProductEvent } from "../../lib/api";
 import { useAuth } from "../../hooks/use-auth";
 import { useRecipient } from "../../hooks/use-recipient";
 import { useGiftSuggestions } from "../../hooks/use-gift-suggestions";
+import { useGiftIdeasState } from "../../hooks/use-gift-ideas-state";
 import GradientBackground from "../../components/GradientBackground";
 import GiftSuggestionsList from "../../components/gifts/GiftSuggestionsList";
 import PastGiftsSection from "../../components/gifts/PastGiftsSection";
@@ -67,8 +68,12 @@ export default function GiftIdeasPage() {
     occasionId ?? null
   );
   const { data: recipient, isLoading: loadingRecipient } = useRecipient(id);
-  const { data: suggestions = [], isLoading: loadingSuggestions } =
-    useGiftSuggestions(id);
+  const {
+    data: suggestions = [],
+    isLoading: loadingSuggestions,
+    isError: suggestionsFailed,
+    refetch: refetchSuggestions,
+  } = useGiftSuggestions(id);
   const { user } = useAuth();
   const scrollRef = useRef<ScrollView>(null);
   const contentRef = useRef<View>(null);
@@ -79,6 +84,15 @@ export default function GiftIdeasPage() {
   // its empty state while older suggestions for other occasions exist.
   const { visible, past } = partitionSuggestions(suggestions, occasionFilter);
   const visibleSuggestionCount = visible.length;
+  // A failed fetch with nothing cached must not read as "no ideas".
+  const loadFailed = suggestionsFailed && suggestions.length === 0;
+  const { emptyState, stateOccasionType } = useGiftIdeasState({
+    recipientId: id,
+    occasionId: occasionFilter,
+    listEmpty: visibleSuggestionCount === 0,
+    clientGenerating: false,
+    loadFailed,
+  });
   // When the past band renders it is the last thing in the scroll, so it
   // carries the nav clearance itself and its fill reaches the nav.
   const navClearance = BOTTOM_NAV_HEIGHT + 32;
@@ -154,6 +168,9 @@ export default function GiftIdeasPage() {
           <GiftSuggestionsList
             suggestions={suggestions}
             recipientName={name}
+            emptyState={emptyState}
+            stateOccasionType={stateOccasionType}
+            onRetryLoad={loadFailed ? () => refetchSuggestions() : undefined}
             occasionId={occasionFilter}
             onClearOccasionFilter={() => setOccasionFilter(null)}
             onScrollCardIntoView={handleScrollCardIntoView}

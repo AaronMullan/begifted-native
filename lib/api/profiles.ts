@@ -27,6 +27,7 @@ export interface UserPreferences {
   synthesized_giver_profile: string | null;
   auto_fallback_enabled: boolean;
   notification_lead_days: number;
+  occasion_reminders_enabled: boolean | null;
 }
 
 /**
