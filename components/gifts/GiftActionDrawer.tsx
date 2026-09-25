@@ -43,9 +43,10 @@ type RowDef = {
   action: GiftFeedbackAction;
   // After the base action saves, offer an always-optional follow-up the user
   // can Skip. Rows without one close the sheet on save and acknowledge with
-  // `confirmation` — choosing a gift is the moment to get out of the way.
+  // `confirmation` — choosing a gift, or saying they own it, is the moment to
+  // get out of the way.
   followUp?: FollowUp;
-  confirmation?: string;
+  confirmation?: (giftTitle: string) => string;
 };
 
 // Long enough to cover the sheet's present animation plus a rapid double-tap
@@ -56,15 +57,17 @@ const ROWS: RowDef[] = [
   {
     label: "I chose this gift",
     action: "chose",
-    confirmation: "Marked as chosen.",
+    confirmation: () => "Marked as chosen.",
   },
   {
     label: "They already have this",
     action: "already_have",
-    followUp: {
-      prompt: "What do they already have?",
-      placeholder: "Exact item, something similar, or anything helpful.",
-    },
+    // The drawer opens from one gift card, so the gift they own is already
+    // known — asking "what do they already have?" makes the user repeat it.
+    confirmation: (giftTitle) =>
+      giftTitle?.trim()
+        ? `Noted — they already have ${giftTitle.trim()}.`
+        : "Noted — they already have it.",
   },
   {
     label: "Not for them",
@@ -163,7 +166,9 @@ export default function GiftActionDrawer({
           if (shownStateRef.current === tappedState) {
             sheetRef.current?.dismiss();
           }
-          if (row.confirmation) setConfirmation(row.confirmation);
+          if (row.confirmation) {
+            setConfirmation(row.confirmation(tappedState.suggestion.title));
+          }
         },
         onError: () => setErrorVisible(true),
       }
