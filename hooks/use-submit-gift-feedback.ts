@@ -4,6 +4,7 @@ import {
   type QueryClient,
 } from "@tanstack/react-query";
 import { queryKeys } from "../lib/query-keys";
+import { supabase } from "../lib/supabase";
 import {
   GIFT_REMOVAL_ACTIONS,
   insertGiftFeedback,
@@ -31,6 +32,27 @@ type SubmitGiftFeedbackVars = {
  * replacement (DEV-488). */
 const emptySlots = (rows: GiftSuggestion[], occasionId?: string | null) =>
   partitionSuggestions(rows, occasionId ?? null).pendingSlots;
+
+/**
+ * A choice is the strongest taste signal there is, so both profiles rebuild
+ * from it. Fire-and-forget: a failed synthesis must never fail the feedback
+ * write, which has already landed. Gift generation is skipped because a
+ * refresh would retire the chosen gift along with the rest of the set.
+ */
+function resynthesizeAfterChoice(userId: string, recipientId: string) {
+  supabase.functions
+    .invoke("synthesize-recipient-profile", {
+      body: { recipientId, skipGiftGeneration: true },
+    })
+    .catch((err) =>
+      console.error("Failed to trigger recipient profile synthesis:", err)
+    );
+  supabase.functions
+    .invoke("synthesize-giver-profile", { body: { userId } })
+    .catch((err) =>
+      console.error("Failed to trigger giver profile synthesis:", err)
+    );
+}
 
 /**
  * After triggering a backfill, the backend generation runs async (seconds), so
@@ -94,7 +116,10 @@ export function useSubmitGiftFeedback() {
     // When a removal empties one of the three active slots, immediately ask the
     // backend to backfill the deficit and poll for the replacement to land
     // (DEV-118).
-    onSuccess: (_data, vars) => {
+    onSuccess: (data, vars) => {
+      if (vars.action === "chose") {
+        resynthesizeAfterChoice(data.user_id, vars.recipientId);
+      }
       if (!GIFT_REMOVAL_ACTIONS.includes(vars.action)) return;
       const remaining =
         queryClient.getQueryData<GiftSuggestion[]>(

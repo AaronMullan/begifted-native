@@ -11,6 +11,14 @@ import {
   VOICE_HEADING,
   VOICE_PROMPT_KEY,
 } from "../_shared/voice-principle.ts";
+import {
+  buildGiverChoiceContext,
+  latestDecisionPerGift,
+} from "../_shared/gift-outcomes.ts";
+import type {
+  FeedbackRow,
+  SuggestionTimingRow,
+} from "../_shared/gift-outcomes.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,7 +39,9 @@ Given information about a user — their self-description, their stated gifting 
 Draw from ALL available signals:
 - Self-description: who they are and their relationship to gifting
 - Gifting style text: their stated approach, priorities, and budget philosophy
-- Gift history patterns: types of gifts they've given and price points
+- Gift history: what they actually spend on each kind of relationship, and how readily they settle on a gift
+
+Gift history describes HOW this person gives, never WHAT they bought. It spans every person they give to, so anything concrete in the profile bleeds into gifts for unrelated people. It carries no items on purpose: never guess at what was bought, and never name a gift item, product, or brand in the profile. State spending as a tendency per relationship ("spends more freely on a partner than on nieces and nephews"), not as a list of prices.
 
 Write in third person. Never write "this user" or "the user". Be specific and concrete — avoid generic labels like "thoughtful" unless the source text uses them. Preserve the user's distinctive voice and values.`;
 
@@ -101,7 +111,6 @@ type StoredUserSummary = {
 };
 
 type RecipientRow = { id: string; relationship_type: string | null };
-type SuggestionRow = { price: number | null };
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -172,55 +181,63 @@ serve(async (req) => {
       );
     }
 
-    // Fetch gift history stats aggregated across all recipients
     const { data: recipients } = await supabase
       .from("recipients")
       .select("id, relationship_type")
       .eq("user_id", userId);
 
-    let historyContext = "";
-    const recipientIds = (recipients ?? []).map((r: RecipientRow) => r.id);
+    const relationshipByRecipient = new Map<string, string | null>(
+      (recipients ?? []).map((r: RecipientRow) => [r.id, r.relationship_type])
+    );
+    const uniqueRelationships = [
+      ...new Set(
+        (recipients ?? [])
+          .map((r: RecipientRow) => r.relationship_type)
+          .filter(Boolean)
+      ),
+    ];
 
-    if (recipientIds.length > 0) {
-      const { data: suggestions } = await supabase
+    // Price posture comes from what was chosen, never from what was merely
+    // suggested — suggested prices describe the model, not the giver. Titles
+    // are not even selected: this profile reaches every recipient.
+    const { data: feedback } = await supabase
+      .from("gift_feedback")
+      .select(
+        "gift_suggestion_id, recipient_id, occasion_id, action, price, created_at"
+      )
+      .eq("user_id", userId);
+    const decisions = latestDecisionPerGift(
+      (feedback ?? []).map((f: Omit<FeedbackRow, "gift_title">) => ({
+        ...f,
+        gift_title: null,
+      }))
+    );
+
+    const chosenRecipientIds = [
+      ...new Set(
+        decisions.filter((d) => d.action === "chose").map((d) => d.recipient_id)
+      ),
+    ];
+    let suggestionTimings: SuggestionTimingRow[] = [];
+    if (chosenRecipientIds.length > 0) {
+      const { data } = await supabase
         .from("gift_suggestions")
-        .select("price")
-        .in("recipient_id", recipientIds);
-
-      if (suggestions && suggestions.length > 0) {
-        const prices = suggestions
-          .map((s: SuggestionRow) => s.price)
-          .filter((p): p is number => p != null && p > 0);
-
-        const avgPrice =
-          prices.length > 0
-            ? Math.round(
-                prices.reduce((a: number, b: number) => a + b, 0) /
-                  prices.length
-              )
-            : null;
-        const minPrice = prices.length > 0 ? Math.min(...prices) : null;
-        const maxPrice = prices.length > 0 ? Math.max(...prices) : null;
-
-        const uniqueRelationships = [
-          ...new Set(
-            (recipients ?? [])
-              .map((r: RecipientRow) => r.relationship_type)
-              .filter(Boolean)
-          ),
-        ];
-
-        historyContext = `Gift history patterns:
-- Total gifts suggested: ${suggestions.length} across ${
-          recipientIds.length
-        } recipient(s)
-- Price range: ${minPrice != null ? `$${minPrice}` : "unknown"} – ${
-          maxPrice != null ? `$${maxPrice}` : "unknown"
-        }
-- Average gift price: ${avgPrice != null ? `$${avgPrice}` : "unknown"}
-- Recipients include: ${uniqueRelationships.join(", ")}`;
-      }
+        .select("recipient_id, occasion_id, generated_at")
+        .in("recipient_id", chosenRecipientIds);
+      suggestionTimings = (data ?? []) as SuggestionTimingRow[];
     }
+
+    const historyContext = [
+      buildGiverChoiceContext(
+        decisions,
+        relationshipByRecipient,
+        suggestionTimings
+      ),
+      uniqueRelationships.length > 0 &&
+        `Recipients include: ${uniqueRelationships.join(", ")}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
 
     const joinField = (v: unknown): string =>
       Array.isArray(v) ? v.join("; ") : typeof v === "string" ? v : "";
