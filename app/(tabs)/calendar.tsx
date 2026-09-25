@@ -17,6 +17,8 @@ import {
 } from "../../hooks/use-occasion-mutations";
 import { showSnackbar } from "../../components/GlobalSnackbar";
 import GradientBackground from "../../components/GradientBackground";
+import StateMessage from "../../components/StateMessage";
+import { StateCopy } from "../../lib/state-copy";
 import ExpandCircleIcon from "../../components/ExpandCircleIcon";
 import MomentsCalendar from "../../components/moments/MomentsCalendar";
 import MomentsPersonCard from "../../components/moments/MomentsPersonCard";
@@ -78,8 +80,28 @@ function startOfMonth(date: Date): Date {
 export default function Calendar() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { data: occasions = [], isSuccess: occasionsLoaded } =
-    useAllOccasions();
+  const {
+    data: occasionsData,
+    isSuccess: occasionsLoaded,
+    isError: occasionsFailed,
+    isFetching: refetchingOccasions,
+    refetch: refetchOccasions,
+  } = useAllOccasions();
+  const occasions = occasionsData ?? [];
+  // Test the raw value: a later refetch that fails keeps the moments already
+  // shown, while a first load that fails has nothing — and an empty grid
+  // would claim the user has no moments at all.
+  const momentsFailed = occasionsFailed && occasionsData === undefined;
+  const momentsPending = occasionsData === undefined && !momentsFailed;
+  const momentsState = momentsFailed ? (
+    <StateMessage
+      message={StateCopy.loadFailed("your moments")}
+      onRetry={refetchOccasions}
+      retrying={refetchingOccasions}
+    />
+  ) : momentsPending ? (
+    <StateMessage loading message={StateCopy.inProgress("your moments")} />
+  ) : null;
   const { data: recipients = [] } = useRecipients();
   const deleteOccasion = useDeleteOccasion();
   const createOccasion = useCreateOccasion();
@@ -321,9 +343,10 @@ export default function Calendar() {
       <View style={styles.container}>
         <GradientBackground />
         <View style={styles.centered}>
-          <Text variant="bodyMedium" style={styles.loadingText}>
-            Loading...
-          </Text>
+          <StateMessage
+            loading
+            message={StateCopy.inProgress("your moments")}
+          />
         </View>
       </View>
     );
@@ -385,33 +408,36 @@ export default function Calendar() {
                 onSelectDay={handleSelectDay}
               />
 
-              {selectedOccasions.length === 0 ? (
-                <View style={styles.emptyDay}>
-                  <Text style={styles.emptyTitle}>No moments here yet</Text>
-                  <Text style={styles.emptyBody}>
-                    Add one to remember what mattered on this day.
-                  </Text>
-                </View>
-              ) : (
-                <View style={styles.peopleList}>
-                  {selectedOccasions.map((occasion) => (
-                    <MomentsPersonCard
-                      key={occasion.id}
-                      name={occasion.recipient?.name || "Unknown"}
-                      occasionLabel={formatOccasionType(
-                        stripRecipientName(
-                          occasion.occasion_type,
-                          occasion.recipient?.name || ""
-                        )
-                      )}
-                      photoUrl={occasion.recipient?.photo_url}
-                      onPress={() => handleOccasionPress(occasion)}
-                      onLongPress={() => setOccasionToDelete(occasion)}
-                      onOverflow={() => setOccasionToDelete(occasion)}
-                    />
-                  ))}
-                </View>
-              )}
+              {momentsState ??
+                (selectedOccasions.length === 0 ? (
+                  <View style={styles.emptyDay}>
+                    <Text style={styles.emptyTitle}>
+                      {StateCopy.empty("moments")}
+                    </Text>
+                    <Text style={styles.emptyBody}>
+                      Add one to remember what mattered on this day.
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.peopleList}>
+                    {selectedOccasions.map((occasion) => (
+                      <MomentsPersonCard
+                        key={occasion.id}
+                        name={occasion.recipient?.name || "Unknown"}
+                        occasionLabel={formatOccasionType(
+                          stripRecipientName(
+                            occasion.occasion_type,
+                            occasion.recipient?.name || ""
+                          )
+                        )}
+                        photoUrl={occasion.recipient?.photo_url}
+                        onPress={() => handleOccasionPress(occasion)}
+                        onLongPress={() => setOccasionToDelete(occasion)}
+                        onOverflow={() => setOccasionToDelete(occasion)}
+                      />
+                    ))}
+                  </View>
+                ))}
 
               <Pressable
                 style={styles.addToDayPill}
@@ -458,6 +484,8 @@ export default function Calendar() {
                   color={Colors.white}
                 />
               </Pressable>
+
+              {momentsState}
 
               <MomentsCalendar
                 monthDate={viewMonth}
@@ -670,10 +698,6 @@ const styles = StyleSheet.create({
     color: Colors.brand.darkTeal,
     opacity: 0.7,
     paddingVertical: 12,
-  },
-  loadingText: {
-    color: Colors.brand.darkTeal,
-    opacity: 0.8,
   },
   dialog: {
     borderRadius: 16,

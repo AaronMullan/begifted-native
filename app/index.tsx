@@ -15,9 +15,12 @@ import {
   consumeLaunchNotification,
   discardLaunchNotification,
 } from "../hooks/use-push-notifications";
+import { Button } from "react-native-paper";
 import Auth from "../components/Auth";
 import { Colors } from "../lib/colors";
 import GradientBackground from "../components/GradientBackground";
+import StateMessage from "../components/StateMessage";
+import { StateCopy } from "../lib/state-copy";
 import { hasSeenIntro, markIntroSeen } from "../lib/intro-storage";
 import { flushPendingLegalAcceptance } from "../lib/legal-acceptance";
 import { flushPendingSignUpName } from "../lib/signup-name";
@@ -26,6 +29,10 @@ import { queryKeys } from "../lib/query-keys";
 export default function Index() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  // Set when the onboarding check can't be read. Routing on a failed read
+  // would send a returning user back through onboarding.
+  const [routeFailed, setRouteFailed] = useState(false);
+  const [routeAttempt, setRouteAttempt] = useState(0);
   const router = useRouter();
   const queryClient = useQueryClient();
   const hasNavigated = useRef(false);
@@ -48,11 +55,12 @@ export default function Index() {
         }
       });
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("user_preferences")
           .select("onboarding_completed")
           .eq("user_id", session.user.id)
           .maybeSingle();
+        if (error) throw error;
 
         if (!isMounted || hasNavigated.current) return;
 
@@ -74,8 +82,8 @@ export default function Index() {
         }
       } catch {
         if (!isMounted || hasNavigated.current) return;
-        hasNavigated.current = true;
-        router.replace("/onboarding/welcome" as Href);
+        setRouteFailed(true);
+        setLoading(false);
       }
     }
 
@@ -108,6 +116,7 @@ export default function Index() {
       if (!isMounted || hasNavigated.current) return;
 
       setSession(session);
+      setRouteFailed(false);
 
       if (session?.user) {
         await routeAuthenticatedUser(session);
@@ -135,7 +144,27 @@ export default function Index() {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [router, queryClient]);
+  }, [router, queryClient, routeAttempt]);
+
+  if (routeFailed) {
+    return (
+      <View style={styles.loadingContainer}>
+        <GradientBackground />
+        <StateMessage
+          message={StateCopy.loadFailed("your account")}
+          onRetry={() => {
+            setRouteFailed(false);
+            setLoading(true);
+            setRouteAttempt((n) => n + 1);
+          }}
+        />
+        {/* A read that keeps failing would otherwise trap the user here. */}
+        <Button mode="text" onPress={() => void supabase.auth.signOut()}>
+          Sign out
+        </Button>
+      </View>
+    );
+  }
 
   // Keep showing loading until redirect completes for authenticated users
   if (loading) {

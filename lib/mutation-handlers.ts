@@ -1,5 +1,6 @@
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { showSnackbar } from "../components/GlobalSnackbar";
+import { StateCopy } from "./state-copy";
 
 type MutationHandlers<TData, TVariables> = {
   onSuccess: (data: TData, variables: TVariables) => void;
@@ -36,12 +37,12 @@ export function makeMutationHandlers<TData, TVariables>(options: {
       console.error(`${label} failed:`, error);
       const isNetworkError =
         error instanceof Error && /network request failed/i.test(error.message);
+      const message =
+        typeof errorMessage === "function" ? errorMessage(error) : errorMessage;
+      // Keep the failed-save sentence: "You're offline." alone doesn't say
+      // the change was lost.
       showSnackbar(
-        isNetworkError
-          ? "Network request failed. Check your internet connection and try again."
-          : typeof errorMessage === "function"
-            ? errorMessage(error)
-            : errorMessage
+        isNetworkError ? `${StateCopy.offline} ${message}` : message
       );
     },
   };

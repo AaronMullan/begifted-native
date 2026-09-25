@@ -10,6 +10,8 @@ import { Typography } from "../../../lib/typography";
 import { Spacing } from "../../../lib/spacing";
 import type { Session } from "@supabase/supabase-js";
 import GradientBackground from "../../../components/GradientBackground";
+import StateMessage from "../../../components/StateMessage";
+import { StateCopy } from "../../../lib/state-copy";
 
 export default function BillingSettings() {
   const insets = useSafeAreaInsets();
@@ -45,7 +47,10 @@ export default function BillingSettings() {
         <GradientBackground />
         <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
         <View style={styles.content}>
-          <Text style={styles.loadingText}>Loading...</Text>
+          <StateMessage
+            loading
+            message={StateCopy.inProgress("your billing details")}
+          />
         </View>
       </View>
     );
@@ -98,8 +103,7 @@ export default function BillingSettings() {
           </View>
 
           <Text style={styles.note}>
-            We&apos;ll let you know as soon as subscriptions are ready. No
-            action needed from you right now.
+            {StateCopy.unavailable("BeGifted Plus")}
           </Text>
         </View>
       </ScrollView>
@@ -175,11 +179,5 @@ const styles = StyleSheet.create({
     ...Typography.copyblock,
     color: Colors.brand.mediumTeal,
     marginTop: 23,
-  },
-  loadingText: {
-    ...Typography.subhead,
-    textAlign: "center",
-    color: Colors.black,
-    opacity: 0.9,
   },
 });

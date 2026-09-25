@@ -25,6 +25,7 @@ import {
   confirmSignUpNameSaved,
   markPendingSignUpName,
 } from "@/lib/signup-name";
+import { StateCopy } from "../../lib/state-copy";
 
 type IntroSignUpProps = {
   onSignedUp: () => Promise<void> | void;
@@ -43,7 +44,7 @@ async function performSignUp(
   const config = await fetchAppConfig().catch(() => null);
   if (config && !config.signups_enabled) {
     return {
-      error: "New signups are temporarily disabled. Please check back soon.",
+      error: StateCopy.disabled("Signing up"),
     };
   }
 
@@ -124,7 +125,7 @@ export default function IntroSignUp({
       void recordLegalAcceptance("signup_checkbox");
       await onSignedUp();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong.");
+      setError(e instanceof Error ? e.message : StateCopy.fatal);
     } finally {
       setSubmitting(false);
     }

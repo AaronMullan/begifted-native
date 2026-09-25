@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 import { queryKeys } from "../lib/query-keys";
 import { makeMutationHandlers } from "../lib/mutation-handlers";
+import { StateCopy } from "../lib/state-copy";
 import type { Profile } from "../lib/api";
 
 interface UpdateProfileData {
@@ -58,7 +59,7 @@ export function useUpdateProfile() {
     ...makeMutationHandlers<Profile, UpdateProfileVariables>({
       queryClient,
       label: "useUpdateProfile",
-      errorMessage: "Couldn't save your profile. Please try again.",
+      errorMessage: StateCopy.saveFailed("your profile"),
       invalidateKeys: (_, variables) => [queryKeys.profile(variables.userId)],
       afterSuccess: (_, variables) => {
         // Re-synthesize giver profile in the background when location changes

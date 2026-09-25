@@ -7,6 +7,7 @@ import GradientBackground from "../../components/GradientBackground";
 import { PrimaryCta } from "../../components/PrimaryCta";
 import { Colors } from "../../lib/colors";
 import { Typography, Radii } from "../../lib/typography";
+import { StateCopy } from "../../lib/state-copy";
 
 // Landing spot for the password-reset flow. resetPasswordForEmail sends a link
 // whose verify redirect carries a PKCE ?code= — it lands here on the hosted
@@ -81,7 +82,7 @@ export default function ResetPassword() {
     setSaving(false);
 
     if (error) {
-      setFormError("Couldn't update your password. Please try again.");
+      setFormError(StateCopy.saveFailed("your new password"));
       return;
     }
     // The recovery exchange already signed the user in; app/index.tsx routes

@@ -96,16 +96,9 @@ export async function fetchOccasions(userId: string): Promise<Occasion[]> {
     .gte("date", today.toISOString().split("T")[0])
     .order("date", { ascending: true });
 
-  if (occasionsError) {
-    const msg =
-      occasionsError instanceof Error
-        ? occasionsError.message
-        : String(occasionsError);
-    if (msg.includes("Network request failed") || msg.includes("timed out")) {
-      return [];
-    }
-    throw occasionsError;
-  }
+  // Throw network failures too — returned as [] they read as "no upcoming
+  // moments" on Home. Sentry already drops network-shaped errors.
+  if (occasionsError) throw occasionsError;
 
   return hydrateOccasionRecipients(occasionsData || []);
 }

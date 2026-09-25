@@ -11,7 +11,6 @@ import GiftGenerationWaiting from "./GiftGenerationWaiting";
 import PendingGiftCard from "./PendingGiftCard";
 import { partitionSuggestions } from "./partition";
 import type { GiftIdeasEmptyState } from "./gift-ideas-state";
-import LoadFailedState from "../LoadFailedState";
 import StateMessage from "../StateMessage";
 import { StateCopy } from "../../lib/state-copy";
 import {
@@ -104,13 +103,14 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
         ? expandedId
         : (activeSuggestions[0]?.id ?? null);
 
+  const thing = recipientName
+    ? `${possessive(recipientName)} gift ideas`
+    : "these gift ideas";
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.blues.dark} />
-        <Text variant="bodyMedium" style={styles.loadingText}>
-          Loading gift suggestions...
-        </Text>
+        <StateMessage loading message={StateCopy.inProgress(thing)} />
       </View>
     );
   }
@@ -128,9 +128,6 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
     ) : null;
 
   const renderEmptyState = () => {
-    const thing = recipientName
-      ? `${possessive(recipientName)} gift ideas`
-      : "these gift ideas";
     const name = recipientName || "them";
     switch (emptyState) {
       case "generating":
@@ -138,19 +135,25 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
       case "failed":
         return onRetryLoad ? (
           <View style={styles.stateTop}>
-            <LoadFailedState
+            <StateMessage
               message={StateCopy.loadFailed(thing)}
               onRetry={onRetryLoad}
             />
           </View>
         ) : (
-          <StateMessage message={StateCopy.loadFailed(thing)} />
+          <StateMessage size="hero" message={StateCopy.loadFailed(thing)} />
         );
       case "no_results":
-        return <StateMessage message={StateCopy.giftIdeasNoResults(name)} />;
+        return (
+          <StateMessage
+            size="hero"
+            message={StateCopy.giftIdeasNoResults(name)}
+          />
+        );
       case "not_due":
         return (
           <StateMessage
+            size="hero"
             message={StateCopy.giftIdeasNotDue(
               name,
               occasionPhrase(stateOccasionType, recipientName)
@@ -158,7 +161,9 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
           />
         );
       case "empty":
-        return <StateMessage message={StateCopy.empty("gift ideas")} />;
+        return (
+          <StateMessage size="hero" message={StateCopy.empty("gift ideas")} />
+        );
     }
   };
 
@@ -195,7 +200,7 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
         <View style={styles.generatingContainer}>
           <ActivityIndicator size="small" />
           <Text variant="bodyMedium" style={styles.generatingText}>
-            Generating gift suggestions...
+            {StateCopy.inProgress("new gift ideas")}
           </Text>
         </View>
       )}
@@ -236,10 +241,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 60,
   },
-  loadingText: {
-    marginTop: 12,
-    color: "#666",
-  },
   generatingContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -263,8 +264,8 @@ const styles = StyleSheet.create({
     color: Colors.yellows.amber,
   },
   stateTop: {
-    // Lines the message up with StateMessage's 104pt top, net of
-    // LoadFailedState's own vertical padding.
+    // Lines the message up with the hero StateMessage's 104pt top, net of
+    // the inline variant's own vertical padding.
     paddingTop: 104 - Spacing.marginStandard,
   },
 });

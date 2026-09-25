@@ -30,6 +30,7 @@ import {
   confirmSignUpNameSaved,
   markPendingSignUpName,
 } from "@/lib/signup-name";
+import { StateCopy } from "../lib/state-copy";
 
 type FormData = {
   email: string;
@@ -94,9 +95,7 @@ export default function Auth() {
     try {
       const config = await fetchAppConfig();
       if (!config.signups_enabled) {
-        setMessage(
-          "New signups are temporarily disabled. Please check back soon."
-        );
+        setMessage(StateCopy.disabled("Signing up"));
         setLoading(false);
         return;
       }

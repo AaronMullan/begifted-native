@@ -10,6 +10,8 @@ import { Colors } from "../../../lib/colors";
 import { Typography } from "../../../lib/typography";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import GradientBackground from "../../../components/GradientBackground";
+import StateMessage from "../../../components/StateMessage";
+import { StateCopy } from "../../../lib/state-copy";
 
 type SettingsRowProps = {
   label: string;
@@ -74,9 +76,10 @@ export default function Settings() {
       <View style={styles.container}>
         <GradientBackground />
         <View style={styles.content}>
-          <Text variant="bodyLarge" style={styles.loadingText}>
-            Loading...
-          </Text>
+          <StateMessage
+            loading
+            message={StateCopy.inProgress("your settings")}
+          />
         </View>
       </View>
     );
@@ -250,10 +253,5 @@ const styles = StyleSheet.create({
   signOutLabel: {
     ...Typography.largeCta,
     color: Colors.brand.darkTeal,
-  },
-  loadingText: {
-    textAlign: "center",
-    color: Colors.black,
-    opacity: 0.7,
   },
 });

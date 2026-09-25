@@ -21,6 +21,8 @@ import { Typography } from "../../../lib/typography";
 import { Spacing } from "../../../lib/spacing";
 import { HEADER_HEIGHT, BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import GradientBackground from "../../../components/GradientBackground";
+import StateMessage from "../../../components/StateMessage";
+import { StateCopy } from "../../../lib/state-copy";
 
 const OPENER = "What else should BeGifted know?";
 
@@ -39,8 +41,13 @@ export default function AboutYou() {
   const insets = useSafeAreaInsets();
   const headerSpacerHeight = Math.max(HEADER_HEIGHT, insets.top + 60);
   const { user, loading: authLoading } = useAuth();
-  const { data: preferences, isLoading: preferencesLoading } =
-    useUserPreferences();
+  const {
+    data: preferences,
+    isLoading: preferencesLoading,
+    isError: preferencesFailed,
+    isFetching: refetchingPreferences,
+    refetch: refetchPreferences,
+  } = useUserPreferences();
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -123,7 +130,7 @@ export default function AboutYou() {
     } catch (error) {
       console.error("Error saving about-you input:", error);
       // Stay on the review step so the note isn't lost; the user can retry.
-      showSnackbar("Couldn't save that — please try again.");
+      showSnackbar(StateCopy.saveFailed("that"));
     } finally {
       setSending(false);
     }
@@ -136,7 +143,10 @@ export default function AboutYou() {
         <GradientBackground />
         <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
         <View style={styles.content}>
-          <Text style={styles.loadingText}>Loading...</Text>
+          <StateMessage
+            loading
+            message={StateCopy.inProgress("what we know about you")}
+          />
         </View>
       </View>
     );
@@ -152,6 +162,24 @@ export default function AboutYou() {
           <Text style={styles.directional}>
             Please sign in to manage your preferences.
           </Text>
+        </View>
+      </View>
+    );
+  }
+
+  // A failed read must not open the "still getting to know you" state: saving
+  // from it appends to an empty description and overwrites the stored one.
+  if (preferences === undefined && preferencesFailed) {
+    return (
+      <View style={styles.container}>
+        <GradientBackground />
+        <View style={[styles.headerSpacer, { height: headerSpacerHeight }]} />
+        <View style={styles.content}>
+          <StateMessage
+            message={StateCopy.loadFailed("what we know about you")}
+            onRetry={refetchPreferences}
+            retrying={refetchingPreferences}
+          />
         </View>
       </View>
     );
@@ -404,11 +432,5 @@ const styles = StyleSheet.create({
     borderColor: Colors.brand.lightTeal,
     ...Typography.copyblock,
     color: Colors.brand.darkTeal,
-  },
-  loadingText: {
-    ...Typography.subhead,
-    textAlign: "center",
-    color: Colors.black,
-    opacity: 0.9,
   },
 });
