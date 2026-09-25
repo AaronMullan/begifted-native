@@ -10,6 +10,8 @@ describe("isLikelySamePerson", () => {
     ["Ryan", "Ryan Palmer"],
     ["Ryan P.", "Ryan Palmer"],
     ["Mom", "mom"],
+    ["Ольга Смирнова", "ольга смирнова"],
+    ["Liam Smith", "William Smith"],
   ])("matches %s ~ %s", (a, b) => {
     expect(isLikelySamePerson(a, b)).toBe(true);
     expect(isLikelySamePerson(b, a)).toBe(true);
@@ -20,6 +22,10 @@ describe("isLikelySamePerson", () => {
     ["Ryan Palmer", "Bryan Palmer"],
     ["Sam Craig", "Ben Craig"],
     ["Ryan J.", "Ryan Palmer"],
+    ["Bill Smith", "Liam Smith"],
+    ["李娜", "Мама"],
+    ["Ольга Smith", "Ирина Smith"],
+    ["❤️", "Мама"],
     ["", "Ryan Palmer"],
   ])("does not match %s ~ %s", (a, b) => {
     expect(isLikelySamePerson(a, b)).toBe(false);
@@ -40,6 +46,23 @@ describe("findExistingRecipient", () => {
 
   it("falls back to a nickname or partial match", () => {
     expect(findExistingRecipient("Ben Craig", recipients)?.id).toBe("2");
+  });
+
+  it("offers the surname match over a surname-less one", () => {
+    const people = [
+      { id: "a", name: "Ryan" },
+      { id: "b", name: "Ryan Palmer" },
+    ];
+    expect(findExistingRecipient("Ryan P.", people)?.id).toBe("b");
+  });
+
+  it("passes over dismissed people to the next match", () => {
+    const people = [
+      { id: "a", name: "Ryan" },
+      { id: "b", name: "Ryan Palmer" },
+    ];
+    expect(findExistingRecipient("Ryan P.", people, ["b"])?.id).toBe("a");
+    expect(findExistingRecipient("Ryan P.", people, ["a", "b"])).toBeNull();
   });
 
   it("returns null for no name or no match", () => {

@@ -409,19 +409,21 @@ const AddRecipientFlowInner = ({
     !showDataReview && !showOccasionsSelection && !showManualEntry;
   const seedMatch =
     recipients && onConversation && !isSaving && !saveSuccess
-      ? findExistingRecipient(effectiveSeed.name, recipients)
+      ? findExistingRecipient(effectiveSeed.name, recipients, dismissedMatchIds)
       : null;
-  const duplicateMatch =
-    reviewMatch ??
-    (seedMatch && !dismissedMatchIds.includes(seedMatch.id) ? seedMatch : null);
+  const duplicateMatch = reviewMatch ?? seedMatch;
 
   // A typed name is only known once extraction lands, so the last check sits
   // on Data Review's continue — before any row is written.
   const handleReviewContinue = async () => {
     const match = recipients
-      ? findExistingRecipient(extractedData?.name, recipients)
+      ? findExistingRecipient(
+          extractedData?.name,
+          recipients,
+          dismissedMatchIds
+        )
       : null;
-    if (match && !dismissedMatchIds.includes(match.id)) {
+    if (match) {
       setReviewMatch(match);
       return;
     }

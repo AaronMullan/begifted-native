@@ -60,20 +60,28 @@ const NICKNAME_GROUPS: string[][] = [
   ["zachary", "zach", "zack"],
 ];
 
+// Strips only punctuation, never letters: a name in Cyrillic, CJK, Arabic or
+// any other script must keep its own tokens, or unrelated names collapse to
+// the same empty string and "match".
 function nameTokens(name: string): string[] {
   return name
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9\s'-]/g, " ")
+    .replace(/[.,!?;:()[\]{}"“”‘’_/\\&+*#@|<>~`^=]/g, " ")
     .split(/\s+/)
     .filter(Boolean);
 }
 
+// A short form matches its full name ("Bill" ~ "William"), never another short
+// form of it: relatives sharing a surname are often a William "Bill" and a
+// William "Liam".
 function sameFirstName(a: string, b: string): boolean {
   if (a === b) return true;
   return NICKNAME_GROUPS.some(
-    (group) => group.includes(a) && group.includes(b)
+    ([full, ...shortForms]) =>
+      (a === full && shortForms.includes(b)) ||
+      (b === full && shortForms.includes(a))
   );
 }
 
@@ -87,29 +95,45 @@ function compatibleLastNames(a: string | null, b: string | null): boolean {
   return false;
 }
 
+// 0 = different people; 3 = same normalized name; 2 = first names match and
+// both sides give a compatible surname; 1 = first names match, a surname is
+// missing on one side.
+function matchScore(a: string[], b: string[]): number {
+  if (a.length === 0 || b.length === 0) return 0;
+  if (a.join(" ") === b.join(" ")) return 3;
+  if (!sameFirstName(a[0], b[0])) return 0;
+  const lastA = a.length > 1 ? a[a.length - 1] : null;
+  const lastB = b.length > 1 ? b[b.length - 1] : null;
+  if (!compatibleLastNames(lastA, lastB)) return 0;
+  return lastA && lastB ? 2 : 1;
+}
+
 export function isLikelySamePerson(a: string, b: string): boolean {
-  const ta = nameTokens(a);
-  const tb = nameTokens(b);
-  if (ta.length === 0 || tb.length === 0) return false;
-  if (ta.join(" ") === tb.join(" ")) return true;
-  const lastA = ta.length > 1 ? ta[ta.length - 1] : null;
-  const lastB = tb.length > 1 ? tb[tb.length - 1] : null;
-  return sameFirstName(ta[0], tb[0]) && compatibleLastNames(lastA, lastB);
+  return matchScore(nameTokens(a), nameTokens(b)) > 0;
 }
 
 /**
  * The existing recipient an incoming name most likely refers to, or null.
- * An exact (normalized) name wins over a looser nickname/partial match.
+ * The strongest match wins, so "Ryan P." offers "Ryan Palmer" over a
+ * surname-less "Ryan". People in excludeIds (already confirmed as someone
+ * else) are passed over so a weaker dismissed match can't mask a stronger one.
  */
 export function findExistingRecipient<T extends { id: string; name: string }>(
   name: string | undefined | null,
-  recipients: readonly T[]
+  recipients: readonly T[],
+  excludeIds: readonly string[] = []
 ): T | null {
-  if (!name?.trim()) return null;
-  const incoming = nameTokens(name).join(" ");
-  const exact = recipients.find(
-    (r) => nameTokens(r.name).join(" ") === incoming
-  );
-  if (exact) return exact;
-  return recipients.find((r) => isLikelySamePerson(name, r.name)) ?? null;
+  if (!name) return null;
+  const incoming = nameTokens(name);
+  let best: T | null = null;
+  let bestScore = 0;
+  for (const recipient of recipients) {
+    if (excludeIds.includes(recipient.id)) continue;
+    const score = matchScore(incoming, nameTokens(recipient.name));
+    if (score > bestScore) {
+      best = recipient;
+      bestScore = score;
+    }
+  }
+  return best;
 }
