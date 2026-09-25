@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -13,14 +14,30 @@ import { StateCopy } from "../lib/state-copy";
  * default `networkMode: "online"` it would pause mutations while offline and
  * leave saves spinning instead of failing with the save-failure message.
  *
- * Only an explicit `false` counts as offline — the first read, before the
- * native module reports, leaves both fields undefined.
+ * Only `isConnected === false` counts. Android reports `isInternetReachable`
+ * false on working networks whose captive-portal check hasn't passed
+ * (firewalls, some VPNs, mid-handover), and the first read before the native
+ * module reports is undefined. The delay keeps a Wi-Fi↔cellular handover, or
+ * a stale initial read that a listener event corrects, from flashing it.
  */
+const SHOW_AFTER_MS = 2000;
+
 const OfflineBanner: React.FC = () => {
   const insets = useSafeAreaInsets();
-  const { isConnected, isInternetReachable } = useNetworkState();
-  const offline = isConnected === false || isInternetReachable === false;
-  if (!offline) return null;
+  const { isConnected } = useNetworkState();
+  const disconnected = isConnected === false;
+  const [shown, setShown] = useState(false);
+
+  useEffect(() => {
+    if (!disconnected) return;
+    const timer = setTimeout(() => setShown(true), SHOW_AFTER_MS);
+    return () => {
+      clearTimeout(timer);
+      setShown(false);
+    };
+  }, [disconnected]);
+
+  if (!shown) return null;
 
   return (
     <View
