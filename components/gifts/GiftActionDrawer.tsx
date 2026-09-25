@@ -64,7 +64,10 @@ const ROWS: RowDef[] = [
     action: "already_have",
     // The drawer opens from one gift card, so the gift they own is already
     // known — asking "what do they already have?" makes the user repeat it.
-    confirmation: (giftTitle) => `Noted — they already have ${giftTitle}.`,
+    confirmation: (giftTitle) =>
+      giftTitle?.trim()
+        ? `Noted — they already have ${giftTitle.trim()}.`
+        : "Noted — they already have it.",
   },
   {
     label: "Not for them",
