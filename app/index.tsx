@@ -15,6 +15,7 @@ import {
   consumeLaunchNotification,
   discardLaunchNotification,
 } from "../hooks/use-push-notifications";
+import { Button } from "react-native-paper";
 import Auth from "../components/Auth";
 import { Colors } from "../lib/colors";
 import GradientBackground from "../components/GradientBackground";
@@ -157,6 +158,10 @@ export default function Index() {
             setRouteAttempt((n) => n + 1);
           }}
         />
+        {/* A read that keeps failing would otherwise trap the user here. */}
+        <Button mode="text" onPress={() => void supabase.auth.signOut()}>
+          Sign out
+        </Button>
       </View>
     );
   }

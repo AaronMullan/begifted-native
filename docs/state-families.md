@@ -96,14 +96,14 @@ These were left as they are rather than invented around:
 
 ## Known gaps where the app doesn't know its state
 
-- A generation that stalls past the five-minute poll still reads as
-  generating until the next run.
-- The pending "Finding a new idea" card spins with no end if the backfill
-  request fails.
-- A profile refresh that fails or times out just stops showing progress.
-- Several saves still report success when part of the write failed: onboarding
-  identity/completion, "profile is ready" after a failed occasion or photo save,
-  "Photo updated" after a failed database write, the Preferences and
-  Information dialogs, and Settings → Profile's "Saved" on a zero-row update.
-  These, and the intake safety refusal that falls through to Manual Entry, are
-  tracked as their own tickets.
+- Progress that never resolves (DEV-512): a generation that stalls past the
+  five-minute poll still reads as generating; the pending "Finding a new idea"
+  card spins forever if the backfill request fails; a failed or timed-out
+  profile refresh just stops showing progress.
+- Saves that still report success when the write failed: onboarding
+  identity/completion (DEV-509); "profile is ready" after a failed occasion or
+  photo save, "Photo updated" after a failed database write, the Preferences
+  and Information dialogs, and Settings → Profile's "Saved" on a zero-row
+  update (DEV-510).
+- The intake safety refusal falls through to Manual Entry, and the update note
+  reads a refusal as "nothing new" (DEV-511).

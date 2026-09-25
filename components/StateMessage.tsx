@@ -1,5 +1,5 @@
-import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { Button, Text } from "react-native-paper";
+import { StyleSheet, View } from "react-native";
+import { ActivityIndicator, Button, Text } from "react-native-paper";
 import { Colors } from "../lib/colors";
 import { Spacing } from "../lib/spacing";
 import { Typography } from "../lib/typography";
