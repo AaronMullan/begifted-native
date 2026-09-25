@@ -17,6 +17,7 @@ export const StateCopy = {
   loadFailed: (thing: string) =>
     `Sorry for the inconvenience. We couldn't load ${thing}.`,
   saveFailed: (thing: string) => `We couldn't save ${thing}.`,
+  /** Shown standing by `OfflineBanner`, and ahead of a network-failed save. */
   offline: "You're offline.",
   permission: (permission: string, benefit: string) =>
     `BeGifted works best when you allow ${permission} to ${benefit}.`,
