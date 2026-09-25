@@ -1,22 +1,39 @@
 import { useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { ActivityIndicator, Text } from "react-native-paper";
-import { MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "../../lib/colors";
 import { Typography } from "../../lib/typography";
+import { Spacing } from "../../lib/spacing";
 import type { GiftSuggestion } from "../../types/recipient";
 import PrimaryGiftCard from "./PrimaryGiftCard";
 import CollapsedGiftCard from "./CollapsedGiftCard";
 import GiftGenerationWaiting from "./GiftGenerationWaiting";
 import PendingGiftCard from "./PendingGiftCard";
 import { partitionSuggestions } from "./partition";
+import type { GiftIdeasEmptyState } from "./gift-ideas-state";
+import LoadFailedState from "../LoadFailedState";
+import StateMessage from "../StateMessage";
+import { StateCopy } from "../../lib/state-copy";
+import {
+  formatOccasionType,
+  formatOccasionTypeLower,
+  possessive,
+  stripRecipientName,
+} from "../../utils/home-occasions";
 
 type GiftSuggestionsListProps = {
   suggestions: GiftSuggestion[];
   /** Recipient first name, used in the empty state copy. */
   recipientName: string;
   loading?: boolean;
+  /** Shows the in-progress banner above cards already on screen. */
   isGenerating?: boolean;
+  /** What an empty list says; see `giftIdeasEmptyState`. */
+  emptyState: GiftIdeasEmptyState;
+  /** occasion_type of the occasion behind `emptyState`, for the not-due copy. */
+  stateOccasionType?: string | null;
+  /** Set only when the suggestions fetch itself failed. */
+  onRetryLoad?: () => void;
   /** When set, only suggestions for this occasion are shown, and gift
    * feedback is attributed to it. */
   occasionId?: string | null;
@@ -32,6 +49,9 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
   recipientName,
   loading = false,
   isGenerating = false,
+  emptyState,
+  stateOccasionType = null,
+  onRetryLoad,
   occasionId = null,
   onClearOccasionFilter,
   onScrollCardIntoView,
@@ -107,27 +127,46 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
       </View>
     ) : null;
 
+  const renderEmptyState = () => {
+    const thing = recipientName
+      ? `${possessive(recipientName)} gift ideas`
+      : "these gift ideas";
+    const name = recipientName || "them";
+    switch (emptyState) {
+      case "generating":
+        return <GiftGenerationWaiting recipientName={recipientName} />;
+      case "failed":
+        return onRetryLoad ? (
+          <View style={styles.stateTop}>
+            <LoadFailedState
+              message={StateCopy.loadFailed(thing)}
+              onRetry={onRetryLoad}
+            />
+          </View>
+        ) : (
+          <StateMessage message={StateCopy.loadFailed(thing)} />
+        );
+      case "no_results":
+        return <StateMessage message={StateCopy.giftIdeasNoResults(name)} />;
+      case "not_due":
+        return (
+          <StateMessage
+            message={StateCopy.giftIdeasNotDue(
+              name,
+              occasionPhrase(stateOccasionType, recipientName)
+            )}
+          />
+        );
+      case "empty":
+        return <StateMessage message={StateCopy.empty("gift ideas")} />;
+    }
+  };
+
   if (visibleSuggestions.length === 0) {
     return (
       <View>
         {occasionHeader}
-        {isGenerating ? (
-          <GiftGenerationWaiting />
-        ) : (
-          <View style={styles.emptyContainer}>
-            <MaterialIcons name="card-giftcard" size={64} color="#ccc" />
-            <Text variant="titleLarge" style={styles.emptyTitle}>
-              No Gift Ideas Yet
-            </Text>
-            <Text variant="bodyMedium" style={styles.emptyText}>
-              {occasionId
-                ? "No gift suggestions for this occasion yet."
-                : `Gift suggestions will appear here once they're generated for ${
-                    recipientName || "this recipient"
-                  }.`}
-            </Text>
-          </View>
-        )}
+        {renderEmptyState()}
       </View>
     );
   }
@@ -175,6 +214,19 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
 
 export default GiftSuggestionsList;
 
+/** "Mike's birthday", "Christmas"; "the day" when the occasion is unknown. */
+function occasionPhrase(occasionType: string | null, name: string): string {
+  if (!occasionType) return "the day";
+  const type = stripRecipientName(occasionType, name);
+  const personal = /birthday|anniversary/i.test(type);
+  if (personal) {
+    return name
+      ? `${possessive(name)} ${formatOccasionTypeLower(type)}`
+      : `their ${formatOccasionTypeLower(type)}`;
+  }
+  return formatOccasionType(type);
+}
+
 const styles = StyleSheet.create({
   list: {
     gap: 16,
@@ -210,17 +262,9 @@ const styles = StyleSheet.create({
     ...Typography.largeCta,
     color: Colors.yellows.amber,
   },
-  emptyContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 60,
-  },
-  emptyTitle: {
-    marginTop: 16,
-  },
-  emptyText: {
-    textAlign: "center",
-    marginTop: 8,
-    paddingHorizontal: 20,
+  stateTop: {
+    // Lines the message up with StateMessage's 104pt top, net of
+    // LoadFailedState's own vertical padding.
+    paddingTop: 104 - Spacing.marginStandard,
   },
 });

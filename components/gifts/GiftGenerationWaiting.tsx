@@ -10,15 +10,22 @@ import ContactPicker from "../ContactPicker";
 import ContactsAccessIntro from "../ContactsAccessIntro";
 import ContactsImportFailedModal from "../ContactsImportFailedModal";
 import { useContactImportFlow } from "../../hooks/use-contact-import-flow";
+import { StateCopy } from "../../lib/state-copy";
+import { possessive } from "../../utils/home-occasions";
 
 // Figma "Gift Recommendations — Waiting" / "— Waiting 2" (5737:4377,
 // 5738:4405): the two comps share one fixed layout and differ only in the
 // serif message, so the messages rotate inside a fixed-height block whose
 // center matches both frames.
-const MESSAGES = [
-  "We're picking three great gift recommendations for you. Finding the perfect gift can take a few minutes.",
+const waitingMessages = (recipientName: string) => [
+  StateCopy.inProgress(
+    recipientName
+      ? `${possessive(recipientName)} gift ideas`
+      : "your gift ideas"
+  ),
   "Feel free to add more of your people to BeGifted while you wait.",
 ];
+const MESSAGE_COUNT = waitingMessages("").length;
 
 const ROTATE_MS = 7000;
 const FADE_MS = 450;
@@ -28,8 +35,14 @@ const FADE_MS = 450;
  * generating: context copy, the notification promise, and an Add More People
  * CTA running the same chooser/import flow as the People tab.
  */
-const GiftGenerationWaiting: React.FC = () => {
+type Props = {
+  /** Recipient first name, or empty when unknown. */
+  recipientName: string;
+};
+
+const GiftGenerationWaiting: React.FC<Props> = ({ recipientName }) => {
   const router = useRouter();
+  const messages = waitingMessages(recipientName);
   const [messageIndex, setMessageIndex] = useState(0);
   const [messageOpacity] = useState(() => new Animated.Value(1));
   const [chooserVisible, setChooserVisible] = useState(false);
@@ -60,7 +73,7 @@ const GiftGenerationWaiting: React.FC = () => {
         useNativeDriver: true,
       }).start(({ finished }) => {
         if (!finished) return;
-        setMessageIndex((i) => (i + 1) % MESSAGES.length);
+        setMessageIndex((i) => (i + 1) % MESSAGE_COUNT);
         Animated.timing(messageOpacity, {
           toValue: 1,
           duration: FADE_MS,
@@ -101,7 +114,7 @@ const GiftGenerationWaiting: React.FC = () => {
         <Animated.View
           style={[styles.messageAnim, { opacity: messageOpacity }]}
         >
-          <Text style={styles.message}>{MESSAGES[messageIndex]}</Text>
+          <Text style={styles.message}>{messages[messageIndex]}</Text>
         </Animated.View>
       </View>
       <Text style={styles.notification}>

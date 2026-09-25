@@ -15,6 +15,12 @@ export interface Occasion {
   recipient_id: string;
   /** Whether the occasion repeats every year (birthdays, anniversaries) or is one-time. */
   is_annual: boolean;
+  /** Outcome of the last generation run: success | no_results | error. Only
+   * the single-occasion and per-recipient fetches select it. */
+  last_generation_status?: string | null;
+  /** Set while a generation run is in flight; see the column comment. */
+  generation_started_at?: string | null;
+  fulfilled_at?: string | null;
   recipient?: {
     name: string;
     relationship_type: string;
@@ -112,7 +118,9 @@ export async function fetchRecipientOccasions(
 ): Promise<Occasion[]> {
   const { data, error } = await supabase
     .from("occasions")
-    .select("id, date, occasion_type, recipient_id, is_annual")
+    .select(
+      "id, date, occasion_type, recipient_id, is_annual, last_generation_status, generation_started_at, fulfilled_at"
+    )
     .eq("recipient_id", recipientId)
     .order("date", { ascending: true });
 
@@ -133,7 +141,9 @@ export async function fetchOccasion(
 ): Promise<Occasion | null> {
   const { data, error } = await supabase
     .from("occasions")
-    .select("id, date, occasion_type, recipient_id, is_annual")
+    .select(
+      "id, date, occasion_type, recipient_id, is_annual, last_generation_status, generation_started_at, fulfilled_at"
+    )
     .eq("id", occasionId)
     .maybeSingle();
 

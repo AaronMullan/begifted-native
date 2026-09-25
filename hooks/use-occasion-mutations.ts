@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { UseQueryOptions } from "@tanstack/react-query";
+import type { Occasion } from "../lib/api/occasions";
 import {
   deleteOccasion,
   updateOccasion,
@@ -15,11 +17,15 @@ import { useAuth } from "./use-auth";
 /**
  * Hook to fetch occasions for a specific recipient
  */
-export function useRecipientOccasions(recipientId: string | undefined) {
+export function useRecipientOccasions(
+  recipientId: string | undefined,
+  options?: Pick<UseQueryOptions<Occasion[], Error>, "refetchOnMount">
+) {
   return useQuery({
     queryKey: queryKeys.recipientOccasions(recipientId || ""),
     queryFn: () => fetchRecipientOccasions(recipientId!),
     enabled: !!recipientId,
+    refetchOnMount: options?.refetchOnMount,
   });
 }
 
