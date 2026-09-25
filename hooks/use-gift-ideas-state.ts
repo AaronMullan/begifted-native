@@ -22,10 +22,12 @@ const UNSTARTED_POLL_MAX_MS = 5 * 60 * 1000;
  * Server-derived state for an empty Gift Ideas list, for the occasion the list
  * is filtered to (or the recipient's most relevant one when unfiltered).
  *
- * While an empty, focused list is generating it re-fetches suggestions and
- * then occasions on one timer. The order matters: a run stores its gifts
- * before it clears its stamp, so fresh suggestions paired with occasions read
- * after them can never show a finished run next to a stale empty list.
+ * While an empty, focused list is generating it re-fetches occasions and then
+ * suggestions on one timer. The order matters: a run stores its gifts before
+ * it stamps its outcome and clears its start stamp, so once occasions show the
+ * run finished, a suggestions read that starts afterwards includes its gifts.
+ * The same pairing runs once on open, since suggestions may be served from a
+ * cache older than the occasions just fetched.
  */
 export function useGiftIdeasState({
   recipientId,
@@ -59,6 +61,7 @@ export function useGiftIdeasState({
     dataUpdatedAt,
     isPending,
     isError,
+    isFetchedAfterMount,
   } = useRecipientOccasions(recipientId, { refetchOnMount: "always" });
 
   // `now` is the last fetch time, not the render time: pure, and it advances
@@ -84,21 +87,41 @@ export function useGiftIdeasState({
     emptyState === "generating" &&
     (clientGenerating ||
       (occasion !== null && isGenerationInFlight(occasion, now)) ||
-      now - mountedAt < UNSTARTED_POLL_MAX_MS);
+      // `now` only advances on a successful fetch, so a failing one must not
+      // hold the cap open.
+      (!isError && now - mountedAt < UNSTARTED_POLL_MAX_MS));
+
+  useEffect(() => {
+    if (!isFetchedAfterMount || !recipientId) return;
+    queryClient.refetchQueries(
+      { queryKey: queryKeys.giftSuggestions(recipientId), exact: true },
+      { cancelRefetch: false }
+    );
+  }, [isFetchedAfterMount, recipientId, queryClient]);
 
   useEffect(() => {
     if (!shouldPoll || !recipientId) return;
-    const timer = setInterval(async () => {
-      await queryClient.refetchQueries({
-        queryKey: queryKeys.giftSuggestions(recipientId),
-        exact: true,
-      });
-      await queryClient.refetchQueries({
-        queryKey: queryKeys.recipientOccasions(recipientId),
-        exact: true,
-      });
-    }, GIFT_STATE_POLL_MS);
-    return () => clearInterval(timer);
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
+    // Chained rather than an interval so a slow tick is never overlapped by
+    // the next one cancelling its fetches. A tick whose occasions read ends
+    // polling still finishes its suggestions read.
+    const tick = async () => {
+      await queryClient.refetchQueries(
+        { queryKey: queryKeys.recipientOccasions(recipientId), exact: true },
+        { cancelRefetch: false }
+      );
+      await queryClient.refetchQueries(
+        { queryKey: queryKeys.giftSuggestions(recipientId), exact: true },
+        { cancelRefetch: false }
+      );
+      if (!stopped) timer = setTimeout(tick, GIFT_STATE_POLL_MS);
+    };
+    timer = setTimeout(tick, GIFT_STATE_POLL_MS);
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+    };
   }, [shouldPoll, recipientId, queryClient]);
 
   return {
