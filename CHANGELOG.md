@@ -19,6 +19,25 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-09-24 — OTA
+
+### App
+
+- Gift Ideas no longer says "No Gift Ideas Yet" while ideas are still being found. The screen now says whether they're on the way, not due until the occasion is closer, couldn't be found, or failed to load (DEV-460).
+- A birthday and its birthday moment now stay in step: changing the moment's date updates the birthday, and changing the birthday moves the moment right away, so neither slips back to the old day (DEV-466).
+- Adding someone who is already in your people — typed in or picked from contacts — now stops to say so, with the option to open their profile instead of starting a second one. Near-matches count too: a nickname, a different capitalization, or a missing last name (DEV-469).
+- "They already have this" now saves and closes with a note naming the gift, instead of asking what they already have (DEV-470).
+- Choosing a gift now records it and closes the menu with a brief confirmation, instead of asking what made it feel right (DEV-471).
+- If you shared only some of your contacts with BeGifted, Select Contacts now says so and offers Choose more contacts, so you can add others without leaving the app (DEV-473).
+- Saving an update in About You now closes the drawer and confirms it, instead of asking "What else should BeGifted know?" again (DEV-475).
+
+### Backend
+
+- A gift card whose store blocks our image lookup is less likely to show a photo of a similar but different product. When no photo clearly names the gift, the card shows no image (DEV-501).
+- When gift ideas for an occasion arrive the day before or the day of it, you get one notification with the timing ("Anna's birthday is tomorrow — your gift ideas are ready.") instead of two (DEV-502).
+- When a store blocks our image lookup and the fallback search finds several near-identical products, the photo from the gift's own product page now wins, so fewer cards show a sibling product (DEV-505).
+- Gift ideas from Shopify stores now show the store's own photo of the product, including the colour or version that was suggested, even when the store blocks our page lookup. Fewer of these cards show a similar product or no picture at all (DEV-506).
+
 ## 2026-09-23 — OTA
 
 ### App
