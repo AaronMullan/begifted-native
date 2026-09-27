@@ -49,6 +49,7 @@ import { slugifyOccasionName } from "../../../hooks/use-occasion-recommendations
 import { invokeWithRetry } from "../../../lib/edge-retry";
 import { captureMutationError } from "../../../lib/sentry-helpers";
 import type { ExtractedData } from "../../../hooks/use-conversation-flow";
+import { SAFETY_DECLINED_FALLBACK_MESSAGE } from "../../../hooks/use-conversation-flow";
 import { useUserPreferences } from "../../../hooks/use-user-preferences";
 import { formatShortName } from "../../../lib/format-name";
 import { showSnackbar } from "../../../components/GlobalSnackbar";
@@ -492,7 +493,11 @@ export default function RecipientEditPage() {
     let extracted: ExtractedData | null = null;
     try {
       const { data, error } = await invokeWithRetry<
-        ExtractedData & { extractedData?: ExtractedData }
+        ExtractedData & {
+          extractedData?: ExtractedData;
+          safety_declined?: boolean;
+          message?: string;
+        }
       >("recipient-conversation", {
         body: {
           action: "extract",
@@ -517,6 +522,11 @@ export default function RecipientEditPage() {
         },
       });
       if (error) throw error;
+      // A refusal carries no fields; read on, it would claim "Nothing new".
+      if (data?.safety_declined) {
+        showSnackbar(data.message ?? SAFETY_DECLINED_FALLBACK_MESSAGE);
+        return true;
+      }
       extracted = data?.extractedData || data || null;
     } catch (error) {
       console.error("Failed to extract update note:", error);

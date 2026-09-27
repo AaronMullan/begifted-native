@@ -134,7 +134,13 @@ interface UseConversationFlowReturn {
   canRetrySend: boolean;
   /** Re-send the last failed turn (clears the error bubble first). */
   retryLastSend: () => Promise<void>;
-  handleFinishConversation: () => Promise<ExtractedData | null>;
+  /**
+   * Resolves "safety_declined" when the model refused; the refusal has already
+   * been shown, and callers must not fall through to a generic recovery path.
+   */
+  handleFinishConversation: () => Promise<
+    ExtractedData | "safety_declined" | null
+  >;
   setMessages: (messages: Message[]) => void;
   setExtractedData: (data: ExtractedData | null) => void;
   resetConversation: () => void;
@@ -158,6 +164,9 @@ type ConversationReply = {
 // sometimes returns the fields at the top level, so accept both shapes. When
 // the model refuses, the function fails closed with `safety_declined` instead
 // of any extracted fields.
+export const SAFETY_DECLINED_FALLBACK_MESSAGE =
+  "This isn't something BeGifted can help with.";
+
 type ExtractResponse = ExtractedData & {
   extractedData?: ExtractedData;
   safety_declined?: boolean;
@@ -393,7 +402,9 @@ export function useConversationFlow(
     }
   }, [initialUserMessage, messages.length, sendMessage]);
 
-  const handleFinishConversation = async (): Promise<ExtractedData | null> => {
+  const handleFinishConversation = async (): Promise<
+    ExtractedData | "safety_declined" | null
+  > => {
     setIsLoading(true);
     try {
       // Get session for auth
@@ -442,14 +453,14 @@ export function useConversationFlow(
       // rather than storing the safety payload as if it were recipient fields.
       if (data?.safety_declined) {
         const safetyError = new Error(
-          data.message ?? "This isn't something BeGifted can help with."
+          data.message ?? SAFETY_DECLINED_FALLBACK_MESSAGE
         );
         if (onExtractError) {
           onExtractError(safetyError);
         } else {
           Alert.alert("Can't continue", safetyError.message);
         }
-        return null;
+        return "safety_declined";
       }
 
       // The Edge Function returns { extractedData }

@@ -139,7 +139,9 @@ interface UseAddRecipientFlowReturn {
   canRetrySend: boolean;
   retryLastSend: () => Promise<void>;
   handleNavigateBack: () => void;
-  handleFinishConversation: () => Promise<boolean>;
+  handleFinishConversation: () => Promise<
+    "ready" | "safety_declined" | "incomplete"
+  >;
   handleDataReviewContinue: () => Promise<void>;
   handleOccasionsBack: () => void;
   handleOccasionsContinue: (
@@ -554,8 +556,11 @@ export function useAddRecipientFlow(
   };
 
   // Wrap generic handleFinishConversation with validation and flow logic
-  const handleFinishConversation = async (): Promise<boolean> => {
+  const handleFinishConversation = async (): Promise<
+    "ready" | "safety_declined" | "incomplete"
+  > => {
     const extracted = await genericHandleFinishConversation();
+    if (extracted === "safety_declined") return "safety_declined";
 
     if (extracted && extracted.name && extracted.relationship_type) {
       // Map the extracted data to ensure all fields are properly set
@@ -592,10 +597,10 @@ export function useAddRecipientFlow(
 
       genericSetExtractedData(mappedData);
       setShowDataReview(true);
-      return true;
+      return "ready";
     }
 
-    return false;
+    return "incomplete";
   };
 
   const handleDataReviewContinue = async () => {
