@@ -373,11 +373,14 @@ const AddRecipientFlowInner = ({
     console.log("Starting conversation finish with proper state management");
     try {
       const result = await handleFinishConversation();
+      // A refusal ends the flow with its own wording; Manual Entry would let
+      // the user finish adding the refused person.
+      if (result === "safety_declined") return;
 
       // Check the actual result - if extraction was successful, data review should already be showing
       // If not successful and we need manual entry, the hook should handle this
       if (
-        !result &&
+        result === "incomplete" &&
         (!extractedData ||
           !extractedData.name ||
           !extractedData.relationship_type)
