@@ -49,19 +49,26 @@ export async function fetchUserPreferences(
 
 /**
  * Upsert a partial set of user-preference fields (keyed on user_id).
+ *
+ * Reads the row back because RLS turns a write it filters out into a silent
+ * success; `.single()` makes that zero-row case throw instead.
  */
 export async function upsertUserPreferences(
   userId: string,
   fields: Partial<Omit<UserPreferences, "user_id">>
 ): Promise<void> {
-  const { error } = await supabase.from("user_preferences").upsert(
-    {
-      user_id: userId,
-      ...fields,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id" }
-  );
+  const { error } = await supabase
+    .from("user_preferences")
+    .upsert(
+      {
+        user_id: userId,
+        ...fields,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" }
+    )
+    .select("user_id")
+    .single();
 
   if (error) throw error;
 }
