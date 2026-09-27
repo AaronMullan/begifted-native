@@ -14,6 +14,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../lib/colors";
 import { Typography } from "../../lib/typography";
 import { supabase } from "../../lib/supabase";
+import { upsertUserPreferences } from "../../lib/api";
+import { StateCopy } from "../../lib/state-copy";
 import { useAuth } from "../../hooks/use-auth";
 import { KEYBOARD_CTA_GAP } from "@/lib/constants";
 import GradientBackground from "../../components/GradientBackground";
@@ -24,6 +26,7 @@ export default function OnboardingIdentity() {
   const { user } = useAuth();
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   async function extractUserSummary(text: string) {
     try {
@@ -50,21 +53,14 @@ export default function OnboardingIdentity() {
 
     try {
       setSaving(true);
+      setSaveError("");
       const trimmed = description.trim();
       const userSummary = await extractUserSummary(trimmed);
 
-      const updates: Record<string, unknown> = {
-        user_id: user.id,
+      await upsertUserPreferences(user.id, {
         user_description: trimmed,
-        updated_at: new Date().toISOString(),
-      };
-      if (userSummary) {
-        updates.user_summary = userSummary;
-      }
-
-      await supabase
-        .from("user_preferences")
-        .upsert(updates, { onConflict: "user_id" });
+        ...(userSummary ? { user_summary: userSummary } : {}),
+      });
 
       supabase.functions
         .invoke("synthesize-giver-profile", { body: { userId: user.id } })
@@ -73,7 +69,7 @@ export default function OnboardingIdentity() {
       router.push("/onboarding/confirmation");
     } catch (error) {
       console.error("Error saving user description:", error);
-      router.push("/onboarding/confirmation");
+      setSaveError(StateCopy.saveFailed("that"));
     } finally {
       setSaving(false);
     }
@@ -117,6 +113,11 @@ export default function OnboardingIdentity() {
               outlineStyle={styles.inputOutline}
               contentStyle={styles.inputContent}
             />
+            {saveError ? (
+              <Text style={[Typography.caption, styles.errorText]}>
+                {saveError}
+              </Text>
+            ) : null}
           </View>
 
           <View style={styles.footer}>
@@ -182,6 +183,10 @@ const styles = StyleSheet.create({
   },
   inputContent: {
     paddingTop: 16,
+  },
+  errorText: {
+    color: Colors.brand.rose,
+    marginTop: 12,
   },
   footer: {
     paddingVertical: 24,

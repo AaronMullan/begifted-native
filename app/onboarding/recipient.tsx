@@ -10,6 +10,7 @@ import { upsertUserPreferences } from "../../lib/api";
 import { useAuth } from "../../hooks/use-auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "../../lib/query-keys";
+import { StateCopy } from "../../lib/state-copy";
 import { useBetaCheckIn } from "../../components/beta/BetaCheckInProvider";
 import AddRecipientLegalNotice from "../../components/recipients/AddRecipientLegalNotice";
 import GradientBackground from "../../components/GradientBackground";
@@ -21,6 +22,7 @@ export default function OnboardingRecipient() {
   const queryClient = useQueryClient();
   const { triggerCheckIn } = useBetaCheckIn();
   const [completing, setCompleting] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   async function completeOnboarding(
     destination: "/contacts/add" | "/contacts"
@@ -29,6 +31,7 @@ export default function OnboardingRecipient() {
 
     try {
       setCompleting(true);
+      setSaveError("");
       await upsertUserPreferences(user.id, { onboarding_completed: true });
       queryClient.invalidateQueries({
         queryKey: queryKeys.userPreferences(user.id),
@@ -39,8 +42,10 @@ export default function OnboardingRecipient() {
       triggerCheckIn("onboarding");
       router.replace(destination);
     } catch (error) {
+      // Moving on without the flag saved would send the user through
+      // onboarding again on next launch.
       console.error("Error completing onboarding:", error);
-      router.replace(destination);
+      setSaveError(StateCopy.saveFailed("that"));
     } finally {
       setCompleting(false);
     }
@@ -60,6 +65,11 @@ export default function OnboardingRecipient() {
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 24 }]}>
         <AddRecipientLegalNotice />
+        {saveError ? (
+          <Text style={[Typography.caption, styles.errorText]}>
+            {saveError}
+          </Text>
+        ) : null}
         <Button
           mode="contained"
           onPress={() => completeOnboarding("/contacts/add")}
@@ -119,6 +129,9 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: "100%",
     gap: 12,
+  },
+  errorText: {
+    color: Colors.brand.rose,
   },
   buttonContent: {
     paddingVertical: 8,
