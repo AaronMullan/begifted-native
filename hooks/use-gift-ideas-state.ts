@@ -69,14 +69,20 @@ export function useGiftIdeasState({
   // with every poll, so a start stamp that goes stale mid-visit flips to failed.
   const now = dataUpdatedAt;
   const list = occasions ?? [];
+  const nextOccasion = pickStateOccasion(list, now);
   const occasion = occasionId
     ? (list.find((o) => o.id === occasionId) ?? null)
-    : pickStateOccasion(list, now);
+    : nextOccasion;
+  // A screen-started run generates only the soonest occasion, so a list
+  // filtered to any other one isn't generating because of it.
+  const runCoversList =
+    clientGenerating &&
+    (!occasionId || !occasions || occasion?.id === nextOccasion?.id);
   const emptyState = giftIdeasEmptyState({
     occasion,
     leadDays: preferences?.notification_lead_days ?? DEFAULT_LEAD_DAYS,
     remindersEnabled: preferences?.occasion_reminders_enabled !== false,
-    clientGenerating,
+    clientGenerating: runCoversList,
     loadFailed: loadFailed || (isError && !occasions),
     now,
   });
@@ -86,7 +92,7 @@ export function useGiftIdeasState({
     focused &&
     listEmpty &&
     (emptyState === "generating" || emptyState === "scheduled") &&
-    (clientGenerating ||
+    (runCoversList ||
       (occasion !== null && isGenerationInFlight(occasion, now)) ||
       // `now` only advances on a successful fetch, so a failing one must not
       // hold the cap open.
