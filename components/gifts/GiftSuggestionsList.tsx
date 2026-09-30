@@ -150,6 +150,15 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
             message={StateCopy.giftIdeasNoResults(name)}
           />
         );
+      case "scheduled":
+        return (
+          <StateMessage
+            size="hero"
+            message={StateCopy.giftIdeasScheduled(
+              occasionPhrase(stateOccasionType, recipientName)
+            )}
+          />
+        );
       case "not_due":
         return (
           <StateMessage

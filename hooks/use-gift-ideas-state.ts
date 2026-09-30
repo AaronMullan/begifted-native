@@ -14,8 +14,9 @@ import type { GiftIdeasEmptyState } from "../components/gifts/gift-ideas-state";
 export const GIFT_STATE_POLL_MS = 10000;
 
 /** How long to keep watching an in-window occasion that has no run yet. The
- * add flow's run stamps within seconds; past this, the next one is the daily
- * cron, which isn't worth polling for. */
+ * add flow's run stamps within seconds of the add, and until it does its
+ * occasion reads as scheduled; past this, the next run is the daily cron,
+ * which isn't worth polling for. */
 const UNSTARTED_POLL_MAX_MS = 5 * 60 * 1000;
 
 /**
@@ -71,11 +72,23 @@ export function useGiftIdeasState({
   const occasion = occasionId
     ? (list.find((o) => o.id === occasionId) ?? null)
     : pickStateOccasion(list, now);
+  // A screen-started run generates only one occasion, so a list filtered to
+  // any other one isn't generating because of it. The target is picked the way
+  // /api/generate-gifts picks it — soonest stored date on or after today in
+  // UTC — not by next occurrence, since an annual row keeps last year's date
+  // until the cron re-dates it.
+  const todayUtc = new Date(now).toISOString().slice(0, 10);
+  const runTargetId = list
+    .filter((o) => o.date && o.date >= todayUtc)
+    .sort((a, b) => (a.date as string).localeCompare(b.date as string))[0]?.id;
+  const runCoversList =
+    clientGenerating &&
+    (!occasionId || !occasions || occasionId === runTargetId);
   const emptyState = giftIdeasEmptyState({
     occasion,
     leadDays: preferences?.notification_lead_days ?? DEFAULT_LEAD_DAYS,
     remindersEnabled: preferences?.occasion_reminders_enabled !== false,
-    clientGenerating,
+    clientGenerating: runCoversList,
     loadFailed: loadFailed || (isError && !occasions),
     now,
   });
@@ -84,8 +97,8 @@ export function useGiftIdeasState({
     !!recipientId &&
     focused &&
     listEmpty &&
-    emptyState === "generating" &&
-    (clientGenerating ||
+    (emptyState === "generating" || emptyState === "scheduled") &&
+    (runCoversList ||
       (occasion !== null && isGenerationInFlight(occasion, now)) ||
       // `now` only advances on a successful fetch, so a failing one must not
       // hold the cap open.

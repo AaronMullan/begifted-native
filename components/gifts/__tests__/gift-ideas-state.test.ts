@@ -108,12 +108,12 @@ describe("giftIdeasEmptyState", () => {
       "not_due"
     );
     expect(state(occasion({ date: "2020-10-01", is_annual: true }))).toBe(
-      "generating"
+      "scheduled"
     );
   });
 
-  it("reads an in-window occasion with no run yet as generating", () => {
-    expect(state(occasion())).toBe("generating");
+  it("reads an in-window occasion with no run in flight as scheduled", () => {
+    expect(state(occasion())).toBe("scheduled");
   });
 
   it("is empty when nothing is coming", () => {
