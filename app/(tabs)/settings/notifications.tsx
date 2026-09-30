@@ -86,12 +86,11 @@ export default function NotificationsSettings() {
   // were the user's, and the next toggle writes the whole default set over
   // their real stored values.
   const [loadFailed, setLoadFailed] = useState(false);
-  const [pushPermission, setPushPermission] =
-    useState<Notifications.PermissionStatus>(
-      Notifications.PermissionStatus.GRANTED
-    );
-  const pushPermissionGranted =
-    pushPermission === Notifications.PermissionStatus.GRANTED;
+  const [pushPermission, setPushPermission] = useState({
+    granted: true,
+    canAskAgain: true,
+  });
+  const pushPermissionGranted = pushPermission.granted;
   const router = useRouter();
 
   const [preferences, setPreferences] =
@@ -167,8 +166,8 @@ export default function NotificationsSettings() {
   // row without a manual refresh.
   useEffect(() => {
     const check = () =>
-      Notifications.getPermissionsAsync().then(({ status }) =>
-        setPushPermission(status)
+      Notifications.getPermissionsAsync().then(({ granted, canAskAgain }) =>
+        setPushPermission({ granted, canAskAgain })
       );
     check();
     const listener = AppState.addEventListener("change", (state) => {
@@ -278,7 +277,9 @@ export default function NotificationsSettings() {
             caption={
               pushPermissionGranted
                 ? "Turn all BeGifted alerts on or off."
-                : pushPermission === Notifications.PermissionStatus.DENIED
+                : // Android 13+ reports "denied" before the OS prompt has
+                  // ever shown; only a refusal the OS won't re-ask is "off".
+                  !pushPermission.canAskAgain
                   ? StateCopy.notificationsOff
                   : StateCopy.permission(
                       "notifications in Settings",

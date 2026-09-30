@@ -787,7 +787,7 @@ export default function RecipientEditPage() {
         <GradientBackground />
         <View style={styles.loadingPlaceholder}>
           <StateMessage message={StateCopy.personRemoved} />
-          <Button mode="text" onPress={() => router.replace("/contacts")}>
+          <Button mode="text" onPress={() => router.dismissTo("/contacts")}>
             Back to People
           </Button>
         </View>

@@ -53,7 +53,7 @@ password, and the reset-password form.
 
 **Recoverable failure (delete)** — `StateCopy.deleteFailed(thing)`, naming
 what was being deleted. A person (People card and recipient profile), an
-occasion (Moments and the About tab, named as the confirm dialog named it),
+occasion (Moments and the About tab, named as its confirm dialog names it),
 and the account (Settings → Profile).
 
 **Recoverable failure (send)** — `StateCopy.sendFailed`. Settings → Support
