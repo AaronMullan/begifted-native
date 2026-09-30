@@ -89,6 +89,11 @@ export function useDeviceContacts() {
   }
 
   async function getDeviceContacts(): Promise<DeviceContactsResult> {
+    // A browser has no device contacts to refuse, so "denied" would send the
+    // user to a Settings page that doesn't exist (and Linking.openSettings is
+    // missing on react-native-web).
+    if (Platform.OS === "web") return { status: "failed" };
+
     setLoading(true);
 
     let hasPermission = false;
