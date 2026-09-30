@@ -169,11 +169,10 @@ serve(async (req) => {
     // design,"), hence the label form and the tidy-up.
     const tidyTone = (tone: unknown): string => {
       if (typeof tone !== "string") return "";
-      const t = tone
+      return tone
         .replace(/\s+/g, " ")
-        .replace(/[\s,.;:!]+$/, "")
+        .replace(/^["'\s]+|["'\s,.;:!?\u2026]+$/g, "")
         .trim();
-      return t ? t.charAt(0).toLowerCase() + t.slice(1) : "";
     };
     let toneSentence = "";
     const recipientTone = tidyTone(recipient.emotional_tone_preference);
