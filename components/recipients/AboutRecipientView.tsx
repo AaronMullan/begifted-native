@@ -443,9 +443,16 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
             <View style={styles.splitRow}>
               <View style={styles.splitRowLead}>
                 <Text style={styles.fieldLabel}>Holidays they celebrate</Text>
-                <Text style={styles.fieldValue}>
-                  {recipient.cultural_context?.trim() || "—"}
-                </Text>
+                {recipient.cultural_context?.trim() ? (
+                  <Text style={styles.fieldValue}>
+                    {recipient.cultural_context.trim()}
+                  </Text>
+                ) : (
+                  <Text style={styles.fieldHint}>
+                    None added yet. Holidays listed here shape which moments and
+                    gift ideas come up. Tap to add them.
+                  </Text>
+                )}
               </View>
             </View>
           </View>
