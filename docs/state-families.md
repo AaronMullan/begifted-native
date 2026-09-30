@@ -51,6 +51,17 @@ recipient), the recipient update note, the About-tab photo and birthday,
 the gift action drawer, Settings → Gifting / Notifications / Profile photo and
 password, and the reset-password form.
 
+**Recoverable failure (delete)** — `StateCopy.deleteFailed(thing)`, naming
+what was being deleted. A person (People card and recipient profile), an
+occasion (Moments and the About tab, named as the confirm dialog named it),
+and the account (Settings → Profile).
+
+**Recoverable failure (send)** — `StateCopy.sendFailed`. Settings → Support
+(Contact Us) and the beta check-in.
+
+**Removed** — `StateCopy.personRemoved`. A recipient profile opened after the
+person was deleted, with Back to People.
+
 **Offline** — `StateCopy.offline`. `components/OfflineBanner.tsx` shows it
 app-wide while `expo-network` reports no connection, and it prefixes the
 save-failure message when a mutation fails with a network error. Queries keep
@@ -59,13 +70,16 @@ would pause saves rather than fail them), so a load that fails offline still
 shows its load-failure state beneath the banner.
 
 **Permission required** — `StateCopy.permission(permission, benefit)`.
-Photo access (recipient photo, profile photo), push notifications
-(Settings → Notifications), and a contacts import the user refused access to
-(with Open Settings in place of Try again).
+Photo access (recipient photo, profile photo), push notifications not asked
+for yet (Settings → Notifications), and a contacts import the user refused
+access to (with Open Settings in place of Try again).
 
-**User-disabled / switched off** — `StateCopy.disabled(feature)`.
-Signups closed by config (sign-in and intro sign-up), the notifications feed
-when `app_config.notifications_enabled` is false.
+**User turned off** — `StateCopy.notificationsOff`. Settings → Notifications
+once push permission has been denied in iOS.
+
+**Switched off by BeGifted** — `StateCopy.disabled(feature)`, always naming
+the feature. Signups closed by config (sign-in and intro sign-up), the
+notifications feed when `app_config.notifications_enabled` is false.
 
 **Feature unavailable** — `StateCopy.unavailable(feature)`. BeGifted Plus on
 Settings → Billing.
@@ -76,13 +90,10 @@ keeps its own wording.
 **Fatal** — `StateCopy.fatal`. The root error boundary and the intro sign-up's
 fallback error.
 
-## Not mapped — waiting on a product decision
+## Kept outside the spines
 
-These were left as they are rather than invented around:
+These keep their own wording by product decision, or aren't states:
 
-- **Deletes and sends.** "Couldn't delete the occasion / this person / your
-  account" and "Couldn't send your message" (Support, beta check-in) aren't
-  saves; the save spine would say the wrong thing.
 - **Designed invitations that sit in the empty slot.** Home's "Welcome to
   BeGifted", "We're still getting to know you…" (Settings → Gifting and the
   About tab), and the secondary lines under empties ("Add one to remember what
@@ -91,15 +102,9 @@ These were left as they are rather than invented around:
   upcoming moments yet" and the "Finding a new idea" pending gift card.
 - **The add-a-person chat's "Thinking..."** — a turn in a conversation, not a
   thing being got ready.
-- **"Recipient not found"** — a person that no longer exists isn't empty,
-  failed or unavailable.
 - **Auth errors** show Supabase's own message text ("Error: …"); a spine would
   drop the reason (wrong password, account exists).
 - **Validation hints** (date formats, password length) aren't states.
-- **`disabled` vs `unavailable`.** "Off for now. Check back later." fits a
-  switch BeGifted flipped (signups, the notifications feed) better than one the
-  user flipped; a user's own "off" (push turned off in iOS) is handled as a
-  permission instead.
 
 ## Known gaps where the app doesn't know its state
 

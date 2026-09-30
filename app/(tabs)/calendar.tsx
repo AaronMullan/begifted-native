@@ -329,6 +329,7 @@ export default function Calendar() {
       {
         occasionId: occasionToDelete.id,
         recipientId: occasionToDelete.recipient_id,
+        name: formatOccasionTitle(occasionToDelete),
       },
       {
         // Failures surface via the shared mutation handler's snackbar.

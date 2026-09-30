@@ -732,7 +732,7 @@ export default function RecipientEditPage() {
   const handleConfirmDelete = () => {
     if (!recipient || !user) return;
     deleteRecipient.mutate(
-      { userId: user.id, recipientId: recipient.id },
+      { userId: user.id, recipientId: recipient.id, name: recipient.name },
       {
         // Failures surface via the shared mutation handler's snackbar.
         onSuccess: () => {
@@ -786,9 +786,9 @@ export default function RecipientEditPage() {
       <View style={styles.container}>
         <GradientBackground />
         <View style={styles.loadingPlaceholder}>
-          <Text>Recipient not found</Text>
-          <Button mode="text" onPress={() => router.back()}>
-            Go Back
+          <StateMessage message={StateCopy.personRemoved} />
+          <Button mode="text" onPress={() => router.replace("/contacts")}>
+            Back to People
           </Button>
         </View>
       </View>

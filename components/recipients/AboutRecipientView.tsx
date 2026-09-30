@@ -36,9 +36,13 @@ import {
   birthdayAfterOccasionEdit,
   formatBirthdayDisplay,
 } from "../../utils/birthday";
-import { formatOccasionType, possessive } from "../../utils/home-occasions";
+import {
+  formatOccasionType,
+  possessive,
+  stripRecipientName,
+} from "../../utils/home-occasions";
 import { formatOccasionDate } from "../../utils/occasion-dates";
-import { cleanRelationship } from "../../lib/format-name";
+import { cleanRelationship, formatShortName } from "../../lib/format-name";
 import { StateCopy } from "../../lib/state-copy";
 import StateMessage from "../StateMessage";
 import { Spacing } from "@/lib/spacing";
@@ -170,7 +174,13 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
   const handleConfirmDeleteOccasion = () => {
     if (!occasionToDelete) return;
     deleteOccasion.mutate(
-      { occasionId: occasionToDelete.id, recipientId: recipient.id },
+      {
+        occasionId: occasionToDelete.id,
+        recipientId: recipient.id,
+        name: `${possessive(formatShortName(recipient.name))} ${formatOccasionType(
+          stripRecipientName(occasionToDelete.occasion_type, recipient.name)
+        )}`,
+      },
       { onSettled: () => setOccasionToDelete(null) }
     );
   };

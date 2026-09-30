@@ -4,7 +4,7 @@ import { StateCopy } from "./state-copy";
 
 type MutationHandlers<TData, TVariables> = {
   onSuccess: (data: TData, variables: TVariables) => void;
-  onError: (error: unknown) => void;
+  onError: (error: unknown, variables: TVariables) => void;
 };
 
 /**
@@ -18,7 +18,7 @@ export function makeMutationHandlers<TData, TVariables>(options: {
   /** Hook name used in the console breadcrumb. */
   label: string;
   /** User-facing failure message shown in the snackbar. */
-  errorMessage: string | ((error: unknown) => string);
+  errorMessage: string | ((error: unknown, variables: TVariables) => string);
   /** Cache keys to invalidate after a successful write. */
   invalidateKeys?: (data: TData, variables: TVariables) => QueryKey[];
   /** Follow-on success work (e.g. background profile re-synthesis). */
@@ -33,12 +33,14 @@ export function makeMutationHandlers<TData, TVariables>(options: {
       }
       afterSuccess?.(data, variables);
     },
-    onError: (error) => {
+    onError: (error, variables) => {
       console.error(`${label} failed:`, error);
       const isNetworkError =
         error instanceof Error && /network request failed/i.test(error.message);
       const message =
-        typeof errorMessage === "function" ? errorMessage(error) : errorMessage;
+        typeof errorMessage === "function"
+          ? errorMessage(error, variables)
+          : errorMessage;
       // Keep the failed-save sentence: "You're offline." alone doesn't say
       // the change was lost.
       showSnackbar(

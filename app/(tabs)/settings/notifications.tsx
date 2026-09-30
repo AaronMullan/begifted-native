@@ -86,7 +86,12 @@ export default function NotificationsSettings() {
   // were the user's, and the next toggle writes the whole default set over
   // their real stored values.
   const [loadFailed, setLoadFailed] = useState(false);
-  const [pushPermissionGranted, setPushPermissionGranted] = useState(true);
+  const [pushPermission, setPushPermission] =
+    useState<Notifications.PermissionStatus>(
+      Notifications.PermissionStatus.GRANTED
+    );
+  const pushPermissionGranted =
+    pushPermission === Notifications.PermissionStatus.GRANTED;
   const router = useRouter();
 
   const [preferences, setPreferences] =
@@ -163,7 +168,7 @@ export default function NotificationsSettings() {
   useEffect(() => {
     const check = () =>
       Notifications.getPermissionsAsync().then(({ status }) =>
-        setPushPermissionGranted(status === "granted")
+        setPushPermission(status)
       );
     check();
     const listener = AppState.addEventListener("change", (state) => {
@@ -273,10 +278,12 @@ export default function NotificationsSettings() {
             caption={
               pushPermissionGranted
                 ? "Turn all BeGifted alerts on or off."
-                : StateCopy.permission(
-                    "notifications in Settings",
-                    "remind you about upcoming occasions"
-                  )
+                : pushPermission === Notifications.PermissionStatus.DENIED
+                  ? StateCopy.notificationsOff
+                  : StateCopy.permission(
+                      "notifications in Settings",
+                      "remind you about upcoming occasions"
+                    )
             }
             value={preferences.push_notifications_enabled}
             onValueChange={(value) =>

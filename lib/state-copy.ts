@@ -19,10 +19,16 @@ export const StateCopy = {
   loadFailed: (thing: string) =>
     `Sorry for the inconvenience. We couldn't load ${thing}.`,
   saveFailed: (thing: string) => `We couldn't save ${thing}.`,
+  deleteFailed: (thing: string) => `We couldn't delete ${thing}. Try again.`,
+  sendFailed: "We couldn't send your message. Try again.",
+  /** A person opened by link or back-navigation after they were deleted. */
+  personRemoved: "This person is no longer in BeGifted.",
   /** Shown standing by `OfflineBanner`, and ahead of a network-failed save. */
   offline: "You're offline.",
   permission: (permission: string, benefit: string) =>
     `BeGifted works best when you allow ${permission} to ${benefit}.`,
+  /** Once the user has denied push; `permission` is only for before that. */
+  notificationsOff: "Notifications are off. You can turn them on in Settings.",
   /** Takes a singular subject: "The notifications feed", not "Notifications". */
   disabled: (feature: string) => `${feature} is off for now. Check back later.`,
   unavailable: (feature: string) =>
