@@ -12,6 +12,8 @@ export const StateCopy = {
   empty: (things: string) => `There are no ${things} here yet.`,
   giftIdeasNotDue: (name: string, occasion: string) =>
     `The gift ideas for ${name} will be available when ${occasion} gets closer.`,
+  giftIdeasScheduled: (occasion: string) =>
+    `The gift ideas for ${occasion} are in the queue. We'll send you a notification when they're ready.`,
   giftIdeasNoResults: (name: string) =>
     `We couldn't find three gift ideas for ${name} that met our quality standard.`,
   loadFailed: (thing: string) =>

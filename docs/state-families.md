@@ -11,7 +11,7 @@ Rules that hold across every family:
 - A failed load can't look empty. Test the raw query value
   (`data === undefined && isError`), not a `?? []` default.
 - A failed save can't report success.
-- Generating, not due yet, no-results and failed stay distinct.
+- Generating, scheduled, not due yet, no-results and failed stay distinct.
 - Keep what the user typed when a save fails.
 - Safety stops and crashes are separate, and so are "switched off" and "not
   built yet".
@@ -31,6 +31,10 @@ recipient's moments, Gift Ideas with nothing pending, and the FAQ.
 
 **Deferred / not due yet** — `StateCopy.giftIdeasNotDue(name, occasion)`. Gift
 Ideas only.
+
+**Scheduled** — `StateCopy.giftIdeasScheduled(occasion)`. Gift Ideas only: an
+occasion inside the lead window with no run in flight, waiting for the next
+daily pass (the add flow generates only the soonest occasion).
 
 **True no-results** — `StateCopy.giftIdeasNoResults(name)`. Gift Ideas only.
 

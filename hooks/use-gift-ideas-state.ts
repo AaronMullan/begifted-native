@@ -14,8 +14,9 @@ import type { GiftIdeasEmptyState } from "../components/gifts/gift-ideas-state";
 export const GIFT_STATE_POLL_MS = 10000;
 
 /** How long to keep watching an in-window occasion that has no run yet. The
- * add flow's run stamps within seconds; past this, the next one is the daily
- * cron, which isn't worth polling for. */
+ * add flow's run stamps within seconds of the add, and until it does its
+ * occasion reads as scheduled; past this, the next run is the daily cron,
+ * which isn't worth polling for. */
 const UNSTARTED_POLL_MAX_MS = 5 * 60 * 1000;
 
 /**
@@ -84,7 +85,7 @@ export function useGiftIdeasState({
     !!recipientId &&
     focused &&
     listEmpty &&
-    emptyState === "generating" &&
+    (emptyState === "generating" || emptyState === "scheduled") &&
     (clientGenerating ||
       (occasion !== null && isGenerationInFlight(occasion, now)) ||
       // `now` only advances on a successful fetch, so a failing one must not

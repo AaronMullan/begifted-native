@@ -3,7 +3,7 @@ import { daysUntil } from "../../utils/home-occasions";
 import { getNextOccurrence } from "../../utils/occasion-dates";
 
 export type GiftIdeasEmptyState =
-  "generating" | "not_due" | "no_results" | "failed" | "empty";
+  "generating" | "scheduled" | "not_due" | "no_results" | "failed" | "empty";
 
 /** Mirrors the backend cron's DEFAULT_LEAD_DAYS for users with no stored value. */
 export const DEFAULT_LEAD_DAYS = 21;
@@ -61,9 +61,11 @@ function isCurrentCycle(occasion: GenerationOccasion): boolean {
  * Which message an empty Gift Ideas list shows, from what the server knows
  * about the occasion's generation. Only meaningful when no gift is visible.
  *
- * An in-window occasion with no recorded run reads as generating: the add flow
- * or the next daily cron pass is due to fill it. A run whose start stamp went
- * stale without clearing reads as failed.
+ * An in-window occasion with no run in flight reads as scheduled, not
+ * generating: the add flow fills only the soonest occasion, so a second one in
+ * the window waits for the next daily cron pass, and a "getting ready" screen
+ * would pair it with the notification the add flow sends for the other one. A
+ * run whose start stamp went stale without clearing reads as failed.
  */
 export function giftIdeasEmptyState({
   occasion,
@@ -102,7 +104,7 @@ export function giftIdeasEmptyState({
   if (days === null || days < 0) return "empty";
   if (days > leadDays) return "not_due";
   if (current && occasion.last_generation_status === "success") return "empty";
-  return "generating";
+  return "scheduled";
 }
 
 /**
