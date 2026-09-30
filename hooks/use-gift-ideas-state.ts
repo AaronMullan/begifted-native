@@ -69,15 +69,21 @@ export function useGiftIdeasState({
   // with every poll, so a start stamp that goes stale mid-visit flips to failed.
   const now = dataUpdatedAt;
   const list = occasions ?? [];
-  const nextOccasion = pickStateOccasion(list, now);
   const occasion = occasionId
     ? (list.find((o) => o.id === occasionId) ?? null)
-    : nextOccasion;
-  // A screen-started run generates only the soonest occasion, so a list
-  // filtered to any other one isn't generating because of it.
+    : pickStateOccasion(list, now);
+  // A screen-started run generates only one occasion, so a list filtered to
+  // any other one isn't generating because of it. The target is picked the way
+  // /api/generate-gifts picks it — soonest stored date on or after today in
+  // UTC — not by next occurrence, since an annual row keeps last year's date
+  // until the cron re-dates it.
+  const todayUtc = new Date(now).toISOString().slice(0, 10);
+  const runTargetId = list
+    .filter((o) => o.date && o.date >= todayUtc)
+    .sort((a, b) => (a.date as string).localeCompare(b.date as string))[0]?.id;
   const runCoversList =
     clientGenerating &&
-    (!occasionId || !occasions || occasion?.id === nextOccasion?.id);
+    (!occasionId || !occasions || occasionId === runTargetId);
   const emptyState = giftIdeasEmptyState({
     occasion,
     leadDays: preferences?.notification_lead_days ?? DEFAULT_LEAD_DAYS,
