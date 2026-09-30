@@ -31,10 +31,12 @@ export function compareContactsByName(a: DeviceContact, b: DeviceContact) {
   return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
 }
 
-export type DeviceContactsResult = {
-  contacts: DeviceContact[];
-  limitedAccess: boolean;
-};
+// "denied" is the user refusing access (remedy: Settings); "failed" is the OS
+// erroring on the permission request or the read (remedy: try again).
+export type DeviceContactsResult =
+  | { status: "ok"; contacts: DeviceContact[]; limitedAccess: boolean }
+  | { status: "denied" }
+  | { status: "failed" };
 
 export function useDeviceContacts() {
   const [loading, setLoading] = useState(false);
@@ -86,10 +88,12 @@ export function useDeviceContacts() {
     }
   }
 
-  // Resolves to the imported contacts, or null when the import failed
-  // (permission denied or an expo-contacts error) so callers can offer a
-  // retry / add-manually fallback.
-  async function getDeviceContacts(): Promise<DeviceContactsResult | null> {
+  async function getDeviceContacts(): Promise<DeviceContactsResult> {
+    // A browser has no device contacts to refuse, so "denied" would send the
+    // user to a Settings page that doesn't exist (and Linking.openSettings is
+    // missing on react-native-web).
+    if (Platform.OS === "web") return { status: "failed" };
+
     setLoading(true);
 
     let hasPermission = false;
@@ -103,11 +107,11 @@ export function useDeviceContacts() {
         tags: { flow: "contact_import", stage: "permission_request" },
       });
       setLoading(false);
-      return null;
+      return { status: "failed" };
     }
     if (!hasPermission) {
       setLoading(false);
-      return null;
+      return { status: "denied" };
     }
 
     try {
@@ -160,13 +164,13 @@ export function useDeviceContacts() {
       // getContactsAsync sort option) so both fetch paths and all platforms
       // agree, and the picker lists names alphabetically.
       filteredContacts.sort(compareContactsByName);
-      return { contacts: filteredContacts, limitedAccess };
+      return { status: "ok", contacts: filteredContacts, limitedAccess };
     } catch (error) {
       console.error("Error fetching contacts:", error);
       Sentry.captureException(error, {
         tags: { flow: "contact_import", stage: "fetch_without_images" },
       });
-      return null;
+      return { status: "failed" };
     } finally {
       setLoading(false);
     }
@@ -174,7 +178,7 @@ export function useDeviceContacts() {
 
   // Opens iOS's picker for sharing additional contacts, then reloads the
   // list. Resolves like getDeviceContacts.
-  async function chooseMoreContacts(): Promise<DeviceContactsResult | null> {
+  async function chooseMoreContacts(): Promise<DeviceContactsResult> {
     try {
       await Contacts.presentAccessPickerAsync();
     } catch (error) {

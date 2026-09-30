@@ -25,6 +25,7 @@ export default function HomeEmptyState() {
     pickerVisible,
     accessIntroVisible,
     importFailedVisible,
+    importFailure,
     deviceContacts,
     limitedAccess,
     chooseMoreContacts,
@@ -118,6 +119,7 @@ export default function HomeEmptyState() {
       />
       <ContactsImportFailedModal
         visible={importFailedVisible}
+        reason={importFailure}
         onRetry={retryImport}
         onAddManuallyPress={handleAddManually}
         onClose={closeImportFailed}
