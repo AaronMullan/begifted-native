@@ -51,7 +51,7 @@ const PeopleRecipientCard: React.FC<PeopleRecipientCardProps> = ({
   const handleConfirmDelete = () => {
     if (!user) return;
     deleteRecipient.mutate(
-      { userId: user.id, recipientId: recipient.id },
+      { userId: user.id, recipientId: recipient.id, name: recipient.name },
       {
         onSuccess: () => setConfirmVisible(false),
         onError: () => setConfirmVisible(false),

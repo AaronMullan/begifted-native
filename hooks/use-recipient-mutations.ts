@@ -163,6 +163,8 @@ export function useUpdateRecipient() {
 type DeleteRecipientVariables = {
   userId: string;
   recipientId: string;
+  /** Names the person in the failure message. */
+  name: string;
 };
 
 /**
@@ -187,7 +189,7 @@ export function useDeleteRecipient() {
     ...makeMutationHandlers<void, DeleteRecipientVariables>({
       queryClient,
       label: "useDeleteRecipient",
-      errorMessage: "Couldn't delete this person. Please try again.",
+      errorMessage: (_, variables) => StateCopy.deleteFailed(variables.name),
       // Dashboard derives from recipients and occasions; gift suggestions
       // for the deleted recipient are stale too
       invalidateKeys: (_, variables) => [

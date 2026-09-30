@@ -147,6 +147,8 @@ export function useCreateOccasion() {
 type DeleteOccasionVariables = {
   occasionId: string;
   recipientId: string;
+  /** Names the occasion in the failure message, as the confirm dialog did. */
+  name: string;
 };
 
 /**
@@ -165,7 +167,7 @@ export function useDeleteOccasion() {
     ...makeMutationHandlers<void, DeleteOccasionVariables>({
       queryClient,
       label: "useDeleteOccasion",
-      errorMessage: "Couldn't delete the occasion. Please try again.",
+      errorMessage: (_, variables) => StateCopy.deleteFailed(variables.name),
       invalidateKeys: (_, variables) => [
         ...(user ? [queryKeys.occasions(user.id)] : []),
         queryKeys.recipientOccasions(variables.recipientId),

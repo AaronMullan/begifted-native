@@ -164,9 +164,7 @@ export default function ProfileSettings() {
       showSnackbar("Your account has been deleted.");
     } catch {
       setConfirmDeleteVisible(false);
-      showSnackbar(
-        "Couldn't delete your account. Please try again or contact support."
-      );
+      showSnackbar(StateCopy.deleteFailed("your account"));
     } finally {
       setDeleting(false);
     }

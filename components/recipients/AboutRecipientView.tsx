@@ -170,7 +170,11 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
   const handleConfirmDeleteOccasion = () => {
     if (!occasionToDelete) return;
     deleteOccasion.mutate(
-      { occasionId: occasionToDelete.id, recipientId: recipient.id },
+      {
+        occasionId: occasionToDelete.id,
+        recipientId: recipient.id,
+        name: formatOccasionType(occasionToDelete.occasion_type),
+      },
       { onSettled: () => setOccasionToDelete(null) }
     );
   };

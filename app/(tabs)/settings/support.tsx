@@ -106,7 +106,7 @@ export default function SupportSettings() {
     });
     setSending(false);
     if (error) {
-      showSnackbar("Couldn't send your message — please try again.");
+      showSnackbar(StateCopy.sendFailed);
       return;
     }
     setSent(true);

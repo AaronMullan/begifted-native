@@ -14,6 +14,7 @@ import type { BetaCheckInScreen } from "../../lib/api";
 import { useSubmitBetaFeedback } from "../../hooks/use-submit-beta-feedback";
 import { Colors } from "../../lib/colors";
 import { Typography } from "../../lib/typography";
+import { StateCopy } from "../../lib/state-copy";
 
 export type ChipQuestion = {
   // Key this question's answer lands under in the `responses` jsonb.
@@ -223,7 +224,7 @@ export default function BetaFeedbackModal({
         onDismiss={() => setErrorVisible(false)}
         duration={3000}
       >
-        Could not send — please try again.
+        {StateCopy.sendFailed}
       </Snackbar>
     </Modal>
   );
