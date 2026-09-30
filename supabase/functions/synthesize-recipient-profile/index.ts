@@ -33,18 +33,19 @@ const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 const SYSTEM_PROMPT = `You are a gift recipient profile synthesizer for a personalized gift app.
 
-Given information about a gift recipient — their relationship to the giver, interests, preferences, budget, location, and upcoming occasions — write a 3-5 sentence natural-language profile that captures who they are as a person.
+Given information about a gift recipient — their relationship to the giver, interests, preferences, budget, location, and upcoming occasions — write a 1-4 sentence natural-language profile that captures who they are as a person.
 
 Focus on describing the person, not recommending gifts. A separate step handles gift selection — your job is to give it rich, accurate context about who this recipient is.
 
 Draw from ALL available signals:
 - Relationship type and any location context
 - Interests and hobbies
-- Emotional tone preference (e.g. sentimental, practical, fun)
 - Budget range
 - Gift outcomes: gifts the giver chose for them, and gifts judged wrong (already owned, not for them, poor quality). Read these together as evidence of taste — what a chosen gift and a rejected one reveal about the person — and describe the person they point to. Do not list or repeat the gifts themselves.
 
-Write in third person (e.g. "Sarah is..."). Be specific and concrete. Surface personality, lifestyle, and values — not gift ideas or upcoming events.
+Write in third person (e.g. "Sarah is..."). Be specific and concrete. Surface personality, lifestyle, and values where the context shows them — not gift ideas or upcoming events.
+
+GIFT TONE: do not describe how gifts for this person should feel. The app appends that separately.
 
 AGE & DATES — read carefully:
 - Only state the recipient's age if an explicit "Age:" line is given in the context below. Never guess, estimate, or infer an age from anything else.
@@ -56,9 +57,13 @@ Also extract two structured fields that downstream occasion suggestions consume:
 - knownRoles: an array of life roles this recipient plays that could unlock role-specific gifting occasions (Mother's Day, Father's Day, Teacher Appreciation, etc.). Use lowercase strings. Examples: "mother", "father", "grandmother", "grandfather", "teacher", "nurse", "caregiver", "veteran". Only include a role if the signal is explicit or strongly implied by the input. The relationship_type may itself imply a role (e.g. "mom" → ["mother"], "mother-in-law" → ["mother"]). Do not invent roles.
 - householdContext: a short free-form sentence describing the recipient's household when known — partner/spouse, children and approximate ages, pets, cohabitants. Empty string if no signal.
 
+STAY WITH WHAT IS KNOWN (applies to synthesized_profile):
+- Every statement about the recipient must come from the context. Do not guess at lifestyle, values, personality, or daily life from location, relationship, budget, or a single interest — no "likely", "probably", "suggests", or "may" statements about the person. "Living in the US, she is likely balancing school…" is exactly what to avoid.
+- When the context is thin, write fewer sentences (as few as 1) rather than pad. State plainly what is known; do not comment on what is missing. Do not end with a summary sentence restating what came before.
+
 Return ONLY valid JSON:
 {
-  "synthesized_profile": "3-5 sentence profile here",
+  "synthesized_profile": "1-4 sentence profile here",
   "knownRoles": ["lowercase_role", ...],
   "householdContext": "short sentence or empty string"
 }`;
@@ -154,23 +159,34 @@ serve(async (req) => {
       parts.push(`Interests: ${recipient.interests.join(", ")}`);
     }
 
-    // Tone: prefer the recipient's own tone. When it's unset, fall back to the
-    // giver's onboarding-derived default tone (DEV-99) so gift generation still
-    // reflects how this user likes to give, rather than no tone at all.
-    const recipientTone = recipient.emotional_tone_preference?.trim();
+    // The tone is how gifts should feel, not who the recipient is, so it stays
+    // out of the model's context — shown it, the model writes it up as the
+    // recipient's personality. It is appended to the profile as a label
+    // instead, because the profile is the only route by which tone reaches
+    // gift generation. The profile is shown to the giver, so the giver's
+    // onboarding-derived default (used when the recipient has no tone) is
+    // credited as "your usual style". Tone is free text ("Fun, thoughtful,
+    // design,"), hence the label form and the tidy-up.
+    const tidyTone = (tone: unknown): string => {
+      if (typeof tone !== "string") return "";
+      return tone
+        .replace(/\s+/g, " ")
+        .replace(/^["'\s]+|["'\s,.;:!?\u2026]+$/g, "")
+        .trim();
+    };
+    let toneSentence = "";
+    const recipientTone = tidyTone(recipient.emotional_tone_preference);
     if (recipientTone) {
-      parts.push(`Gift tone preference: ${recipientTone}`);
+      toneSentence = `Gift tone: ${recipientTone}.`;
     } else if (recipient.user_id) {
       const { data: prefs } = await supabase
         .from("user_preferences")
         .select("user_summary")
         .eq("user_id", recipient.user_id)
         .maybeSingle();
-      const defaultTone = prefs?.user_summary?.default_emotional_tone;
-      if (typeof defaultTone === "string" && defaultTone.trim()) {
-        parts.push(
-          `Gift tone preference (giver's default — this recipient has none set): ${defaultTone.trim()}`
-        );
+      const defaultTone = tidyTone(prefs?.user_summary?.default_emotional_tone);
+      if (defaultTone) {
+        toneSentence = `Gift tone: ${defaultTone}, carried over from your usual style.`;
       }
     }
 
@@ -260,10 +276,15 @@ serve(async (req) => {
       knownRoles?: unknown;
       householdContext?: unknown;
     };
-    const profile =
+    const synthesized =
       typeof parsed.synthesized_profile === "string"
-        ? parsed.synthesized_profile
+        ? parsed.synthesized_profile.trim()
         : "";
+    // An empty profile stays empty: gift generation treats it as missing.
+    const profile =
+      synthesized && toneSentence
+        ? `${synthesized} ${toneSentence}`
+        : synthesized;
     const knownRoles = Array.isArray(parsed.knownRoles)
       ? parsed.knownRoles
           .filter((r: unknown): r is string => typeof r === "string")
