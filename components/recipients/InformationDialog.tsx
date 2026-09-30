@@ -196,12 +196,13 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
                 label="Holidays they celebrate"
                 defaultValue={culturalContext}
                 onChangeText={setCulturalContext}
+                placeholder="Diwali, Passover, Lunar New Year"
                 multiline
                 style={styles.input}
               />
               <HelperText type="info" visible>
-                Only what you tell us — we never guess this. Clear the box to
-                remove it.
+                Holidays listed here shape which moments come up for them. Leave
+                it blank if you&apos;re not sure.
               </HelperText>
               <TextInput
                 mode="outlined"
