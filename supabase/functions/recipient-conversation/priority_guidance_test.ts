@@ -94,3 +94,21 @@ Deno.test("the block never instructs the model to ask", () => {
     "Already captured — do not ask for these again:\n- name"
   );
 });
+
+Deno.test("dates are not announced before an occasion exists", () => {
+  // The runtime derives has_timing_anchor true when nothing is pending, which
+  // is also the case before any occasion has been named.
+  const g = buildPriorityGuidance(
+    ctx({
+      name: "Sarah",
+      relationship: "friend",
+      readiness: {
+        ...NOTHING_CAPTURED,
+        state: "captured_needs_occasion",
+        has_recipient_anchor: true,
+        has_timing_anchor: true,
+      },
+    })
+  );
+  assert(!g.includes("all required dates"));
+});

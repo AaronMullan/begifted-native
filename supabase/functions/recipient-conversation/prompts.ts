@@ -87,7 +87,11 @@ export function buildPriorityGuidance(contextInfo: ContextInfo): string {
   if (hasName && hasRelationship) captured.push("name and relationship");
   else if (hasName) captured.push("name");
   if (readiness?.has_occasion_anchor) captured.push("occasion");
-  if (readiness?.has_timing_anchor) captured.push("all required dates");
+  // Timing reads as satisfied whenever nothing is pending, including before any
+  // occasion is named — only announce it once there is an occasion to date.
+  if (readiness?.has_occasion_anchor && readiness.has_timing_anchor) {
+    captured.push("all required dates");
+  }
   if (readiness?.has_price_anchor) captured.push("gift amount");
   if (readiness?.has_age_anchor) captured.push("age or life stage");
 
