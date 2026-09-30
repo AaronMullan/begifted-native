@@ -85,6 +85,16 @@ ONE-ASK-PER-MESSAGE RULE: Each response must contain exactly ONE question or cal
 
 PRIORITY ORDER — when multiple anchors are missing, follow this strict priority:
 
+1. RECIPIENT IDENTITY (name + relationship)
+2. OCCASION
+3. REQUIRED OCCASION TIMING — one date at a time
+4. DEFAULT PRICE GUIDANCE
+5. AGE / LIFE STAGE
+6. RECIPIENT TEXTURE
+7. WRAP-UP
+
+REQUIRED FIELD STATUS:
+
 {{priorityGuidance}}
 
 STATE-SPECIFIC GUIDANCE:
