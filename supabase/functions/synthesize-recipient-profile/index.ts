@@ -161,24 +161,33 @@ serve(async (req) => {
 
     // The tone is how gifts should feel, not who the recipient is, so it stays
     // out of the model's context — shown it, the model writes it up as the
-    // recipient's personality. It is appended to the profile verbatim instead,
-    // because the profile is the only route by which tone reaches gift
-    // generation. With no recipient tone, the giver's onboarding-derived
-    // default stands in, credited to the giver.
-    const recipientName = recipient.name?.trim() || "them";
+    // recipient's personality. It is appended to the profile as a label
+    // instead, because the profile is the only route by which tone reaches
+    // gift generation. The profile is shown to the giver, so the giver's
+    // onboarding-derived default (used when the recipient has no tone) is
+    // credited as "your usual style". Tone is free text ("Fun, thoughtful,
+    // design,"), hence the label form and the tidy-up.
+    const tidyTone = (tone: unknown): string => {
+      if (typeof tone !== "string") return "";
+      const t = tone
+        .replace(/\s+/g, " ")
+        .replace(/[\s,.;:!]+$/, "")
+        .trim();
+      return t ? t.charAt(0).toLowerCase() + t.slice(1) : "";
+    };
     let toneSentence = "";
-    const recipientTone = recipient.emotional_tone_preference?.trim();
+    const recipientTone = tidyTone(recipient.emotional_tone_preference);
     if (recipientTone) {
-      toneSentence = `Gifts for ${recipientName} should feel ${recipientTone}.`;
+      toneSentence = `Gift tone: ${recipientTone}.`;
     } else if (recipient.user_id) {
       const { data: prefs } = await supabase
         .from("user_preferences")
         .select("user_summary")
         .eq("user_id", recipient.user_id)
         .maybeSingle();
-      const defaultTone = prefs?.user_summary?.default_emotional_tone;
-      if (typeof defaultTone === "string" && defaultTone.trim()) {
-        toneSentence = `Gifts for ${recipientName} should carry the giver's usual ${defaultTone.trim()} feel.`;
+      const defaultTone = tidyTone(prefs?.user_summary?.default_emotional_tone);
+      if (defaultTone) {
+        toneSentence = `Gift tone: ${defaultTone}, carried over from your usual style.`;
       }
     }
 
