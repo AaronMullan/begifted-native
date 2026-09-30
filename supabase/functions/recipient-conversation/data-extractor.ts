@@ -375,7 +375,7 @@ Return JSON with what's been established:
     recipientName,
     textureNeedsFollowup
   );
-  const priorityGuidance = buildPriorityGuidance(contextInfo, recipientName);
+  const priorityGuidance = buildPriorityGuidance(contextInfo);
 
   // Interpolate all template variables into a prompt string
   function interpolatePrompt(template: string): string {

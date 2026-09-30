@@ -65,66 +65,36 @@ export function buildStateGuidance(
   }
 }
 
-export function buildPriorityGuidance(
-  contextInfo: ContextInfo,
-  recipientName: string
-): string {
-  const pendingDates = contextInfo.occasions_needing_dates ?? [];
-  const nextPendingDate =
-    pendingDates[0] ?? contextInfo.occasion_needing_date ?? null;
-  const timingGuidance = nextPendingDate
-    ? `Ask ONLY for the date of "${nextPendingDate}" (pending: ${
-        pendingDates.join(", ") || nextPendingDate
-      }).`
-    : "Not currently needed.";
-
+export function buildPriorityGuidance(contextInfo: ContextInfo): string {
   // Captured-field flags read from the SINGLE canonical state: the runtime has
   // already written the derived readiness anchors onto contextInfo.readiness
-  // (deriveAddRecipientReadiness) before this runs. Marking each field captured
-  // here — rather than leaving the model to re-derive it from raw contextInfo —
-  // is what keeps question-selection in agreement with the readiness/completion
-  // gates: a field satisfied in canonical state is announced as captured so the
-  // model never re-asks it (the "What's your relationship to Sarah?" re-ask of an
-  // already-known field). This is field-agnostic; no relationship special-case.
+  // (deriveAddRecipientReadiness) before this runs. Announcing each satisfied
+  // field here — rather than leaving the model to re-derive it from raw
+  // contextInfo — keeps question-selection in agreement with the
+  // readiness/completion gates, so the model never re-asks a known field.
+  //
+  // Captured fields only — never an "ask for X" line. The block sits at the end
+  // of the prompt, after the refusal rules, and an ask instruction there
+  // outranks them (an unsafe request gets an identity question, not a
+  // decline). The prompt owns question order and wording.
   const hasName = !!(contextInfo.name || contextInfo.existing_name);
   const hasRelationship = !!(
     contextInfo.relationship || contextInfo.existing_relationship
   );
   const readiness = contextInfo.readiness;
-  const hasOccasion = !!readiness?.has_occasion_anchor;
-  const hasTiming = !!readiness?.has_timing_anchor;
-  const hasPrice = !!readiness?.has_price_anchor;
-  const hasAge = !!readiness?.has_age_anchor;
 
-  // "Do NOT ask again" for a captured field; the normal ask instruction for a
-  // missing one. Keeps the required-field order visible while making the
-  // canonical captured-state authoritative over the model's own reading.
-  const identityStatus =
-    hasName && hasRelationship
-      ? "✓ already captured (name + relationship) — do NOT ask who this person is again."
-      : hasName
-        ? "name captured; relationship still missing — ask ONLY how the user knows/relates to this person."
-        : "if not yet captured, ask about who this person is.";
-  const occasionStatus = hasOccasion
-    ? "✓ already captured — do NOT ask for an occasion again."
-    : "if no giftable moment identified, ask what occasion(s) they're shopping for.";
-  const timingStatus = hasTiming
-    ? "✓ all required dates captured — do NOT ask for a date again."
-    : `for every non-inferable occasion lacking a date, ask one at a time. ${timingGuidance}`;
-  const priceStatus = hasPrice
-    ? "✓ already captured — do NOT ask about spend again."
-    : `ask how much the user would like to spend for ${recipientName}. If multiple occasions, ask person-level (not occasion-specific).`;
-  const ageStatus = hasAge
-    ? "✓ already captured — do NOT ask about age/life stage again."
-    : `required for every recipient. If we have neither an age or life stage nor a full birthday (with a year) for ${recipientName}, ask for it (a full birthday including the year works too — it lets us derive the age). Do not infer from relationship, hobbies, or occasion. Do not move to texture until this is captured.`;
+  const captured: string[] = [];
+  if (hasName && hasRelationship) captured.push("name and relationship");
+  else if (hasName) captured.push("name");
+  if (readiness?.has_occasion_anchor) captured.push("occasion");
+  if (readiness?.has_timing_anchor) captured.push("all required dates");
+  if (readiness?.has_price_anchor) captured.push("gift amount");
+  if (readiness?.has_age_anchor) captured.push("age or life stage");
 
-  return `1. RECIPIENT IDENTITY (name + relationship) — ${identityStatus}
-2. OCCASION — ${occasionStatus}
-3. REQUIRED OCCASION TIMING — ${timingStatus}
-4. DEFAULT PRICE GUIDANCE — ${priceStatus}
-5. AGE / LIFE STAGE — ${ageStatus}
-6. RECIPIENT TEXTURE — ask the user to describe ${recipientName} naturally ("Tell me a little about ${recipientName} — what's [he/she/they] like?").
-7. WRAP-UP — all required information captured. Use the exact ready response.`;
+  if (captured.length === 0) return "Nothing captured yet.";
+  return `Already captured — do not ask for these again:\n${captured
+    .map((field) => `- ${field}`)
+    .join("\n")}`;
 }
 
 // Default wrap-up message shown when the conversation reaches the "ready" state.
@@ -160,6 +130,16 @@ YOUR GOAL: Collect the minimum information needed to generate personalized, non-
 ONE-ASK-PER-MESSAGE RULE: Each response must contain exactly ONE question or call-to-action. Never combine multiple asks (e.g., don't ask for a date AND hobbies in the same message).
 
 PRIORITY ORDER — when multiple anchors are missing, follow this strict priority:
+
+1. RECIPIENT IDENTITY (name + relationship)
+2. OCCASION
+3. REQUIRED OCCASION TIMING — one date at a time
+4. DEFAULT PRICE GUIDANCE
+5. AGE / LIFE STAGE
+6. RECIPIENT TEXTURE
+7. WRAP-UP
+
+REQUIRED FIELD STATUS:
 
 {{priorityGuidance}}
 

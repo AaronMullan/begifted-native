@@ -1,4 +1,4 @@
-import { assert, assertStringIncludes } from "jsr:@std/assert@1";
+import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert@1";
 import { buildPriorityGuidance } from "./prompts.ts";
 import type { ContextInfo } from "../types.ts";
 
@@ -26,70 +26,71 @@ function ctx(partial: Partial<ContextInfo>): ContextInfo {
   };
 }
 
+const NOTHING_CAPTURED = {
+  state: "not_captured" as const,
+  gift_ready: false,
+  has_recipient_anchor: false,
+  has_occasion_anchor: false,
+  has_timing_anchor: false,
+  has_price_anchor: false,
+  has_age_anchor: false,
+  has_specificity_anchor: false,
+  missing_requirements: [],
+  reason: "",
+};
+
 Deno.test(
   "relationship captured from the first message is marked do-not-ask",
   () => {
     const g = buildPriorityGuidance(
-      ctx({ name: "Sarah", relationship: "friend" }),
-      "Sarah"
+      ctx({ name: "Sarah", relationship: "friend" })
     );
-    assertStringIncludes(g, "already captured (name + relationship)");
-    assert(
-      !/ask about who this person is/i.test(g),
-      "must not tell the model to ask for identity once captured"
-    );
+    assertStringIncludes(g, "do not ask for these again");
+    assertStringIncludes(g, "- name and relationship");
   }
 );
 
-Deno.test("a missing field still gets its normal ask instruction", () => {
+Deno.test("an uncaptured field is not listed as captured", () => {
   const g = buildPriorityGuidance(
     ctx({
       name: "Sarah",
       relationship: "friend",
       readiness: {
+        ...NOTHING_CAPTURED,
         state: "captured_needs_price",
-        gift_ready: false,
         has_recipient_anchor: true,
         has_occasion_anchor: true,
         has_timing_anchor: true,
-        has_price_anchor: false,
-        has_age_anchor: false,
-        has_specificity_anchor: false,
-        missing_requirements: [],
-        reason: "",
       },
-    }),
-    "Sarah"
+    })
   );
-  // Captured fields marked done…
-  assertStringIncludes(g, "already captured (name + relationship)");
-  // …price still open, so the ask survives.
-  assertStringIncludes(g, "how much the user would like to spend for Sarah");
-  assert(
-    !/do NOT ask about spend again/i.test(g),
-    "an uncaptured field must not be marked captured"
-  );
+  assertStringIncludes(g, "- name and relationship");
+  assertStringIncludes(g, "- occasion");
+  assertStringIncludes(g, "- all required dates");
+  assert(!g.includes("gift amount"), "price is still open");
+  assert(!g.includes("age or life stage"), "age is still open");
 });
 
-Deno.test("name without relationship asks only for the relationship", () => {
+Deno.test("name without relationship lists only the name", () => {
   const g = buildPriorityGuidance(
-    ctx({
-      name: "Sarah",
-      relationship: null,
-      readiness: {
-        state: "not_captured",
-        gift_ready: false,
-        has_recipient_anchor: false,
-        has_occasion_anchor: false,
-        has_timing_anchor: false,
-        has_price_anchor: false,
-        has_age_anchor: false,
-        has_specificity_anchor: false,
-        missing_requirements: [],
-        reason: "",
-      },
-    }),
-    "Sarah"
+    ctx({ name: "Sarah", relationship: null, readiness: NOTHING_CAPTURED })
   );
-  assertStringIncludes(g, "relationship still missing");
+  assertStringIncludes(g, "- name");
+  assert(!g.includes("relationship"), "relationship is still open");
+});
+
+// The block sits after the prompt's refusal rules; an ask instruction there
+// outranks them, so it must never tell the model to ask for anything.
+Deno.test("the block never instructs the model to ask", () => {
+  assertEquals(
+    buildPriorityGuidance(ctx({ readiness: NOTHING_CAPTURED })),
+    "Nothing captured yet."
+  );
+  const partial = buildPriorityGuidance(
+    ctx({ name: "Sarah", readiness: NOTHING_CAPTURED })
+  );
+  assertEquals(
+    partial,
+    "Already captured — do not ask for these again:\n- name"
+  );
 });
