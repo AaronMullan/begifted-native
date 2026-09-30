@@ -56,6 +56,7 @@ export default function Contacts() {
     pickerVisible,
     accessIntroVisible,
     importFailedVisible,
+    importFailure,
     isAddingContacts,
     deviceContacts,
     limitedAccess,
@@ -186,6 +187,7 @@ export default function Contacts() {
         />
         <ContactsImportFailedModal
           visible={importFailedVisible}
+          reason={importFailure}
           onRetry={retryImport}
           onAddManuallyPress={handleAddManually}
           onClose={closeImportFailed}

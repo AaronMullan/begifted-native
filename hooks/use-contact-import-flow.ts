@@ -69,6 +69,10 @@ export function useContactImportFlow() {
   const [pickerVisible, setPickerVisible] = useState(false);
   const [accessIntroVisible, setAccessIntroVisible] = useState(false);
   const [importFailedVisible, setImportFailedVisible] = useState(false);
+  // Not cleared on close, so the modal keeps its copy through the fade-out.
+  const [importFailure, setImportFailure] = useState<"denied" | "failed">(
+    "failed"
+  );
   const [isAddingContacts, setIsAddingContacts] = useState(false);
   const [deviceContacts, setDeviceContacts] = useState<DeviceContact[]>([]);
   const [limitedAccess, setLimitedAccess] = useState(false);
@@ -86,7 +90,8 @@ export function useContactImportFlow() {
   const continueWithAccess = async () => {
     setAccessIntroVisible(false);
     const result = await getDeviceContacts();
-    if (result === null) {
+    if (result.status !== "ok") {
+      setImportFailure(result.status);
       setImportFailedVisible(true);
       return;
     }
@@ -107,7 +112,7 @@ export function useContactImportFlow() {
     choosingMoreRef.current = true;
     try {
       const result = await requestMoreContacts();
-      if (result === null) return;
+      if (result.status !== "ok") return;
       setDeviceContacts(result.contacts);
       setLimitedAccess(result.limitedAccess);
     } finally {
@@ -210,6 +215,7 @@ export function useContactImportFlow() {
     pickerVisible,
     accessIntroVisible,
     importFailedVisible,
+    importFailure,
     isAddingContacts,
     deviceContacts,
     limitedAccess,

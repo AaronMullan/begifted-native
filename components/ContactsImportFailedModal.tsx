@@ -1,11 +1,13 @@
 import { Linking, Modal, Pressable, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 import { Colors } from "../lib/colors";
+import { StateCopy } from "../lib/state-copy";
 import { Typography } from "../lib/typography";
 import { PrimaryCta } from "./PrimaryCta";
 
 type ContactsImportFailedModalProps = {
   visible: boolean;
+  reason: "denied" | "failed";
   onRetry: () => void;
   onAddManuallyPress: () => void;
   onClose: () => void;
@@ -13,9 +15,12 @@ type ContactsImportFailedModalProps = {
 
 // Figma "People List — Contacts Import Failed" (5477:4145), Modal/Confirmation
 // instance 5477:4270. Plain RN Modal for exact centering (the documented Paper
-// Dialog exception).
+// Dialog exception). A refused permission gets the Permission Required state
+// (fixed only in Settings, so no Try Again); a failed read gets the
+// Recoverable Failure state (retrying can work, Settings can't help).
 const ContactsImportFailedModal: React.FC<ContactsImportFailedModalProps> = ({
   visible,
+  reason,
   onRetry,
   onAddManuallyPress,
   onClose,
@@ -28,29 +33,31 @@ const ContactsImportFailedModal: React.FC<ContactsImportFailedModalProps> = ({
   >
     <Pressable style={styles.backdrop} onPress={onClose}>
       <Pressable style={styles.card} onPress={() => {}}>
-        <Text style={styles.title}>Contacts Import Failed</Text>
+        <Text style={styles.title}>
+          {reason === "denied" ? "Contacts Access" : "Contacts Import Failed"}
+        </Text>
         <Text style={styles.body}>
-          We couldn&apos;t load your contacts. Check your permissions and try
-          again, or add people manually instead.
+          {reason === "denied"
+            ? StateCopy.permission(
+                "contacts access in Settings",
+                "add people from your contacts"
+              )
+            : StateCopy.loadFailed("your contacts")}
         </Text>
         <View style={styles.buttonRow}>
-          <PrimaryCta label="Try Again" onPress={onRetry} />
-          <Pressable
-            // Lands on the app's own iOS settings page, which holds the
-            // Contacts toggle (and the iOS 18+ limited-access level), so the
-            // user isn't left hunting through Settings by hand.
-            onPress={() => {
-              Linking.openSettings().catch(() => {});
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Open iOS Settings"
-            style={({ pressed }) => [
-              styles.secondaryButton,
-              pressed && styles.secondaryPressed,
-            ]}
-          >
-            <Text style={styles.secondaryLabel}>Open Settings</Text>
-          </Pressable>
+          {reason === "denied" ? (
+            <PrimaryCta
+              label="Open Settings"
+              // Lands on the app's own iOS settings page, which holds the
+              // Contacts toggle (and the iOS 18+ limited-access level), so the
+              // user isn't left hunting through Settings by hand.
+              onPress={() => {
+                Linking.openSettings().catch(() => {});
+              }}
+            />
+          ) : (
+            <PrimaryCta label="Try Again" onPress={onRetry} />
+          )}
           <Pressable
             onPress={onAddManuallyPress}
             accessibilityRole="button"

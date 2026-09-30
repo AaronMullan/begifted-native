@@ -51,6 +51,7 @@ const GiftGenerationWaiting: React.FC<Props> = ({ recipientName }) => {
     pickerVisible,
     accessIntroVisible,
     importFailedVisible,
+    importFailure,
     deviceContacts,
     limitedAccess,
     chooseMoreContacts,
@@ -155,6 +156,7 @@ const GiftGenerationWaiting: React.FC<Props> = ({ recipientName }) => {
       />
       <ContactsImportFailedModal
         visible={importFailedVisible}
+        reason={importFailure}
         onRetry={retryImport}
         onAddManuallyPress={goToAddManually}
         onClose={closeImportFailed}

@@ -16,6 +16,7 @@ export default function AddPeopleTile() {
     pickerVisible,
     accessIntroVisible,
     importFailedVisible,
+    importFailure,
     deviceContacts,
     limitedAccess,
     chooseMoreContacts,
@@ -79,6 +80,7 @@ export default function AddPeopleTile() {
       />
       <ContactsImportFailedModal
         visible={importFailedVisible}
+        reason={importFailure}
         onRetry={retryImport}
         onAddManuallyPress={goToAddManually}
         onClose={closeImportFailed}

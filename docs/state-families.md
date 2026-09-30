@@ -38,7 +38,8 @@ Ideas only.
 `StateMessage onRetry`.
 Launch routing (the onboarding check), Home people and upcoming moments, People
 list and card moments, Moments, Notifications inbox, recipient profile and its
-moments, Gift Ideas, the FAQ, and Settings → Profile / Gifting / Notifications.
+moments, Gift Ideas, the FAQ, Settings → Profile / Gifting / Notifications, and
+a contacts import whose read (or permission request) errors.
 
 **Recoverable failure (save)** — `StateCopy.saveFailed(thing)`.
 Every `makeMutationHandlers` hook (moment save/add/birthday move, profile,
@@ -54,8 +55,9 @@ would pause saves rather than fail them), so a load that fails offline still
 shows its load-failure state beneath the banner.
 
 **Permission required** — `StateCopy.permission(permission, benefit)`.
-Photo access (recipient photo, profile photo) and push notifications
-(Settings → Notifications).
+Photo access (recipient photo, profile photo), push notifications
+(Settings → Notifications), and a contacts import the user refused access to
+(with Open Settings in place of Try again).
 
 **User-disabled / switched off** — `StateCopy.disabled(feature)`.
 Signups closed by config (sign-in and intro sign-up), the notifications feed
@@ -87,8 +89,6 @@ These were left as they are rather than invented around:
   thing being got ready.
 - **"Recipient not found"** — a person that no longer exists isn't empty,
   failed or unavailable.
-- **Contacts import failure** can't tell a denied permission from a failed
-  read, so it can't pick between the permission and load-failure families.
 - **Auth errors** show Supabase's own message text ("Error: …"); a spine would
   drop the reason (wrong password, account exists).
 - **Validation hints** (date formats, password length) aren't states.
