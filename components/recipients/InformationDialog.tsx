@@ -201,8 +201,8 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
                 style={styles.input}
               />
               <HelperText type="info" visible>
-                The holidays listed here shape which moments and gift ideas come
-                up. Leave it blank if you&apos;re not sure.
+                Holidays listed here shape which moments come up for them. Leave
+                it blank if you&apos;re not sure.
               </HelperText>
               <TextInput
                 mode="outlined"

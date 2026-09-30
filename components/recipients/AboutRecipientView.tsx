@@ -449,8 +449,8 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
                   </Text>
                 ) : (
                   <Text style={styles.fieldHint}>
-                    None added yet. Holidays listed here shape which moments and
-                    gift ideas come up. Tap to add them.
+                    None added yet. Holidays listed here shape which moments
+                    come up for them. Tap to add them.
                   </Text>
                 )}
               </View>
