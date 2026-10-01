@@ -12,7 +12,7 @@ import {
 } from "../../../hooks/use-occasion-recommendations";
 import {
   lookupOccasionDate,
-  sanitizeExtractedOccasionDate,
+  getNextOccurrence,
   getNextAnnualOccurrence,
   formatOccasionDate,
 } from "../../../utils/occasion-dates";
@@ -85,12 +85,13 @@ export function OccasionsSelectionView({
         continue;
       }
 
-      // Unknown/custom types keep a real date; a missing or placeholder one
-      // becomes an undated "Add Date" row, which handleContinue drops unless
-      // the user dates it — the occasion stays visible without a fake date
-      // ever being saved.
+      // Unknown/custom types keep whatever real date they came with. Without
+      // one the row stays, undated ("Add Date"), and handleContinue drops it
+      // unless the user dates it. January 1 is not treated as a placeholder
+      // here: a contact's anniversary can genuinely fall on it.
+      const raw = occ.date?.trim() || "";
       fromConversation.push({
-        date: sanitizeExtractedOccasionDate(type, occ.date) ?? "",
+        date: /^\d{4}-\d{2}-\d{2}$/.test(raw) ? getNextOccurrence(raw) : "",
         occasion_type: type,
         enabled: true,
       });
