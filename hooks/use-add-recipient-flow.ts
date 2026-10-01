@@ -20,6 +20,7 @@ import {
 } from "../utils/birthday";
 import {
   getNextAnnualOccurrence,
+  nextBirthdayOccurrence,
   sanitizeExtractedOccasionDate,
 } from "../utils/occasion-dates";
 import {
@@ -70,6 +71,26 @@ function withContactAnniversary(
         ? getNextAnnualOccurrence(anniversary)
         : anniversary,
     },
+  ];
+}
+
+/**
+ * The extracted birthday occasion mirrors the birthday the conversation
+ * captured, which the review form can since have changed, added or cleared.
+ * Skip saves occasions without the occasions screen rebuilding that row, so
+ * rebuild it here from the birthday as it now stands.
+ */
+function withBirthdayOccasion(
+  occasions: ExtractedData["occasions"],
+  birthday: string | undefined
+): ExtractedData["occasions"] {
+  const date = nextBirthdayOccurrence(birthday);
+  if (!date) return occasions;
+  return [
+    { occasion_type: "birthday", date },
+    ...(occasions ?? []).filter(
+      (occasion) => occasion.occasion_type !== "birthday"
+    ),
   ];
 }
 
@@ -644,15 +665,18 @@ export function useAddRecipientFlow(
     // would otherwise read as a placeholder.
     await saveRecipient({
       ...extractedData,
-      occasions: withContactAnniversary(
-        extractedData.occasions?.map((occasion) => ({
-          ...occasion,
-          date: sanitizeExtractedOccasionDate(
-            occasion.occasion_type,
-            occasion.date
-          ),
-        })),
-        initialAnniversary
+      occasions: withBirthdayOccasion(
+        withContactAnniversary(
+          extractedData.occasions?.map((occasion) => ({
+            ...occasion,
+            date: sanitizeExtractedOccasionDate(
+              occasion.occasion_type,
+              occasion.date
+            ),
+          })),
+          initialAnniversary
+        ),
+        extractedData.birthday
       ),
     });
   };

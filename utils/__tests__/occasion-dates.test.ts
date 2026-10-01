@@ -4,6 +4,7 @@ import {
   getNextOccurrence,
   getNextAnnualOccurrence,
   lookupOccasionDate,
+  nextBirthdayOccurrence,
   sanitizeExtractedOccasionDate,
 } from "../occasion-dates";
 
@@ -290,5 +291,32 @@ describe("sanitizeExtractedOccasionDate", () => {
       sanitizeExtractedOccasionDate("end_of_tour", "next spring")
     ).toBeNull();
     expect(sanitizeExtractedOccasionDate("end_of_tour", "")).toBeNull();
+  });
+});
+
+describe("nextBirthdayOccurrence", () => {
+  it("dates a birthday typed on the review form", () => {
+    expect(nextBirthdayOccurrence("October 6, 2009")).toBe("2026-10-06");
+    expect(nextBirthdayOccurrence("October 6")).toBe("2026-10-06");
+    expect(nextBirthdayOccurrence("10/6/2009")).toBe("2026-10-06");
+    expect(nextBirthdayOccurrence("3-14")).toBe("2027-03-14");
+  });
+
+  it("dates the canonical stored forms", () => {
+    expect(nextBirthdayOccurrence("2009-10-06")).toBe("2026-10-06");
+    expect(nextBirthdayOccurrence("--03-14")).toBe("2027-03-14");
+  });
+
+  it("ignores a spurious future year", () => {
+    expect(nextBirthdayOccurrence("2027-10-06")).toBe("2026-10-06");
+  });
+
+  it("returns null without a usable month and day", () => {
+    expect(nextBirthdayOccurrence(undefined)).toBeNull();
+    expect(nextBirthdayOccurrence("  ")).toBeNull();
+    expect(nextBirthdayOccurrence("1961")).toBeNull();
+    expect(nextBirthdayOccurrence("sometime in spring")).toBeNull();
+    expect(nextBirthdayOccurrence("2009-02-31")).toBeNull();
+    expect(nextBirthdayOccurrence("0000-00-00")).toBeNull();
   });
 });
