@@ -129,7 +129,22 @@ export function OccasionsSelectionView({
       }
     });
 
-    setSelectedOccasions(merged);
+    // Rows are on screen while recommendations load, so a rebuild must not
+    // undo what the user did to them meanwhile: keep a row's toggle, and a
+    // date typed onto a row that is still undated at the source. An unchanged
+    // row keeps its identity so an open editor isn't re-seeded mid-typing.
+    setSelectedOccasions((prev) =>
+      merged.map((row) => {
+        const existing = prev.find(
+          (p) => p.occasion_type === row.occasion_type
+        );
+        if (!existing) return row;
+        const date = row.date || existing.date;
+        return date === existing.date
+          ? existing
+          : { ...row, date, enabled: existing.enabled };
+      })
+    );
   }
 
   const toggleOccasion = (index: number) => {
