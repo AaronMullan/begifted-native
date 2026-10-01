@@ -19,6 +19,24 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-10-01 — OTA
+
+### App
+
+- When your phone loses its connection, a small "You're offline." notice now appears at the top of the app until it reconnects. (DEV-503)
+- If saving your onboarding answers fails, the screen now says so and keeps what you typed, instead of moving on as though it saved. (DEV-509)
+- When BeGifted declines to help with someone you describe, it now stops there: adding a person no longer drops you into manual entry, and an update note shows the refusal instead of "Nothing new to add". (DEV-511)
+- When someone has two occasions coming up, the one still waiting its turn now says its gift ideas are in the queue, instead of showing "getting ready" while the other occasion's ideas arrive. DEV-515
+- A person's page now explains what "Holidays they celebrate" is for, and the field suggests the kind of holidays to list. DEV-516
+- A failed delete now names what couldn't be deleted, a failed message send says so plainly, an opened profile for someone you've removed says they're no longer in BeGifted with a way back to People, and Settings → Notifications says notifications are off once you've turned them off in iOS. (DEV-517)
+- Importing from Contacts now tells you which problem it hit: when contacts access is off it points you to Settings, and when reading your contacts fails it offers Try Again. (DEV-518)
+
+### Backend
+
+- A "gift ideas ready" notification now says which occasion the ideas are for, like "New gift ideas for Autumn's birthday." DEV-515
+- A new person's description now sticks to what you told us about them. Your usual gift style still shapes their ideas, but it's no longer written up as their personality, and thin details aren't padded out with guesses. DEV-525
+- Add Recipient no longer asks again for an age, amount, or date you've already given. DEV-528
+
 ## 2026-09-25 — OTA
 
 ### App
