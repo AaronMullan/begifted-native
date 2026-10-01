@@ -85,17 +85,16 @@ export function OccasionsSelectionView({
         continue;
       }
 
-      // Unknown/custom types with a valid future date — keep as-is
+      // Unknown/custom types keep whatever real date they came with. Without
+      // one the row stays, undated ("Add Date"), and handleContinue drops it
+      // unless the user dates it. January 1 is not treated as a placeholder
+      // here: a contact's anniversary can genuinely fall on it.
       const raw = occ.date?.trim() || "";
-      const isoDateRe = /^\d{4}-\d{2}-\d{2}$/;
-      if (raw && isoDateRe.test(raw)) {
-        fromConversation.push({
-          date: getNextOccurrence(raw),
-          occasion_type: type,
-          enabled: true,
-        });
-      }
-      // Otherwise drop it — we can't verify the occasion
+      fromConversation.push({
+        date: /^\d{4}-\d{2}-\d{2}$/.test(raw) ? getNextOccurrence(raw) : "",
+        occasion_type: type,
+        enabled: true,
+      });
     }
     // Add birthday from the verified extractedData field (not AI occasions).
     // Annual: ignore any year the extraction supplied — a spurious future
