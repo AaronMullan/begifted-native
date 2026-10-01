@@ -12,7 +12,7 @@ import {
 } from "../../../hooks/use-occasion-recommendations";
 import {
   lookupOccasionDate,
-  getNextOccurrence,
+  sanitizeExtractedOccasionDate,
   getNextAnnualOccurrence,
   formatOccasionDate,
 } from "../../../utils/occasion-dates";
@@ -85,17 +85,15 @@ export function OccasionsSelectionView({
         continue;
       }
 
-      // Unknown/custom types with a valid future date — keep as-is
-      const raw = occ.date?.trim() || "";
-      const isoDateRe = /^\d{4}-\d{2}-\d{2}$/;
-      if (raw && isoDateRe.test(raw)) {
-        fromConversation.push({
-          date: getNextOccurrence(raw),
-          occasion_type: type,
-          enabled: true,
-        });
-      }
-      // Otherwise drop it — we can't verify the occasion
+      // Unknown/custom types keep a real date; a missing or placeholder one
+      // becomes an undated "Add Date" row, which handleContinue drops unless
+      // the user dates it — the occasion stays visible without a fake date
+      // ever being saved.
+      fromConversation.push({
+        date: sanitizeExtractedOccasionDate(type, occ.date) ?? "",
+        occasion_type: type,
+        enabled: true,
+      });
     }
     // Add birthday from the verified extractedData field (not AI occasions).
     // Annual: ignore any year the extraction supplied — a spurious future

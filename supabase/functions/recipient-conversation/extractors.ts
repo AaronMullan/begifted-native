@@ -51,7 +51,7 @@ async function addBirthdayAsOccasion(
   const nextBirthdayDate = getNextOccurrenceDate(month, day);
 
   const birthdayExists = extractedData.occasions?.some(
-    (occ: { date: string; occasion_type: string }) =>
+    (occ: { date: string | null; occasion_type: string }) =>
       occ.occasion_type === "birthday" && occ.date === nextBirthdayDate
   );
   if (birthdayExists) return;
@@ -320,12 +320,9 @@ IMPORTANT:
         continue;
       }
 
-      // Unknown occasion — placeholder Jan 1 of next year; user can edit in UI.
-      const nextYear = new Date().getFullYear() + 1;
-      occasion.date = `${nextYear}-01-01`;
-      console.warn(
-        `Unknown occasion "${occasion.occasion_type}" - using placeholder date ${occasion.date}`
-      );
+      // No date we can stand behind: leave it undated. A manufactured date is
+      // indistinguishable from a real one downstream and gets saved as fact.
+      occasion.date = null;
     }
   } else if (!extractedData.occasions) {
     extractedData.occasions = [];

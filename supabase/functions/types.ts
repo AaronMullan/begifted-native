@@ -55,7 +55,8 @@ export interface ExtractedData {
   zip_code?: string;
   country?: string;
   occasions?: {
-    date: string;
+    /** null when the conversation gave no date and the type isn't a known holiday. */
+    date: string | null;
     occasion_type: string;
   }[];
   // For partial extractions, only include requested fields
