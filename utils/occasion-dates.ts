@@ -1,3 +1,5 @@
+import { normalizeBirthday } from "./birthday";
+
 /** Match YYYY-MM-DD so we only treat explicit ISO dates as valid. */
 const ISO_DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -112,6 +114,22 @@ export function getNextAnnualOccurrence(isoDateStr: string): string {
     return isoDateStr;
   }
   return nextOccurrenceOfMonthDay(m, d);
+}
+
+/**
+ * Date of the birthday moment for a recipient birthday, or null when the
+ * birthday carries no usable month/day (empty, year-only, unparseable).
+ * The review form holds the birthday as typed ("October 6, 2009"), which the
+ * ISO-only helpers above pass through untouched — canonicalize first, or the
+ * moment is built with a date no save path accepts.
+ */
+export function nextBirthdayOccurrence(
+  birthday: string | null | undefined
+): string | null {
+  const raw = birthday?.trim();
+  if (!raw) return null;
+  const next = getNextAnnualOccurrence(normalizeBirthday(raw) ?? raw);
+  return ISO_DATE_ONLY.test(next) ? next : null;
 }
 
 function nextOccurrenceOfMonthDay(month: number, day: number): string {
