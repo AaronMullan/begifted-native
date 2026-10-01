@@ -14,7 +14,7 @@ export const faqs = [
   // Getting Started
   {
     q: "What is BeGifted?",
-    a: "BeGifted is an AI gift concierge that helps you keep track of the people who matter, remember important occasions, and find thoughtful ways to show up.\n\nIt is not just a reminder app. BeGifted helps you understand the moment, consider the relationship, and choose a gift or gesture that feels personal.",
+    a: "BeGifted is your personal gifting concierge. It remembers the occasions that matter, understands the person and your relationship, and gets to work finding thoughtful gifts for the moment. It’s designed to help you show up well without having to carry all of the gifting work yourself.",
   },
   {
     q: "How does BeGifted work?",
@@ -40,7 +40,7 @@ export const faqs = [
   },
   {
     q: "Why does BeGifted usually show only a few gift ideas?",
-    a: "BeGifted is designed to reduce the work of gifting, not give you another endless shopping list.\n\nWhen possible, BeGifted recommends up to three strong options so you have enough choice without having to sort through too much.",
+    a: "BeGifted is designed to reduce the work of gifting, not give you another endless shopping list. A full recommendation set is three strong options—enough choice without turning it into homework.",
   },
   {
     q: "Are recommendations influenced by paid placements?",
@@ -52,7 +52,7 @@ export const faqs = [
   },
   {
     q: "What if a gift idea feels wrong?",
-    a: "Tell BeGifted. You can give feedback on a gift idea, remove it, mark that they already have it, flag a product issue, or choose the idea you like.\n\nThat feedback helps BeGifted improve future recommendations for that person.",
+    a: "BeGifted searches broadly for gifts that feel specific to the person, including things you might not come across otherwise. We’ll always show our work, explaining why each recommendation fits. If one doesn’t feel right, remove it or tell us what missed—we’ll learn from it to help you meet the moment.",
   },
   {
     q: "What does “Keep this in the mix” mean?",
@@ -65,7 +65,7 @@ export const faqs = [
   // Privacy & Data
   {
     q: "What happens to the information I share?",
-    a: "The information you share helps BeGifted personalize your experience, remember important details, and make better recommendations.\n\nYou can update or remove information from a person’s profile. For more detail, review BeGifted’s Privacy Policy.",
+    a: "BeGifted uses what you share about yourself and the people you add to remember important details and make recommendations that fit the person, your relationship, and the moment. What you share isn’t public; some information is processed by the services BeGifted uses to run the app. You can update or remove information from a person’s profile, and you can learn more about how we handle information in our Privacy Policy.",
   },
   {
     q: "Does BeGifted need access to my contacts?",
@@ -74,7 +74,7 @@ export const faqs = [
   // Access & Support
   {
     q: "Is BeGifted available on iPhone?",
-    a: "The current beta is for iPhone.\n\nBeta access is limited while we test, improve, and expand the experience.",
+    a: "Yes. The current beta is available on iPhone.",
   },
 ];
 
