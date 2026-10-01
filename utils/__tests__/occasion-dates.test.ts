@@ -316,5 +316,7 @@ describe("nextBirthdayOccurrence", () => {
     expect(nextBirthdayOccurrence("  ")).toBeNull();
     expect(nextBirthdayOccurrence("1961")).toBeNull();
     expect(nextBirthdayOccurrence("sometime in spring")).toBeNull();
+    expect(nextBirthdayOccurrence("2009-02-31")).toBeNull();
+    expect(nextBirthdayOccurrence("0000-00-00")).toBeNull();
   });
 });

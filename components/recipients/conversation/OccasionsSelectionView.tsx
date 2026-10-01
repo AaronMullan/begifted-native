@@ -49,15 +49,21 @@ export function OccasionsSelectionView({
   // Merge conversation-extracted occasions with interest-based AI
   // recommendations. Recomputed during render (not in an effect) via stored
   // previous values whenever the inputs change.
+  // The first render merges too: recommendations arrive seconds later, and
+  // Continue is live meanwhile, so the conversation's own occasions (the
+  // birthday among them) must already be in the list.
+  const [hasMerged, setHasMerged] = useState(false);
   const [prevOccasions, setPrevOccasions] = useState(extractedData.occasions);
   const [prevBirthday, setPrevBirthday] = useState(extractedData.birthday);
   const [prevRecommendations, setPrevRecommendations] =
     useState(recommendations);
   if (
+    !hasMerged ||
     extractedData.occasions !== prevOccasions ||
     extractedData.birthday !== prevBirthday ||
     recommendations !== prevRecommendations
   ) {
+    setHasMerged(true);
     setPrevOccasions(extractedData.occasions);
     setPrevBirthday(extractedData.birthday);
     setPrevRecommendations(recommendations);
@@ -99,10 +105,11 @@ export function OccasionsSelectionView({
     // Add birthday from the verified extractedData field (not AI occasions).
     // Annual: ignore any year the extraction supplied — a spurious future
     // year would otherwise be stored verbatim and push the occasion a year out.
-    const bdayDate = nextBirthdayOccurrence(extractedData.birthday);
-    if (bdayDate) {
+    // A birthday with no usable month/day (year only, unparseable) still gets
+    // its row, undated ("Add Date"), so the user is prompted to date it.
+    if (extractedData.birthday?.trim()) {
       fromConversation.unshift({
-        date: bdayDate,
+        date: nextBirthdayOccurrence(extractedData.birthday) ?? "",
         occasion_type: "birthday",
         enabled: true,
       });

@@ -128,8 +128,19 @@ export function nextBirthdayOccurrence(
 ): string | null {
   const raw = birthday?.trim();
   if (!raw) return null;
-  const next = getNextAnnualOccurrence(normalizeBirthday(raw) ?? raw);
-  return ISO_DATE_ONLY.test(next) ? next : null;
+  const canonical = normalizeBirthday(raw);
+  if (canonical) return getNextAnnualOccurrence(canonical);
+  // The birthday parser rejects a full date for its year alone (extraction
+  // sometimes supplies a future one); the month/day is still usable. A date
+  // that isn't real ("2009-02-31", "0000-00-00") is not, and Date would roll
+  // it over into a different day.
+  const full = /^\d{4}-(\d{2})-(\d{2})$/.exec(raw);
+  if (!full) return null;
+  const month = Number(full[1]);
+  const day = Number(full[2]);
+  return isValidMonthDay(month, day)
+    ? nextOccurrenceOfMonthDay(month, day)
+    : null;
 }
 
 function nextOccurrenceOfMonthDay(month: number, day: number): string {
