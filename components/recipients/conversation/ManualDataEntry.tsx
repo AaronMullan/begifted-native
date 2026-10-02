@@ -81,6 +81,10 @@ export function ManualDataEntry({
       birthday: birthday.trim() || undefined,
       gift_budget_min: budgetMin ? parseInt(budgetMin) : undefined,
       gift_budget_max: budgetMax ? parseInt(budgetMax) : undefined,
+      // This form has no control for it, so the chat's answer rides through
+      // unless a maximum typed here replaces it.
+      gift_budget_no_ceiling:
+        partialData?.gift_budget_no_ceiling === true && !budgetMax,
       address: address.trim() || undefined,
       address_line_2: addressLine2.trim() || undefined,
       city: city.trim() || undefined,

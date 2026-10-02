@@ -62,3 +62,9 @@ Deno.test(
     assertEquals("gift_budget_no_ceiling" in data, false);
   }
 );
+
+Deno.test("a zero maximum is not a ceiling and leaves the flag set", () => {
+  const data: Budget = { gift_budget_max: 0, gift_budget_no_ceiling: true };
+  normalizeBudgetRange(data);
+  assertEquals(data.gift_budget_no_ceiling, true);
+});

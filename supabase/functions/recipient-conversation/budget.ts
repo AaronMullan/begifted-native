@@ -1,7 +1,7 @@
 // A single-anchor amount (e.g. "around $150") should yield a usable range so
 // gift generation isn't pinned to one exact price. If extraction still
 // collapses min === max, expand it around the anchor (0.8x–1.25x, snapped to
-// $5). Also coerces string/"null" values to numbers. DEV-100.
+// $5). Also coerces string/"null" values to numbers.
 // Operates only on freshly-extracted output — it never touches stored data.
 export function normalizeBudgetRange(data: {
   gift_budget_min?: number | string | null;
@@ -22,11 +22,12 @@ export function normalizeBudgetRange(data: {
   if ("gift_budget_max" in data) data.gift_budget_max = max;
 
   // A stated maximum is a ceiling, so the two can't both hold; the number is
-  // the more specific answer and wins.
+  // the more specific answer and wins. Zero is the model's stand-in for "no
+  // number", not a ceiling.
   if ("gift_budget_no_ceiling" in data) {
     const flag = data.gift_budget_no_ceiling;
     data.gift_budget_no_ceiling =
-      (flag === true || flag === "true") && max === null;
+      (flag === true || flag === "true") && (max === null || max <= 0);
   }
 
   // Only intervene on a collapsed single anchor: both set, equal, positive.

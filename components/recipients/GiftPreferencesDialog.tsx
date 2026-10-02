@@ -47,9 +47,12 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
   const [maxBudget, setMaxBudget] = useState(
     recipient.gift_budget_max != null ? String(recipient.gift_budget_max) : ""
   );
-  const [noCeiling, setNoCeiling] = useState(
-    recipient.gift_budget_no_ceiling === true
-  );
+  // A stored maximum outranks the flag everywhere it is read, so the switch
+  // must agree — otherwise an untouched Save would null that maximum.
+  const storedNoCeiling =
+    recipient.gift_budget_no_ceiling === true &&
+    recipient.gift_budget_max == null;
+  const [noCeiling, setNoCeiling] = useState(storedNoCeiling);
   const [saving, setSaving] = useState(false);
 
   // Re-seed the editable fields only when the dialog opens — never while it's
@@ -74,7 +77,7 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
           ? String(recipient.gift_budget_max)
           : ""
       );
-      setNoCeiling(recipient.gift_budget_no_ceiling === true);
+      setNoCeiling(storedNoCeiling);
     }
   }
 
@@ -172,10 +175,7 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
                 <Text variant="bodyLarge">No upper limit</Text>
                 <Switch
                   value={noCeiling}
-                  onValueChange={(value) => {
-                    setNoCeiling(value);
-                    if (value) setMaxBudget("");
-                  }}
+                  onValueChange={setNoCeiling}
                   color={Colors.brand.mediumTeal}
                 />
               </View>
