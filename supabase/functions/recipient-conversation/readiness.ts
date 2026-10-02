@@ -38,11 +38,11 @@ export interface DerivedReadiness {
 }
 
 const BIRTHDAY_RE = /birth\s*day|bday/i;
-// The recipient's own birthday as a pending entry ("birthday", "his
-// birthday"), not another occasion that merely contains the word
-// ("daughter's birthday party").
-const OWN_BIRTHDAY_RE = /^\s*(?:\S+\s+)?(?:birth\s*day|bday)\s*$/i;
-const EXACT_BIRTHDAY_RE = /^(?:\d{4}-|--)?\d{1,2}-\d{1,2}$/;
+// A pending entry that ends on the birthday itself ("birthday", "Joshua's
+// birthday", "birthday (Joshua)"), not a different occasion that contains the
+// word ("daughter's birthday party").
+const OWN_BIRTHDAY_RE =
+  /(?:birth\s*day|bday)(?:\s+date)?\s*(?:\([^)]*\))?\s*$/i;
 const BIRTHDAY_RANGE_RE = /^(?:--)?(\d{2})-(\d{2})\/(?:--)?(\d{2})-(\d{2})$/;
 // Wider than a month is not timing a gift can be planned around.
 const MAX_RANGE_DAYS = 31;
@@ -106,7 +106,16 @@ export function deriveAddRecipientReadiness(
   // otherwise never reach "ready".
   const birthdayIsYearOnly =
     typeof birthday === "string" && /^\d{4}$/.test(birthday.trim());
-  const birthdayDate = !!birthday && !birthdayIsYearOnly;
+  // Timing nobody can plan around — a range wider than a month
+  // ("03-01/05-31"), or words with no date in them ("spring") — is not a
+  // captured birthday. The client would store nothing for it, so counting it
+  // would complete the intake with no birthday at all.
+  const birthdayText = typeof birthday === "string" ? birthday.trim() : "";
+  const looksLikeRange = /-.*\/.*-/.test(birthdayText);
+  const birthdayIsUnusable =
+    !/\d/.test(birthdayText) ||
+    (looksLikeRange && !isBoundedBirthdayRange(birthdayText));
+  const birthdayDate = !!birthday && !birthdayIsYearOnly && !birthdayIsUnusable;
   const occasionsMentioned = Array.isArray(contextInfo.occasions_mentioned)
     ? contextInfo.occasions_mentioned
     : [];
@@ -126,21 +135,14 @@ export function deriveAddRecipientReadiness(
   // keep asking for it. It tends to still list a birthday with approximate
   // timing as needing a date, which would pin the state at
   // captured_needs_timing for the rest of the conversation.
-  // Only a birthday in a recognized shape earns this: a value the client
-  // will reject (too wide a range, free text) leaves the flags standing so
-  // the date is asked again.
-  const birthdayTimingCaptured =
-    typeof birthday === "string" &&
-    (EXACT_BIRTHDAY_RE.test(birthday.trim()) ||
-      isBoundedBirthdayRange(birthday));
-  const pendingDates = birthdayTimingCaptured
+  const pendingDates = birthdayDate
     ? extractorPending.filter((o) => !OWN_BIRTHDAY_RE.test(String(o)))
     : [...extractorPending];
   if (birthdayNeedsDate && !mentionsBirthday(pendingDates)) {
     pendingDates.push("birthday");
   }
   const singlePendingIsCapturedBirthday =
-    birthdayTimingCaptured &&
+    birthdayDate &&
     OWN_BIRTHDAY_RE.test(String(contextInfo.occasion_needing_date ?? ""));
   const needsOccasionDate =
     !!contextInfo.needs_occasion_date && !singlePendingIsCapturedBirthday;

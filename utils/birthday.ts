@@ -232,6 +232,20 @@ export function parseBirthdayRange(
   return null;
 }
 
+/** True when `range` is an approximate birthday and `exact`'s day is in it. */
+export function birthdayRangeContains(
+  range: string | null | undefined,
+  exact: string | null | undefined
+): boolean {
+  const bounds = parseBirthdayRange(range);
+  const parts = parseBirthdayParts(exact);
+  if (!bounds || !parts) return false;
+  const start = dayOfLeapYear(bounds.start.month, bounds.start.day);
+  const end = dayOfLeapYear(bounds.end.month, bounds.end.day);
+  const day = dayOfLeapYear(parts.month, parts.day);
+  return end >= start ? day >= start && day <= end : day >= start || day <= end;
+}
+
 /**
  * The month/day ("--MM-DD") to plan around: an exact birthday's own day, or
  * the first day of an approximate one. For dating the birthday moment only —

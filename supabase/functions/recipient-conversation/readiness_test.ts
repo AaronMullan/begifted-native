@@ -75,17 +75,39 @@ Deno.test("a captured birthday does not clear another occasion's date", () => {
 });
 
 Deno.test("a birthday too vague to plan around is still asked for", () => {
-  for (const birthday of ["03-01/05-31", "spring", "03-second_week"]) {
+  for (const birthday of ["03-01/05-31", "spring"]) {
+    // With and without the extractor's own flags: the backstop must ask
+    // either way.
+    for (const flagged of [true, false]) {
+      const derived = deriveAddRecipientReadiness(
+        base({
+          birthday,
+          needs_occasion_date: flagged,
+          occasion_needing_date: flagged ? "birthday" : null,
+          occasions_needing_dates: flagged ? ["birthday"] : [],
+        })
+      );
+      assert(!derived.hasTiming, birthday);
+      assertEquals(derived.state, "captured_needs_timing");
+    }
+  }
+});
+
+Deno.test("an exact birthday clears however the extractor labels it", () => {
+  for (const label of [
+    "joshua_birthday",
+    "birthday (Joshua)",
+    "Joshua Smith's birthday",
+  ]) {
     const derived = deriveAddRecipientReadiness(
       base({
-        birthday,
+        birthday: "1961-03-08",
         needs_occasion_date: true,
-        occasion_needing_date: "birthday",
-        occasions_needing_dates: ["birthday"],
+        occasion_needing_date: label,
+        occasions_needing_dates: [label],
       })
     );
-    assert(!derived.hasTiming, birthday);
-    assertEquals(derived.state, "captured_needs_timing");
+    assert(derived.hasTiming, label);
   }
 });
 

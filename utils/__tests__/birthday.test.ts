@@ -10,6 +10,7 @@ import {
   birthdayFromOccasionDate,
   birthdayAfterOccasionEdit,
   birthdayPlanningAnchor,
+  birthdayRangeContains,
   parseBirthdayRange,
 } from "../birthday";
 
@@ -310,6 +311,13 @@ describe("approximate birthday ranges", () => {
     expect(birthdayPlanningAnchor("--03-08/--03-14")).toBe("--03-08");
     expect(birthdayPlanningAnchor("1985-03-17")).toBe("--03-17");
     expect(birthdayPlanningAnchor("1961")).toBeNull();
+  });
+
+  it("knows whether an exact day falls inside a range", () => {
+    expect(birthdayRangeContains("--06-01/--06-30", "1990-06-12")).toBe(true);
+    expect(birthdayRangeContains("--07-01/--07-10", "--06-12")).toBe(false);
+    expect(birthdayRangeContains("--12-28/--01-03", "--01-02")).toBe(true);
+    expect(birthdayRangeContains("--06-12", "--06-12")).toBe(false);
   });
 
   it("keeps the range when its moment is saved on the anchor date", () => {
