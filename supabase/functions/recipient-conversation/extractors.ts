@@ -7,6 +7,7 @@ import type {
   RecipientData,
 } from "../types.ts";
 import { parseOpenAIJSON } from "./utils.ts";
+import { normalizeBudgetRange } from "./budget.ts";
 import { isBoundedBirthdayRange } from "./readiness.ts";
 import {
   APPROXIMATE_BIRTHDAY_RULE,
@@ -73,38 +74,6 @@ async function addBirthdayAsOccasion(
   });
 }
 
-// A single-anchor amount (e.g. "around $150") should yield a usable range so
-// gift generation isn't pinned to one exact price. If extraction still
-// collapses min === max, expand it around the anchor (0.8x–1.25x, snapped to
-// $5). Also coerces string/"null" values to numbers. DEV-100.
-// Operates only on freshly-extracted output — it never touches stored data.
-function normalizeBudgetRange(data: {
-  gift_budget_min?: number | string | null;
-  gift_budget_max?: number | string | null;
-}): void {
-  const toNumber = (v: unknown): number | null => {
-    if (v === null || v === undefined || v === "" || v === "null") return null;
-    const n = typeof v === "number" ? v : Number(v);
-    return Number.isFinite(n) ? n : null;
-  };
-
-  const min = toNumber(data.gift_budget_min);
-  const max = toNumber(data.gift_budget_max);
-
-  // Persist coerced numeric values (or null) back onto the object.
-  if ("gift_budget_min" in data) data.gift_budget_min = min;
-  if ("gift_budget_max" in data) data.gift_budget_max = max;
-
-  // Only intervene on a collapsed single anchor: both set, equal, positive.
-  if (min === null || max === null || min !== max || min <= 0) return;
-
-  const anchor = min;
-  data.gift_budget_min = Math.floor((anchor * 0.8) / 5) * 5;
-  data.gift_budget_max = Math.ceil((anchor * 1.25) / 5) * 5;
-  console.log(
-    `Budget collapsed to single value ${anchor}; expanded to ${data.gift_budget_min}-${data.gift_budget_max}`
-  );
-}
 // Full recipient extraction (for adding new recipients, and for the free-form
 // "Update what we know" flow — which passes existingInterests so removals can
 // be matched against the stored wording).
@@ -213,8 +182,9 @@ Extract and return valid JSON (no markdown formatting) with this exact structure
   "age": "The recipient's CURRENT age in whole years as a number, but ONLY when the user explicitly states it (e.g. \"he's 47\", \"she just turned 30\", \"my 8 year old\"). Do NOT infer age from relationship, life stage, grade, graduation, hobbies, or occasion. null if not explicitly stated.",
   "interests": ["array of interests the recipient LIKES / is into, as expressed in this conversation. NEVER include a topic the conversation negates ('does not', 'not interested in', 'no interest in', 'hates') — a statement like 'he is not interested in fish' must never produce a fishing-related interest here."],
   "interests_removed": ["array of interests the user says the recipient is NO LONGER into, dislikes, or wants removed (e.g. \"not into pokemon anymore\", \"she's over hiking\"). When a CURRENTLY STORED INTERESTS list is provided above, every stored entry matching the dropped topic must appear here verbatim; also include the user's own wording. Empty array if no interest was dropped — never put a newly-liked interest here."],
-  "gift_budget_min": "Lower end of the gift budget range as a number, or null. RULES: (a) explicit range like \"$50-$75\" -> 50. (b) single anchor like \"around $150\"/\"$150\" -> about 0.8x the anchor (e.g. 120). (c) upper-limit only like \"under $150\"/\"up to $250\" -> null. (d) vague answer like \"flexible\"/\"nothing too expensive\" -> null. NEVER set min equal to max for a single anchor; a single amount must become a range.",
-  "gift_budget_max": "Upper end of the gift budget range as a number, or null. RULES: (a) explicit range like \"$50-$75\" -> 75. (b) single anchor like \"around $150\"/\"$150\" -> about 1.25x the anchor (e.g. 190). (c) upper-limit only like \"under $150\"/\"up to $250\" -> that number (150 / 250). (d) vague answer -> null.",
+  "gift_budget_min": "Lower end of the gift budget range as a number, or null. RULES: (a) explicit range like \"$50-$75\" -> 50. (b) single anchor like \"around $150\"/\"$150\" -> about 0.8x the anchor (e.g. 120). (c) upper-limit only like \"under $150\"/\"up to $250\" -> null. (d) vague answer like \"flexible\"/\"nothing too expensive\" -> null. (e) no upper limit like \"the sky's the limit\" -> null unless a minimum was also stated. NEVER set min equal to max for a single anchor; a single amount must become a range.",
+  "gift_budget_max": "Upper end of the gift budget range as a number, or null. RULES: (a) explicit range like \"$50-$75\" -> 75. (b) single anchor like \"around $150\"/\"$150\" -> about 1.25x the anchor (e.g. 190). (c) upper-limit only like \"under $150\"/\"up to $250\" -> that number (150 / 250). (d) vague answer -> null. (e) no upper limit like \"the sky's the limit\" -> null; never invent a high number for it.",
+  "gift_budget_no_ceiling": "true ONLY when the user explicitly says there is no upper limit on price — e.g. \"the sky's the limit\", \"no limit\", \"money is no object\", \"whatever it costs\". false for everything else, including a stated amount or range, an upper limit, a vague answer like \"flexible\"/\"not sure\"/\"whatever feels right\", and no mention of price at all.",
   "emotional_tone_preference": "string or null",
   "knownRoles": "Array of life roles the recipient EXPLICITLY plays, drawn only from clear conversational signals — e.g. ['mother'] when the user says they have kids together / mentions the recipient's child, ['father'], ['grandmother'], ['grandfather']. CRITICAL: do NOT infer 'mother'/'father' from spouse/partner/wife/husband status alone — only when the conversation makes parenthood explicit (their child, 'we have kids', 'mom of three', etc.). Empty array [] if no role is clearly stated.",
   "householdContext": "Short phrase describing the recipient's household when explicitly mentioned — e.g. 'shares a household with the user and their two children'. null if not stated. Do not infer children or a shared household from spouse/partner status alone.",
@@ -271,6 +241,7 @@ IMPORTANT:
       interests_removed: [],
       gift_budget_min: undefined,
       gift_budget_max: undefined,
+      gift_budget_no_ceiling: false,
       emotional_tone_preference: undefined,
       confidence_score:
         criticalFields.name && criticalFields.relationship_type ? 0.8 : 0.3,

@@ -16,6 +16,7 @@ interface CreateRecipientData {
   emotional_tone_preference?: string | null;
   gift_budget_min?: number | null;
   gift_budget_max?: number | null;
+  gift_budget_no_ceiling?: boolean;
   address?: string | null;
   address_line_2?: string | null;
   city?: string | null;
@@ -33,6 +34,7 @@ interface UpdateRecipientData {
   emotional_tone_preference?: string | null;
   gift_budget_min?: number | null;
   gift_budget_max?: number | null;
+  gift_budget_no_ceiling?: boolean;
   address?: string | null;
   address_line_2?: string | null;
   city?: string | null;

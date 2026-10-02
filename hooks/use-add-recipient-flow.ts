@@ -449,6 +449,9 @@ export function useAddRecipientFlow(
           data.emotional_tone_preference?.trim() || null,
         gift_budget_min: data.gift_budget_min || null,
         gift_budget_max: data.gift_budget_max || null,
+        // A maximum typed on the review form is a ceiling, so it wins.
+        gift_budget_no_ceiling:
+          data.gift_budget_no_ceiling === true && !data.gift_budget_max,
         address: data.address?.trim() || null,
         address_line_2: data.address_line_2?.trim() || null,
         city: data.city?.trim() || null,
@@ -605,6 +608,7 @@ export function useAddRecipientFlow(
         importantDates: extracted.importantDates || undefined,
         gift_budget_min: extracted.gift_budget_min || undefined,
         gift_budget_max: extracted.gift_budget_max || undefined,
+        gift_budget_no_ceiling: extracted.gift_budget_no_ceiling === true,
         address: extracted.address || initialAddress?.address || undefined,
         address_line_2: extracted.address_line_2 || undefined,
         city: extracted.city || initialAddress?.city || undefined,

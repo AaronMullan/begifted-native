@@ -183,7 +183,11 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
   const budgetMin =
     recipient.gift_budget_min != null ? `$${recipient.gift_budget_min}` : "—";
   const budgetMax =
-    recipient.gift_budget_max != null ? `$${recipient.gift_budget_max}` : "—";
+    recipient.gift_budget_max != null
+      ? `$${recipient.gift_budget_max}`
+      : recipient.gift_budget_no_ceiling
+        ? "No limit"
+        : "—";
 
   return (
     <View style={styles.container}>

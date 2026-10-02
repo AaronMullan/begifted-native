@@ -9,7 +9,9 @@ export interface Recipient {
   birth_year?: number | null;
   emotional_tone_preference?: string;
   gift_budget_min?: number;
-  gift_budget_max?: number;
+  gift_budget_max?: number | null;
+  /** The giver said there is no upper limit. Never true alongside a max. */
+  gift_budget_no_ceiling?: boolean;
   address?: string;
   address_line_2?: string;
   city?: string;
