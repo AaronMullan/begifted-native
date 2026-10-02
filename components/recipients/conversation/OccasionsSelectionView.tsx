@@ -46,7 +46,6 @@ export function OccasionsSelectionView({
     number | null
   >(null);
   const [addingCustom, setAddingCustom] = useState(false);
-  const [birthdayRowDated, setBirthdayRowDated] = useState(false);
 
   // Merge conversation-extracted occasions with interest-based AI
   // recommendations. Recomputed during render (not in an effect) via stored
@@ -232,13 +231,13 @@ export function OccasionsSelectionView({
     setEditingOccasionIndex(index);
   };
 
-  // The range stands in for the birthday row's date until the user types a
-  // day onto the row, even the anchor day itself.
+  // The range stands in for the birthday row's date while that date is still
+  // the range's own anchor. The save reads the row the same way: a different
+  // day is the birthday, the anchor day leaves it approximate.
   const approximateBirthdayRowLabel = (row: {
     date: string;
     occasion_type: string;
   }) =>
-    !birthdayRowDated &&
     row.date === nextBirthdayOccurrence(extractedData.birthday)
       ? approximateBirthdayLabel(row.occasion_type, extractedData.birthday)
       : null;
@@ -250,7 +249,6 @@ export function OccasionsSelectionView({
       // empty must keep the anchor date, or the row is dropped as undated.
       const keepsAnchor = !date && !!approximateBirthdayRowLabel(row);
       if (!keepsAnchor) {
-        if (row.occasion_type === "birthday" && date) setBirthdayRowDated(true);
         setSelectedOccasions((prev) =>
           prev.map((occ, i) =>
             i === editingOccasionIndex ? { ...occ, date } : occ

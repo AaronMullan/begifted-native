@@ -17,6 +17,7 @@ import {
   birthYearFromYearOnly,
   formatBirthdayDisplay,
   normalizeBirthday,
+  parseBirthdayRange,
 } from "../utils/birthday";
 import {
   getNextAnnualOccurrence,
@@ -652,8 +653,22 @@ export function useAddRecipientFlow(
   ) => {
     if (!extractedData) return;
 
+    // A day typed onto the birthday row of an approximate birthday is the
+    // birthday. The row left on the range's anchor date says nothing new.
+    // Only this reviewed path reads it that way: Skip carries extracted
+    // occasion dates nobody confirmed.
+    const birthdayRowDate = occasions.find(
+      (occasion) => occasion.occasion_type === "birthday"
+    )?.date;
+    const typedBirthday =
+      parseBirthdayRange(extractedData.birthday) &&
+      birthdayRowDate !== nextBirthdayOccurrence(extractedData.birthday)
+        ? birthdayFromOccasionDate(birthdayRowDate)
+        : null;
+
     const dataWithOccasions = {
       ...extractedData,
+      ...(typedBirthday ? { birthday: typedBirthday } : {}),
       occasions,
     };
 
