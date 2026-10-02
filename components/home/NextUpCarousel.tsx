@@ -19,6 +19,10 @@ import {
   stripRecipientName,
 } from "../../utils/home-occasions";
 import { formatOccasionDate } from "../../utils/occasion-dates";
+import {
+  approximateBirthdayLabel,
+  approximateTimingPhrase,
+} from "../../utils/birthday";
 import Avatar from "../Avatar";
 import OccasionOverflowMenu from "./OccasionOverflowMenu";
 import { HOME_CARD_GAP, HOME_EDGE_INSET, nextUpCardWidth } from "./home-layout";
@@ -120,6 +124,10 @@ function NextUpCard({
   const days = daysUntil(occasion.date);
   const dayLabel =
     days === 0 ? "Today" : days === 1 ? "Tomorrow" : `In ${days} days`;
+  const approximate = approximateBirthdayLabel(
+    occasion.occasion_type,
+    occasion.recipient?.birthday
+  );
 
   const handlePress = () => {
     router.push(`/gifts/${occasion.recipient_id}?occasionId=${occasion.id}`);
@@ -140,7 +148,9 @@ function NextUpCard({
       />
       <View style={styles.body}>
         <Text style={[styles.countdown, { color: scheme.eyebrow }]}>
-          {dayLabel} • {formatOccasionDate(occasion.date)}
+          {approximate
+            ? approximateTimingPhrase(approximate)
+            : `${dayLabel} • ${formatOccasionDate(occasion.date)}`}
         </Text>
         <View style={styles.titleGroup}>
           <Text style={styles.title}>{possessive(name)}</Text>

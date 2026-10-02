@@ -321,6 +321,30 @@ export function formatBirthdayDisplay(
   });
 }
 
+/**
+ * What to show in place of a birthday moment's date when the birthday is
+ * approximate ("March 8–14"), or null for any other moment. The moment row is
+ * dated on the planning anchor because its column holds a single day; that
+ * day is not the birthday and must not be shown as one.
+ */
+export function approximateBirthdayLabel(
+  occasionType: string,
+  birthday: string | null | undefined
+): string | null {
+  if (occasionType !== "birthday") return null;
+  const range = parseBirthdayRange(birthday);
+  return range ? formatBirthdayRange(range) : null;
+}
+
+/**
+ * Timing line for an approximate birthday, used where an exact date gets a
+ * countdown. A countdown to the anchor would claim a day nobody gave.
+ */
+export function approximateTimingPhrase(label: string): string {
+  // A whole-month range formats as the bare month name.
+  return /\d/.test(label) ? `Around ${label}` : `Sometime in ${label}`;
+}
+
 function formatBirthdayRange(range: BirthdayRange): string {
   const monthName = (month: number) =>
     new Date(2000, month - 1, 1).toLocaleDateString("en-US", { month: "long" });
@@ -444,11 +468,13 @@ export function birthdayFromOccasionDate(
  * re-dates birthday occasions from recipients.birthday, so an edit that only
  * touches the occasion is reverted the next time the cron runs. A birth year
  * already on file is kept unless the entered date carries a past year of its
- * own.
+ * own. `dateTyped` says the user entered the date, as opposed to a save that
+ * carries the moment's stored date along unchanged.
  */
 export function birthdayAfterOccasionEdit(
   occasionDate: string | null | undefined,
-  existingBirthday: string | null | undefined
+  existingBirthday: string | null | undefined,
+  dateTyped = false
 ): string | null {
   const fromOccasion = parseBirthdayParts(
     birthdayFromOccasionDate(occasionDate)
@@ -456,9 +482,11 @@ export function birthdayAfterOccasionEdit(
   if (!fromOccasion) return null;
   // The moment of an approximate birthday is dated on its planning anchor.
   // Saving the moment with that date unchanged says nothing new about the
-  // birthday, and must not harden the anchor into an exact day.
+  // birthday, and must not harden the anchor into an exact day. Typing that
+  // same day is the user saying the birthday falls on it.
   const existingRange = parseBirthdayRange(existingBirthday);
   if (
+    !dateTyped &&
     existingRange &&
     fromOccasion.year === null &&
     fromOccasion.month === existingRange.start.month &&

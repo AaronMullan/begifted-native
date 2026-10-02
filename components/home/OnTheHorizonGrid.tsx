@@ -18,6 +18,7 @@ import {
   stripRecipientName,
 } from "../../utils/home-occasions";
 import { formatOccasionDate } from "../../utils/occasion-dates";
+import { approximateBirthdayLabel } from "../../utils/birthday";
 import OccasionOverflowMenu from "./OccasionOverflowMenu";
 import { homeCardWidth, HOME_EDGE_INSET } from "./home-layout";
 
@@ -86,7 +87,10 @@ function HorizonCard({
       <View style={styles.footer}>
         <View style={styles.dateRow}>
           <Text style={styles.dateText}>
-            {formatOccasionDate(occasion.date)}
+            {approximateBirthdayLabel(
+              occasion.occasion_type,
+              occasion.recipient?.birthday
+            ) ?? formatOccasionDate(occasion.date)}
           </Text>
           <MaterialIcons
             name="chevron-right"

@@ -16,6 +16,7 @@ import {
   nextBirthdayOccurrence,
   formatOccasionDate,
 } from "../../../utils/occasion-dates";
+import { approximateBirthdayLabel } from "../../../utils/birthday";
 import { OccasionItem } from "./OccasionItem";
 import { OccasionEditor } from "./OccasionEditor";
 
@@ -230,13 +231,30 @@ export function OccasionsSelectionView({
     setEditingOccasionIndex(index);
   };
 
+  // The range stands in for the birthday row's date while that date is still
+  // the range's own anchor. The save reads the row the same way: a different
+  // day is the birthday, the anchor day leaves it approximate.
+  const approximateBirthdayRowLabel = (row: {
+    date: string;
+    occasion_type: string;
+  }) =>
+    row.date === nextBirthdayOccurrence(extractedData.birthday)
+      ? approximateBirthdayLabel(row.occasion_type, extractedData.birthday)
+      : null;
+
   const handleSaveOccasionDate = (date: string, _isAnnual: boolean) => {
     if (editingOccasionIndex !== null) {
-      setSelectedOccasions((prev) =>
-        prev.map((occ, i) =>
-          i === editingOccasionIndex ? { ...occ, date } : occ
-        )
-      );
+      const row = selectedOccasions[editingOccasionIndex];
+      // The editor opens empty over an approximate birthday; saving it still
+      // empty must keep the anchor date, or the row is dropped as undated.
+      const keepsAnchor = !date && !!approximateBirthdayRowLabel(row);
+      if (!keepsAnchor) {
+        setSelectedOccasions((prev) =>
+          prev.map((occ, i) =>
+            i === editingOccasionIndex ? { ...occ, date } : occ
+          )
+        );
+      }
       setEditingOccasionIndex(null);
     }
   };
@@ -298,6 +316,7 @@ export function OccasionsSelectionView({
                 <OccasionItem
                   key={index}
                   occasion={occasion}
+                  dateLabel={approximateBirthdayRowLabel(occasion)}
                   onToggle={() => toggleOccasion(index)}
                   onEdit={() => handleEditOccasion(index)}
                 />
@@ -365,6 +384,11 @@ export function OccasionsSelectionView({
           onClose={handleCloseEditor}
           onSave={handleSaveOccasionDate}
           showRecurrence={false}
+          dateUnknown={
+            !!approximateBirthdayRowLabel(
+              selectedOccasions[editingOccasionIndex]
+            )
+          }
         />
       )}
 

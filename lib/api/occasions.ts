@@ -29,6 +29,8 @@ export interface Occasion {
     name: string;
     relationship_type: string;
     photo_url: string | null;
+    /** recipients.birthday, so a birthday moment can show approximate timing. */
+    birthday?: string | null;
   };
 }
 
@@ -53,7 +55,7 @@ async function hydrateOccasionRecipients(
   const recipientIds = [...new Set(occasionsData.map((o) => o.recipient_id))];
   const { data: recipientsData, error: recipientsError } = await supabase
     .from("recipients")
-    .select("id, name, relationship_type, photo_url")
+    .select("id, name, relationship_type, photo_url, birthday")
     .in("id", recipientIds);
 
   // A failed recipients fetch must fail the whole occasions query rather than
@@ -80,6 +82,7 @@ async function hydrateOccasionRecipients(
             name: recipient.name,
             relationship_type: recipient.relationship_type,
             photo_url: recipient.photo_url ?? null,
+            birthday: recipient.birthday ?? null,
           }
         : undefined,
     };

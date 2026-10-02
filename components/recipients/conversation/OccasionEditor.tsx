@@ -35,6 +35,11 @@ interface OccasionEditorProps {
   showRecurrence?: boolean;
   /** Let the user rename the occasion; the display name is passed to onSave. */
   editableName?: boolean;
+  /**
+   * Open with an empty date field although the occasion carries a date — for
+   * a date that is only a planning anchor and was never given by the user.
+   */
+  dateUnknown?: boolean;
 }
 
 const FULL_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -74,13 +79,16 @@ type SeededFields = {
 function seedFields(
   occasion: OccasionEditorProps["occasion"],
   visible: boolean,
-  showRecurrence: boolean
+  showRecurrence: boolean,
+  dateUnknown: boolean
 ): SeededFields {
   if (!visible || !occasion) return { name: "", date: "", annual: true };
 
   const annual = showRecurrence ? (occasion.is_annual ?? true) : false;
   const hasRealDate =
-    occasion.date && !occasion.date.includes("01-01") ? occasion.date : "";
+    !dateUnknown && occasion.date && !occasion.date.includes("01-01")
+      ? occasion.date
+      : "";
 
   let date: string;
   if (!hasRealDate) {
@@ -104,18 +112,19 @@ export function OccasionEditor({
   onSave,
   showRecurrence = true,
   editableName = false,
+  dateUnknown = false,
 }: OccasionEditorProps) {
   // Seed from props at mount too, not just on transitions: callers that
   // conditionally mount the editor (e.g. AboutRecipientView) never flip
   // `visible`, so a transition-only seed would leave the fields empty.
   const [dateInput, setDateInput] = useState(
-    () => seedFields(occasion, visible, showRecurrence).date
+    () => seedFields(occasion, visible, showRecurrence, dateUnknown).date
   );
   const [nameInput, setNameInput] = useState(
-    () => seedFields(occasion, visible, showRecurrence).name
+    () => seedFields(occasion, visible, showRecurrence, dateUnknown).name
   );
   const [isAnnual, setIsAnnual] = useState(
-    () => seedFields(occasion, visible, showRecurrence).annual
+    () => seedFields(occasion, visible, showRecurrence, dateUnknown).annual
   );
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -133,7 +142,7 @@ export function OccasionEditor({
     setPrevOccasion(occasion);
     setPrevShowRecurrence(showRecurrence);
     if (visible && occasion) {
-      const seeded = seedFields(occasion, visible, showRecurrence);
+      const seeded = seedFields(occasion, visible, showRecurrence, dateUnknown);
       setErrorMessage("");
       setNameInput(seeded.name);
       setIsAnnual(seeded.annual);
@@ -209,7 +218,7 @@ export function OccasionEditor({
           return;
         }
       }
-      setErrorMessage("Please enter the month and day in MM-DD format");
+      setErrorMessage("Enter the month and day as numbers, like 12-25.");
       return;
     }
 
@@ -221,7 +230,9 @@ export function OccasionEditor({
         return;
       }
     }
-    setErrorMessage("Please enter a full date in MM-DD-YYYY format");
+    setErrorMessage(
+      "Enter the month, day and year as numbers, like 12-25-2026."
+    );
   };
 
   return (
@@ -294,7 +305,7 @@ export function OccasionEditor({
                     label="Date"
                     value={dateInput}
                     onChangeText={handleDateChange}
-                    placeholder={isAnnual ? "MM-DD" : "MM-DD-YYYY"}
+                    placeholder={isAnnual ? "12-25" : "12-25-2026"}
                     keyboardType="number-pad"
                     returnKeyType="done"
                     maxLength={isAnnual ? 5 : 10}
@@ -302,8 +313,8 @@ export function OccasionEditor({
                   />
                   <Text variant="bodySmall" style={styles.helperText}>
                     {isAnnual
-                      ? "Repeats every year — enter the month and day (e.g., 12-25)"
-                      : "Enter the full date in MM-DD-YYYY format (e.g., 12-25-2026)"}
+                      ? "Repeats every year. Enter the month and day, like 12-25."
+                      : "Enter the month, day and year, like 12-25-2026."}
                   </Text>
                 </View>
               </View>
