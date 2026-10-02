@@ -570,6 +570,12 @@ export default function RecipientEditPage() {
     ) {
       updates.gift_budget_no_ceiling = true;
       updates.gift_budget_max = null;
+      // The stored minimum belonged to the range this answer replaces. Left
+      // behind it becomes a hard floor, which "no limit" never asked for; a
+      // minimum stated in the same breath was already copied above.
+      if (updates.gift_budget_min == null) {
+        updates.gift_budget_min = null;
+      }
     } else if (updates.gift_budget_max != null) {
       updates.gift_budget_no_ceiling = false;
     }
