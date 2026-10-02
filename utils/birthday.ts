@@ -521,10 +521,11 @@ export function birthYearFromAge(
 }
 
 /**
- * True only when the person is certainly under 18. A full birthday gives an
- * exact age; a bare birth year leaves the age a year uncertain, so it counts
- * only when even the older possibility is still under 18. Unknown age is not
- * a minor.
+ * True only when the person is certainly under 18. The year comes from the
+ * birthday itself or, failing that, from birth_year. With a month and day the
+ * age is exact; a range is read from its first day, the earliest they could
+ * have turned a year older; with no month or day at all, only a year that is
+ * under 18 even after this year's birthday counts. Unknown age is not a minor.
  */
 export function isKnownMinor(
   birthday: string | null | undefined,
@@ -532,15 +533,15 @@ export function isKnownMinor(
   today: Date = new Date()
 ): boolean {
   const parts = parseBirthdayParts(birthday);
-  if (parts && parts.year !== null) {
-    const hadBirthdayThisYear =
-      today.getMonth() + 1 > parts.month ||
-      (today.getMonth() + 1 === parts.month && today.getDate() >= parts.day);
-    const age =
-      today.getFullYear() - parts.year - (hadBirthdayThisYear ? 0 : 1);
-    return age >= 0 && age < 18;
-  }
-  if (birthYear == null || !Number.isFinite(birthYear)) return false;
-  const oldestPossibleAge = today.getFullYear() - birthYear;
-  return oldestPossibleAge >= 0 && oldestPossibleAge < 18;
+  const year = parts?.year ?? birthYear;
+  if (year == null || !Number.isFinite(year)) return false;
+
+  const monthDay = parts ?? parseBirthdayRange(birthday)?.start ?? null;
+  const birthdayStillAhead =
+    monthDay !== null &&
+    (today.getMonth() + 1 < monthDay.month ||
+      (today.getMonth() + 1 === monthDay.month &&
+        today.getDate() < monthDay.day));
+  const age = today.getFullYear() - year - (birthdayStillAhead ? 1 : 0);
+  return age >= 0 && age < 18;
 }

@@ -381,9 +381,16 @@ describe("isKnownMinor", () => {
 
   it("counts a bare birth year only when the older possible age is under 18", () => {
     expect(isKnownMinor(null, 2010, today)).toBe(true);
-    expect(isKnownMinor("--03-08", 2009, today)).toBe(true);
-    expect(isKnownMinor("--03-08/--03-14", 2008, today)).toBe(false);
+    expect(isKnownMinor(null, 2008, today)).toBe(false);
     expect(isKnownMinor(null, 1966, today)).toBe(false);
+  });
+
+  it("uses a known month and day when the year is held in birth_year", () => {
+    expect(isKnownMinor("--03-08", 2009, today)).toBe(true);
+    expect(isKnownMinor("--03-08", 2008, today)).toBe(false);
+    expect(isKnownMinor("--12-25", 2008, today)).toBe(true);
+    expect(isKnownMinor("--03-08/--03-14", 2008, today)).toBe(false);
+    expect(isKnownMinor("--12-20/--12-26", 2008, today)).toBe(true);
   });
 
   it("treats an unknown age as not a minor", () => {
