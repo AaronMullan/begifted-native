@@ -40,6 +40,89 @@ Deno.test("captured birthday date satisfies timing", () => {
   assertEquals(derived.state, "captured_needs_price");
 });
 
+Deno.test("approximate birthday range satisfies timing but not age", () => {
+  // "Second week of March": the extractor returns a range and still flags the
+  // birthday as needing a date. The range is captured timing; the flags must
+  // not hold the state at captured_needs_timing.
+  const derived = deriveAddRecipientReadiness(
+    base({
+      birthday: "03-08/03-14",
+      needs_occasion_date: true,
+      occasion_needing_date: "birthday",
+      occasions_needing_dates: ["birthday"],
+      has_price_guidance: true,
+    })
+  );
+  assert(derived.hasTiming);
+  assertEquals(derived.pendingDates, []);
+  assert(!derived.hasAge);
+  assertEquals(derived.state, "captured_needs_age");
+});
+
+Deno.test("a captured birthday does not clear another occasion's date", () => {
+  const derived = deriveAddRecipientReadiness(
+    base({
+      birthday: "03-08/03-14",
+      occasions_mentioned: ["birthday", "anniversary"],
+      needs_occasion_date: true,
+      occasion_needing_date: "anniversary",
+      occasions_needing_dates: ["birthday", "anniversary"],
+    })
+  );
+  assert(!derived.hasTiming);
+  assertEquals(derived.pendingDates, ["anniversary"]);
+  assertEquals(derived.state, "captured_needs_timing");
+});
+
+Deno.test("a birthday too vague to plan around is still asked for", () => {
+  for (const birthday of ["03-01/05-31", "spring"]) {
+    // With and without the extractor's own flags: the backstop must ask
+    // either way.
+    for (const flagged of [true, false]) {
+      const derived = deriveAddRecipientReadiness(
+        base({
+          birthday,
+          needs_occasion_date: flagged,
+          occasion_needing_date: flagged ? "birthday" : null,
+          occasions_needing_dates: flagged ? ["birthday"] : [],
+        })
+      );
+      assert(!derived.hasTiming, birthday);
+      assertEquals(derived.state, "captured_needs_timing");
+    }
+  }
+});
+
+Deno.test("an exact birthday clears however the extractor labels it", () => {
+  for (const label of [
+    "joshua_birthday",
+    "birthday (Joshua)",
+    "Joshua Smith's birthday",
+  ]) {
+    const derived = deriveAddRecipientReadiness(
+      base({
+        birthday: "1961-03-08",
+        needs_occasion_date: true,
+        occasion_needing_date: label,
+        occasions_needing_dates: [label],
+      })
+    );
+    assert(derived.hasTiming, label);
+  }
+});
+
+Deno.test("another person's birthday stays pending", () => {
+  const derived = deriveAddRecipientReadiness(
+    base({
+      birthday: "--08-14",
+      occasions_mentioned: ["birthday", "daughter's birthday party"],
+      occasions_needing_dates: ["daughter's birthday party"],
+    })
+  );
+  assert(!derived.hasTiming);
+  assertEquals(derived.pendingDates, ["daughter's birthday party"]);
+});
+
 Deno.test("broad-only texture is not specificity — routes to follow-up", () => {
   const derived = deriveAddRecipientReadiness(
     base({

@@ -307,6 +307,12 @@ describe("nextBirthdayOccurrence", () => {
     expect(nextBirthdayOccurrence("--03-14")).toBe("2027-03-14");
   });
 
+  it("dates an approximate birthday on the first day of its range", () => {
+    expect(nextBirthdayOccurrence("03-08/03-14")).toBe("2027-03-08");
+    expect(nextBirthdayOccurrence("--10-21/--10-31")).toBe("2026-10-21");
+    expect(nextBirthdayOccurrence("December")).toBe("2026-12-01");
+  });
+
   it("ignores a spurious future year", () => {
     expect(nextBirthdayOccurrence("2027-10-06")).toBe("2026-10-06");
   });

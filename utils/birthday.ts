@@ -1,9 +1,12 @@
 /**
  * Birthdays in BeGifted are stored as text on `recipients.birthday` in one
- * of two canonical forms:
+ * of three canonical forms:
  *
- *   - "YYYY-MM-DD"  when the full date (including year) is known
- *   - "--MM-DD"     when only the month and day are known (RFC 6350 / vCard)
+ *   - "YYYY-MM-DD"       when the full date (including year) is known
+ *   - "--MM-DD"          when only the month and day are known (RFC 6350 / vCard)
+ *   - "--MM-DD/--MM-DD"  when only approximate timing is known ("second week
+ *                        of March"). The range is the birthday as told; its
+ *                        start is a planning anchor, never the birthday itself.
  *
  * The column was originally a Postgres `date`, which rejected year 0 with
  * SQLSTATE 22008 (the bug PM hit) and couldn't represent partial dates at
@@ -45,6 +48,17 @@ const MONTH_NAMES: Record<string, number> = {
   dec: 12,
 };
 const MONTH_NAME_DATE = /^([A-Za-z]+)\.?\s+(\d{1,2})(?:\s*,?\s*(\d{4}))?$/;
+
+// Approximate timing, stored ("--03-08/--03-14") or as extraction returns it
+// ("03-08/03-14").
+const MONTH_DAY_RANGE = /^(?:--)?(\d{2})-(\d{2})\/(?:--)?(\d{2})-(\d{2})$/;
+// The shapes formatBirthdayDisplay() emits for a range, so a field seeded with
+// one round-trips on save: "March 8–14", "March 28 – April 3", "March".
+const MONTH_NAME_RANGE =
+  /^([A-Za-z]+)\.?\s+(\d{1,2})\s*[-–—]\s*(?:([A-Za-z]+)\.?\s+)?(\d{1,2})$/;
+const MONTH_NAME_ONLY = /^([A-Za-z]+)\.?$/;
+// A range wider than a month is not timing anyone can plan a gift around.
+const MAX_RANGE_DAYS = 31;
 
 const MIN_YEAR = 1850;
 
@@ -138,6 +152,116 @@ export function parseBirthdayParts(
   return null;
 }
 
+export interface BirthdayRange {
+  start: { month: number; day: number };
+  end: { month: number; day: number };
+}
+
+// Leap-year length, matching isRealMonthDay, so February 29 stays in range.
+function lastDayOfMonth(month: number): number {
+  return new Date(Date.UTC(2024, month, 0)).getUTCDate();
+}
+
+function dayOfLeapYear(month: number, day: number): number {
+  return (Date.UTC(2024, month - 1, day) - Date.UTC(2024, 0, 1)) / 86_400_000;
+}
+
+function rangeFromNumbers(
+  startMonth: number,
+  startDay: number,
+  endMonth: number,
+  endDay: number
+): BirthdayRange | null {
+  if (!isRealMonthDay(startMonth, startDay)) return null;
+  if (!isRealMonthDay(endMonth, endDay)) return null;
+  const start = dayOfLeapYear(startMonth, startDay);
+  const end = dayOfLeapYear(endMonth, endDay);
+  // An end before the start wraps the new year ("December 28 – January 3").
+  const span = (end >= start ? end - start : end + 366 - start) + 1;
+  if (span < 2 || span > MAX_RANGE_DAYS) return null;
+  return {
+    start: { month: startMonth, day: startDay },
+    end: { month: endMonth, day: endDay },
+  };
+}
+
+/**
+ * Parse an approximate birthday — stored, as extracted, or as displayed —
+ * into its bounds. Null for an exact birthday or anything unrecognizable.
+ * parseBirthdayParts deliberately stays exact-only: its callers compute ages
+ * and single dates, and must read a range as "no exact birthday".
+ */
+export function parseBirthdayRange(
+  input: string | null | undefined
+): BirthdayRange | null {
+  const trimmed = input?.trim();
+  if (!trimmed) return null;
+
+  const numeric = MONTH_DAY_RANGE.exec(trimmed);
+  if (numeric) {
+    return rangeFromNumbers(
+      Number(numeric[1]),
+      Number(numeric[2]),
+      Number(numeric[3]),
+      Number(numeric[4])
+    );
+  }
+
+  const named = MONTH_NAME_RANGE.exec(trimmed);
+  if (named) {
+    const startMonth = MONTH_NAMES[named[1].toLowerCase()];
+    const endMonth = named[3]
+      ? MONTH_NAMES[named[3].toLowerCase()]
+      : startMonth;
+    if (!startMonth || !endMonth) return null;
+    return rangeFromNumbers(
+      startMonth,
+      Number(named[2]),
+      endMonth,
+      Number(named[4])
+    );
+  }
+
+  const monthOnly = MONTH_NAME_ONLY.exec(trimmed);
+  if (monthOnly) {
+    const month = MONTH_NAMES[monthOnly[1].toLowerCase()];
+    if (!month) return null;
+    return rangeFromNumbers(month, 1, month, lastDayOfMonth(month));
+  }
+
+  return null;
+}
+
+/** True when `range` is an approximate birthday and `exact`'s day is in it. */
+export function birthdayRangeContains(
+  range: string | null | undefined,
+  exact: string | null | undefined
+): boolean {
+  const bounds = parseBirthdayRange(range);
+  const parts = parseBirthdayParts(exact);
+  if (!bounds || !parts) return false;
+  const start = dayOfLeapYear(bounds.start.month, bounds.start.day);
+  const end = dayOfLeapYear(bounds.end.month, bounds.end.day);
+  const day = dayOfLeapYear(parts.month, parts.day);
+  return end >= start ? day >= start && day <= end : day >= start || day <= end;
+}
+
+/**
+ * The month/day ("--MM-DD") to plan around: an exact birthday's own day, or
+ * the first day of an approximate one. For dating the birthday moment only —
+ * never store or show it as the birthday.
+ */
+export function birthdayPlanningAnchor(
+  birthday: string | null | undefined
+): string | null {
+  const range = parseBirthdayRange(birthday);
+  const monthDay = range?.start ?? parseBirthdayParts(birthday);
+  if (!monthDay) return null;
+  const mm = String(monthDay.month).padStart(2, "0");
+  const dd = String(monthDay.day).padStart(2, "0");
+  return `--${mm}-${dd}`;
+}
+
 /**
  * Normalize user/LLM input into the canonical storage form, or null if the
  * input is unparseable. Use at the save boundary so we never write garbage
@@ -146,6 +270,11 @@ export function parseBirthdayParts(
 export function normalizeBirthday(
   input: string | null | undefined
 ): string | null {
+  const range = parseBirthdayRange(input);
+  if (range) {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `--${pad(range.start.month)}-${pad(range.start.day)}/--${pad(range.end.month)}-${pad(range.end.day)}`;
+  }
   const parts = parseBirthdayParts(input);
   if (!parts) return null;
   const mm = String(parts.month).padStart(2, "0");
@@ -176,6 +305,8 @@ export function formatBirthdayDisplay(
   birthday: string | null | undefined,
   options: { includeYearWhenKnown?: boolean } = {}
 ): string {
+  const range = parseBirthdayRange(birthday);
+  if (range) return formatBirthdayRange(range);
   const parts = parseBirthdayParts(birthday);
   if (!parts) return "";
   // Year here is a placeholder for Date — we only use month/day for display
@@ -188,6 +319,23 @@ export function formatBirthdayDisplay(
     day: "numeric",
     ...(includeYear ? { year: "numeric" } : {}),
   });
+}
+
+function formatBirthdayRange(range: BirthdayRange): string {
+  const monthName = (month: number) =>
+    new Date(2000, month - 1, 1).toLocaleDateString("en-US", { month: "long" });
+  const { start, end } = range;
+  if (start.month !== end.month) {
+    return `${monthName(start.month)} ${start.day} – ${monthName(end.month)} ${end.day}`;
+  }
+  // Extraction may close February on the 28th.
+  const wholeMonth =
+    start.day === 1 &&
+    (end.day === lastDayOfMonth(start.month) ||
+      (start.month === 2 && end.day === 28));
+  return wholeMonth
+    ? monthName(start.month)
+    : `${monthName(start.month)} ${start.day}–${end.day}`;
 }
 
 /** True when the stored birthday includes a year (vs. month-day only). */
@@ -306,6 +454,18 @@ export function birthdayAfterOccasionEdit(
     birthdayFromOccasionDate(occasionDate)
   );
   if (!fromOccasion) return null;
+  // The moment of an approximate birthday is dated on its planning anchor.
+  // Saving the moment with that date unchanged says nothing new about the
+  // birthday, and must not harden the anchor into an exact day.
+  const existingRange = parseBirthdayRange(existingBirthday);
+  if (
+    existingRange &&
+    fromOccasion.year === null &&
+    fromOccasion.month === existingRange.start.month &&
+    fromOccasion.day === existingRange.start.day
+  ) {
+    return null;
+  }
   const existing = parseBirthdayParts(existingBirthday);
   const mm = String(fromOccasion.month).padStart(2, "0");
   const dd = String(fromOccasion.day).padStart(2, "0");

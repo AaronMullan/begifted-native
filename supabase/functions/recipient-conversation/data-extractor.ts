@@ -30,6 +30,12 @@ export const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 export const supabaseServiceKey =
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
+// Shared by the turn extractor and the Finish extractor so both write the same
+// form: readiness counts a range as captured timing, and the client stores it
+// as given rather than as an invented exact day.
+export const APPROXIMATE_BIRTHDAY_RULE =
+  "If the user can only give approximate timing that is bounded to a month or less, return it as a month-day range 'MM-DD/MM-DD' and never as a single invented day: 'second week of March' -> '03-08/03-14' (week N of a month runs from day 7N-6 to day 7N), 'early June' -> '06-01/06-10', 'mid June' -> '06-11/06-20', 'late October' -> '10-21/10-31', 'sometime in December' -> '12-01/12-31'. Timing too vague to bound to a month ('in the spring', 'sometime next year') is not a birthday — return null for it.";
+
 export type AIConfig = { provider: Provider; model: string; apiKey: string };
 
 export async function resolveAIConfig(
@@ -180,11 +186,11 @@ Return JSON with what's been established:
   "name": "person's name if clearly mentioned, null otherwise",
   "relationship": "relationship if established, null otherwise",
   "interests": ["any interests mentioned"],
-  "birthday": "birthday if mentioned. Use YYYY-MM-DD only when the year is explicitly stated. If only month and day are known, use MM-DD (e.g. '12-07'). If only the year is known ('born in 1961'), return just the year as 'YYYY'. A two-digit year in a numeric date (9/11/61) is the full year (1961) — expand it. Never substitute placeholder years like 0000 or a placeholder month/day like 01-01 — omit the part you don't know. Return null if no birthday is mentioned.",
+  "birthday": "birthday if mentioned. Use YYYY-MM-DD only when the year is explicitly stated. If only month and day are known, use MM-DD (e.g. '12-07'). If only the year is known ('born in 1961'), return just the year as 'YYYY'. A two-digit year in a numeric date (9/11/61) is the full year (1961) — expand it. Never substitute placeholder years like 0000 or a placeholder month/day like 01-01 — omit the part you don't know. ${APPROXIMATE_BIRTHDAY_RULE} Return null if no birthday is mentioned.",
   "occasions_mentioned": ["array of holidays/occasions mentioned (e.g., 'christmas', 'anniversary', 'kwanzaa')"],
   "needs_occasion_date": false,
   "occasion_needing_date": null,
-  "occasions_needing_dates": ["array of occasion names that still require user-provided timing — exclude fixed holidays like Christmas, Valentine's Day, Mother's Day, Father's Day, Thanksgiving, Halloween, Easter, etc."],
+  "occasions_needing_dates": ["array of occasion names that still require user-provided timing — exclude fixed holidays like Christmas, Valentine's Day, Mother's Day, Father's Day, Thanksgiving, Halloween, Easter, etc. A birthday whose timing is captured in the birthday field, exactly or as an approximate range, no longer needs a date."],
   "has_price_guidance": false,
   "price_guidance_raw": "exact quote or paraphrase of price/spend mentioned, null if none",
   "has_age_context": false,

@@ -58,11 +58,16 @@ export function DataReviewView({
   const [prevBirthday, setPrevBirthday] = useState(extractedData.birthday);
   if (extractedData.birthday !== prevBirthday) {
     setPrevBirthday(extractedData.birthday);
-    setBirthdayText(
-      formatBirthdayDisplay(extractedData.birthday) ||
-        extractedData.birthday ||
-        ""
-    );
+    // The field reports every keystroke upward, so its own text comes back
+    // here. Reformatting that mid-word ("Mar" reads as the month of March)
+    // would rewrite what the user is still typing.
+    if (extractedData.birthday !== birthdayText) {
+      setBirthdayText(
+        formatBirthdayDisplay(extractedData.birthday) ||
+          extractedData.birthday ||
+          ""
+      );
+    }
   }
 
   const updateField = (field: keyof ExtractedData, value: any) => {

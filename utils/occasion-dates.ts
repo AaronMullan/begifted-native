@@ -1,4 +1,4 @@
-import { normalizeBirthday } from "./birthday";
+import { birthdayPlanningAnchor } from "./birthday";
 
 /** Match YYYY-MM-DD so we only treat explicit ISO dates as valid. */
 const ISO_DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
@@ -128,8 +128,8 @@ export function nextBirthdayOccurrence(
 ): string | null {
   const raw = birthday?.trim();
   if (!raw) return null;
-  const canonical = normalizeBirthday(raw);
-  if (canonical) return getNextAnnualOccurrence(canonical);
+  const anchor = birthdayPlanningAnchor(raw);
+  if (anchor) return getNextAnnualOccurrence(anchor);
   // The birthday parser rejects a full date for its year alone (extraction
   // sometimes supplies a future one); the month/day is still usable. A date
   // that isn't real ("2009-02-31", "0000-00-00") is not, and Date would roll
