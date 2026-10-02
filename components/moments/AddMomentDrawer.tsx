@@ -130,7 +130,7 @@ const MomentDateSection: React.FC<MomentDateSectionProps> = ({
           value={dateInput}
           onChangeText={onDateChange}
           onFocus={onDateFocus}
-          placeholder="MM-DD"
+          placeholder="12-25"
           placeholderTextColor={Colors.brand.mediumTeal}
           keyboardType="number-pad"
           returnKeyType="done"
@@ -219,7 +219,7 @@ export const AddMomentDrawer: React.FC<AddMomentDrawerProps> = ({
         lookupOccasionDate(slug) ??
         parseEnteredMonthDay(dateInput);
       if (!date) {
-        setDateError("Please enter the month and day in MM-DD format");
+        setDateError("Enter the month and day as numbers, like 12-25.");
         return;
       }
     }

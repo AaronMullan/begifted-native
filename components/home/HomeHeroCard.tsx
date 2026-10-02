@@ -13,6 +13,10 @@ import {
   stripRecipientName,
 } from "../../utils/home-occasions";
 import { formatOccasionDate } from "../../utils/occasion-dates";
+import {
+  approximateBirthdayLabel,
+  approximateTimingPhrase,
+} from "../../utils/birthday";
 import Avatar from "../Avatar";
 import OccasionOverflowMenu from "./OccasionOverflowMenu";
 
@@ -30,15 +34,21 @@ export default function HomeHeroCard({ occasion }: HomeHeroCardProps) {
     occasion.occasion_type,
     recipientName
   );
+  const approximate = approximateBirthdayLabel(
+    occasion.occasion_type,
+    occasion.recipient?.birthday
+  );
   const headline =
-    days === 0
+    days === 0 && !approximate
       ? `Today is ${formatOccasionType(occasionType)} for ${recipientName}.`
       : `${possessive(recipientName)} ${formatOccasionTypeLower(
           occasionType
         )} is coming up.`;
   const dayLabel =
     days === 0 ? "Today" : days === 1 ? "Tomorrow" : `In ${days} days`;
-  const countdown = `${dayLabel} • ${formatOccasionDate(occasion.date)}`;
+  const countdown = approximate
+    ? approximateTimingPhrase(approximate)
+    : `${dayLabel} • ${formatOccasionDate(occasion.date)}`;
 
   const handlePress = () => {
     router.push(

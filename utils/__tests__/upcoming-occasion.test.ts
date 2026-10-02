@@ -56,3 +56,35 @@ describe("getNextUpcomingOccasion", () => {
     expect(next).toBeNull();
   });
 });
+
+describe("getNextUpcomingOccasion with an approximate birthday", () => {
+  it("labels the birthday moment with the range, not its anchor day", () => {
+    const next = getNextUpcomingOccasion("--03-08/--03-14", [
+      occasion({ occasion_type: "birthday", date: "2027-03-08" }),
+    ]);
+    expect(next).toEqual({
+      occasionType: "birthday",
+      date: "2027-03-08",
+      dateLabel: "March 8–14",
+    });
+  });
+
+  it("still surfaces the birthday when it has no moment row", () => {
+    expect(getNextUpcomingOccasion("--03-08/--03-14", [])).toEqual({
+      occasionType: "birthday",
+      date: "2027-03-08",
+      dateLabel: "March 8–14",
+    });
+  });
+
+  it("leaves other moments and exact birthdays unlabelled", () => {
+    const other = getNextUpcomingOccasion("--03-08/--03-14", [
+      occasion({ occasion_type: "anniversary", date: "2026-09-01" }),
+    ]);
+    expect(other).toEqual({ occasionType: "anniversary", date: "2026-09-01" });
+    expect(getNextUpcomingOccasion("--03-08", [])).toEqual({
+      occasionType: "birthday",
+      date: "2027-03-08",
+    });
+  });
+});

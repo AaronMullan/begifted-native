@@ -16,6 +16,7 @@ import { Typography } from "../../lib/typography";
 import { Spacing } from "../../lib/spacing";
 import type { Occasion } from "../../lib/api";
 import { formatOccasionType } from "../../utils/home-occasions";
+import { approximateBirthdayLabel } from "../../utils/birthday";
 import {
   formatOccasionDate,
   getNextOccurrence,
@@ -30,6 +31,8 @@ export type ManageMomentDrawerHandle = {
 type ManageMomentDrawerProps = {
   /** The moment being edited; null until one is picked. */
   occasion: Occasion | null;
+  /** The recipient's stored birthday; a range makes the birthday moment approximate. */
+  birthday?: string | null;
   /**
    * Persist edits. `date` is ISO, or "" meaning "leave the stored date alone"
    * (the date column rejects "" and a NULL would vanish from the calendar).
@@ -61,7 +64,14 @@ function isoToMDY(iso: string): string {
   return `${month}-${day}-${year}`;
 }
 
-function seedDateInput(occasion: Occasion): string {
+function seedDateInput(
+  occasion: Occasion,
+  birthday: string | null | undefined
+): string {
+  // An approximate birthday has no day to edit: the stored date is only its
+  // planning anchor. Left empty, a save leaves the date alone; typing a day
+  // is how the user makes the birthday exact.
+  if (approximateBirthdayLabel(occasion.occasion_type, birthday)) return "";
   const annual = occasion.is_annual ?? true;
   // Jan-1 dates are placeholder values from the AI extractor, not real input.
   const hasRealDate =
@@ -84,6 +94,7 @@ function seedDateInput(occasion: Occasion): string {
  */
 export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
   occasion,
+  birthday,
   onSave,
   onDelete,
   handleRef,
@@ -116,7 +127,7 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
     setPrevOccasion(occasion);
     if (occasion) {
       setNameInput(formatOccasionType(occasion.occasion_type));
-      setDateInput(seedDateInput(occasion));
+      setDateInput(seedDateInput(occasion, birthday));
       setDateEdited(false);
       setIsAnnual(occasion.is_annual ?? true);
       setErrorMessage("");
@@ -191,7 +202,7 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
           return;
         }
       }
-      setErrorMessage("Please enter the month and day in MM-DD format");
+      setErrorMessage("Enter the month and day as numbers, like 12-25.");
       return;
     }
 
@@ -203,7 +214,9 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
         return;
       }
     }
-    setErrorMessage("Please enter a full date in MM-DD-YYYY format");
+    setErrorMessage(
+      "Enter the month, day and year as numbers, like 12-25-2026."
+    );
   };
 
   const handleDelete = () => {
@@ -214,7 +227,10 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
 
   const title = occasion
     ? occasion.date
-      ? `${formatOccasionType(occasion.occasion_type)} — ${formatOccasionDate(occasion.date)}`
+      ? `${formatOccasionType(occasion.occasion_type)} — ${
+          approximateBirthdayLabel(occasion.occasion_type, birthday) ??
+          formatOccasionDate(occasion.date)
+        }`
       : formatOccasionType(occasion.occasion_type)
     : "";
 
@@ -316,7 +332,7 @@ export const ManageMomentDrawer: React.FC<ManageMomentDrawerProps> = ({
           value={dateInput}
           onChangeText={handleDateChange}
           onFocus={handleDateFocus}
-          placeholder={isAnnual ? "MM-DD" : "MM-DD-YYYY"}
+          placeholder={isAnnual ? "12-25" : "12-25-2026"}
           placeholderTextColor={Colors.brand.mediumTeal}
           keyboardType="number-pad"
           returnKeyType="done"

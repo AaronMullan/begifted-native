@@ -154,14 +154,14 @@ export function ManualDataEntry({
                 label="Birthday"
                 value={birthday}
                 onChangeText={setBirthday}
-                placeholder="MM-DD-YYYY or MM-DD"
+                placeholder="December 7, 1990 or December 7"
                 error={isInvalidBirthdayInput(birthday)}
                 style={styles.input}
               />
               {isInvalidBirthdayInput(birthday) && (
                 <HelperText type="error" visible>
-                  Use MM-DD-YYYY (e.g. 12-07-1990) or MM-DD (e.g. 12-07) if the
-                  year is unknown.
+                  Use a date like December 7, 1990, or December 7 if the year is
+                  unknown.
                 </HelperText>
               )}
             </View>

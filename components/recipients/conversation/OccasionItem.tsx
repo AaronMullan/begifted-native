@@ -8,12 +8,15 @@ interface OccasionItemProps {
     occasion_type: string;
     enabled: boolean;
   };
+  /** Shown instead of the date, for a birthday known only approximately. */
+  dateLabel?: string | null;
   onToggle: () => void;
   onEdit: () => void;
 }
 
 export function OccasionItem({
   occasion,
+  dateLabel,
   onToggle,
   onEdit,
 }: OccasionItemProps) {
@@ -59,7 +62,7 @@ export function OccasionItem({
     return formatted.replace(/_/g, " ");
   };
 
-  const displayDate = formatDate(occasion.date);
+  const displayDate = dateLabel || formatDate(occasion.date);
 
   return (
     <Card mode="contained" style={styles.occasionItem} onPress={onEdit}>

@@ -33,6 +33,7 @@ import { slugifyOccasionName } from "../../hooks/use-occasion-recommendations";
 import { GiftPreferencesDialog } from "./GiftPreferencesDialog";
 import { InformationDialog } from "./InformationDialog";
 import {
+  approximateBirthdayLabel,
   birthdayAfterOccasionEdit,
   formatBirthdayDisplay,
 } from "../../utils/birthday";
@@ -293,7 +294,10 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
                   <View style={styles.momentMetaRow}>
                     <Text style={styles.occasionDate}>
                       {occasion.date
-                        ? formatOccasionDate(occasion.date)
+                        ? (approximateBirthdayLabel(
+                            occasion.occasion_type,
+                            recipient.birthday
+                          ) ?? formatOccasionDate(occasion.date))
                         : "No date set"}
                     </Text>
                     <Pressable
@@ -517,6 +521,7 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
 
       <ManageMomentDrawer
         occasion={editingOccasion}
+        birthday={recipient.birthday}
         handleRef={manageMomentRef}
         onDelete={(occasion) => setOccasionToDelete(occasion)}
         onSave={(date, name, isAnnual, dateEdited) => {

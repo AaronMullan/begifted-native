@@ -10,6 +10,8 @@ import {
   birthdayFromOccasionDate,
   birthdayAfterOccasionEdit,
   birthdayPlanningAnchor,
+  approximateBirthdayLabel,
+  approximateTimingPhrase,
   birthdayRangeContains,
   parseBirthdayRange,
 } from "../birthday";
@@ -330,5 +332,32 @@ describe("approximate birthday ranges", () => {
     expect(birthdayAfterOccasionEdit("2027-03-11", "--03-08/--03-14")).toBe(
       "--03-11"
     );
+  });
+});
+
+describe("approximateBirthdayLabel", () => {
+  it("gives the range for a birthday moment of an approximate birthday", () => {
+    expect(approximateBirthdayLabel("birthday", "--03-08/--03-14")).toBe(
+      "March 8–14"
+    );
+    expect(approximateBirthdayLabel("birthday", "--12-01/--12-31")).toBe(
+      "December"
+    );
+  });
+
+  it("is null for an exact birthday, no birthday, or another moment", () => {
+    expect(approximateBirthdayLabel("birthday", "1990-03-08")).toBeNull();
+    expect(approximateBirthdayLabel("birthday", "--03-08")).toBeNull();
+    expect(approximateBirthdayLabel("birthday", null)).toBeNull();
+    expect(
+      approximateBirthdayLabel("anniversary", "--03-08/--03-14")
+    ).toBeNull();
+  });
+});
+
+describe("approximateTimingPhrase", () => {
+  it("never reads as a countdown", () => {
+    expect(approximateTimingPhrase("March 8–14")).toBe("Around March 8–14");
+    expect(approximateTimingPhrase("December")).toBe("Sometime in December");
   });
 });

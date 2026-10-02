@@ -82,7 +82,7 @@ const PeopleRecipientCard: React.FC<PeopleRecipientCardProps> = ({
               {upcoming
                 ? `${formatOccasionType(
                     upcoming.occasionType
-                  )}: ${formatOccasionDate(upcoming.date)}`
+                  )}: ${upcoming.dateLabel ?? formatOccasionDate(upcoming.date)}`
                 : momentsKnown
                   ? "No upcoming moments yet"
                   : ""}

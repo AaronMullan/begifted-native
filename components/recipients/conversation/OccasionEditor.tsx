@@ -209,7 +209,7 @@ export function OccasionEditor({
           return;
         }
       }
-      setErrorMessage("Please enter the month and day in MM-DD format");
+      setErrorMessage("Enter the month and day as numbers, like 12-25.");
       return;
     }
 
@@ -221,7 +221,9 @@ export function OccasionEditor({
         return;
       }
     }
-    setErrorMessage("Please enter a full date in MM-DD-YYYY format");
+    setErrorMessage(
+      "Enter the month, day and year as numbers, like 12-25-2026."
+    );
   };
 
   return (
@@ -294,7 +296,7 @@ export function OccasionEditor({
                     label="Date"
                     value={dateInput}
                     onChangeText={handleDateChange}
-                    placeholder={isAnnual ? "MM-DD" : "MM-DD-YYYY"}
+                    placeholder={isAnnual ? "12-25" : "12-25-2026"}
                     keyboardType="number-pad"
                     returnKeyType="done"
                     maxLength={isAnnual ? 5 : 10}
@@ -302,8 +304,8 @@ export function OccasionEditor({
                   />
                   <Text variant="bodySmall" style={styles.helperText}>
                     {isAnnual
-                      ? "Repeats every year — enter the month and day (e.g., 12-25)"
-                      : "Enter the full date in MM-DD-YYYY format (e.g., 12-25-2026)"}
+                      ? "Repeats every year. Enter the month and day, like 12-25."
+                      : "Enter the month, day and year, like 12-25-2026."}
                   </Text>
                 </View>
               </View>

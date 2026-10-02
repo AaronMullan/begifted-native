@@ -214,9 +214,9 @@ export default function Calendar() {
         name: recipient.name,
         photoUrl: recipient.photo_url,
         subtitle: upcoming
-          ? `${formatOccasionType(upcoming.occasionType)} • ${formatOccasionDate(
-              upcoming.date
-            )}`
+          ? `${formatOccasionType(upcoming.occasionType)} • ${
+              upcoming.dateLabel ?? formatOccasionDate(upcoming.date)
+            }`
           : null,
       };
     });

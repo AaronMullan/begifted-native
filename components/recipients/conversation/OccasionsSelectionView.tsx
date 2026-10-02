@@ -16,6 +16,7 @@ import {
   nextBirthdayOccurrence,
   formatOccasionDate,
 } from "../../../utils/occasion-dates";
+import { approximateBirthdayLabel } from "../../../utils/birthday";
 import { OccasionItem } from "./OccasionItem";
 import { OccasionEditor } from "./OccasionEditor";
 
@@ -230,6 +231,16 @@ export function OccasionsSelectionView({
     setEditingOccasionIndex(index);
   };
 
+  // The range stands in for the birthday row's date only while that date is
+  // still the range's own anchor; a day the user typed over it shows as typed.
+  const approximateBirthdayRowLabel = (row: {
+    date: string;
+    occasion_type: string;
+  }) =>
+    row.date === nextBirthdayOccurrence(extractedData.birthday)
+      ? approximateBirthdayLabel(row.occasion_type, extractedData.birthday)
+      : null;
+
   const handleSaveOccasionDate = (date: string, _isAnnual: boolean) => {
     if (editingOccasionIndex !== null) {
       setSelectedOccasions((prev) =>
@@ -298,6 +309,7 @@ export function OccasionsSelectionView({
                 <OccasionItem
                   key={index}
                   occasion={occasion}
+                  dateLabel={approximateBirthdayRowLabel(occasion)}
                   onToggle={() => toggleOccasion(index)}
                   onEdit={() => handleEditOccasion(index)}
                 />

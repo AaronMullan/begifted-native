@@ -1,5 +1,10 @@
 import type { Occasion } from "../lib/api";
-import { getNextOccurrence, lookupOccasionDate } from "./occasion-dates";
+import {
+  getNextOccurrence,
+  lookupOccasionDate,
+  nextBirthdayOccurrence,
+} from "./occasion-dates";
+import { approximateBirthdayLabel } from "./birthday";
 import { daysUntil } from "./home-occasions";
 
 /** A recipient's soonest upcoming occasion, ready for display. */
@@ -7,6 +12,11 @@ export type UpcomingOccasion = {
   occasionType: string;
   /** Next future occurrence as YYYY-MM-DD. */
   date: string;
+  /**
+   * Shown instead of `date` for an approximate birthday ("March 8–14"), whose
+   * `date` is only the planning anchor.
+   */
+  dateLabel?: string;
 };
 
 /** Only treat explicit ISO dates as something we can display. */
@@ -25,10 +35,18 @@ export function getNextUpcomingOccasion(
 ): UpcomingOccasion | null {
   const candidates: UpcomingOccasion[] = [];
 
+  const approximateBirthday = approximateBirthdayLabel("birthday", birthday);
+  const withLabel = (candidate: UpcomingOccasion): UpcomingOccasion =>
+    approximateBirthday && candidate.occasionType === "birthday"
+      ? { ...candidate, dateLabel: approximateBirthday }
+      : candidate;
+
   if (birthday) {
-    const next = getNextOccurrence(birthday);
+    const next = approximateBirthday
+      ? (nextBirthdayOccurrence(birthday) ?? "")
+      : getNextOccurrence(birthday);
     if (ISO_DATE_ONLY.test(next)) {
-      candidates.push({ occasionType: "birthday", date: next });
+      candidates.push(withLabel({ occasionType: "birthday", date: next }));
     }
   }
 
@@ -41,7 +59,9 @@ export function getNextUpcomingOccasion(
         lookupOccasionDate(occasion.occasion_type) ??
         getNextOccurrence(occasion.date);
       if (ISO_DATE_ONLY.test(next)) {
-        candidates.push({ occasionType: occasion.occasion_type, date: next });
+        candidates.push(
+          withLabel({ occasionType: occasion.occasion_type, date: next })
+        );
       }
     } else if (
       ISO_DATE_ONLY.test(occasion.date) &&
