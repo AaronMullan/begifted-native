@@ -49,6 +49,8 @@ type AddMomentDrawerProps = {
    * (the calendar).
    */
   captureDate?: boolean;
+  /** The picked person is known to be under 18 (see utils/birthday isKnownMinor). */
+  forMinor?: boolean;
   /**
    * Extra date resolutions for suggested chips (slugified name → ISO date),
    * consulted before the local holiday catalog — interest-derived occasions
@@ -92,6 +94,15 @@ const COMMON_MOMENTS = [
   "Christmas",
   "Hanukkah",
 ];
+// Withheld from a known minor. Typing the name under "Add your own" still
+// works, which is how a giver with a real reason adds one.
+const ADULT_LIFE_EVENTS = new Set([
+  "Wedding",
+  "New Baby",
+  "Promotion",
+  "Housewarming",
+  "Retirement",
+]);
 
 type MomentDateSectionProps = {
   momentName: string;
@@ -159,6 +170,7 @@ export const AddMomentDrawer: React.FC<AddMomentDrawerProps> = ({
   recommendedLabel = "RECOMMENDED",
   recommendedMoments = RECOMMENDED_MOMENTS,
   captureDate = false,
+  forMinor = false,
   suggestionDates = {},
 }) => {
   const sheetRef = useRef<BottomSheetModal>(null);
@@ -193,7 +205,9 @@ export const AddMomentDrawer: React.FC<AddMomentDrawerProps> = ({
   // also render here — same label, same resulting moment, two chips.
   const recommendedSlugs = new Set(recommendedMoments.map(slugifyOccasionName));
   const commonMoments = COMMON_MOMENTS.filter(
-    (label) => !recommendedSlugs.has(slugifyOccasionName(label))
+    (label) =>
+      !recommendedSlugs.has(slugifyOccasionName(label)) &&
+      !(forMinor && ADULT_LIFE_EVENTS.has(label))
   );
 
   const handleNameChange = (text: string) => {

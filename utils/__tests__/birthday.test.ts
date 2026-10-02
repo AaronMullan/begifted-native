@@ -4,6 +4,7 @@ import {
   isInvalidBirthdayInput,
   formatBirthdayDisplay,
   birthdayHasYear,
+  isKnownMinor,
   backfillBirthdayFromAge,
   birthYearFromAge,
   birthYearFromYearOnly,
@@ -365,5 +366,29 @@ describe("approximateTimingPhrase", () => {
   it("never reads as a countdown", () => {
     expect(approximateTimingPhrase("March 8–14")).toBe("Around March 8–14");
     expect(approximateTimingPhrase("December")).toBe("Sometime in December");
+  });
+});
+
+describe("isKnownMinor", () => {
+  const today = new Date(2026, 9, 2);
+
+  it("uses the exact age from a full birthday", () => {
+    expect(isKnownMinor("2009-10-06", null, today)).toBe(true);
+    expect(isKnownMinor("2008-10-02", null, today)).toBe(false);
+    expect(isKnownMinor("2008-10-03", null, today)).toBe(true);
+    expect(isKnownMinor("1966-03-08", null, today)).toBe(false);
+  });
+
+  it("counts a bare birth year only when the older possible age is under 18", () => {
+    expect(isKnownMinor(null, 2010, today)).toBe(true);
+    expect(isKnownMinor("--03-08", 2009, today)).toBe(true);
+    expect(isKnownMinor("--03-08/--03-14", 2008, today)).toBe(false);
+    expect(isKnownMinor(null, 1966, today)).toBe(false);
+  });
+
+  it("treats an unknown age as not a minor", () => {
+    expect(isKnownMinor(null, null, today)).toBe(false);
+    expect(isKnownMinor("--10-06", null, today)).toBe(false);
+    expect(isKnownMinor("", undefined, today)).toBe(false);
   });
 });

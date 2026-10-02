@@ -519,3 +519,28 @@ export function birthYearFromAge(
   if (rounded <= 0 || rounded > 130) return null;
   return new Date().getFullYear() - rounded;
 }
+
+/**
+ * True only when the person is certainly under 18. A full birthday gives an
+ * exact age; a bare birth year leaves the age a year uncertain, so it counts
+ * only when even the older possibility is still under 18. Unknown age is not
+ * a minor.
+ */
+export function isKnownMinor(
+  birthday: string | null | undefined,
+  birthYear: number | null | undefined,
+  today: Date = new Date()
+): boolean {
+  const parts = parseBirthdayParts(birthday);
+  if (parts && parts.year !== null) {
+    const hadBirthdayThisYear =
+      today.getMonth() + 1 > parts.month ||
+      (today.getMonth() + 1 === parts.month && today.getDate() >= parts.day);
+    const age =
+      today.getFullYear() - parts.year - (hadBirthdayThisYear ? 0 : 1);
+    return age >= 0 && age < 18;
+  }
+  if (birthYear == null || !Number.isFinite(birthYear)) return false;
+  const oldestPossibleAge = today.getFullYear() - birthYear;
+  return oldestPossibleAge >= 0 && oldestPossibleAge < 18;
+}
