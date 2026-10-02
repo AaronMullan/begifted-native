@@ -74,4 +74,9 @@ export const dialogStyles = StyleSheet.create({
     flexDirection: "row",
     gap: 16,
   },
+  switchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
 });

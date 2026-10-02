@@ -7,10 +7,17 @@ import {
   Pressable,
   View,
 } from "react-native";
-import { Button, IconButton, Text, TextInput } from "react-native-paper";
+import {
+  Button,
+  IconButton,
+  Switch,
+  Text,
+  TextInput,
+} from "react-native-paper";
 import type { Recipient } from "../../types/recipient";
 import { dialogStyles as styles } from "./recipient-dialog-styles";
 import { KEYBOARD_CTA_GAP } from "@/lib/constants";
+import { Colors } from "@/lib/colors";
 
 type GiftPreferencesDialogProps = {
   visible: boolean;
@@ -40,6 +47,12 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
   const [maxBudget, setMaxBudget] = useState(
     recipient.gift_budget_max != null ? String(recipient.gift_budget_max) : ""
   );
+  // A stored maximum outranks the flag everywhere it is read, so the switch
+  // must agree — otherwise an untouched Save would null that maximum.
+  const storedNoCeiling =
+    recipient.gift_budget_no_ceiling === true &&
+    recipient.gift_budget_max == null;
+  const [noCeiling, setNoCeiling] = useState(storedNoCeiling);
   const [saving, setSaving] = useState(false);
 
   // Re-seed the editable fields only when the dialog opens — never while it's
@@ -64,6 +77,7 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
           ? String(recipient.gift_budget_max)
           : ""
       );
+      setNoCeiling(storedNoCeiling);
     }
   }
 
@@ -75,8 +89,13 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
       emotional_tone_preference: tone.trim() || undefined,
       gift_budget_min:
         parsedMin != null && !Number.isNaN(parsedMin) ? parsedMin : undefined,
-      gift_budget_max:
-        parsedMax != null && !Number.isNaN(parsedMax) ? parsedMax : undefined,
+      // No limit and a maximum can't both hold, so choosing it clears the max.
+      gift_budget_max: noCeiling
+        ? null
+        : parsedMax != null && !Number.isNaN(parsedMax)
+          ? parsedMax
+          : undefined,
+      gift_budget_no_ceiling: noCeiling,
     });
     setSaving(false);
   };
@@ -132,14 +151,32 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
                   returnKeyType="done"
                   style={[styles.input, styles.budgetInput]}
                 />
-                <TextInput
-                  mode="outlined"
-                  label="Max $"
-                  defaultValue={maxBudget}
-                  onChangeText={setMaxBudget}
-                  keyboardType="number-pad"
-                  returnKeyType="done"
-                  style={[styles.input, styles.budgetInput]}
+                {noCeiling ? (
+                  <TextInput
+                    mode="outlined"
+                    label="Max $"
+                    value="No limit"
+                    editable={false}
+                    style={[styles.input, styles.budgetInput]}
+                  />
+                ) : (
+                  <TextInput
+                    mode="outlined"
+                    label="Max $"
+                    defaultValue={maxBudget}
+                    onChangeText={setMaxBudget}
+                    keyboardType="number-pad"
+                    returnKeyType="done"
+                    style={[styles.input, styles.budgetInput]}
+                  />
+                )}
+              </View>
+              <View style={styles.switchRow}>
+                <Text variant="bodyLarge">No upper limit</Text>
+                <Switch
+                  value={noCeiling}
+                  onValueChange={setNoCeiling}
+                  color={Colors.brand.mediumTeal}
                 />
               </View>
             </View>

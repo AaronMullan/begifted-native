@@ -61,6 +61,7 @@ export interface ExtractedData {
   importantDates?: string[];
   gift_budget_min?: number;
   gift_budget_max?: number;
+  gift_budget_no_ceiling?: boolean;
   address?: string;
   address_line_2?: string;
   city?: string;
@@ -84,6 +85,7 @@ export interface RecipientData {
   emotional_tone_preference?: string;
   gift_budget_min?: number;
   gift_budget_max?: number;
+  gift_budget_no_ceiling?: boolean;
   address?: string;
   address_line_2?: string;
   city?: string;
