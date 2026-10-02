@@ -74,6 +74,33 @@ Deno.test("a captured birthday does not clear another occasion's date", () => {
   assertEquals(derived.state, "captured_needs_timing");
 });
 
+Deno.test("a birthday too vague to plan around is still asked for", () => {
+  for (const birthday of ["03-01/05-31", "spring", "03-second_week"]) {
+    const derived = deriveAddRecipientReadiness(
+      base({
+        birthday,
+        needs_occasion_date: true,
+        occasion_needing_date: "birthday",
+        occasions_needing_dates: ["birthday"],
+      })
+    );
+    assert(!derived.hasTiming, birthday);
+    assertEquals(derived.state, "captured_needs_timing");
+  }
+});
+
+Deno.test("another person's birthday stays pending", () => {
+  const derived = deriveAddRecipientReadiness(
+    base({
+      birthday: "--08-14",
+      occasions_mentioned: ["birthday", "daughter's birthday party"],
+      occasions_needing_dates: ["daughter's birthday party"],
+    })
+  );
+  assert(!derived.hasTiming);
+  assertEquals(derived.pendingDates, ["daughter's birthday party"]);
+});
+
 Deno.test("broad-only texture is not specificity — routes to follow-up", () => {
   const derived = deriveAddRecipientReadiness(
     base({

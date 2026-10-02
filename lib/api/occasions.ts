@@ -3,7 +3,11 @@
  */
 
 import { supabase } from "../supabase";
-import { getNextOccurrence } from "../../utils/occasion-dates";
+import {
+  getNextOccurrence,
+  nextBirthdayOccurrence,
+} from "../../utils/occasion-dates";
+import { parseBirthdayRange } from "../../utils/birthday";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -196,7 +200,12 @@ export async function redateBirthdayOccasion(
   recipientId: string,
   birthday: string
 ): Promise<void> {
-  const date = getNextOccurrence(birthday);
+  // An approximate birthday moves the moment to the first day of its range.
+  const date = getNextOccurrence(
+    parseBirthdayRange(birthday)
+      ? (nextBirthdayOccurrence(birthday) ?? birthday)
+      : birthday
+  );
   if (!ISO_DATE.test(date)) return;
   const { error } = await supabase
     .from("occasions")

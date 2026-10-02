@@ -59,6 +59,8 @@ import {
   birthYearFromAge,
   birthYearFromYearOnly,
   normalizeBirthday,
+  parseBirthdayParts,
+  parseBirthdayRange,
 } from "../../../utils/birthday";
 import { sanitizeExtractedOccasionDate } from "../../../utils/occasion-dates";
 import { reconcileInterests } from "../../../utils/interests";
@@ -609,7 +611,12 @@ export default function RecipientEditPage() {
       // A bare year ("born in 1961") is not a birthday, but it is a birth
       // year — keep it unless a full birthday already carries one.
       const yearOnly = birthYearFromYearOnly(updates.birthday);
-      if (normalized) updates.birthday = normalized;
+      // Approximate timing never replaces a day already on file: "sometime
+      // in June" said in passing is less than the stored June 12.
+      const vaguerThanStored =
+        parseBirthdayRange(normalized) !== null &&
+        parseBirthdayParts(recipient.birthday) !== null;
+      if (normalized && !vaguerThanStored) updates.birthday = normalized;
       else delete updates.birthday;
       if (yearOnly && !birthdayHasYear(recipient.birthday)) {
         updates.birth_year = yearOnly;

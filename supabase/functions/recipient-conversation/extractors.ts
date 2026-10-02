@@ -7,6 +7,7 @@ import type {
   RecipientData,
 } from "../types.ts";
 import { parseOpenAIJSON } from "./utils.ts";
+import { isBoundedBirthdayRange } from "./readiness.ts";
 import {
   APPROXIMATE_BIRTHDAY_RULE,
   resolveAIConfig,
@@ -35,6 +36,7 @@ async function addBirthdayAsOccasion(
   // year is unknown), or an approximate "MM-DD/MM-DD" range. All collapse to a
   // month/day pair here; a range collapses to its first day, which dates the
   // occasion for planning and is not the birthday.
+  if (raw.includes("/") && !isBoundedBirthdayRange(raw)) return;
   const exactOrRangeStart = raw.split("/")[0];
   const noYear = /^--(\d{2})-(\d{2})$/.exec(exactOrRangeStart);
   const parts = noYear

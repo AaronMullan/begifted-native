@@ -38,6 +38,36 @@ export interface DerivedReadiness {
 }
 
 const BIRTHDAY_RE = /birth\s*day|bday/i;
+// The recipient's own birthday as a pending entry ("birthday", "his
+// birthday"), not another occasion that merely contains the word
+// ("daughter's birthday party").
+const OWN_BIRTHDAY_RE = /^\s*(?:\S+\s+)?(?:birth\s*day|bday)\s*$/i;
+const EXACT_BIRTHDAY_RE = /^(?:\d{4}-|--)?\d{1,2}-\d{1,2}$/;
+const BIRTHDAY_RANGE_RE = /^(?:--)?(\d{2})-(\d{2})\/(?:--)?(\d{2})-(\d{2})$/;
+// Wider than a month is not timing a gift can be planned around.
+const MAX_RANGE_DAYS = 31;
+
+/**
+ * True for an approximate birthday the extractor returned as a month-day
+ * range ("03-08/03-14") that is real and bounded to a month or less.
+ */
+export function isBoundedBirthdayRange(value: unknown): boolean {
+  const m = BIRTHDAY_RANGE_RE.exec(String(value ?? "").trim());
+  if (!m) return false;
+  const [startMonth, startDay, endMonth, endDay] = m.slice(1).map(Number);
+  // A leap year, so February 29 is a real day.
+  const dayOfYear = (month: number, day: number): number | null => {
+    const date = new Date(Date.UTC(2024, month - 1, day));
+    return date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+      ? (date.getTime() - Date.UTC(2024, 0, 1)) / 86_400_000
+      : null;
+  };
+  const start = dayOfYear(startMonth, startDay);
+  const end = dayOfYear(endMonth, endDay);
+  if (start === null || end === null) return false;
+  const span = (end >= start ? end - start : end + 366 - start) + 1;
+  return span >= 2 && span <= MAX_RANGE_DAYS;
+}
 
 function mentionsBirthday(occasions: unknown[]): boolean {
   return occasions.some((o) => BIRTHDAY_RE.test(String(o)));
@@ -96,15 +126,22 @@ export function deriveAddRecipientReadiness(
   // keep asking for it. It tends to still list a birthday with approximate
   // timing as needing a date, which would pin the state at
   // captured_needs_timing for the rest of the conversation.
-  const pendingDates = birthdayDate
-    ? extractorPending.filter((o) => !BIRTHDAY_RE.test(String(o)))
+  // Only a birthday in a recognized shape earns this: a value the client
+  // will reject (too wide a range, free text) leaves the flags standing so
+  // the date is asked again.
+  const birthdayTimingCaptured =
+    typeof birthday === "string" &&
+    (EXACT_BIRTHDAY_RE.test(birthday.trim()) ||
+      isBoundedBirthdayRange(birthday));
+  const pendingDates = birthdayTimingCaptured
+    ? extractorPending.filter((o) => !OWN_BIRTHDAY_RE.test(String(o)))
     : [...extractorPending];
   if (birthdayNeedsDate && !mentionsBirthday(pendingDates)) {
     pendingDates.push("birthday");
   }
   const singlePendingIsCapturedBirthday =
-    birthdayDate &&
-    BIRTHDAY_RE.test(String(contextInfo.occasion_needing_date ?? ""));
+    birthdayTimingCaptured &&
+    OWN_BIRTHDAY_RE.test(String(contextInfo.occasion_needing_date ?? ""));
   const needsOccasionDate =
     !!contextInfo.needs_occasion_date && !singlePendingIsCapturedBirthday;
   const hasTiming = !needsOccasionDate && pendingDates.length === 0;
