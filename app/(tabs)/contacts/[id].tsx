@@ -58,6 +58,7 @@ import {
   birthdayHasYear,
   birthYearFromAge,
   birthYearFromYearOnly,
+  isKnownMinor,
   normalizeBirthday,
   birthdayRangeContains,
 } from "../../../utils/birthday";
@@ -152,6 +153,10 @@ const GIFT_POLL_INTERVAL_MS = 10000;
 const GIFT_POLL_MAX_MS = 300000; // 5 minutes
 const RESYNC_POLL_INTERVAL_MS = 4000;
 const RESYNC_POLL_MAX_MS = 90000;
+// A new person's first profile is written by a background call that outlives
+// the save, so the record cached at save time has none. Poll for it, but only
+// while the person is new: someone old with no profile isn't getting one.
+const FIRST_PROFILE_POLL_WINDOW_MS = 5 * 60 * 1000;
 
 const newestTimestamp = (list: GiftSuggestion[]) =>
   list[0] ? new Date(list[0].generated_at).getTime() : 0;
@@ -284,7 +289,14 @@ export default function RecipientEditPage() {
           }
           return RESYNC_POLL_INTERVAL_MS;
         }
-      : false,
+      : (query) => {
+          const cached = query.state.data;
+          if (!cached || cached.synthesized_profile?.trim()) return false;
+          const age = Date.now() - Date.parse(cached.created_at);
+          return age < FIRST_PROFILE_POLL_WINDOW_MS
+            ? RESYNC_POLL_INTERVAL_MS
+            : false;
+        },
   });
 
   // Canonical suggestions source: shares the TanStack Query cache with the
@@ -985,6 +997,7 @@ export default function RecipientEditPage() {
         onSave={handleSaveMoment}
         saving={createOccasion.isPending}
         handleRef={addMomentRef}
+        forMinor={isKnownMinor(recipient.birthday, recipient.birth_year)}
         captureDate
       />
       <Portal>

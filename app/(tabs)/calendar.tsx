@@ -47,6 +47,7 @@ import {
 } from "../../utils/home-occasions";
 import { getNextUpcomingOccasion } from "../../utils/upcoming-occasion";
 import { recommendedMomentsFor } from "../../utils/recommended-moments";
+import { isKnownMinor } from "../../utils/birthday";
 import { useInterestMomentSuggestions } from "../../hooks/use-interest-moment-suggestions";
 import {
   addMonths,
@@ -531,6 +532,10 @@ export default function Calendar() {
             : [],
           interestSuggestions.names,
           momentRecipient?.cultural_context
+        )}
+        forMinor={isKnownMinor(
+          momentRecipient?.birthday,
+          momentRecipient?.birth_year
         )}
       />
       <AddNewPersonDrawer
