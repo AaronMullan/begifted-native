@@ -40,6 +40,40 @@ Deno.test("captured birthday date satisfies timing", () => {
   assertEquals(derived.state, "captured_needs_price");
 });
 
+Deno.test("approximate birthday range satisfies timing but not age", () => {
+  // "Second week of March": the extractor returns a range and still flags the
+  // birthday as needing a date. The range is captured timing; the flags must
+  // not hold the state at captured_needs_timing.
+  const derived = deriveAddRecipientReadiness(
+    base({
+      birthday: "03-08/03-14",
+      needs_occasion_date: true,
+      occasion_needing_date: "birthday",
+      occasions_needing_dates: ["birthday"],
+      has_price_guidance: true,
+    })
+  );
+  assert(derived.hasTiming);
+  assertEquals(derived.pendingDates, []);
+  assert(!derived.hasAge);
+  assertEquals(derived.state, "captured_needs_age");
+});
+
+Deno.test("a captured birthday does not clear another occasion's date", () => {
+  const derived = deriveAddRecipientReadiness(
+    base({
+      birthday: "03-08/03-14",
+      occasions_mentioned: ["birthday", "anniversary"],
+      needs_occasion_date: true,
+      occasion_needing_date: "anniversary",
+      occasions_needing_dates: ["birthday", "anniversary"],
+    })
+  );
+  assert(!derived.hasTiming);
+  assertEquals(derived.pendingDates, ["anniversary"]);
+  assertEquals(derived.state, "captured_needs_timing");
+});
+
 Deno.test("broad-only texture is not specificity — routes to follow-up", () => {
   const derived = deriveAddRecipientReadiness(
     base({

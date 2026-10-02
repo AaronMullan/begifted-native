@@ -9,6 +9,8 @@ import {
   birthYearFromYearOnly,
   birthdayFromOccasionDate,
   birthdayAfterOccasionEdit,
+  birthdayPlanningAnchor,
+  parseBirthdayRange,
 } from "../birthday";
 
 // Year validation ("no future years") and age backfill both key off the
@@ -260,5 +262,65 @@ describe("birthdayAfterOccasionEdit", () => {
 
   it("returns null for an unparseable date", () => {
     expect(birthdayAfterOccasionEdit("", "--08-08")).toBeNull();
+  });
+});
+
+describe("approximate birthday ranges", () => {
+  it("canonicalizes the extracted and stored forms", () => {
+    expect(normalizeBirthday("03-08/03-14")).toBe("--03-08/--03-14");
+    expect(normalizeBirthday("--03-08/--03-14")).toBe("--03-08/--03-14");
+    expect(normalizeBirthday("12-28/01-03")).toBe("--12-28/--01-03");
+  });
+
+  it("round-trips through its display form", () => {
+    for (const stored of [
+      "--03-08/--03-14",
+      "--03-28/--04-03",
+      "--12-01/--12-31",
+      "--02-01/--02-29",
+    ]) {
+      expect(normalizeBirthday(formatBirthdayDisplay(stored))).toBe(stored);
+    }
+    expect(formatBirthdayDisplay("--03-08/--03-14")).toBe("March 8–14");
+    expect(formatBirthdayDisplay("--03-28/--04-03")).toBe("March 28 – April 3");
+    expect(formatBirthdayDisplay("--12-01/--12-31")).toBe("December");
+    expect(formatBirthdayDisplay("--02-01/--02-28")).toBe("February");
+  });
+
+  it("accepts a range typed with a plain hyphen", () => {
+    expect(normalizeBirthday("March 8-14")).toBe("--03-08/--03-14");
+    expect(isInvalidBirthdayInput("March 8-14")).toBe(false);
+  });
+
+  it("rejects ranges that are unreal or too wide to plan around", () => {
+    expect(parseBirthdayRange("03-08/03-08")).toBeNull();
+    expect(parseBirthdayRange("03-01/06-30")).toBeNull();
+    expect(parseBirthdayRange("02-25/02-31")).toBeNull();
+    expect(parseBirthdayRange("03-second_week")).toBeNull();
+    expect(normalizeBirthday("03-second_week")).toBeNull();
+  });
+
+  it("is not an exact birthday", () => {
+    expect(parseBirthdayParts("--03-08/--03-14")).toBeNull();
+    expect(birthdayHasYear("--03-08/--03-14")).toBe(false);
+    expect(backfillBirthdayFromAge(60, "--03-08/--03-14")).toBeNull();
+  });
+
+  it("anchors planning on the first day", () => {
+    expect(birthdayPlanningAnchor("--03-08/--03-14")).toBe("--03-08");
+    expect(birthdayPlanningAnchor("1985-03-17")).toBe("--03-17");
+    expect(birthdayPlanningAnchor("1961")).toBeNull();
+  });
+
+  it("keeps the range when its moment is saved on the anchor date", () => {
+    expect(
+      birthdayAfterOccasionEdit("2027-03-08", "--03-08/--03-14")
+    ).toBeNull();
+  });
+
+  it("takes an exact day the user gives the moment", () => {
+    expect(birthdayAfterOccasionEdit("2027-03-11", "--03-08/--03-14")).toBe(
+      "--03-11"
+    );
   });
 });

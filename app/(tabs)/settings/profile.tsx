@@ -42,6 +42,7 @@ import {
   formatBirthdayDisplay,
   isInvalidBirthdayInput,
   normalizeBirthday,
+  parseBirthdayRange,
 } from "../../../utils/birthday";
 import { Spacing } from "../../../lib/spacing";
 import GradientBackground from "../../../components/GradientBackground";
@@ -55,6 +56,12 @@ const MIN_PASSWORD_LENGTH = 6;
 const AVATAR_CONTENT_TYPE = "image/jpeg";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
+
+// A person knows their own birthday: approximate timing ("March", "March
+// 8–14") is accepted for recipients only, and here it is a typo.
+function isInexactBirthday(input: string): boolean {
+  return isInvalidBirthdayInput(input) || parseBirthdayRange(input) !== null;
+}
 
 export default function ProfileSettings() {
   const router = useRouter();
@@ -236,7 +243,9 @@ export default function ProfileSettings() {
           // the inline hint flags it (mirrors the recipient-side DEV-178
           // behavior).
           ...(birthdayChanged && {
-            birthday: normalizeBirthday(trimmedBirthday),
+            birthday: isInexactBirthday(trimmedBirthday)
+              ? null
+              : normalizeBirthday(trimmedBirthday),
           }),
         },
       });
@@ -487,7 +496,7 @@ export default function ProfileSettings() {
                     placeholder="e.g. June 12, 1990"
                     style={styles.input}
                   />
-                  {isInvalidBirthdayInput(birthday) ? (
+                  {isInexactBirthday(birthday) ? (
                     <Text variant="bodySmall" style={styles.emailNote}>
                       Use a date like &quot;June 12, 1990&quot; or &quot;June
                       12&quot;.

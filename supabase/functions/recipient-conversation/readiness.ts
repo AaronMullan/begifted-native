@@ -91,12 +91,23 @@ export function deriveAddRecipientReadiness(
   const extractorPending = Array.isArray(contextInfo.occasions_needing_dates)
     ? contextInfo.occasions_needing_dates
     : [];
-  const pendingDates = [...extractorPending];
+  // The reverse backstop: once birthday timing is captured — an exact day or
+  // an approximate range ("03-08/03-14") — the extractor's own flags must not
+  // keep asking for it. It tends to still list a birthday with approximate
+  // timing as needing a date, which would pin the state at
+  // captured_needs_timing for the rest of the conversation.
+  const pendingDates = birthdayDate
+    ? extractorPending.filter((o) => !BIRTHDAY_RE.test(String(o)))
+    : [...extractorPending];
   if (birthdayNeedsDate && !mentionsBirthday(pendingDates)) {
     pendingDates.push("birthday");
   }
-  const hasTiming =
-    !contextInfo.needs_occasion_date && pendingDates.length === 0;
+  const singlePendingIsCapturedBirthday =
+    birthdayDate &&
+    BIRTHDAY_RE.test(String(contextInfo.occasion_needing_date ?? ""));
+  const needsOccasionDate =
+    !!contextInfo.needs_occasion_date && !singlePendingIsCapturedBirthday;
+  const hasTiming = !needsOccasionDate && pendingDates.length === 0;
 
   const hasPrice = !!contextInfo.has_price_guidance;
   // Age/life stage is a required field for EVERY recipient, asked after price
