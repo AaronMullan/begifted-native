@@ -322,6 +322,12 @@ describe("approximate birthday ranges", () => {
     expect(birthdayRangeContains("--06-12", "--06-12")).toBe(false);
   });
 
+  it("makes the birthday exact when the anchor day is typed", () => {
+    expect(
+      birthdayAfterOccasionEdit("2027-03-08", "--03-08/--03-14", true)
+    ).toBe("--03-08");
+  });
+
   it("keeps the range when its moment is saved on the anchor date", () => {
     expect(
       birthdayAfterOccasionEdit("2027-03-08", "--03-08/--03-14")

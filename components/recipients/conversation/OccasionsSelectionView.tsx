@@ -46,6 +46,7 @@ export function OccasionsSelectionView({
     number | null
   >(null);
   const [addingCustom, setAddingCustom] = useState(false);
+  const [birthdayRowDated, setBirthdayRowDated] = useState(false);
 
   // Merge conversation-extracted occasions with interest-based AI
   // recommendations. Recomputed during render (not in an effect) via stored
@@ -231,23 +232,31 @@ export function OccasionsSelectionView({
     setEditingOccasionIndex(index);
   };
 
-  // The range stands in for the birthday row's date only while that date is
-  // still the range's own anchor; a day the user typed over it shows as typed.
+  // The range stands in for the birthday row's date until the user types a
+  // day onto the row, even the anchor day itself.
   const approximateBirthdayRowLabel = (row: {
     date: string;
     occasion_type: string;
   }) =>
+    !birthdayRowDated &&
     row.date === nextBirthdayOccurrence(extractedData.birthday)
       ? approximateBirthdayLabel(row.occasion_type, extractedData.birthday)
       : null;
 
   const handleSaveOccasionDate = (date: string, _isAnnual: boolean) => {
     if (editingOccasionIndex !== null) {
-      setSelectedOccasions((prev) =>
-        prev.map((occ, i) =>
-          i === editingOccasionIndex ? { ...occ, date } : occ
-        )
-      );
+      const row = selectedOccasions[editingOccasionIndex];
+      // The editor opens empty over an approximate birthday; saving it still
+      // empty must keep the anchor date, or the row is dropped as undated.
+      const keepsAnchor = !date && !!approximateBirthdayRowLabel(row);
+      if (!keepsAnchor) {
+        if (row.occasion_type === "birthday" && date) setBirthdayRowDated(true);
+        setSelectedOccasions((prev) =>
+          prev.map((occ, i) =>
+            i === editingOccasionIndex ? { ...occ, date } : occ
+          )
+        );
+      }
       setEditingOccasionIndex(null);
     }
   };
@@ -377,6 +386,11 @@ export function OccasionsSelectionView({
           onClose={handleCloseEditor}
           onSave={handleSaveOccasionDate}
           showRecurrence={false}
+          dateUnknown={
+            !!approximateBirthdayRowLabel(
+              selectedOccasions[editingOccasionIndex]
+            )
+          }
         />
       )}
 

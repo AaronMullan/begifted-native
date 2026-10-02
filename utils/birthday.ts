@@ -468,11 +468,13 @@ export function birthdayFromOccasionDate(
  * re-dates birthday occasions from recipients.birthday, so an edit that only
  * touches the occasion is reverted the next time the cron runs. A birth year
  * already on file is kept unless the entered date carries a past year of its
- * own.
+ * own. `dateTyped` says the user entered the date, as opposed to a save that
+ * carries the moment's stored date along unchanged.
  */
 export function birthdayAfterOccasionEdit(
   occasionDate: string | null | undefined,
-  existingBirthday: string | null | undefined
+  existingBirthday: string | null | undefined,
+  dateTyped = false
 ): string | null {
   const fromOccasion = parseBirthdayParts(
     birthdayFromOccasionDate(occasionDate)
@@ -480,9 +482,11 @@ export function birthdayAfterOccasionEdit(
   if (!fromOccasion) return null;
   // The moment of an approximate birthday is dated on its planning anchor.
   // Saving the moment with that date unchanged says nothing new about the
-  // birthday, and must not harden the anchor into an exact day.
+  // birthday, and must not harden the anchor into an exact day. Typing that
+  // same day is the user saying the birthday falls on it.
   const existingRange = parseBirthdayRange(existingBirthday);
   if (
+    !dateTyped &&
     existingRange &&
     fromOccasion.year === null &&
     fromOccasion.month === existingRange.start.month &&

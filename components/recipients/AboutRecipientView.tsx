@@ -553,7 +553,7 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
           const nextBirthday =
             becomesBirthday &&
             (dateEdited || editingOccasion.occasion_type !== "birthday")
-              ? birthdayAfterOccasionEdit(date, recipient.birthday)
+              ? birthdayAfterOccasionEdit(date, recipient.birthday, dateEdited)
               : null;
           if (nextBirthday) {
             void handleSavePartial({ birthday: nextBirthday }, false).then(

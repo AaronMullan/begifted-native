@@ -35,6 +35,11 @@ interface OccasionEditorProps {
   showRecurrence?: boolean;
   /** Let the user rename the occasion; the display name is passed to onSave. */
   editableName?: boolean;
+  /**
+   * Open with an empty date field although the occasion carries a date — for
+   * a date that is only a planning anchor and was never given by the user.
+   */
+  dateUnknown?: boolean;
 }
 
 const FULL_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -74,13 +79,16 @@ type SeededFields = {
 function seedFields(
   occasion: OccasionEditorProps["occasion"],
   visible: boolean,
-  showRecurrence: boolean
+  showRecurrence: boolean,
+  dateUnknown: boolean
 ): SeededFields {
   if (!visible || !occasion) return { name: "", date: "", annual: true };
 
   const annual = showRecurrence ? (occasion.is_annual ?? true) : false;
   const hasRealDate =
-    occasion.date && !occasion.date.includes("01-01") ? occasion.date : "";
+    !dateUnknown && occasion.date && !occasion.date.includes("01-01")
+      ? occasion.date
+      : "";
 
   let date: string;
   if (!hasRealDate) {
@@ -104,18 +112,19 @@ export function OccasionEditor({
   onSave,
   showRecurrence = true,
   editableName = false,
+  dateUnknown = false,
 }: OccasionEditorProps) {
   // Seed from props at mount too, not just on transitions: callers that
   // conditionally mount the editor (e.g. AboutRecipientView) never flip
   // `visible`, so a transition-only seed would leave the fields empty.
   const [dateInput, setDateInput] = useState(
-    () => seedFields(occasion, visible, showRecurrence).date
+    () => seedFields(occasion, visible, showRecurrence, dateUnknown).date
   );
   const [nameInput, setNameInput] = useState(
-    () => seedFields(occasion, visible, showRecurrence).name
+    () => seedFields(occasion, visible, showRecurrence, dateUnknown).name
   );
   const [isAnnual, setIsAnnual] = useState(
-    () => seedFields(occasion, visible, showRecurrence).annual
+    () => seedFields(occasion, visible, showRecurrence, dateUnknown).annual
   );
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -133,7 +142,7 @@ export function OccasionEditor({
     setPrevOccasion(occasion);
     setPrevShowRecurrence(showRecurrence);
     if (visible && occasion) {
-      const seeded = seedFields(occasion, visible, showRecurrence);
+      const seeded = seedFields(occasion, visible, showRecurrence, dateUnknown);
       setErrorMessage("");
       setNameInput(seeded.name);
       setIsAnnual(seeded.annual);
