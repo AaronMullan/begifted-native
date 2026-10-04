@@ -108,10 +108,11 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
       name: name.trim(),
       relationship_type: relationshipType.trim(),
       // Clearing the box removes the birthday, and with it the Birthday
-      // moment. Empty on a recipient who never had one is no change.
+      // moment. A box that opened empty is no change, even if a stored value
+      // exists that couldn't be displayed.
       birthday:
         trimmedBirthday === ""
-          ? recipient.birthday
+          ? seedBirthday(recipient.birthday)
             ? null
             : undefined
           : (normalizeBirthday(trimmedBirthday) ?? undefined),
