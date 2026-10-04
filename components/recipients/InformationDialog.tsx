@@ -51,6 +51,11 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
     cleanRelationship(recipient.relationship_type)
   );
   const [birthday, setBirthday] = useState(seedBirthday(recipient.birthday));
+  // Whether the box opened holding a birthday. Only emptying such a box
+  // removes it; the recipient can be refetched while the dialog is open.
+  const [birthdayOpenedFilled, setBirthdayOpenedFilled] = useState(
+    seedBirthday(recipient.birthday) !== ""
+  );
   const [address, setAddress] = useState(recipient.address ?? "");
   const [addressLine2, setAddressLine2] = useState(
     recipient.address_line_2 ?? ""
@@ -77,6 +82,7 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
       setName(recipient.name);
       setRelationshipType(cleanRelationship(recipient.relationship_type));
       setBirthday(seedBirthday(recipient.birthday));
+      setBirthdayOpenedFilled(seedBirthday(recipient.birthday) !== "");
       setAddress(recipient.address ?? "");
       setAddressLine2(recipient.address_line_2 ?? "");
       setCity(recipient.city ?? "");
@@ -112,7 +118,7 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
       // exists that couldn't be displayed.
       birthday:
         trimmedBirthday === ""
-          ? seedBirthday(recipient.birthday)
+          ? birthdayOpenedFilled
             ? null
             : undefined
           : (normalizeBirthday(trimmedBirthday) ?? undefined),
