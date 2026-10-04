@@ -4,7 +4,8 @@ export interface Recipient {
   name: string;
   relationship_type: string;
   interests?: string[];
-  birthday?: string;
+  /** Null once the user has removed it. */
+  birthday?: string | null;
   /** Birth year derived from a volunteered age when no birthday date is known. */
   birth_year?: number | null;
   emotional_tone_preference?: string;

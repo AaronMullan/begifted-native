@@ -22,7 +22,7 @@ import type { Recipient } from "../../types/recipient";
 import {
   useDeleteOccasion,
   useRecipientOccasions,
-  useRedateBirthdayOccasion,
+  useSyncBirthdayOccasion,
   useUpdateOccasion,
 } from "../../hooks/use-occasion-mutations";
 import {
@@ -90,7 +90,7 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
   const occasions = occasionsData ?? [];
   const updateOccasion = useUpdateOccasion();
   const deleteOccasion = useDeleteOccasion();
-  const redateBirthdayOccasion = useRedateBirthdayOccasion();
+  const syncBirthdayOccasion = useSyncBirthdayOccasion();
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [editingOccasion, setEditingOccasion] = useState<Occasion | null>(null);
@@ -586,10 +586,10 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
           const saved = await handleSavePartial(fields, true);
           if (
             saved &&
-            fields.birthday &&
+            fields.birthday !== undefined &&
             fields.birthday !== recipient.birthday
           ) {
-            redateBirthdayOccasion.mutate({
+            syncBirthdayOccasion.mutate({
               recipientId: recipient.id,
               birthday: fields.birthday,
             });

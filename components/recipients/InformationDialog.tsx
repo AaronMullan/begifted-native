@@ -42,7 +42,7 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
   // (e.g. "November 13, 1946", or "August 18" when the year is unknown) instead
   // of the raw stored ISO/vCard string (DEV-178). The parser accepts this
   // friendly form too, so it re-normalizes to canonical storage on save.
-  const seedBirthday = (b?: string) => formatBirthdayDisplay(b);
+  const seedBirthday = (b?: string | null) => formatBirthdayDisplay(b);
 
   const [name, setName] = useState(recipient.name);
   // Seed empty when the stored value is the placeholder "null" so Save can't
@@ -51,6 +51,11 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
     cleanRelationship(recipient.relationship_type)
   );
   const [birthday, setBirthday] = useState(seedBirthday(recipient.birthday));
+  // Whether the box opened holding a birthday. Only emptying such a box
+  // removes it; the recipient can be refetched while the dialog is open.
+  const [birthdayOpenedFilled, setBirthdayOpenedFilled] = useState(
+    seedBirthday(recipient.birthday) !== ""
+  );
   const [address, setAddress] = useState(recipient.address ?? "");
   const [addressLine2, setAddressLine2] = useState(
     recipient.address_line_2 ?? ""
@@ -77,6 +82,7 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
       setName(recipient.name);
       setRelationshipType(cleanRelationship(recipient.relationship_type));
       setBirthday(seedBirthday(recipient.birthday));
+      setBirthdayOpenedFilled(seedBirthday(recipient.birthday) !== "");
       setAddress(recipient.address ?? "");
       setAddressLine2(recipient.address_line_2 ?? "");
       setCity(recipient.city ?? "");
@@ -107,11 +113,14 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
     await onSave({
       name: name.trim(),
       relationship_type: relationshipType.trim(),
-      // Empty leaves the stored birthday untouched (undefined = no change),
-      // matching how the other optional fields behave here.
+      // Clearing the box removes the birthday, and with it the Birthday
+      // moment. A box that opened empty is no change, even if a stored value
+      // exists that couldn't be displayed.
       birthday:
         trimmedBirthday === ""
-          ? undefined
+          ? birthdayOpenedFilled
+            ? null
+            : undefined
           : (normalizeBirthday(trimmedBirthday) ?? undefined),
       address: address.trim() || undefined,
       address_line_2: addressLine2.trim() || undefined,

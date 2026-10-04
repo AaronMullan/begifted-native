@@ -11,7 +11,11 @@ import {
 } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../../lib/supabase";
-import { logProductEvent, logProductEvents } from "../../../lib/api";
+import {
+  logProductEvent,
+  logProductEvents,
+  syncBirthdayOccasion as syncBirthdayOccasionNow,
+} from "../../../lib/api";
 import { queryKeys } from "../../../lib/query-keys";
 import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import GradientBackground from "../../../components/GradientBackground";
@@ -41,7 +45,7 @@ import {
 import {
   useCreateOccasion,
   useRecipientOccasions,
-  useRedateBirthdayOccasion,
+  useSyncBirthdayOccasion,
 } from "../../../hooks/use-occasion-mutations";
 import { recommendedMomentsFor } from "../../../utils/recommended-moments";
 import { useInterestMomentSuggestions } from "../../../hooks/use-interest-moment-suggestions";
@@ -421,7 +425,7 @@ export default function RecipientEditPage() {
   // present so recipient refetches don't re-open a dismissed drawer.
   const addMomentRef = useRef<AddMomentDrawerHandle | null>(null);
   const createOccasion = useCreateOccasion();
-  const redateBirthdayOccasion = useRedateBirthdayOccasion();
+  const syncBirthdayOccasion = useSyncBirthdayOccasion();
   // Shares AboutRecipientView's query, so this adds no extra fetch.
   const { data: recipientOccasions = [], isSuccess: occasionsLoaded } =
     useRecipientOccasions(recipientId);
@@ -713,7 +717,7 @@ export default function RecipientEditPage() {
         queryKey: queryKeys.recipients(user.id),
       });
       if (updates.birthday && updates.birthday !== recipient.birthday) {
-        redateBirthdayOccasion.mutate({
+        syncBirthdayOccasion.mutate({
           recipientId: recipient.id,
           birthday: updates.birthday,
         });
@@ -732,11 +736,49 @@ export default function RecipientEditPage() {
     // Persist any occasions mentioned in the update chat. The add-recipient flow
     // does this; the general update chat previously dropped them on the floor
     // (DEV-125). Non-fatal: a failure here never breaks the profile update.
-    const insertedOccasions = await persistUpdateChatOccasions(
+    // Once a birthday is known, the Birthday moment follows it through
+    // syncBirthdayOccasion, which honours a deleted moment; inserting one
+    // here would bring it back.
+    const chatOccasions = Array.isArray(extracted.occasions)
+      ? extracted.occasions
+      : [];
+    const birthdayOnFile = updates.birthday ?? recipient.birthday;
+    const birthdayMentioned = chatOccasions.some(
+      (occasion) => occasion?.occasion_type === "birthday"
+    );
+    let syncedBirthdayMoment = false;
+    if (
+      birthdayOnFile &&
+      birthdayMentioned &&
+      (updates.birthday === undefined ||
+        updates.birthday === recipient.birthday)
+    ) {
+      try {
+        syncedBirthdayMoment = await syncBirthdayOccasionNow(
+          user.id,
+          recipient.id,
+          birthdayOnFile
+        );
+      } catch (error) {
+        console.error(
+          "Failed to sync birthday moment from update chat:",
+          error
+        );
+      }
+    }
+    const persistedOccasions = await persistUpdateChatOccasions(
       user.id,
       recipient.id,
-      Array.isArray(extracted.occasions) ? extracted.occasions : []
+      birthdayOnFile
+        ? chatOccasions.filter(
+            (occasion) => occasion?.occasion_type !== "birthday"
+          )
+        : chatOccasions
     );
+    const insertedOccasions =
+      persistedOccasions === null
+        ? null
+        : persistedOccasions + (syncedBirthdayMoment ? 1 : 0);
     if (insertedOccasions !== null && insertedOccasions > 0) {
       await queryClient.invalidateQueries({
         queryKey: queryKeys.occasions(user.id),

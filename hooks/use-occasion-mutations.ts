@@ -4,7 +4,7 @@ import type { Occasion } from "../lib/api/occasions";
 import {
   deleteOccasion,
   updateOccasion,
-  redateBirthdayOccasion,
+  syncBirthdayOccasion,
   createOccasion,
   fetchRecipientOccasions,
   logProductEvent,
@@ -62,15 +62,17 @@ export function useUpdateOccasion() {
   });
 }
 
-type RedateBirthdayOccasionVariables = {
+type SyncBirthdayOccasionVariables = {
   recipientId: string;
-  birthday: string;
+  /** Null when the birthday was removed. */
+  birthday: string | null;
 };
 
 /**
- * Hook to move a recipient's birthday moment after their birthday changes
+ * Hook to create, move or remove a recipient's birthday moment after their
+ * birthday changes
  */
-export function useRedateBirthdayOccasion() {
+export function useSyncBirthdayOccasion() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -78,13 +80,13 @@ export function useRedateBirthdayOccasion() {
     mutationFn: async ({
       recipientId,
       birthday,
-    }: RedateBirthdayOccasionVariables): Promise<void> => {
+    }: SyncBirthdayOccasionVariables): Promise<void> => {
       if (!user) throw new Error("Not authenticated");
-      await redateBirthdayOccasion(user.id, recipientId, birthday);
+      await syncBirthdayOccasion(user.id, recipientId, birthday);
     },
-    ...makeMutationHandlers<void, RedateBirthdayOccasionVariables>({
+    ...makeMutationHandlers<void, SyncBirthdayOccasionVariables>({
       queryClient,
-      label: "useRedateBirthdayOccasion",
+      label: "useSyncBirthdayOccasion",
       errorMessage: StateCopy.saveFailed("their new birthday"),
       invalidateKeys: (_, variables) => [
         ...(user ? [queryKeys.occasions(user.id)] : []),
