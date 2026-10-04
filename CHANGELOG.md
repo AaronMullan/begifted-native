@@ -19,6 +19,24 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-10-03 — OTA
+
+### App
+
+- A birthday you only roughly know now shows as its range, such as March 8–14, on Home, People, the person's Moments and the Moments tab, with no countdown to a day nobody gave. Date fields show an example to follow in place of MM-DD-YYYY. (DEV-523)
+- When adding someone, a birthday you type or correct on the review screen is now saved as a Birthday moment, so it shows on Home and in Moments (DEV-524).
+- When adding someone, an occasion you mentioned without a date now appears in the review list as "Add Date" instead of being left out (DEV-526).
+- A birthday you only roughly know, like "second week of March", is now enough to finish adding someone. It is kept as March 8–14 rather than turned into a single day. (DEV-529)
+- Five Help & FAQ answers now describe the product as it is today: what BeGifted is, why it shows three gift ideas, what to do when an idea feels wrong, what happens to the information you share, and iPhone availability (DEV-530).
+- GPT-6.1 Sol is in the admin Playground and AI Model lists, for side-by-side runs against 5.6 Sol. (DEV-538)
+- "The sky's the limit" is now kept as an answer when you add someone. Their budget reads "No limit" on the review screen and their profile, where a switch turns it on or off. (DEV-539)
+- Add a Moment no longer offers Wedding, New Baby, Promotion, Housewarming or Retirement for someone known to be under 18, and a new person's description now appears on their profile without restarting the app. (DEV-541)
+
+### Backend
+
+- An occasion mentioned without a date while adding someone ("especially holidays") is no longer saved as January 1 (DEV-526).
+- A no-limit budget is saved as its own answer, apart from a budget nobody gave. Gift ideas may reach higher when the fit earns it, and lower-priced ideas stay in the running. (DEV-539)
+
 ## 2026-10-01 — OTA
 
 ### App
