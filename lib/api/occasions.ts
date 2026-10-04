@@ -192,24 +192,71 @@ export async function updateOccasion(
 }
 
 /**
- * Move a recipient's birthday occasion to the next occurrence of their
- * birthday. The gift cron only re-dates birthday occasions once the birthday
- * is inside the notification window, so without this a birthday edited months
- * ahead leaves the moment on the old day until then. A recipient without a
- * birthday occasion is left alone rather than given one they may have deleted.
+ * Keep a recipient's Birthday moment in step with their birthday. A known
+ * birthday gets a moment unless the user deleted it (birthday_moment_suppressed),
+ * in which case editing the birthday never brings it back. Removing the birthday
+ * removes the moment and forgets the deletion, so a birthday added later starts
+ * fresh. The gift cron only re-dates birthday occasions once the birthday is
+ * inside the notification window, so without this an edit made months ahead
+ * leaves the moment on the old day until then.
  */
-export async function redateBirthdayOccasion(
+export async function syncBirthdayOccasion(
   userId: string,
   recipientId: string,
-  birthday: string
+  birthday: string | null
 ): Promise<void> {
-  // An approximate birthday moves the moment to the first day of its range.
+  if (!birthday) {
+    const { error: deleteError } = await supabase
+      .from("occasions")
+      .delete()
+      .eq("recipient_id", recipientId)
+      .eq("user_id", userId)
+      .eq("occasion_type", "birthday");
+    if (deleteError) throw deleteError;
+    await setBirthdayMomentSuppressed(userId, recipientId, false);
+    return;
+  }
+
+  // An approximate birthday dates the moment on the first day of its range.
   const date = getNextOccurrence(
     parseBirthdayRange(birthday)
       ? (nextBirthdayOccurrence(birthday) ?? birthday)
       : birthday
   );
   if (!ISO_DATE.test(date)) return;
+
+  const { data: recipient, error: recipientError } = await supabase
+    .from("recipients")
+    .select("birthday_moment_suppressed")
+    .eq("id", recipientId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (recipientError) throw recipientError;
+  if (!recipient || recipient.birthday_moment_suppressed) return;
+
+  const { data: existing, error: existingError } = await supabase
+    .from("occasions")
+    .select("id, date")
+    .eq("recipient_id", recipientId)
+    .eq("user_id", userId)
+    .eq("occasion_type", "birthday")
+    .maybeSingle();
+  if (existingError) throw existingError;
+
+  if (!existing) {
+    const { error: insertError } = await supabase.from("occasions").insert({
+      user_id: userId,
+      recipient_id: recipientId,
+      date,
+      occasion_type: "birthday",
+      is_annual: true,
+    });
+    // A concurrent sync already created it.
+    if (insertError && insertError.code !== "23505") throw insertError;
+    return;
+  }
+  if (existing.date === date) return;
+
   const { error } = await supabase
     .from("occasions")
     // Same reset the cron applies when it moves a date. Once the date is
@@ -221,12 +268,21 @@ export async function redateBirthdayOccasion(
       last_generated_at: null,
       last_generation_status: null,
     })
-    .eq("recipient_id", recipientId)
-    .eq("user_id", userId)
-    .eq("occasion_type", "birthday")
-    // An undated birthday moment gets its date too; neq alone skips NULL.
-    .or(`date.is.null,date.neq.${date}`);
+    .eq("id", existing.id);
 
+  if (error) throw error;
+}
+
+async function setBirthdayMomentSuppressed(
+  userId: string,
+  recipientId: string,
+  suppressed: boolean
+): Promise<void> {
+  const { error } = await supabase
+    .from("recipients")
+    .update({ birthday_moment_suppressed: suppressed })
+    .eq("id", recipientId)
+    .eq("user_id", userId);
   if (error) throw error;
 }
 
@@ -269,6 +325,10 @@ export async function createOccasion(
     if (error.code === "23505") throw new DuplicateOccasionError();
     throw error;
   }
+  // Adding Birthday back by hand undoes an earlier deletion of it.
+  if (occasionType === "birthday") {
+    await setBirthdayMomentSuppressed(userId, recipientId, false);
+  }
   return {
     ...data,
     occasion_type: data.occasion_type || occasionType,
@@ -277,13 +337,23 @@ export async function createOccasion(
 }
 
 /**
- * Delete a single occasion
+ * Delete a single occasion. Deleting a Birthday moment is remembered on the
+ * recipient so later birthday edits and the gift cron don't recreate it.
  */
 export async function deleteOccasion(occasionId: string): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("occasions")
     .delete()
-    .eq("id", occasionId);
+    .eq("id", occasionId)
+    .select("occasion_type, recipient_id, user_id");
 
   if (error) throw error;
+  const deleted = data?.[0];
+  if (deleted?.occasion_type === "birthday" && deleted.recipient_id) {
+    await setBirthdayMomentSuppressed(
+      deleted.user_id,
+      deleted.recipient_id,
+      true
+    );
+  }
 }

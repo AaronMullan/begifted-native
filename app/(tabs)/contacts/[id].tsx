@@ -41,7 +41,7 @@ import {
 import {
   useCreateOccasion,
   useRecipientOccasions,
-  useRedateBirthdayOccasion,
+  useSyncBirthdayOccasion,
 } from "../../../hooks/use-occasion-mutations";
 import { recommendedMomentsFor } from "../../../utils/recommended-moments";
 import { useInterestMomentSuggestions } from "../../../hooks/use-interest-moment-suggestions";
@@ -421,7 +421,7 @@ export default function RecipientEditPage() {
   // present so recipient refetches don't re-open a dismissed drawer.
   const addMomentRef = useRef<AddMomentDrawerHandle | null>(null);
   const createOccasion = useCreateOccasion();
-  const redateBirthdayOccasion = useRedateBirthdayOccasion();
+  const syncBirthdayOccasion = useSyncBirthdayOccasion();
   // Shares AboutRecipientView's query, so this adds no extra fetch.
   const { data: recipientOccasions = [], isSuccess: occasionsLoaded } =
     useRecipientOccasions(recipientId);
@@ -713,7 +713,7 @@ export default function RecipientEditPage() {
         queryKey: queryKeys.recipients(user.id),
       });
       if (updates.birthday && updates.birthday !== recipient.birthday) {
-        redateBirthdayOccasion.mutate({
+        syncBirthdayOccasion.mutate({
           recipientId: recipient.id,
           birthday: updates.birthday,
         });
@@ -732,10 +732,30 @@ export default function RecipientEditPage() {
     // Persist any occasions mentioned in the update chat. The add-recipient flow
     // does this; the general update chat previously dropped them on the floor
     // (DEV-125). Non-fatal: a failure here never breaks the profile update.
+    // The Birthday moment follows recipient.birthday through
+    // syncBirthdayOccasion, which honours a deleted moment; inserting one
+    // here would bring it back.
+    const chatOccasions = Array.isArray(extracted.occasions)
+      ? extracted.occasions
+      : [];
+    const birthdayMentioned = chatOccasions.some(
+      (occasion) => occasion?.occasion_type === "birthday"
+    );
+    if (
+      birthdayMentioned &&
+      (updates.birthday === undefined ||
+        updates.birthday === recipient.birthday) &&
+      recipient.birthday
+    ) {
+      syncBirthdayOccasion.mutate({
+        recipientId: recipient.id,
+        birthday: recipient.birthday,
+      });
+    }
     const insertedOccasions = await persistUpdateChatOccasions(
       user.id,
       recipient.id,
-      Array.isArray(extracted.occasions) ? extracted.occasions : []
+      chatOccasions.filter((occasion) => occasion?.occasion_type !== "birthday")
     );
     if (insertedOccasions !== null && insertedOccasions > 0) {
       await queryClient.invalidateQueries({

@@ -42,7 +42,7 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
   // (e.g. "November 13, 1946", or "August 18" when the year is unknown) instead
   // of the raw stored ISO/vCard string (DEV-178). The parser accepts this
   // friendly form too, so it re-normalizes to canonical storage on save.
-  const seedBirthday = (b?: string) => formatBirthdayDisplay(b);
+  const seedBirthday = (b?: string | null) => formatBirthdayDisplay(b);
 
   const [name, setName] = useState(recipient.name);
   // Seed empty when the stored value is the placeholder "null" so Save can't
@@ -107,11 +107,13 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
     await onSave({
       name: name.trim(),
       relationship_type: relationshipType.trim(),
-      // Empty leaves the stored birthday untouched (undefined = no change),
-      // matching how the other optional fields behave here.
+      // Clearing the box removes the birthday, and with it the Birthday
+      // moment. Empty on a recipient who never had one is no change.
       birthday:
         trimmedBirthday === ""
-          ? undefined
+          ? recipient.birthday
+            ? null
+            : undefined
           : (normalizeBirthday(trimmedBirthday) ?? undefined),
       address: address.trim() || undefined,
       address_line_2: addressLine2.trim() || undefined,

@@ -155,7 +155,7 @@ export default function Contacts() {
                   recipient={recipient}
                   momentsKnown={momentsKnown}
                   upcoming={getNextUpcomingOccasion(
-                    recipient.birthday,
+                    recipient.birthday ?? undefined,
                     occasionsByRecipient.get(recipient.id) ?? []
                   )}
                 />
