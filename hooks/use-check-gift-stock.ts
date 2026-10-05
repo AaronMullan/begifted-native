@@ -1,36 +1,36 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { checkGiftLinkOnTap, triggerGiftBackfill } from "../lib/api";
-import { queryKeys } from "../lib/query-keys";
+import { checkGiftLinkOnTap } from "../lib/api";
 import type { GiftSuggestion } from "../types/recipient";
-import { emptySlots, pollForBackfill } from "./use-submit-gift-feedback";
+import { useSubmitGiftFeedback } from "./use-submit-gift-feedback";
 
 /**
  * Re-check a gift's product page before sending the user to it. Stock can run
  * out in the hours between generation and the tap, and the page is the only
  * place that knows. Resolves `true` when the gift turned out to be sold out or
- * gone: the backend has already retired it, so it's dropped from the list and
- * its slot refilled the same way a removal refills one. The caller should not
- * open the link in that case.
+ * gone; the caller should not open the link then.
+ *
+ * The gift is recorded as a plain `remove`, the same write the removal menu
+ * makes. That keeps its slot held in the active band so a Past Gift isn't
+ * promoted into it, drops the card, and requests the replacement. `remove`
+ * carries no taste signal, so a stock-out doesn't count against the gift in
+ * either profile, while the avoid list still keeps it from being suggested
+ * again.
  */
 export function useCheckGiftStock() {
-  const queryClient = useQueryClient();
+  const submitFeedback = useSubmitGiftFeedback();
 
   return async (
     suggestion: GiftSuggestion,
     occasionId?: string | null
   ): Promise<boolean> => {
-    const retired = await checkGiftLinkOnTap(suggestion.id);
-    if (!retired) return false;
+    const unavailable = await checkGiftLinkOnTap(suggestion.id);
+    if (!unavailable) return false;
 
-    const key = queryKeys.giftSuggestions(suggestion.recipient_id);
-    queryClient.setQueryData<GiftSuggestion[]>(key, (old) =>
-      (old ?? []).filter((s) => s.id !== suggestion.id)
-    );
-    const remaining = queryClient.getQueryData<GiftSuggestion[]>(key) ?? [];
-    if (emptySlots(remaining, occasionId) > 0) {
-      triggerGiftBackfill(suggestion.recipient_id, occasionId);
-      pollForBackfill(queryClient, suggestion.recipient_id, occasionId);
-    }
+    submitFeedback.mutate({
+      recipientId: suggestion.recipient_id,
+      giftSuggestionId: suggestion.id,
+      action: "remove",
+      occasionId: occasionId ?? suggestion.occasion_id ?? null,
+    });
     return true;
   };
 }

@@ -285,46 +285,62 @@ export async function fetchOutboundClicks(
 /** be-gifted backend base URL (Vercel). Same host the prompt playground uses. */
 const BEGIFTED_BACKEND_URL = "https://be-gifted.vercel.app";
 
-// The backend caps its page read at 4s; this leaves room for a cold start on
-// top. Past it, the user has waited long enough and the link opens unchecked.
+// The backend caps its page read at 4s; this leaves room for a cold start and
+// a session refresh on top. Past it, the user has waited long enough and the
+// link opens unchecked.
 const GIFT_LINK_CHECK_TIMEOUT_MS = 6_000;
+
+async function fetchGiftLinkVerdict(
+  suggestionId: string,
+  signal: AbortSignal
+): Promise<boolean> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session || signal.aborted) return false;
+
+  const res = await fetch(`${BEGIFTED_BACKEND_URL}/api/check-gift-link`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ suggestionId }),
+    signal,
+  });
+  if (!res.ok) return false;
+  const body: unknown = await res.json();
+  const verdict =
+    typeof body === "object" && body !== null
+      ? (body as { verdict?: unknown }).verdict
+      : null;
+  return verdict === "sold_out" || verdict === "gone";
+}
 
 /**
  * Ask the backend to re-read a gift's product page as the user taps through.
- * Resolves `true` only when the backend found it sold out or gone and retired
- * the row; every failure resolves `false`, so a slow or broken check can never
- * stop the link from opening.
+ * Resolves `true` only when the page says the gift is sold out or gone. Every
+ * failure, and anything slower than the timeout, resolves `false`, so a slow
+ * or broken check can never stop the link from opening. The timeout races the
+ * whole call: `getSession` can block on a token refresh before the fetch
+ * starts.
  */
 export async function checkGiftLinkOnTap(
   suggestionId: string
 ): Promise<boolean> {
   const controller = new AbortController();
-  const timer = setTimeout(
-    () => controller.abort(),
-    GIFT_LINK_CHECK_TIMEOUT_MS
-  );
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<boolean>((resolve) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      resolve(false);
+    }, GIFT_LINK_CHECK_TIMEOUT_MS);
+  });
   try {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session) return false;
-
-    const res = await fetch(`${BEGIFTED_BACKEND_URL}/api/check-gift-link`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({ suggestionId }),
-      signal: controller.signal,
-    });
-    if (!res.ok) return false;
-    const body: unknown = await res.json();
-    return (
-      typeof body === "object" &&
-      body !== null &&
-      (body as { retired?: unknown }).retired === true
-    );
+    return await Promise.race([
+      fetchGiftLinkVerdict(suggestionId, controller.signal),
+      timeout,
+    ]);
   } catch (err) {
     console.warn("[gift-link-check] failed (opening anyway):", err);
     return false;

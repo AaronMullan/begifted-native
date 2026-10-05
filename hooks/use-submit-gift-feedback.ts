@@ -30,10 +30,8 @@ type SubmitGiftFeedbackVars = {
  * a card removed from an occasion-filtered list empties an occasion slot, and
  * counting recipient-wide would call that list full and never ask for a
  * replacement (DEV-488). */
-export const emptySlots = (
-  rows: GiftSuggestion[],
-  occasionId?: string | null
-) => partitionSuggestions(rows, occasionId ?? null).pendingSlots;
+const emptySlots = (rows: GiftSuggestion[], occasionId?: string | null) =>
+  partitionSuggestions(rows, occasionId ?? null).pendingSlots;
 
 /**
  * A choice is the strongest taste signal there is, so both profiles rebuild
@@ -75,7 +73,7 @@ function resynthesizeAfterChoice(
  * refetch the suggestions a few times until the replacement lands or we give up.
  * Bounded so a recipient the model can't fill a 3rd idea for won't poll forever.
  */
-export function pollForBackfill(
+function pollForBackfill(
   queryClient: QueryClient,
   recipientId: string,
   occasionId?: string | null
