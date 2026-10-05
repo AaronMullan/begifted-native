@@ -12,6 +12,8 @@ import { Colors } from "../../lib/colors";
 import { Typography, FontFamily, Radii } from "../../lib/typography";
 import { logGiftImageOutcome } from "../../lib/gift-image-telemetry";
 import { useLogOutboundClick } from "../../hooks/use-log-outbound-click";
+import { useCheckGiftStock } from "../../hooks/use-check-gift-stock";
+import { showSnackbar } from "../GlobalSnackbar";
 import { useOpenLinkWithFallback } from "../../hooks/use-open-link-with-fallback";
 import LinkFallbackSnackbar from "../LinkFallbackSnackbar";
 import type { GiftSuggestion } from "../../types/recipient";
@@ -25,6 +27,10 @@ type PrimaryGiftCardProps = {
   /** Fired once, after the expanded card's first layout, with the card's root
    * node. The parent uses it to scroll the freshly-opened card into view. */
   onExpandLayout?: (node: View | null) => void;
+  /** Re-check the product page before opening it, and retire the gift if it
+   * has sold out. Only for the active list: a Past Gifts row is history, and
+   * retiring it would erase what that band exists to show. */
+  checkStockOnOpen?: boolean;
 };
 
 // The reserved square the image renders into. Kept stable while the bitmap
@@ -58,6 +64,7 @@ export default function PrimaryGiftCard({
   occasionId,
   onCollapse,
   onExpandLayout,
+  checkStockOnOpen = false,
 }: PrimaryGiftCardProps) {
   // Three-state so the image area is reserved the moment we know a product has
   // an image (`pending`), keeping the card height stable as the bitmap loads —
@@ -73,6 +80,8 @@ export default function PrimaryGiftCard({
   const { open, failedUrl, copyFailedLink, dismiss } =
     useOpenLinkWithFallback();
   const logClick = useLogOutboundClick();
+  const checkGiftStock = useCheckGiftStock();
+  const [checkingStock, setCheckingStock] = useState(false);
 
   const cardRef = useRef<View>(null);
   const reportedLayout = useRef(false);
@@ -142,7 +151,16 @@ export default function PrimaryGiftCard({
   };
 
   const handleViewProduct = async () => {
-    if (!suggestion.link) return;
+    if (!suggestion.link || checkingStock) return;
+    if (checkStockOnOpen) {
+      setCheckingStock(true);
+      const soldOut = await checkGiftStock(suggestion, occasionId);
+      setCheckingStock(false);
+      if (soldOut) {
+        showSnackbar("That one has sold out. We're finding another.");
+        return;
+      }
+    }
     logClick.mutate({
       recipientId: suggestion.recipient_id,
       giftSuggestionId: suggestion.id,
@@ -192,6 +210,8 @@ export default function PrimaryGiftCard({
                 compact
                 textColor={Colors.brand.gold}
                 onPress={handleViewProduct}
+                loading={checkingStock}
+                disabled={checkingStock}
                 labelStyle={styles.ctaLabel}
               >
                 View Product ›

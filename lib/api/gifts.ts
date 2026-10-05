@@ -285,6 +285,54 @@ export async function fetchOutboundClicks(
 /** be-gifted backend base URL (Vercel). Same host the prompt playground uses. */
 const BEGIFTED_BACKEND_URL = "https://be-gifted.vercel.app";
 
+// The backend caps its page read at 4s; this leaves room for a cold start on
+// top. Past it, the user has waited long enough and the link opens unchecked.
+const GIFT_LINK_CHECK_TIMEOUT_MS = 6_000;
+
+/**
+ * Ask the backend to re-read a gift's product page as the user taps through.
+ * Resolves `true` only when the backend found it sold out or gone and retired
+ * the row; every failure resolves `false`, so a slow or broken check can never
+ * stop the link from opening.
+ */
+export async function checkGiftLinkOnTap(
+  suggestionId: string
+): Promise<boolean> {
+  const controller = new AbortController();
+  const timer = setTimeout(
+    () => controller.abort(),
+    GIFT_LINK_CHECK_TIMEOUT_MS
+  );
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) return false;
+
+    const res = await fetch(`${BEGIFTED_BACKEND_URL}/api/check-gift-link`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ suggestionId }),
+      signal: controller.signal,
+    });
+    if (!res.ok) return false;
+    const body: unknown = await res.json();
+    return (
+      typeof body === "object" &&
+      body !== null &&
+      (body as { retired?: unknown }).retired === true
+    );
+  } catch (err) {
+    console.warn("[gift-link-check] failed (opening anyway):", err);
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Ask the backend to top the visible gift list back up to 3 after a removal
  * (DEV-118). Fire-and-forget: the backend generates only the deficit (so

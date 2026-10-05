@@ -193,6 +193,7 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
         occasionId={occasionId}
         onCollapse={handleCollapse}
         onExpandLayout={handleExpandLayout}
+        checkStockOnOpen
       />
     ) : (
       <CollapsedGiftCard
