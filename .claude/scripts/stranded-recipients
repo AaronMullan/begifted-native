@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Reports people added 1–30 days ago who still have no gift ideas. Nothing in
+# the app or backend retries a first run that came back empty until the
+# occasion enters its reminder window, so a new user can sit on an empty list
+# for weeks with no error anywhere. Read-only; prints a report and exits 0
+# whether or not anything is stranded.
+#
+# Credentials come from the be-gifted checkout's untracked .env.local (service
+# role, bypasses RLS) and are never printed.
+#
+# Usage: stranded-recipients [be-gifted-env-file]
+set -euo pipefail
+
+ENV_FILE="${1:-$HOME/development/be-gifted/.env.local}"
+read_env() { grep "^$1=" "$ENV_FILE" 2>/dev/null | tail -1 | cut -d= -f2- | tr -d "\"'\r"; }
+URL=$(read_env NEXT_PUBLIC_SUPABASE_URL)
+KEY=$(read_env SUPABASE_SERVICE_ROLE_KEY)
+if [ -z "$URL" ] || [ -z "$KEY" ]; then
+  echo "STRANDED RECIPIENTS: skipped — no Supabase URL/service key in $ENV_FILE"
+  exit 0
+fi
+
+rest() {
+  curl -sf --max-time 30 -H "apikey: $KEY" -H "Authorization: Bearer $KEY" "$URL/rest/v1/$1"
+}
+
+newest=$(date -u -v-1d +%Y-%m-%dT%H:%M:%SZ)
+oldest=$(date -u -v-30d +%Y-%m-%dT%H:%M:%SZ)
+
+recipients=$(rest "recipients?select=id,user_id,created_at&created_at=lt.$newest&created_at=gt.$oldest&order=created_at") || {
+  echo "STRANDED RECIPIENTS: skipped — recipients read failed"
+  exit 0
+}
+
+stranded=0
+lines=""
+for row in $(echo "$recipients" | jq -c '.[]'); do
+  id=$(echo "$row" | jq -r .id)
+  has_gift=$(rest "gift_suggestions?select=id&recipient_id=eq.$id&limit=1" | jq 'length') || continue
+  [ "$has_gift" -gt 0 ] && continue
+  occs=$(rest "occasions?select=occasion_type,date,last_generation_status&recipient_id=eq.$id&order=date" |
+    jq -r 'if length == 0 then "no moments" else map("\(.occasion_type) \(.date) \(.last_generation_status // "never run")") | join(", ") end')
+  stranded=$((stranded + 1))
+  lines+="  recipient $id (user $(echo "$row" | jq -r '.user_id[0:8]'), added $(echo "$row" | jq -r '.created_at[0:10]')): $occs"$'\n'
+done
+
+if [ "$stranded" -eq 0 ]; then
+  echo "STRANDED RECIPIENTS: none — everyone added 1–30 days ago has gift ideas"
+else
+  echo "STRANDED RECIPIENTS: $stranded person(s) added 1–30 days ago have no gift ideas"
+  printf '%s' "$lines"
+fi
