@@ -181,6 +181,8 @@ run_claude_retry "/sentry-feedback-to-jira headless" "$FEEDBACK_TIMEOUT_SECS" ||
 SWEEP_STATUS=0
 run_claude_retry "/slack-to-jira sweep #bugs" "$SWEEP_TIMEOUT_SECS" || SWEEP_STATUS=$?
 
+"$MAIN_CHECKOUT/.claude/scripts/stranded-recipients" || echo "STRANDED RECIPIENTS: check failed (non-fatal)"
+
 find "$LOG_DIR" -name '*.log' -mtime +30 -delete || true
 
 FAILURES=""
@@ -198,7 +200,7 @@ fi
 # user, nothing a teammate sees. Runs on failure too, so a broken pass still
 # surfaces in Slack; the DM itself failing must not fail the run.
 OUTCOME="${FAILURES:-all passes completed}"
-NOTIFY_PROMPT="Read today's overnight triage log at $LOG. Then send a Slack DM to myself — the authenticated Slack user — summarizing the run: one short line per pass (sentry-autofix, sentry-feedback-to-jira, #bugs sweep) saying what was filed/opened/archived or that it was quiet, and lead with any failures. Overall outcome: $OUTCOME. Use slack_send_message to my own DM channel; a real send (not a draft) is explicitly authorized for this self-notification. Do not message anyone else or post in any channel."
+NOTIFY_PROMPT="Read today's overnight triage log at $LOG. Then send a Slack DM to myself — the authenticated Slack user — summarizing the run: one short line per pass (sentry-autofix, sentry-feedback-to-jira, #bugs sweep) saying what was filed/opened/archived or that it was quiet, and lead with any failures. Then the log's STRANDED RECIPIENTS line: if anyone is listed, put it under Needs attention with each recipient's id, the date they were added and their moments' status — these are people a tester added who have no gift ideas at all. Overall outcome: $OUTCOME. Use slack_send_message to my own DM channel; a real send (not a draft) is explicitly authorized for this self-notification. Do not message anyone else or post in any channel."
 run_claude_retry "$NOTIFY_PROMPT" "$NOTIFY_TIMEOUT_SECS" "slack DM notification" || {
   echo "slack notify failed (non-fatal)"
   webhook_alert "Overnight triage: summary DM could not be sent (likely expired OAuth session; run claude /login). Outcome: $OUTCOME. Log: $(basename "$LOG")"
