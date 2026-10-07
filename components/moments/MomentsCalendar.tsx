@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { Colors } from "../../lib/colors";
 import { Radii, Typography } from "../../lib/typography";
 import ExpandCircleIcon from "../ExpandCircleIcon";
@@ -11,6 +12,11 @@ import {
   isSameDay,
   WEEKDAY_LABELS,
 } from "../../utils/moments-calendar";
+
+const SWIPE_ACTIVATE_X = 20;
+const SWIPE_FAIL_Y = 15;
+const SWIPE_COMMIT_X = 50;
+const SWIPE_FLING_VELOCITY = 500;
 
 type MomentsCalendarProps = {
   /** Any date within the month to render. */
@@ -33,8 +39,8 @@ type MomentsCalendarProps = {
  * Month calendar from the Figma "Moments" redesign: Monday-first grid, today as
  * a gold disc, and small per-recipient markers under any day that has an
  * occasion (a single bar for one occasion, a row of dots for several). The
- * gold chevron expands into the 12-month year view; the side arrows step
- * months.
+ * gold chevron expands into the 12-month year view; the side arrows or a
+ * horizontal swipe step months.
  */
 export default function MomentsCalendar({
   monthDate,
@@ -50,80 +56,102 @@ export default function MomentsCalendar({
 }: MomentsCalendarProps) {
   const weeks = buildMonthWeeks(monthDate);
 
+  // Horizontal-only so the screen's vertical ScrollView and day taps still win
+  // for anything that isn't a clear sideways drag.
+  const swipeMonths = Gesture.Pan()
+    .runOnJS(true)
+    .activeOffsetX([-SWIPE_ACTIVATE_X, SWIPE_ACTIVATE_X])
+    .failOffsetY([-SWIPE_FAIL_Y, SWIPE_FAIL_Y])
+    .onEnd((e, success) => {
+      if (!success) return;
+      const direction = Math.sign(e.translationX);
+      if (direction === 0) return;
+      const flung = Math.abs(e.velocityX) > SWIPE_FLING_VELOCITY;
+      // A fast flick back toward the start is the user cancelling the swipe.
+      if (flung && Math.sign(e.velocityX) !== direction) return;
+      if (Math.abs(e.translationX) < SWIPE_COMMIT_X && !flung) return;
+      if (direction < 0) onNextMonth();
+      else onPrevMonth();
+    });
+
   return (
-    <View
-      style={[
-        styles.card,
-        variant === "month" ? styles.cardMonth : styles.cardDay,
-      ]}
-    >
-      <View style={styles.header}>
-        <Pressable
-          style={styles.monthLabelGroup}
-          onPress={onExpandYear}
-          accessibilityRole="button"
-          accessibilityLabel="Show year view"
-        >
-          <ExpandCircleIcon
-            direction="down"
-            color={Colors.brand.gold}
-            size={24}
-          />
-          <Text style={styles.monthLabel}>{monthLabel}</Text>
-        </Pressable>
-        <View style={styles.monthNav}>
+    <GestureDetector gesture={swipeMonths}>
+      <View
+        style={[
+          styles.card,
+          variant === "month" ? styles.cardMonth : styles.cardDay,
+        ]}
+      >
+        <View style={styles.header}>
           <Pressable
-            onPress={onPrevMonth}
-            hitSlop={8}
+            style={styles.monthLabelGroup}
+            onPress={onExpandYear}
             accessibilityRole="button"
-            accessibilityLabel="Previous month"
+            accessibilityLabel="Show year view"
           >
-            <MaterialIcons
-              name="chevron-left"
-              size={26}
-              color={Colors.brand.darkTeal}
+            <ExpandCircleIcon
+              direction="down"
+              color={Colors.brand.gold}
+              size={24}
             />
+            <Text style={styles.monthLabel}>{monthLabel}</Text>
           </Pressable>
-          <Pressable
-            onPress={onNextMonth}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Next month"
-          >
-            <MaterialIcons
-              name="chevron-right"
-              size={26}
-              color={Colors.brand.darkTeal}
-            />
-          </Pressable>
+          <View style={styles.monthNav}>
+            <Pressable
+              onPress={onPrevMonth}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Previous month"
+            >
+              <MaterialIcons
+                name="chevron-left"
+                size={26}
+                color={Colors.brand.darkTeal}
+              />
+            </Pressable>
+            <Pressable
+              onPress={onNextMonth}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Next month"
+            >
+              <MaterialIcons
+                name="chevron-right"
+                size={26}
+                color={Colors.brand.darkTeal}
+              />
+            </Pressable>
+          </View>
         </View>
-      </View>
 
-      <View style={styles.weekdayRow}>
-        {WEEKDAY_LABELS.map((label) => (
-          <Text key={label} style={styles.weekday}>
-            {label}
-          </Text>
-        ))}
-      </View>
-
-      {weeks.map((week) => (
-        <View key={dayKey(week[0].date)} style={styles.week}>
-          {week.map((cell) => (
-            <DayCell
-              key={dayKey(cell.date)}
-              cell={cell}
-              markers={
-                cell.inMonth ? markersByDay.get(dayKey(cell.date)) : undefined
-              }
-              isToday={isSameDay(cell.date, today)}
-              isSelected={!!selectedDate && isSameDay(cell.date, selectedDate)}
-              onSelectDay={onSelectDay}
-            />
+        <View style={styles.weekdayRow}>
+          {WEEKDAY_LABELS.map((label) => (
+            <Text key={label} style={styles.weekday}>
+              {label}
+            </Text>
           ))}
         </View>
-      ))}
-    </View>
+
+        {weeks.map((week) => (
+          <View key={dayKey(week[0].date)} style={styles.week}>
+            {week.map((cell) => (
+              <DayCell
+                key={dayKey(cell.date)}
+                cell={cell}
+                markers={
+                  cell.inMonth ? markersByDay.get(dayKey(cell.date)) : undefined
+                }
+                isToday={isSameDay(cell.date, today)}
+                isSelected={
+                  !!selectedDate && isSameDay(cell.date, selectedDate)
+                }
+                onSelectDay={onSelectDay}
+              />
+            ))}
+          </View>
+        ))}
+      </View>
+    </GestureDetector>
   );
 }
 
