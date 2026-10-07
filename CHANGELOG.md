@@ -19,6 +19,14 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-10-07 — OTA
+
+### App
+
+- Adding a birthday to someone's profile now gives them a Birthday moment. If you delete that moment, it stays deleted when you edit the birthday later, and clearing the birthday removes it. (DEV-540)
+- "View Product" checks the shop first. If a gift has sold out since it was suggested, it drops off your list and a replacement takes its place, rather than sending you to a sold-out page. (DEV-546)
+- Swipe left or right on the Moments calendar to move between months. (DEV-558)
+
 ## 2026-10-03 — OTA
 
 ### App
