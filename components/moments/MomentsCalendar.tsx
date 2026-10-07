@@ -62,10 +62,15 @@ export default function MomentsCalendar({
     .runOnJS(true)
     .activeOffsetX([-SWIPE_ACTIVATE_X, SWIPE_ACTIVATE_X])
     .failOffsetY([-SWIPE_FAIL_Y, SWIPE_FAIL_Y])
-    .onEnd((e) => {
+    .onEnd((e, success) => {
+      if (!success) return;
+      const direction = Math.sign(e.translationX);
+      if (direction === 0) return;
       const flung = Math.abs(e.velocityX) > SWIPE_FLING_VELOCITY;
+      // A fast flick back toward the start is the user cancelling the swipe.
+      if (flung && Math.sign(e.velocityX) !== direction) return;
       if (Math.abs(e.translationX) < SWIPE_COMMIT_X && !flung) return;
-      if (e.translationX < 0) onNextMonth();
+      if (direction < 0) onNextMonth();
       else onPrevMonth();
     });
 
