@@ -495,22 +495,28 @@ export default function RecipientEditPage() {
   const resynthesizeProfile = (baseline?: string) => {
     if (!recipientId) return;
     const run = ++resyncRunRef.current;
+    const synopsis = baseline ?? recipient?.synthesized_profile ?? "";
     setResyncFailed(false);
-    setResyncBaseline({
-      synopsis: baseline ?? recipient?.synthesized_profile ?? "",
-      startedAt: Date.now(),
-    });
+    setResyncBaseline({ synopsis, startedAt: Date.now() });
     supabase.functions
-      .invoke("synthesize-recipient-profile", {
+      .invoke<{ safety_declined?: boolean }>("synthesize-recipient-profile", {
         body: { recipientId },
       })
-      .then(async ({ error }) => {
+      .then(async ({ data, error }) => {
         if (run !== resyncRunRef.current) return;
         if (!error) {
-          // The function responds after writing, so a synopsis that came back
-          // unchanged is finished, not stalled.
-          await refetchRecipient();
-          if (run === resyncRunRef.current) setResyncBaseline(null);
+          // The function responds after its write, so this read settles the
+          // run either way — including one the poll already timed out. A 200
+          // can still be a failure: a safety decline, or a write the function
+          // never checked, both of which leave the synopsis untouched.
+          const result = await refetchRecipient();
+          if (run !== resyncRunRef.current) return;
+          setResyncBaseline(null);
+          setResyncFailed(
+            !!data?.safety_declined ||
+              result.isError ||
+              (result.data?.synthesized_profile ?? "") === synopsis
+          );
           return;
         }
         console.error("synthesize-recipient-profile failed:", error);

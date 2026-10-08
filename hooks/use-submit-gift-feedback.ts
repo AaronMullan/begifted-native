@@ -126,8 +126,16 @@ export function useSubmitGiftFeedback() {
       const key = queryKeys.giftSuggestions(vars.recipientId);
       await queryClient.cancelQueries({ queryKey: key });
       const previous = queryClient.getQueryData<GiftSuggestion[]>(key);
+      // This removal starts a fresh backfill, so a stall verdict from an
+      // older gap must not show on the slot it empties.
       queryClient.setQueryData<GiftSuggestion[]>(key, (old) =>
-        (old ?? []).filter((s) => s.id !== vars.giftSuggestionId)
+        (old ?? [])
+          .filter((s) => s.id !== vars.giftSuggestionId)
+          .map((s) => ({
+            ...s,
+            backfill_stalled_in_recipient: false,
+            backfill_stalled_in_occasion: false,
+          }))
       );
       return { previous };
     },
