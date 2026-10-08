@@ -55,4 +55,8 @@ export interface GiftSuggestion {
    * against — a scope that never reached three has no gap. */
   peak_in_recipient: number;
   peak_in_occasion: number;
+  /** The scope's gap is older than any backfill could take to fill it, so its
+   * pending slots have stopped rather than still generating. */
+  backfill_stalled_in_recipient: boolean;
+  backfill_stalled_in_occasion: boolean;
 }

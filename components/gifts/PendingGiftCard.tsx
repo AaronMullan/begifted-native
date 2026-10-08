@@ -3,6 +3,11 @@ import { ActivityIndicator, Text } from "react-native-paper";
 import { Colors } from "../../lib/colors";
 import { Typography, Radii } from "../../lib/typography";
 
+type Props = {
+  /** The replacement is past any time a backfill could take; stop spinning. */
+  stalled?: boolean;
+};
+
 /**
  * Placeholder for an active slot whose card the user removed, held until the
  * replacement finishes generating.
@@ -11,16 +16,21 @@ import { Typography, Radii } from "../../lib/typography";
  * up is what made a Past Gift read as a fresh recommendation (DEV-488), and
  * generation takes minutes, so there is a real wait to account for.
  */
-const PendingGiftCard: React.FC = () => (
-  <View
-    style={styles.row}
-    accessibilityRole="progressbar"
-    accessibilityLabel="Finding a new gift idea"
-  >
-    <Text style={styles.title}>Finding a new idea</Text>
-    <ActivityIndicator size="small" color={Colors.brand.darkTeal} />
-  </View>
-);
+const PendingGiftCard: React.FC<Props> = ({ stalled = false }) =>
+  stalled ? (
+    <View style={styles.row}>
+      <Text style={styles.title}>{"We couldn't find a new idea"}</Text>
+    </View>
+  ) : (
+    <View
+      style={styles.row}
+      accessibilityRole="progressbar"
+      accessibilityLabel="Finding a new gift idea"
+    >
+      <Text style={styles.title}>Finding a new idea</Text>
+      <ActivityIndicator size="small" color={Colors.brand.darkTeal} />
+    </View>
+  );
 
 export default PendingGiftCard;
 
