@@ -6,6 +6,7 @@ import {
 import { queryKeys } from "../lib/query-keys";
 import { invokeWithRetry } from "../lib/edge-retry";
 import {
+  BACKFILL_MAX_MS,
   GIFT_REMOVAL_ACTIONS,
   insertGiftFeedback,
   triggerGiftBackfill,
@@ -69,9 +70,10 @@ function resynthesizeAfterChoice(
 }
 
 /**
- * After triggering a backfill, the backend generation runs async (seconds), so
- * refetch the suggestions a few times until the replacement lands or we give up.
- * Bounded so a recipient the model can't fill a 3rd idea for won't poll forever.
+ * After triggering a backfill, the backend generation runs in the background,
+ * so refetch the suggestions until the replacement lands. The last refetch
+ * falls just past BACKFILL_MAX_MS so a gap that never filled is re-read as
+ * stalled and its pending card stops spinning.
  */
 function pollForBackfill(
   queryClient: QueryClient,
@@ -79,7 +81,17 @@ function pollForBackfill(
   occasionId?: string | null
 ) {
   const key = queryKeys.giftSuggestions(recipientId);
-  const delaysMs = [8000, 16000, 25000, 35000, 50000];
+  const delaysMs = [
+    8000,
+    16000,
+    25000,
+    35000,
+    50000,
+    90000,
+    150000,
+    240000,
+    BACKFILL_MAX_MS + 15000,
+  ];
   for (const delay of delaysMs) {
     setTimeout(() => {
       const current = queryClient.getQueryData<GiftSuggestion[]>(key) ?? [];
@@ -114,8 +126,16 @@ export function useSubmitGiftFeedback() {
       const key = queryKeys.giftSuggestions(vars.recipientId);
       await queryClient.cancelQueries({ queryKey: key });
       const previous = queryClient.getQueryData<GiftSuggestion[]>(key);
+      // This removal starts a fresh backfill, so a stall verdict from an
+      // older gap must not show on the slot it empties.
       queryClient.setQueryData<GiftSuggestion[]>(key, (old) =>
-        (old ?? []).filter((s) => s.id !== vars.giftSuggestionId)
+        (old ?? [])
+          .filter((s) => s.id !== vars.giftSuggestionId)
+          .map((s) => ({
+            ...s,
+            backfill_stalled_in_recipient: false,
+            backfill_stalled_in_occasion: false,
+          }))
       );
       return { previous };
     },

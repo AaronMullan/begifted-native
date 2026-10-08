@@ -85,6 +85,7 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
     visible: visibleSuggestions,
     active: activeSuggestions,
     pendingSlots,
+    pendingStalled,
   } = partitionSuggestions(suggestions, occasionId);
 
   // If the currently open gift was just removed (or filtered out of view), the
@@ -220,7 +221,7 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
         {/* Holds each slot a removal emptied so no past row slides up into it
             while the replacement generates (DEV-488). */}
         {Array.from({ length: pendingSlots }, (_, i) => (
-          <PendingGiftCard key={`pending-${i}`} />
+          <PendingGiftCard key={`pending-${i}`} stalled={pendingStalled} />
         ))}
       </View>
     </View>

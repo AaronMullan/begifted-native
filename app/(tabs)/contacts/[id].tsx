@@ -10,6 +10,7 @@ import {
   useIsFocused,
 } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "../../../lib/supabase";
 import {
   logProductEvent,
@@ -268,6 +269,10 @@ export default function RecipientEditPage() {
     synopsis: string;
     startedAt: number;
   } | null>(null);
+  const [resyncFailed, setResyncFailed] = useState(false);
+  // Identifies the latest resynthesis so an earlier one's late response can't
+  // end or fail the run that replaced it.
+  const resyncRunRef = useRef(0);
 
   // Baseline snapshot taken when gift generation kicks off; the suggestions
   // query polls until a newly generated idea shows up (a longer list, or a
@@ -289,6 +294,7 @@ export default function RecipientEditPage() {
       ? () => {
           if (Date.now() - resyncBaseline.startedAt >= RESYNC_POLL_MAX_MS) {
             setResyncBaseline(null);
+            setResyncFailed(true);
             return false;
           }
           return RESYNC_POLL_INTERVAL_MS;
@@ -488,13 +494,39 @@ export default function RecipientEditPage() {
   // recipient query (with its max-wait timeout) is the source of truth.
   const resynthesizeProfile = (baseline?: string) => {
     if (!recipientId) return;
-    setResyncBaseline({
-      synopsis: baseline ?? recipient?.synthesized_profile ?? "",
-      startedAt: Date.now(),
-    });
+    const run = ++resyncRunRef.current;
+    const synopsis = baseline ?? recipient?.synthesized_profile ?? "";
+    setResyncFailed(false);
+    setResyncBaseline({ synopsis, startedAt: Date.now() });
     supabase.functions
-      .invoke("synthesize-recipient-profile", {
+      .invoke<{ safety_declined?: boolean }>("synthesize-recipient-profile", {
         body: { recipientId },
+      })
+      .then(async ({ data, error }) => {
+        if (run !== resyncRunRef.current) return;
+        if (!error) {
+          // The function responds after its write, so this read settles the
+          // run either way — including one the poll already timed out. A 200
+          // can still be a failure: a safety decline, or a write the function
+          // never checked, both of which leave the synopsis untouched.
+          const result = await refetchRecipient();
+          if (run !== resyncRunRef.current) return;
+          setResyncBaseline(null);
+          setResyncFailed(
+            !!data?.safety_declined ||
+              result.isError ||
+              (result.data?.synthesized_profile ?? "") === synopsis
+          );
+          return;
+        }
+        console.error("synthesize-recipient-profile failed:", error);
+        // Only an HTTP error is a verdict on the run. A dropped connection
+        // (the app backgrounded) leaves the server working, so the poll
+        // decides that case.
+        if (error instanceof FunctionsHttpError) {
+          setResyncBaseline(null);
+          setResyncFailed(true);
+        }
       })
       .catch((err) => {
         console.error("synthesize-recipient-profile failed:", err);
@@ -949,6 +981,7 @@ export default function RecipientEditPage() {
             recipient={recipient}
             defaultEmotionalTone={defaultEmotionalTone}
             isResynthesizing={isResynthesizing}
+            resynthesisFailed={resyncFailed}
             onResynthesize={() => resynthesizeProfile()}
             onRecipientUpdated={(updated) => {
               if (!user) return;

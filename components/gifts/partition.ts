@@ -36,10 +36,17 @@ export function partitionSuggestions(
       : visible[0].peak_in_recipient
     : 0;
 
+  const pendingStalled = visible[0]
+    ? occasionId
+      ? visible[0].backfill_stalled_in_occasion
+      : visible[0].backfill_stalled_in_recipient
+    : false;
+
   return {
     visible,
     active,
     past: visible.filter((s) => !isActive(s)),
     pendingSlots: Math.max(0, Math.min(peak, ACTIVE_COUNT) - active.length),
+    pendingStalled,
   };
 }

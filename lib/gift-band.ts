@@ -24,6 +24,9 @@ export type Band = {
    * against — a scope that never reached three (one unpriced row in the run,
    * a recipient still mid-generation) has no gap at all. */
   peak: number;
+  /** When a removal last emptied an active slot, or null if none ever did.
+   * That removal started the backfill the gap is waiting on. */
+  lastEmptiedAt: string | null;
 };
 
 /**
@@ -74,13 +77,15 @@ export function replayActiveBand(rows: BandRow[]): Band {
   // never re-enter.
   let band: string[] = [];
   let peak = 0;
+  let lastEmptiedAt: string | null = null;
   for (const event of events) {
     if (event.add) {
       band = [event.id, ...band].slice(0, ACTIVE_COUNT);
       peak = Math.max(peak, band.length);
-    } else {
+    } else if (band.includes(event.id)) {
       band = band.filter((id) => id !== event.id);
+      lastEmptiedAt = event.at;
     }
   }
-  return { active: new Set(band), peak };
+  return { active: new Set(band), peak, lastEmptiedAt };
 }

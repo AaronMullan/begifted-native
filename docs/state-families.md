@@ -21,8 +21,9 @@ Rules that hold across every family:
 **In progress** — `StateCopy.inProgress(thing)`, `StateMessage loading`.
 Home, People, Moments (month and day), Notifications, recipient profile and its
 moments, Gift Ideas (first load, generating, a new run over existing ideas),
-About-tab profile refresh, the FAQ, and each Settings screen (index, profile,
-gifting, notifications, billing, support, legal). Button spinners (Save,
+About-tab profile refresh (until the function errors or the 90-second poll
+ends, then `loadFailed` with Try again), the FAQ, and each Settings screen
+(index, profile, gifting, notifications, billing, support, legal). Button spinners (Save,
 Delete, Continue) stay as Paper `loading` props — no copy.
 
 **Empty** — `StateCopy.empty(things)`.
@@ -99,7 +100,9 @@ These keep their own wording by product decision, or aren't states:
   About tab), and the secondary lines under empties ("Add one to remember what
   mattered on this day.") are kept; the spine replaced only the headline.
 - **One-line status slots too small for a spine.** The People card's "No
-  upcoming moments yet" and the "Finding a new idea" pending gift card.
+  upcoming moments yet" and the pending gift card: "Finding a new idea" while
+  a backfill can still land, "We couldn't find a new idea" once the gap is
+  older than any backfill takes (`BACKFILL_MAX_MS`).
 - **The add-a-person chat's "Thinking..."** — a turn in a conversation, not a
   thing being got ready.
 - **Auth errors** show Supabase's own message text ("Error: …"); a spine would
@@ -108,10 +111,6 @@ These keep their own wording by product decision, or aren't states:
 
 ## Known gaps where the app doesn't know its state
 
-- Progress that never resolves (DEV-512): a generation that stalls past the
-  five-minute poll still reads as generating; the pending "Finding a new idea"
-  card spins forever if the backfill request fails; a failed or timed-out
-  profile refresh just stops showing progress.
 - Saves that still report success when the write failed: onboarding
   identity/completion (DEV-509); "profile is ready" after a failed occasion or
   photo save, "Photo updated" after a failed database write, the Preferences

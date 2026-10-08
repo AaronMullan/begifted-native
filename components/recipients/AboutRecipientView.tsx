@@ -53,6 +53,8 @@ type AboutRecipientViewProps = {
   defaultEmotionalTone?: string;
   /** True while the synopsis is being regenerated server-side. */
   isResynthesizing: boolean;
+  /** The last regeneration errored or never produced a new synopsis. */
+  resynthesisFailed: boolean;
   /** Trigger a profile resynthesis (owned by the detail screen). */
   onResynthesize: () => void;
   onRecipientUpdated: (updated: Recipient) => void;
@@ -74,6 +76,7 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
   recipient,
   defaultEmotionalTone,
   isResynthesizing,
+  resynthesisFailed,
   onResynthesize,
   onRecipientUpdated,
   onOpenUpdateChat,
@@ -238,6 +241,23 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
           <Text style={styles.refreshingText}>
             {StateCopy.inProgress(`${possessive(recipient.name)} profile`)}
           </Text>
+        </View>
+      )}
+      {!isResynthesizing && resynthesisFailed && (
+        <View style={styles.refreshingRow}>
+          <Text style={[styles.refreshingText, styles.refreshFailedText]}>
+            {StateCopy.loadFailed(
+              `${possessive(recipient.name)} updated profile`
+            )}
+          </Text>
+          <Button
+            mode="text"
+            compact
+            onPress={onResynthesize}
+            textColor={Colors.blues.medium}
+          >
+            Try again
+          </Button>
         </View>
       )}
       <Text
@@ -672,6 +692,9 @@ const styles = StyleSheet.create({
     ...Typography.eyebrow,
     fontStyle: "italic",
     color: Colors.blues.medium,
+  },
+  refreshFailedText: {
+    flex: 1,
   },
   updateLink: {
     alignSelf: "flex-start",

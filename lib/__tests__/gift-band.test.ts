@@ -42,6 +42,18 @@ describe("replayActiveBand", () => {
     expect(band(rows)).not.toContain("p0");
   });
 
+  it("dates the gap by the last removal that emptied an active slot", () => {
+    const rows = [
+      row("p0", "01", "09"),
+      row("a2", "02"),
+      row("a1", "03", "06"),
+      row("a0", "04", "07"),
+    ];
+    // p0's removal is later but it was already past, so it emptied no slot.
+    expect(replayActiveBand(rows).lastEmptiedAt).toBe("2026-09-01T00:07:00Z");
+    expect(replayActiveBand([row("a0", "01")]).lastEmptiedAt).toBeNull();
+  });
+
   it("fills the freed slot with a row generated after the removal", () => {
     const rows = [
       row("p0", "02"),
