@@ -7,6 +7,22 @@ import { invokeWithRetry } from "../edge-retry";
 import type { Recipient } from "../../types/recipient";
 import type { BetaCheckInScreen } from "./beta-feedback";
 
+/**
+ * Throws when there's no signed-in session. With no session, supabase-js falls
+ * back to the publishable key: RLS then returns zero rows (and matches zero
+ * rows for updates) with no error, so admin screens render all-zero numbers
+ * and empty lists as if they were real. The admin gate can't catch this — its
+ * cached isAdmin answer outlives a lapsed session.
+ */
+async function requireSession(): Promise<void> {
+  const { data } = await supabase.auth.getSession();
+  if (!data.session) {
+    throw new Error(
+      "Your sign-in has lapsed, so nothing here could load. Refresh to try again; if it persists, sign out and back in."
+    );
+  }
+}
+
 export interface PromptTestRun {
   id: string;
   user_id: string;
@@ -59,6 +75,7 @@ export interface AdminProfileListItem {
  * not on public.profiles.
  */
 export async function fetchAllProfiles(): Promise<AdminProfileListItem[]> {
+  await requireSession();
   const { data, error } = await supabase.rpc("admin_list_profiles");
 
   if (error) throw error;
@@ -71,6 +88,7 @@ export async function fetchAllProfiles(): Promise<AdminProfileListItem[]> {
 export async function fetchRecipientsForUser(
   userId: string
 ): Promise<Recipient[]> {
+  await requireSession();
   const { data, error } = await supabase
     .from("recipients")
     .select(
@@ -90,6 +108,7 @@ export async function fetchPromptTestRuns(
   _userId: string,
   promptKey?: string
 ): Promise<PromptTestRun[]> {
+  await requireSession();
   let query = supabase
     .from("prompt_test_runs")
     .select("*")
@@ -112,6 +131,7 @@ export async function fetchPromptTestRuns(
 export async function createPromptTestRun(
   run: Omit<PromptTestRun, "id" | "created_at">
 ): Promise<PromptTestRun> {
+  await requireSession();
   const { data, error } = await supabase
     .from("prompt_test_runs")
     .insert(run)
@@ -128,6 +148,7 @@ export async function createPromptTestRun(
 export async function fetchActiveSystemPrompt(
   promptKey: string
 ): Promise<SystemPromptVersion | null> {
+  await requireSession();
   const { data, error } = await supabase
     .from("system_prompt_versions")
     .select("*")
@@ -145,6 +166,7 @@ export async function fetchActiveSystemPrompt(
 export async function fetchPromptVersionHistory(
   promptKey: string
 ): Promise<SystemPromptVersion[]> {
+  await requireSession();
   const { data, error } = await supabase
     .from("system_prompt_versions")
     .select("*")
@@ -164,6 +186,7 @@ export async function deployNewPromptVersion(
   changeNotes: string,
   userId: string
 ): Promise<SystemPromptVersion> {
+  await requireSession();
   // Get the current max version
   const { data: latestVersion } = await supabase
     .from("system_prompt_versions")
@@ -225,6 +248,7 @@ export interface AppConfig {
   updated_by: string | null;
 }
 
+// No requireSession: the sign-in screen reads app_config before a session exists.
 export async function fetchAppConfig(): Promise<AppConfig> {
   const { data, error } = await supabase
     .from("app_config")
@@ -248,6 +272,7 @@ export async function updateAppConfig(
   >,
   userId: string
 ): Promise<void> {
+  await requireSession();
   const { error } = await supabase
     .from("app_config")
     .update({
@@ -305,6 +330,7 @@ export async function fetchRecentRuns(
   limit: number,
   offset: number
 ): Promise<RecentRunsPage> {
+  await requireSession();
   const { data: idRows, error: idErr } = await supabase
     .from("gift_suggestions")
     .select("run_id, created_at")
@@ -483,6 +509,7 @@ export interface BetaFeedbackRow {
  * uses for givers. Ordered newest-first.
  */
 export async function fetchBetaFeedback(): Promise<BetaFeedbackRow[]> {
+  await requireSession();
   const { data: rows, error } = await supabase
     .from("beta_feedback")
     .select("id, user_id, screen, responses, free_text, created_at")
@@ -519,6 +546,7 @@ export async function fetchBetaFeedback(): Promise<BetaFeedbackRow[]> {
 export async function fetchSystemPromptById(
   id: string
 ): Promise<SystemPromptVersion | null> {
+  await requireSession();
   const { data, error } = await supabase
     .from("system_prompt_versions")
     .select("*")
@@ -540,6 +568,7 @@ export interface WrapperTemplate {
 export async function fetchWrapperTemplate(
   hash: string
 ): Promise<WrapperTemplate | null> {
+  await requireSession();
   const { data, error } = await supabase
     .from("wrapper_templates")
     .select("*")
@@ -561,6 +590,7 @@ export interface RecipientProfileSnapshot {
 export async function fetchRecipientSynthesizedProfile(
   id: string
 ): Promise<RecipientProfileSnapshot | null> {
+  await requireSession();
   const { data, error } = await supabase
     .from("recipients")
     .select("id, name, synthesized_profile")
@@ -582,6 +612,7 @@ export interface GiverProfileSnapshot {
 export async function fetchGiverSynthesizedProfile(
   userId: string
 ): Promise<GiverProfileSnapshot | null> {
+  await requireSession();
   const [
     { data: profile, error: profileErr },
     { data: prefs, error: prefsErr },
@@ -614,6 +645,7 @@ export async function rollbackToVersion(
   versionId: string,
   promptKey: string
 ): Promise<void> {
+  await requireSession();
   // Deactivate current active version
   await supabase
     .from("system_prompt_versions")
@@ -762,6 +794,7 @@ function tally(values: (string | null | undefined)[]): {
  * admin poking doesn't read as traction.
  */
 export async function fetchTractionMetrics(): Promise<TractionMetrics> {
+  await requireSession();
   const now = Date.now();
   const cutoff7d = new Date(now - WEEK_MS).toISOString();
   const cutoff8w = new Date(now - TREND_WEEKS * WEEK_MS).toISOString();
@@ -981,6 +1014,7 @@ export interface UserExportRow {
  * same trade the dashboard makes.
  */
 export async function fetchUserExportRows(): Promise<UserExportRow[]> {
+  await requireSession();
   const now = Date.now();
   const cutoff7d = new Date(now - WEEK_MS).toISOString();
 
@@ -1145,6 +1179,7 @@ export interface FeedbackDashboard {
  * function verifies the caller is an admin before returning anything.
  */
 export async function fetchFeedbackDashboard(): Promise<FeedbackDashboard> {
+  await requireSession();
   const { data, error } = await invokeWithRetry<FeedbackDashboard>(
     "admin-feedback-tickets",
     { body: {} }
@@ -1279,6 +1314,7 @@ function runCost(run: SpendRun, price: AiModelPrice): number {
 const modelKey = (provider: string, model: string) => `${provider}/${model}`;
 
 export async function fetchAiSpendMetrics(): Promise<AiSpendMetrics> {
+  await requireSession();
   const nowMs = Date.now();
   const windowEnd = utcDateString(nowMs);
   // Runs before tracking began have no usage by construction; fetching them
@@ -1527,6 +1563,7 @@ export async function saveAiModelPrice(
   price: NewAiModelPrice,
   userId: string
 ): Promise<void> {
+  await requireSession();
   const { error } = await supabase
     .from("ai_model_prices")
     .upsert(
@@ -1560,6 +1597,7 @@ const PUBLISHED_PRICES_URL =
  * be reported to Sentry like an app failure.
  */
 export async function fetchPublishedModelPrices(): Promise<PublishedPriceTable | null> {
+  await requireSession();
   let raw: {
     [key: string]: {
       input_cost_per_token?: unknown;
