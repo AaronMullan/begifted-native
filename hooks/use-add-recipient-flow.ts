@@ -406,6 +406,7 @@ export function useAddRecipientFlow(
         if (initialAddress || initialBirthday || initialAnniversary) {
           genericSetExtractedData(merged);
         }
+        if (refusedEarlier()) return;
         setShowDataReview(true);
       }
     },
@@ -475,6 +476,9 @@ export function useAddRecipientFlow(
 
   // Define saveRecipient FIRST so it can be used by other callbacks
   const saveRecipient = async (data: ExtractedData) => {
+    // A resumed copy of a refused session can reach review before the
+    // refusal lands on the original; the save is the last place to stop it.
+    if (refusedEarlier()) return;
     if (!userId) {
       Alert.alert("Error", "User not authenticated");
       return;
@@ -667,7 +671,9 @@ export function useAddRecipientFlow(
   > => {
     if (refusedEarlier()) return "safety_declined";
     const extracted = await genericHandleFinishConversation();
-    if (extracted === "safety_declined") return "safety_declined";
+    if (extracted === "safety_declined" || refusedEarlier()) {
+      return "safety_declined";
+    }
 
     if (extracted && extracted.name && extracted.relationship_type) {
       // Map the extracted data to ensure all fields are properly set
