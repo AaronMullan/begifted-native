@@ -127,7 +127,7 @@ export function usePushNotifications(): PushIntroControls {
           return;
         }
         // Already granted (or permanently denied): same silent path as before.
-        await registerForPushNotifications(user.id);
+        await registerForPushNotifications();
       })().catch((err) => console.error("[push] Registration failed:", err));
     } else if (!user && previousUserId.current) {
       unregisterPushToken().catch((err) =>
@@ -140,7 +140,7 @@ export function usePushNotifications(): PushIntroControls {
   const acceptIntro = () => {
     setIntroVisible(false);
     if (user?.id) {
-      registerForPushNotifications(user.id).catch((err) =>
+      registerForPushNotifications().catch((err) =>
         console.error("[push] Registration failed:", err)
       );
     }
@@ -233,7 +233,7 @@ export function usePushNotifications(): PushIntroControls {
           lastForegroundRegisterAt.current = previous;
           return;
         }
-        await registerForPushNotifications(userId);
+        await registerForPushNotifications();
       })().catch((err) => {
         lastForegroundRegisterAt.current = previous;
         console.error("[push] Foreground re-registration failed:", err);

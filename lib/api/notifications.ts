@@ -74,21 +74,19 @@ export async function markAllNotificationsRead(userId: string): Promise<void> {
 }
 
 /**
- * Store (or refresh) this device's Expo push token, keyed on the token so a
- * device switching accounts re-homes its token.
+ * Store (or refresh) this device's Expo push token for the signed-in user.
+ * Goes through an RPC rather than a table upsert: RLS blocks moving a token
+ * another account already holds, so a device that switches accounts would keep
+ * delivering to the previous one.
  */
 export async function upsertPushToken(input: {
-  user_id: string;
   token: string;
   platform: "ios" | "android";
 }): Promise<void> {
-  const { error } = await supabase.from("user_push_tokens").upsert(
-    {
-      ...input,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "token" }
-  );
+  const { error } = await supabase.rpc("register_push_token", {
+    p_token: input.token,
+    p_platform: input.platform,
+  });
 
   if (error) throw error;
 }
