@@ -123,6 +123,16 @@ export function parseIntakeRules(text: string): ParsedIntakeRules {
   if (!Array.isArray(fields)) {
     return { ok: false, errors: ['Expected an object with a "fields" list.'] };
   }
+  const extraKeys = Object.keys(raw as object).filter((k) => k !== "fields");
+  if (extraKeys.length > 0) {
+    return {
+      ok: false,
+      errors: extraKeys.map(
+        (k) =>
+          `Unknown top-level option "${k}"; options belong on their field in "fields".`
+      ),
+    };
+  }
 
   const errors: string[] = [];
   const rules: IntakeRules = {

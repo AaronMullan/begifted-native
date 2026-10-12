@@ -4,8 +4,8 @@ import {
   parseIntakeRules,
   renderRequiredFields,
   serializeIntakeRules,
-  type IntakeRules,
 } from "./intake-rules.ts";
+import type { IntakeRules } from "./intake-rules.ts";
 import { deriveAddRecipientReadiness } from "./readiness.ts";
 import { buildStateGuidance } from "./prompts.ts";
 import type { ContextInfo } from "../types.ts";
@@ -217,12 +217,40 @@ Deno.test(
       })
     );
     // Texture is asked before price here; price is still missing, so the cap
-    // must not force "ready".
+    // moves on to price rather than forcing "ready".
     const derived = deriveAddRecipientReadiness(
       base({ birthday: "1980-08-14" }),
       5,
       rules
     );
-    assertEquals(derived.state, "captured_needs_specificity");
+    assertEquals(derived.state, "captured_needs_price");
   }
 );
+
+Deno.test("an option at the top level is rejected, not ignored", () => {
+  const result = parseIntakeRules(
+    rulesWith(() => {}).replace(/^\{/, '{"turn_cap":3,')
+  );
+  assert(!result.ok);
+  assert(
+    result.errors.some((e) => /Unknown top-level option "turn_cap"/.test(e))
+  );
+});
+
+Deno.test("the turn cap moves past texture when it is asked early", () => {
+  const rules = parsed(
+    rulesWith((f) => {
+      const [texture] = f.splice(5, 1);
+      f.splice(1, 0, texture);
+      field(f, "texture").turn_cap = 2;
+    })
+  );
+  const ctx = base({ occasions_mentioned: [], interests: ["books"] });
+  assertEquals(
+    deriveAddRecipientReadiness(ctx, 1, rules).state,
+    "captured_needs_specificity"
+  );
+  const capped = deriveAddRecipientReadiness(ctx, 2, rules);
+  assertEquals(capped.state, "captured_needs_occasion");
+  assert(!capped.missingRequirements.includes("specificity_anchor"));
+});

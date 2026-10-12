@@ -8,11 +8,8 @@ import {
 } from "./extractors.ts";
 import { recommendOccasions } from "./occasions.ts";
 import { SAFETY_PREAMBLE } from "./prompts.ts";
-import {
-  parseIntakeRules,
-  renderRequiredFields,
-  type IntakeRules,
-} from "./intake-rules.ts";
+import { parseIntakeRules, renderRequiredFields } from "./intake-rules.ts";
+import type { IntakeRules } from "./intake-rules.ts";
 import { screenInput } from "../_shared/moderation.ts";
 
 import { parseOpenAIJSON } from "./utils.ts";

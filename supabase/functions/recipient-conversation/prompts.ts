@@ -4,8 +4,8 @@ import {
   FIELD_SHORT_NAMES,
   joinWithOr,
   requiredFieldsAfter,
-  type IntakeRules,
 } from "./intake-rules.ts";
+import type { IntakeRules } from "./intake-rules.ts";
 
 // Prepended in code to every conversation reply prompt — DB-loaded, playground-
 // custom, or the hardcoded fallback — so the safety boundary can't be dropped by

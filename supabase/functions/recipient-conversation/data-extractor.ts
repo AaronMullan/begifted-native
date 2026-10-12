@@ -27,8 +27,8 @@ import {
   DEFAULT_INTAKE_RULES,
   parseIntakeRules,
   renderRequiredFields,
-  type IntakeRules,
 } from "./intake-rules.ts";
+import type { IntakeRules } from "./intake-rules.ts";
 import { stripAllSetCompletion, stripQuestions } from "./completion.ts";
 // @ts-ignore - Deno environment variables are resolved at runtime
 export const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";

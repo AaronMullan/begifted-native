@@ -14,11 +14,8 @@
  */
 
 import type { ContextInfo, ReadinessState } from "../types.ts";
-import {
-  DEFAULT_INTAKE_RULES,
-  type IntakeFieldKey,
-  type IntakeRules,
-} from "./intake-rules.ts";
+import { DEFAULT_INTAKE_RULES } from "./intake-rules.ts";
+import type { IntakeFieldKey, IntakeRules } from "./intake-rules.ts";
 
 export interface DerivedReadiness {
   state: ReadinessState;
@@ -238,29 +235,22 @@ export function deriveAddRecipientReadiness(
     }
   };
   // The first required field still missing, in the rules' question order.
-  const firstMissing = rules.order.find(
-    (field) => rules.required[field] && !satisfied(field)
-  );
-  let state: ReadinessState = firstMissing ? stateFor(firstMissing) : "ready";
+  const findFirstMissing = () =>
+    rules.order.find((field) => rules.required[field] && !satisfied(field));
+  let firstMissing = findFirstMissing();
 
   // Deterministic termination guard. The one-follow-up cap relies on the
   // extractor flipping specificity_followup_used; if it never does, the flow
-  // would re-enter captured_needs_specificity every turn and the next-step
-  // button (shown only at "ready") would never appear. Once the intake has run
-  // textureTurnCap assistant turns and the ONLY thing still missing is
-  // texture, force completion. Texture is the only field this can force, so a
-  // recipient missing any other required field can never be force-completed.
-  const onlyTextureMissing = rules.order.every(
-    (field) => field === "texture" || !rules.required[field] || satisfied(field)
-  );
-  if (
-    state === "captured_needs_specificity" &&
-    onlyTextureMissing &&
-    assistantTurns >= rules.textureTurnCap
-  ) {
+  // would re-enter captured_needs_specificity every turn and never move past
+  // texture. Once the intake has run textureTurnCap assistant turns, texture
+  // counts as done and the next missing field is asked. Texture is the only
+  // field this can force, so a recipient missing any other required field can
+  // never be force-completed.
+  if (firstMissing === "texture" && assistantTurns >= rules.textureTurnCap) {
     hasSpecificity = true;
-    state = "ready";
+    firstMissing = findFirstMissing();
   }
+  const state: ReadinessState = firstMissing ? stateFor(firstMissing) : "ready";
 
   // Broad texture already present (interests captured) but not distinguishing
   // and no follow-up spent → the next texture ask is the sharpening follow-up,
