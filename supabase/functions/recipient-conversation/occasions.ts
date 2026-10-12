@@ -149,6 +149,7 @@ export async function recommendOccasions(
     importantDates,
     knownOccasions,
     culturalContext,
+    age: (extractedData as ExtractedData).age,
   });
   const discoveryAnchors = buildDiscoveryAnchors();
 

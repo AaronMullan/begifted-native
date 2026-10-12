@@ -163,6 +163,9 @@ export function useOccasionRecommendations(
                 name: extractedData.name,
                 relationship_type: extractedData.relationship_type ?? "",
                 birthday: extractedData.birthday ?? null,
+                // Lets the server withhold parent holidays from a child whose
+                // only age signal is a stated one ("he's 6").
+                age: extractedData.age ?? null,
                 interests: extractedData.interests ?? [],
                 knownRoles: extractedData.knownRoles ?? [],
                 householdContext: extractedData.householdContext ?? "",
@@ -228,6 +231,7 @@ export function useOccasionRecommendations(
     extractedData?.name,
     extractedData?.relationship_type,
     extractedData?.birthday ?? null,
+    extractedData?.age ?? null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     (extractedData?.interests ?? []).join(","),
     // eslint-disable-next-line react-hooks/exhaustive-deps
