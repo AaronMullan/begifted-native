@@ -84,4 +84,47 @@ describe("recommendedMomentsFor", () => {
       "Hanukkah",
     ]);
   });
+
+  describe("parent holidays", () => {
+    it("recommends the one matching a stated parent role", () => {
+      expect(recommendedMomentsFor("dad", [])).toEqual([
+        "Birthday",
+        "Father's Day",
+      ]);
+      expect(recommendedMomentsFor("mom", [])).toEqual([
+        "Birthday",
+        "Mother's Day",
+      ]);
+    });
+
+    it("never recommends one for a known minor, whatever the role says", () => {
+      expect(recommendedMomentsFor("dad", [], [], null, true)).toEqual([
+        "Birthday",
+      ]);
+      expect(
+        recommendedMomentsFor("son", [], ["Father's Day"], null, true)
+      ).toEqual(["Birthday"]);
+    });
+
+    it("drops interest-derived ones without a stated role", () => {
+      expect(
+        recommendedMomentsFor(
+          "friend",
+          [],
+          ["Father's Day", "Mothers Day", "Pi Day"]
+        )
+      ).toEqual(["Birthday", "Pi Day"]);
+    });
+
+    it("keeps an interest-derived one the stated role supports", () => {
+      expect(
+        recommendedMomentsFor("grandma", ["mothers_day"], ["Mother's Day"])
+      ).toEqual(["Birthday"]);
+      expect(recommendedMomentsFor("father", [], ["Pi Day"])).toEqual([
+        "Birthday",
+        "Father's Day",
+        "Pi Day",
+      ]);
+    });
+  });
 });

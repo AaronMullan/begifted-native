@@ -64,19 +64,27 @@ export function recommendedMomentsFor(
   relationshipType: string | null | undefined,
   existingOccasionTypes: string[],
   interestMoments: string[] = [],
-  culturalContext?: string | null
+  culturalContext?: string | null,
+  forMinor = false
 ): string[] {
   const relationship = (relationshipType ?? "").toLowerCase();
+  // A parent role on a known minor is the giver's role misfiled ("I'm his
+  // dad"), so the age overrides it. Interest-derived names pass the same gate:
+  // the AI suggests parent holidays off a role it inferred, never one stated.
+  const eligibleParentDay: Record<string, boolean> = {
+    [slugifyOccasionName("Mother's Day")]:
+      !forMinor && MOTHER_ROLES.test(relationship),
+    [slugifyOccasionName("Father's Day")]:
+      !forMinor && FATHER_ROLES.test(relationship),
+  };
+  const isBlockedParentDay = (label: string) =>
+    eligibleParentDay[slugifyOccasionName(label)] === false;
+
   const candidates = ["Birthday"];
   if (PARTNER_ROLES.test(relationship)) {
     candidates.push("Anniversary", "Valentine's Day");
   }
-  if (MOTHER_ROLES.test(relationship)) {
-    candidates.push("Mother's Day");
-  }
-  if (FATHER_ROLES.test(relationship)) {
-    candidates.push("Father's Day");
-  }
+  candidates.push("Mother's Day", "Father's Day");
   const statedHoliday = statedHolidayFor(culturalContext);
   if (statedHoliday) candidates.push(statedHoliday);
 
@@ -84,13 +92,16 @@ export function recommendedMomentsFor(
     existingOccasionTypes.map((t) => slugifyOccasionName(t))
   );
   const chips = candidates
-    .filter((label) => !existing.has(slugifyOccasionName(label)))
+    .filter(
+      (label) =>
+        !isBlockedParentDay(label) && !existing.has(slugifyOccasionName(label))
+    )
     .slice(0, MAX_CHIPS);
 
   const seen = new Set([...existing, ...chips.map(slugifyOccasionName)]);
   for (const name of interestMoments) {
     const slug = slugifyOccasionName(name);
-    if (!slug || seen.has(slug)) continue;
+    if (!slug || seen.has(slug) || isBlockedParentDay(name)) continue;
     seen.add(slug);
     chips.push(name);
   }
