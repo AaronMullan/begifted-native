@@ -196,3 +196,55 @@ Deno.test("a tag held across relationship types becomes a tendency", () => {
   assert(!context.includes("ceramics"));
   assert(!context.includes("mug"));
 });
+
+Deno.test("variant spellings of one relationship don't make a tendency", () => {
+  const pairs: [string, string][] = [
+    ["friend", "close friend"],
+    ["bff", "good friend"],
+    ["buddy", "Friend"],
+    ["Mom", "mother"],
+    ["brother-in-law", "Brother in law"],
+    ["nephew", "Nephew (Sarah's son)"],
+    ["coworker", "colleague"],
+  ];
+  for (const [a, b] of pairs) {
+    assertEquals(
+      crossRelationshipTendencies(
+        [
+          row({ recipient_id: "a", category_tags: ["handmade"] }),
+          row({
+            gift_suggestion_id: "g2",
+            recipient_id: "b",
+            category_tags: ["handmade"],
+          }),
+        ],
+        new Map([
+          ["a", a],
+          ["b", b],
+        ])
+      ),
+      [],
+      `${a} / ${b}`
+    );
+  }
+});
+
+Deno.test("a third, different relationship still makes a tendency", () => {
+  assertEquals(
+    crossRelationshipTendencies(
+      ["friend", "close friend", "wife"].map((relationship, i) =>
+        row({
+          gift_suggestion_id: `g${i}`,
+          recipient_id: relationship,
+          category_tags: ["handmade"],
+        })
+      ),
+      new Map(
+        ["friend", "close friend", "wife"].map(
+          (r) => [r, r] as [string, string]
+        )
+      )
+    ),
+    ["handmade"]
+  );
+});

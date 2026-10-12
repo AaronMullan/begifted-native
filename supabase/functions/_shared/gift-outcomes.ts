@@ -162,6 +162,51 @@ const MAX_TENDENCIES = 8;
 const normalizeTag = (tag: string) =>
   tag.trim().toLowerCase().replace(/\s+/g, " ");
 
+const RELATIONSHIP_WORD_SYNONYMS: Record<string, string> = {
+  mom: "mother",
+  mum: "mother",
+  mommy: "mother",
+  mama: "mother",
+  dad: "father",
+  daddy: "father",
+  papa: "father",
+  grandma: "grandmother",
+  granny: "grandmother",
+  nana: "grandmother",
+  grandpa: "grandfather",
+  gramps: "grandfather",
+  sis: "sister",
+  bro: "brother",
+  bff: "friend",
+  bestie: "friend",
+  buddy: "friend",
+  pal: "friend",
+  colleague: "coworker",
+};
+
+function relationshipWords(relationship: string): Set<string> {
+  return new Set(
+    relationship
+      .toLowerCase()
+      .split(/[^\p{L}]+/u)
+      .filter(Boolean)
+      .map((w) => RELATIONSHIP_WORD_SYNONYMS[w] ?? w)
+  );
+}
+
+/**
+ * relationship_type is free text, so "friend", "close friend" and "bff" — or
+ * "brother-in-law" and "brother in law" — name one kind of relationship. Two
+ * are treated as the same whenever either's words contain the other's. That
+ * over-merges some genuinely different pairs ("brother" / "brother-in-law"),
+ * which only ever withholds a tendency, never admits one.
+ */
+function sameRelationship(a: Set<string>, b: Set<string>): boolean {
+  const contains = (x: Set<string>, y: Set<string>) =>
+    [...y].every((w) => x.has(w));
+  return contains(a, b) || contains(b, a);
+}
+
 /**
  * Style tags on chosen gifts that recur across two or more distinct
  * relationship types. This is the only gate between per-recipient taste and
@@ -174,25 +219,29 @@ export function crossRelationshipTendencies(
   chosen: FeedbackRow[],
   relationshipByRecipient: Map<string, string | null>
 ): string[] {
-  const relationshipsByTag = new Map<string, Set<string>>();
+  const relationshipsByTag = new Map<string, Set<string>[]>();
   for (const c of chosen) {
-    const relationship = relationshipByRecipient
-      .get(c.recipient_id)
-      ?.trim()
-      .toLowerCase();
-    if (!relationship) continue;
+    const words = relationshipWords(
+      relationshipByRecipient.get(c.recipient_id) ?? ""
+    );
+    if (words.size === 0) continue;
     for (const raw of c.category_tags ?? []) {
       if (typeof raw !== "string") continue;
       const tag = normalizeTag(raw);
       if (!tag) continue;
-      const seen = relationshipsByTag.get(tag) ?? new Set<string>();
-      seen.add(relationship);
-      relationshipsByTag.set(tag, seen);
+      relationshipsByTag.set(tag, [
+        ...(relationshipsByTag.get(tag) ?? []),
+        words,
+      ]);
     }
   }
+  const spansRelationships = (relationships: Set<string>[]) =>
+    relationships.some((a, i) =>
+      relationships.slice(i + 1).some((b) => !sameRelationship(a, b))
+    );
   return [...relationshipsByTag.entries()]
-    .filter(([, relationships]) => relationships.size >= 2)
-    .sort((a, b) => b[1].size - a[1].size || a[0].localeCompare(b[0]))
+    .filter(([, relationships]) => spansRelationships(relationships))
+    .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]))
     .slice(0, MAX_TENDENCIES)
     .map(([tag]) => tag);
 }
