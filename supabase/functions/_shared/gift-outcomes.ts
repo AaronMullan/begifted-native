@@ -6,8 +6,9 @@
  * that one person. The giver profile spans every recipient, so anything
  * concrete that reaches it leaks into unrelated recipients' suggestions (a toy
  * chosen for a nephew becoming a signal for a spouse). Its context therefore
- * carries prices, relationship tiers and counts only; no title, brand or
- * category is ever passed in, so none can come back out.
+ * carries prices, relationship tiers and counts, plus only those style tags
+ * that held across different relationships; no title or brand is ever passed
+ * in, so none can come back out.
  *
  * Intent is derived from `action`, not `signal_type`, matching the CIS builder
  * in be-gifted.
@@ -20,6 +21,7 @@ export type FeedbackRow = {
   action: string;
   gift_title: string | null;
   price: number | string | null;
+  category_tags?: string[] | null;
   created_at: string;
 };
 
@@ -134,13 +136,65 @@ export function buildGiverChoiceContext(
         )} (range ${Math.min(...seenCounts)}–${Math.max(...seenCounts)})`
       : "";
 
+  const tendencies = crossRelationshipTendencies(
+    chosen,
+    relationshipByRecipient
+  );
+  const tendencyLine =
+    tendencies.length > 0
+      ? `- Style descriptors of gifts chosen across different relationships: ${tendencies.join(
+          ", "
+        )}`
+      : "";
+
   return [
     "Gifts actually chosen, by relationship (items deliberately withheld):",
     ...tierLines,
     decisionLine,
+    tendencyLine,
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+const MAX_TENDENCIES = 8;
+
+const normalizeTag = (tag: string) =>
+  tag.trim().toLowerCase().replace(/\s+/g, " ");
+
+/**
+ * Style tags on chosen gifts that recur across two or more distinct
+ * relationship types. This is the only gate between per-recipient taste and
+ * the giver profile, so it lives in code rather than in the prompt: a tag seen
+ * for one recipient — or for several recipients who share a relationship type —
+ * describes those people, not the giver. A recipient with no relationship type
+ * can't be shown to differ from anyone, so it contributes nothing.
+ */
+export function crossRelationshipTendencies(
+  chosen: FeedbackRow[],
+  relationshipByRecipient: Map<string, string | null>
+): string[] {
+  const relationshipsByTag = new Map<string, Set<string>>();
+  for (const c of chosen) {
+    const relationship = relationshipByRecipient
+      .get(c.recipient_id)
+      ?.trim()
+      .toLowerCase();
+    if (!relationship) continue;
+    for (const raw of c.category_tags ?? []) {
+      if (typeof raw !== "string") continue;
+      const tag = normalizeTag(raw);
+      if (!tag) continue;
+      const seen = relationshipsByTag.get(tag) ?? new Set<string>();
+      seen.add(relationship);
+      relationshipsByTag.set(tag, seen);
+    }
+  }
+  return [...relationshipsByTag.entries()]
+    .filter(([, relationships]) => relationships.size >= 2)
+    .sort((a, b) => b[1].size - a[1].size || a[0].localeCompare(b[0]))
+    .slice(0, MAX_TENDENCIES)
+    .map(([tag]) => tag);
 }
 
 /** Occasion-type lookup for a recipient's choices, keyed by occasion id. */
