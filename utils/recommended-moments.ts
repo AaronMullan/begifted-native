@@ -71,14 +71,14 @@ export function recommendedMomentsFor(
   // A parent role on a known minor is the giver's role misfiled ("I'm his
   // dad"), so the age overrides it. Interest-derived names pass the same gate:
   // the AI suggests parent holidays off a role it inferred, never one stated.
-  const eligibleParentDay: Record<string, boolean> = {
-    [slugifyOccasionName("Mother's Day")]:
-      !forMinor && MOTHER_ROLES.test(relationship),
-    [slugifyOccasionName("Father's Day")]:
-      !forMinor && FATHER_ROLES.test(relationship),
+  // Matches every spelling utils/occasion-dates resolves, so "Fathersday" from
+  // the AI can't slip past and still date to the holiday.
+  const isBlockedParentDay = (label: string) => {
+    const parent = /^(mother|father)s_?day$/.exec(slugifyOccasionName(label));
+    if (!parent) return false;
+    const roles = parent[1] === "mother" ? MOTHER_ROLES : FATHER_ROLES;
+    return forMinor || !roles.test(relationship);
   };
-  const isBlockedParentDay = (label: string) =>
-    eligibleParentDay[slugifyOccasionName(label)] === false;
 
   const candidates = ["Birthday"];
   if (PARTNER_ROLES.test(relationship)) {

@@ -111,7 +111,7 @@ describe("recommendedMomentsFor", () => {
         recommendedMomentsFor(
           "friend",
           [],
-          ["Father's Day", "Mothers Day", "Pi Day"]
+          ["Father's Day", "Mothers Day", "Fathersday", "Pi Day"]
         )
       ).toEqual(["Birthday", "Pi Day"]);
     });
