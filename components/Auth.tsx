@@ -16,6 +16,7 @@ import {
 } from "../lib/supabase";
 import { fetchAppConfig } from "../lib/api";
 import LegalAcceptanceCheckbox from "./LegalAcceptanceCheckbox";
+import SocialSignInButtons from "./SocialSignInButtons";
 import { PrimaryCta } from "./PrimaryCta";
 import {
   markPendingLegalAcceptance,
@@ -36,6 +37,13 @@ type FormData = {
   email: string;
   password: string;
 };
+
+async function signupsDisabledMessage(): Promise<string | null> {
+  const config = await fetchAppConfig().catch(() => null);
+  return config && !config.signups_enabled
+    ? StateCopy.disabled("Signing up")
+    : null;
+}
 
 export default function Auth() {
   const router = useRouter();
@@ -365,6 +373,20 @@ export default function Auth() {
                 ? "Already have an account? Sign In"
                 : "Don't have an account? Create one"}
             </Button>
+          </View>
+
+          {/* Sign-in needs no handoff: the session listener in app/index.tsx
+              routes the new session. */}
+          <View style={styles.verticallySpaced}>
+            <SocialSignInButtons
+              acceptanceMethod={
+                isSignUp ? "signup_checkbox_social" : "sign_in_notice_social"
+              }
+              disabled={loading || (isSignUp && !acceptedLegal)}
+              beforeSignIn={isSignUp ? signupsDisabledMessage : undefined}
+              onSignedIn={() => setMessage("")}
+              onError={(error) => setMessage(`Error: ${error}`)}
+            />
           </View>
 
           {/* Success/Error Messages */}
