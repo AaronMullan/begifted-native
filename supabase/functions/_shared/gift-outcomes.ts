@@ -6,8 +6,9 @@
  * that one person. The giver profile spans every recipient, so anything
  * concrete that reaches it leaks into unrelated recipients' suggestions (a toy
  * chosen for a nephew becoming a signal for a spouse). Its context therefore
- * carries prices, relationship tiers and counts only; no title, brand or
- * category is ever passed in, so none can come back out.
+ * carries prices, relationship tiers and counts, plus only those style tags
+ * that held across different relationships; no title or brand is ever passed
+ * in, so none can come back out.
  *
  * Intent is derived from `action`, not `signal_type`, matching the CIS builder
  * in be-gifted.
@@ -20,6 +21,7 @@ export type FeedbackRow = {
   action: string;
   gift_title: string | null;
   price: number | string | null;
+  category_tags?: string[] | null;
   created_at: string;
 };
 
@@ -134,13 +136,153 @@ export function buildGiverChoiceContext(
         )} (range ${Math.min(...seenCounts)}–${Math.max(...seenCounts)})`
       : "";
 
+  const tendencies = crossRelationshipTendencies(
+    chosen,
+    relationshipByRecipient
+  );
+  const tendencyLine =
+    tendencies.length > 0
+      ? `- Style descriptors of gifts chosen across different relationships: ${tendencies.join(
+          ", "
+        )}`
+      : "";
+
   return [
     "Gifts actually chosen, by relationship (items deliberately withheld):",
     ...tierLines,
     decisionLine,
+    tendencyLine,
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+const MAX_TENDENCIES = 8;
+
+const normalizeTag = (tag: string) =>
+  tag.trim().toLowerCase().replace(/\s+/g, " ");
+
+const RELATIONSHIP_WORD_SYNONYMS: Record<string, string> = {
+  mom: "mother",
+  mum: "mother",
+  mommy: "mother",
+  mummy: "mother",
+  momma: "mother",
+  mama: "mother",
+  ma: "mother",
+  dad: "father",
+  daddy: "father",
+  papa: "father",
+  pa: "father",
+  grandma: "grandmother",
+  grandmom: "grandmother",
+  granny: "grandmother",
+  nana: "grandmother",
+  grandpa: "grandfather",
+  granddad: "grandfather",
+  grandpop: "grandfather",
+  gramps: "grandfather",
+  hubby: "husband",
+  wifey: "wife",
+  bf: "boyfriend",
+  gf: "girlfriend",
+  sis: "sister",
+  sissy: "sister",
+  bro: "brother",
+  bff: "friend",
+  bestie: "friend",
+  bestfriend: "friend",
+  buddy: "friend",
+  pal: "friend",
+  colleague: "coworker",
+};
+
+// Words that qualify a relationship without naming one; sharing them says
+// nothing about whether two relationships are the same kind.
+const RELATIONSHIP_FILLER = new Set([
+  "my",
+  "the",
+  "a",
+  "an",
+  "and",
+  "of",
+  "from",
+  "s",
+  "side",
+]);
+
+function canonicalRelationshipWord(word: string): string {
+  const mapped = RELATIONSHIP_WORD_SYNONYMS[word];
+  if (mapped) return mapped;
+  // "friends" / "friend"; applied to every word alike, so a stem that isn't a
+  // real word ("bos") still matches its own variants.
+  return word.length > 3 && word.endsWith("s") ? word.slice(0, -1) : word;
+}
+
+/**
+ * The relationship's words plus the whole string with separators removed, so
+ * a compound spelled apart ("co-worker", "step mom") also matches its
+ * single-word spelling ("coworker", "stepmom").
+ */
+function relationshipWords(relationship: string): Set<string> {
+  const parts = relationship
+    .normalize("NFC")
+    .toLowerCase()
+    .split(/[^\p{L}\p{M}]+/u)
+    .filter(Boolean);
+  const words = parts.filter((w) => !RELATIONSHIP_FILLER.has(w));
+  if (parts.length > 1) words.push(parts.join(""));
+  return new Set(words.map(canonicalRelationshipWord));
+}
+
+/**
+ * relationship_type is free text, so "friend", "close friend" and "bff" — or
+ * "Aunt Sarah" and "Aunt Jane" — name one kind of relationship. Two are treated
+ * as the same whenever they share any meaningful word. That over-merges some
+ * genuinely different pairs ("brother" / "brother-in-law"), which only ever
+ * withholds a tendency, never admits one.
+ */
+function sameRelationship(a: Set<string>, b: Set<string>): boolean {
+  return [...a].some((w) => b.has(w));
+}
+
+/**
+ * Style tags on chosen gifts that recur across two or more distinct
+ * relationship types. This is the only gate between per-recipient taste and
+ * the giver profile, so it lives in code rather than in the prompt: a tag seen
+ * for one recipient — or for several recipients who share a relationship type —
+ * describes those people, not the giver. A recipient with no relationship type
+ * can't be shown to differ from anyone, so it contributes nothing.
+ */
+export function crossRelationshipTendencies(
+  chosen: FeedbackRow[],
+  relationshipByRecipient: Map<string, string | null>
+): string[] {
+  const relationshipsByTag = new Map<string, Set<string>[]>();
+  for (const c of chosen) {
+    const words = relationshipWords(
+      relationshipByRecipient.get(c.recipient_id) ?? ""
+    );
+    if (words.size === 0) continue;
+    for (const raw of c.category_tags ?? []) {
+      if (typeof raw !== "string") continue;
+      const tag = normalizeTag(raw);
+      if (!tag) continue;
+      relationshipsByTag.set(tag, [
+        ...(relationshipsByTag.get(tag) ?? []),
+        words,
+      ]);
+    }
+  }
+  const spansRelationships = (relationships: Set<string>[]) =>
+    relationships.some((a, i) =>
+      relationships.slice(i + 1).some((b) => !sameRelationship(a, b))
+    );
+  return [...relationshipsByTag.entries()]
+    .filter(([, relationships]) => spansRelationships(relationships))
+    .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]))
+    .slice(0, MAX_TENDENCIES)
+    .map(([tag]) => tag);
 }
 
 /** Occasion-type lookup for a recipient's choices, keyed by occasion id. */

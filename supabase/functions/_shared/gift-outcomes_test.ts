@@ -2,6 +2,7 @@ import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert@1";
 import {
   buildGiverChoiceContext,
   buildRecipientOutcomeContext,
+  crossRelationshipTendencies,
   latestDecisionPerGift,
 } from "./gift-outcomes.ts";
 import type { FeedbackRow } from "./gift-outcomes.ts";
@@ -114,3 +115,147 @@ Deno.test(
     assertStringIncludes(context, "median 2 (range 2–2)");
   }
 );
+
+Deno.test("a tag chosen for one recipient never reaches the giver", () => {
+  const relationships = new Map([["nephew", "nephew"]]);
+  const chosen = [
+    row({ category_tags: ["Hands-on", "toy"] }),
+    row({ gift_suggestion_id: "g2", category_tags: ["hands-on"] }),
+  ];
+  assertEquals(crossRelationshipTendencies(chosen, relationships), []);
+  const context = buildGiverChoiceContext(chosen, relationships, []);
+  assert(!context.toLowerCase().includes("hands-on"));
+});
+
+Deno.test(
+  "recipients sharing a relationship type don't make a tendency",
+  () => {
+    assertEquals(
+      crossRelationshipTendencies(
+        [
+          row({ category_tags: ["handmade"] }),
+          row({
+            gift_suggestion_id: "g2",
+            recipient_id: "niece",
+            category_tags: ["handmade"],
+          }),
+        ],
+        new Map([
+          ["nephew", "Sibling's child"],
+          ["niece", "sibling's child "],
+        ])
+      ),
+      []
+    );
+  }
+);
+
+Deno.test("a recipient without a relationship type adds no evidence", () => {
+  assertEquals(
+    crossRelationshipTendencies(
+      [
+        row({ category_tags: ["handmade"] }),
+        row({
+          gift_suggestion_id: "g2",
+          recipient_id: "unknown",
+          category_tags: ["handmade"],
+        }),
+      ],
+      new Map<string, string | null>([
+        ["nephew", "nephew"],
+        ["unknown", null],
+      ])
+    ),
+    []
+  );
+});
+
+Deno.test("a tag held across relationship types becomes a tendency", () => {
+  const chosen = [
+    row({ category_tags: ["Hands-on ", "toy"] }),
+    row({
+      gift_suggestion_id: "g2",
+      recipient_id: "spouse",
+      gift_title: "Hand-thrown mug",
+      category_tags: ["hands-on", "ceramics"],
+    }),
+  ];
+  const relationships = new Map([
+    ["nephew", "nephew"],
+    ["spouse", "spouse"],
+  ]);
+  assertEquals(crossRelationshipTendencies(chosen, relationships), [
+    "hands-on",
+  ]);
+  const context = buildGiverChoiceContext(chosen, relationships, []);
+  assertStringIncludes(
+    context,
+    "- Style descriptors of gifts chosen across different relationships: hands-on"
+  );
+  assert(!context.includes("toy"));
+  assert(!context.includes("ceramics"));
+  assert(!context.includes("mug"));
+});
+
+Deno.test("variant spellings of one relationship don't make a tendency", () => {
+  const pairs: [string, string][] = [
+    ["friend", "close friend"],
+    ["bff", "good friend"],
+    ["buddy", "Friend"],
+    ["Mom", "mother"],
+    ["brother-in-law", "Brother in law"],
+    ["nephew", "Nephew (Sarah's son)"],
+    ["coworker", "colleague"],
+    ["close friend", "best friend"],
+    ["co-worker", "coworker"],
+    ["Aunt Sarah", "Aunt Jane"],
+    ["aunt (mom's side)", "aunt (dad's side)"],
+    ["Nephew (Sarah's son)", "Nephew (Tom's son)"],
+    ["older brother", "younger brother"],
+    ["momma", "mom"],
+    ["step mom", "stepmom"],
+    ["friends", "friend"],
+    ["hubby", "husband"],
+    ["fiancée", "fiancée"],
+  ];
+  for (const [a, b] of pairs) {
+    assertEquals(
+      crossRelationshipTendencies(
+        [
+          row({ recipient_id: "a", category_tags: ["handmade"] }),
+          row({
+            gift_suggestion_id: "g2",
+            recipient_id: "b",
+            category_tags: ["handmade"],
+          }),
+        ],
+        new Map([
+          ["a", a],
+          ["b", b],
+        ])
+      ),
+      [],
+      `${a} / ${b}`
+    );
+  }
+});
+
+Deno.test("a third, different relationship still makes a tendency", () => {
+  assertEquals(
+    crossRelationshipTendencies(
+      ["friend", "close friend", "wife"].map((relationship, i) =>
+        row({
+          gift_suggestion_id: `g${i}`,
+          recipient_id: relationship,
+          category_tags: ["handmade"],
+        })
+      ),
+      new Map(
+        ["friend", "close friend", "wife"].map(
+          (r) => [r, r] as [string, string]
+        )
+      )
+    ),
+    ["handmade"]
+  );
+});

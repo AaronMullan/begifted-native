@@ -39,9 +39,9 @@ Given information about a user — their self-description, their stated gifting 
 Draw from ALL available signals:
 - Self-description: who they are and their relationship to gifting
 - Gifting style text: their stated approach, priorities, and budget philosophy
-- Gift history: what they actually spend on each kind of relationship, and how readily they settle on a gift
+- Gift history: what they actually spend on each kind of relationship, how readily they settle on a gift, and any style descriptors that recur across gifts for different kinds of relationships
 
-Gift history describes HOW this person gives, never WHAT they bought. It spans every person they give to, so anything concrete in the profile bleeds into gifts for unrelated people. It carries no items on purpose: never guess at what was bought, and never name a gift item, product, or brand in the profile. State spending as a tendency per relationship ("spends more freely on a partner than on nieces and nephews"), not as a list of prices.
+Gift history describes HOW this person gives, never WHAT they bought. It spans every person they give to, so anything concrete in the profile bleeds into gifts for unrelated people. It carries no items on purpose: never guess at what was bought, and never name a gift item, product, or brand in the profile. State spending as a tendency per relationship ("spends more freely on a partner than on nieces and nephews"), not as a list of prices. Style descriptors are listed only because they held across different relationships; when they cohere, state them as a tendency in the kind of gift they reach for ("leans toward hands-on, personal gifts"), never as a product type, and drop any descriptor that names a place, cuisine, hobby, or thing rather than a quality.
 
 Write in third person. Never write "this user" or "the user". Be specific and concrete — avoid generic labels like "thoughtful" unless the source text uses them. Preserve the user's distinctive voice and values.`;
 
@@ -199,11 +199,13 @@ serve(async (req) => {
 
     // Price posture comes from what was chosen, never from what was merely
     // suggested — suggested prices describe the model, not the giver. Titles
-    // are not even selected: this profile reaches every recipient.
+    // are not even selected: this profile reaches every recipient. Tags are,
+    // but buildGiverChoiceContext passes on only those that hold across
+    // relationship types.
     const { data: feedback } = await supabase
       .from("gift_feedback")
       .select(
-        "gift_suggestion_id, recipient_id, occasion_id, action, price, created_at"
+        "gift_suggestion_id, recipient_id, occasion_id, action, price, category_tags, created_at"
       )
       .eq("user_id", userId)
       // Newest first, so a row cap drops old history rather than a gift's
