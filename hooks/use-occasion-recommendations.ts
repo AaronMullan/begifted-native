@@ -3,7 +3,7 @@ import * as Sentry from "@sentry/react-native";
 import { invokeWithRetry } from "../lib/edge-retry";
 import type { ExtractedData } from "./use-conversation-flow";
 import { getNextOccurrence, lookupOccasionDate } from "../utils/occasion-dates";
-import { parseBirthdayParts } from "../utils/birthday";
+import { normalizeBirthday, parseBirthdayParts } from "../utils/birthday";
 import { slugifyOccasionName } from "../utils/occasion-slug";
 
 export { slugifyOccasionName };
@@ -162,7 +162,12 @@ export function useOccasionRecommendations(
               extractedData: {
                 name: extractedData.name,
                 relationship_type: extractedData.relationship_type ?? "",
-                birthday: extractedData.birthday ?? null,
+                // The review screen sends whatever was typed ("January 26,
+                // 2020"); the server reads only ISO, and needs the year to
+                // tell a child from an adult.
+                birthday: parseBirthdayParts(extractedData.birthday)?.year
+                  ? normalizeBirthday(extractedData.birthday)
+                  : (extractedData.birthday ?? null),
                 // Lets the server withhold parent holidays from a child whose
                 // only age signal is a stated one ("he's 6").
                 age: extractedData.age ?? null,
