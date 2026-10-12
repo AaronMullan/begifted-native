@@ -191,13 +191,13 @@ export async function signInWithProvider(
       !(await hasLegalAcceptance(user.id)) &&
       !(await recordLegalAcceptance(acceptanceMethod))
     ) {
-      await markPendingLegalAcceptance(acceptanceMethod);
+      await markPendingLegalAcceptance(acceptanceMethod, user.id);
     }
   } catch (err) {
     Sentry.captureException(err, {
       tags: { feature: "legal-acceptance", provider },
     });
-    await markPendingLegalAcceptance(acceptanceMethod);
+    await markPendingLegalAcceptance(acceptanceMethod, user.id);
   }
 
   return { ok: true };

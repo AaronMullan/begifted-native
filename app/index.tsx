@@ -46,7 +46,7 @@ export default function Index() {
       void markIntroSeen();
       // Signup via email verification couldn't record the legal acceptance
       // (no JWT yet); flush any stashed marker now that we have a session.
-      void flushPendingLegalAcceptance();
+      void flushPendingLegalAcceptance(session.user.id);
       void flushPendingSignUpName(session.user).then((wrote) => {
         if (wrote) {
           void queryClient.invalidateQueries({
