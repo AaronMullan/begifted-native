@@ -41,6 +41,45 @@ export interface CoreOccasionInput {
   /** Occasions the recipient already tracks — never re-suggested. */
   knownOccasions: string[];
   culturalContext: string;
+  /** Age in whole years, only when the user stated it. */
+  age?: number | null;
+}
+
+/**
+ * True only when the person is certainly under 18: from the birthday's year
+ * (a bare "YYYY" included), else from a stated age. A stated year beats an
+ * age, as it does when the recipient is saved. An unknown age is never a
+ * minor — a relationship word ("son") says nothing about age.
+ */
+export function isKnownMinor(
+  birthday: string | null,
+  age: number | null | undefined,
+  today: Date = new Date()
+): boolean {
+  const raw = (birthday ?? "").trim();
+  const parts = parseBirthdayParts(raw);
+  const year = parts?.year ?? (/^\d{4}$/.test(raw) ? Number(raw) : null);
+  if (year == null) {
+    return (
+      typeof age === "number" && Number.isFinite(age) && age >= 0 && age < 18
+    );
+  }
+  const birthdayStillAhead =
+    parts !== null &&
+    (today.getMonth() + 1 < parts.month ||
+      (today.getMonth() + 1 === parts.month && today.getDate() < parts.day));
+  const years = today.getFullYear() - year - (birthdayStillAhead ? 1 : 0);
+  return years >= 0 && years < 18;
+}
+
+/** Mother's, Father's or Grandparents Day under any spelling the model uses. */
+export function isParentHoliday(name: string): boolean {
+  const slug = name
+    .toLowerCase()
+    .replace(/['’]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return /(^|_)(mother|father|grandparent)s?_?day(_|$)/.test(slug);
 }
 
 const MILESTONE_AGES = new Set([1, 16, 18, 21, 30, 40, 50, 60, 70, 100]);
@@ -149,8 +188,13 @@ export function deriveCoreOccasions(
   // Mother's / Father's Day — required for supported parent roles
   // (mother/father, in-laws, grandparents; a spouse confirmed as a parent of
   // the user's children arrives via explicit knownRoles from extraction).
-  const isMotherRole = roles.some((r) => /\b(mother|grandmother)\b/.test(r));
-  const isFatherRole = roles.some((r) => /\b(father|grandfather)\b/.test(r));
+  // A parent role on a known minor is the giver's own role misfiled ("I'm his
+  // dad"), so the age overrides every parent and grandparent role.
+  const minor = isKnownMinor(input.birthday, input.age ?? null);
+  const isMotherRole =
+    !minor && roles.some((r) => /\b(mother|grandmother)\b/.test(r));
+  const isFatherRole =
+    !minor && roles.some((r) => /\b(father|grandfather)\b/.test(r));
   if (isMotherRole && !alreadyTracked(/mother.?s.?_?day/)) {
     candidates.push({
       key: "mothers_day",
@@ -175,9 +219,9 @@ export function deriveCoreOccasions(
   // Grandparents Day — grandparent roles (explicit, or derived from being
   // the user's parent when the user has children). Eligible, not required:
   // the model ranks whether it makes the cut for this recipient.
-  const isGrandparentRole = roles.some((r) =>
-    /\b(grandmother|grandfather|grandparent)\b/.test(r)
-  );
+  const isGrandparentRole =
+    !minor &&
+    roles.some((r) => /\b(grandmother|grandfather|grandparent)\b/.test(r));
   if (isGrandparentRole && !alreadyTracked(/grandparent/)) {
     candidates.push({
       key: "grandparents_day",

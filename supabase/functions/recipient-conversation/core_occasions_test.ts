@@ -1,5 +1,9 @@
 import { assert, assertEquals } from "jsr:@std/assert@1";
-import { deriveCoreOccasions } from "./core-occasions.ts";
+import {
+  deriveCoreOccasions,
+  isKnownMinor,
+  isParentHoliday,
+} from "./core-occasions.ts";
 import type { CoreOccasionInput } from "./core-occasions.ts";
 import { buildDiscoveryAnchors } from "./discovery-anchors.ts";
 
@@ -215,3 +219,76 @@ Deno.test(
     }
   }
 );
+
+Deno.test("a known minor gets no parent or grandparent holiday", () => {
+  for (const known of [
+    { birthday: "2020-01-25" },
+    { birthday: "2019" },
+    { birthday: "01-25", age: 6 },
+  ]) {
+    const result = keys(
+      deriveCoreOccasions(
+        input({ relationship: "dad", knownRoles: ["grandfather"], ...known })
+      )
+    );
+    assert(!result.includes("fathers_day"), JSON.stringify(known));
+    assert(!result.includes("grandparents_day"), JSON.stringify(known));
+  }
+  assert(
+    !keys(
+      deriveCoreOccasions(
+        input({ relationship: "mom", birthday: "2015-06-01" })
+      )
+    ).includes("mothers_day")
+  );
+});
+
+Deno.test("an unknown or adult age keeps the parent holiday", () => {
+  for (const known of [
+    { birthday: null },
+    { birthday: "01-25" },
+    { birthday: "1960-01-25" },
+    { birthday: null, age: 40 },
+  ]) {
+    assert(
+      keys(
+        deriveCoreOccasions(input({ relationship: "dad", ...known }))
+      ).includes("fathers_day"),
+      JSON.stringify(known)
+    );
+  }
+});
+
+Deno.test("isKnownMinor turns over on the 18th birthday", () => {
+  const today = new Date(2026, 9, 12);
+  assertEquals(isKnownMinor("2008-10-13", null, today), true);
+  assertEquals(isKnownMinor("2008-10-12", null, today), false);
+  assertEquals(isKnownMinor("2009", null, today), true);
+  assertEquals(isKnownMinor("2008", null, today), false);
+  assertEquals(isKnownMinor("10-13", 30, today), false);
+});
+
+Deno.test("a birth year beats a stated age", () => {
+  const today = new Date(2026, 9, 12);
+  assertEquals(isKnownMinor("1975-03-02", 16, today), false);
+  assertEquals(isKnownMinor("2015-03-02", 40, today), true);
+  assertEquals(isKnownMinor("03-02", 16, today), true);
+});
+
+Deno.test("isParentHoliday matches the model's spellings", () => {
+  for (const name of [
+    "Father's Day",
+    "Fathers Day",
+    "Fathersday",
+    "Mother’s Day",
+    "Grandparents' Day",
+    "Grandparents Day",
+    "National Grandparents Day",
+    "Father's Day (June 21)",
+  ]) {
+    assert(isParentHoliday(name), name);
+  }
+  assert(!isParentHoliday("Birthday"));
+  assert(!isParentHoliday("Pi Day"));
+  assert(!isParentHoliday("Godmother's Day"));
+});

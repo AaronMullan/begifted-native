@@ -206,3 +206,35 @@ Deno.test(
     assertEquals(result.primaryOccasions[0].suggestedDate, null);
   }
 );
+
+Deno.test("withheld names never pass through from model output", () => {
+  const isWithheld = (name: string) => /father/i.test(name);
+  const result = finalizeOccasionRecommendations(
+    [CANDIDATES[0]],
+    ANCHORS,
+    {
+      primaryOccasions: [
+        { key: "fathers_day", name: "Father's Day", reasoning: "" },
+        { key: "birthday", name: "40th Birthday", reasoning: "" },
+      ],
+      additionalSuggestions: [
+        { anchorOccasion: "earth_day", name: "Father's Earth Day" },
+        { anchorOccasion: "winter_solstice", name: "Winter Solstice" },
+      ],
+    },
+    isWithheld
+  );
+  assertEquals(
+    result.primaryOccasions.map((o) => o.name),
+    ["40th Birthday"]
+  );
+  assertEquals(result.additionalSuggestions, ["Winter Solstice"]);
+
+  const legacy = finalizeOccasionRecommendations(
+    [],
+    ANCHORS,
+    { additionalSuggestions: ["Father's Day", "Pi Day"] },
+    isWithheld
+  );
+  assertEquals(legacy.additionalSuggestions, ["Pi Day"]);
+});

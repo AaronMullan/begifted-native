@@ -93,7 +93,10 @@ function sanitizeDate(value: unknown): string | null {
 export function finalizeOccasionRecommendations(
   candidates: CoreOccasionCandidate[],
   anchors: DiscoveryAnchor[],
-  parsed: unknown
+  parsed: unknown,
+  // Names the model may not add on its own, e.g. parent holidays for a known
+  // minor, which the candidates already withhold.
+  isWithheld: (name: string) => boolean = () => false
 ): OccasionRecommendations {
   const output = (parsed ?? {}) as Record<string, unknown>;
   const rawPrimary = Array.isArray(output.primaryOccasions)
@@ -134,7 +137,7 @@ export function finalizeOccasionRecommendations(
     }
     // Tolerated pass-through for legacy/custom prompts (playground) that
     // still return free-form occasions. Dates are sanitized, never trusted.
-    if (!name) continue;
+    if (!name || isWithheld(name)) continue;
     pushPrimary({
       type: String(o.type || "custom")
         .replace(/\s+/g, "_")
@@ -168,7 +171,7 @@ export function finalizeOccasionRecommendations(
   for (const item of rawAdditional) {
     if (typeof item === "string") {
       // Legacy/custom prompt output: plain occasion names.
-      if (item.trim()) legacyNames.push(item.trim());
+      if (item.trim() && !isWithheld(item)) legacyNames.push(item.trim());
       continue;
     }
     if (!item || typeof item !== "object") continue;
@@ -181,7 +184,7 @@ export function finalizeOccasionRecommendations(
     const name =
       typeof o.name === "string" && o.name.trim() ? o.name.trim() : anchor.name;
     // Never a duplicate of a primary occasion or another suggestion.
-    if (seenPrimarySlugs.has(slugify(name))) continue;
+    if (seenPrimarySlugs.has(slugify(name)) || isWithheld(name)) continue;
     usedAnchors.add(anchor.key);
     discovery.push({
       type: "interest_based_observance",

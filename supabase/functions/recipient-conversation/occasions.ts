@@ -14,7 +14,11 @@ import {
 } from "./relationships.ts";
 import type { FamilyFacts } from "./relationships.ts";
 import { fetchFamilyFacts } from "./family-facts.ts";
-import { deriveCoreOccasions } from "./core-occasions.ts";
+import {
+  deriveCoreOccasions,
+  isKnownMinor,
+  isParentHoliday,
+} from "./core-occasions.ts";
 import type { CoreOccasionCandidate } from "./core-occasions.ts";
 import { buildDiscoveryAnchors } from "./discovery-anchors.ts";
 import type { DiscoveryAnchor } from "./discovery-anchors.ts";
@@ -141,6 +145,11 @@ export async function recommendOccasions(
     ""
   ).trim();
 
+  const age = (extractedData as ExtractedData).age;
+  const isWithheld = isKnownMinor(birthday, age ?? null)
+    ? isParentHoliday
+    : undefined;
+
   // Deterministic product logic: the model never decides whether these exist.
   const coreCandidates = deriveCoreOccasions({
     relationship,
@@ -149,6 +158,7 @@ export async function recommendOccasions(
     importantDates,
     knownOccasions,
     culturalContext,
+    age,
   });
   const discoveryAnchors = buildDiscoveryAnchors();
 
@@ -319,7 +329,8 @@ Return JSON only, no markdown:
       ...finalizeOccasionRecommendations(
         coreCandidates,
         discoveryAnchors,
-        parsed
+        parsed,
+        isWithheld
       ),
       debug,
     };
