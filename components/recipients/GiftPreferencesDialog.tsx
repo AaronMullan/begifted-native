@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import {
   Button,
+  HelperText,
   IconButton,
   Switch,
   Text,
@@ -17,6 +18,7 @@ import {
 import type { Recipient } from "../../types/recipient";
 import { dialogStyles as styles } from "./recipient-dialog-styles";
 import { KEYBOARD_CTA_GAP } from "@/lib/constants";
+import { StateCopy } from "@/lib/state-copy";
 import { Colors } from "@/lib/colors";
 
 type GiftPreferencesDialogProps = {
@@ -24,7 +26,8 @@ type GiftPreferencesDialogProps = {
   recipient: Recipient;
   defaultEmotionalTone?: string;
   onClose: () => void;
-  onSave: (fields: Partial<Recipient>) => Promise<void>;
+  /** Resolves false when the save didn't land; the dialog stays open. */
+  onSave: (fields: Partial<Recipient>) => Promise<boolean>;
 };
 
 export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
@@ -54,6 +57,7 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
     recipient.gift_budget_max == null;
   const [noCeiling, setNoCeiling] = useState(storedNoCeiling);
   const [saving, setSaving] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
 
   // Re-seed the editable fields only when the dialog opens — never while it's
   // open. The detail screen polls the recipient after a save, and a background
@@ -66,6 +70,7 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
     setPrevVisible(visible);
     if (visible) {
       setSeedKey(seedKey + 1);
+      setSaveFailed(false);
       setTone(seededTone);
       setMinBudget(
         recipient.gift_budget_min != null
@@ -83,9 +88,10 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
 
   const handleSave = async () => {
     setSaving(true);
+    setSaveFailed(false);
     const parsedMin = minBudget.trim() === "" ? null : Number(minBudget);
     const parsedMax = maxBudget.trim() === "" ? null : Number(maxBudget);
-    await onSave({
+    const saved = await onSave({
       emotional_tone_preference: tone.trim() || undefined,
       gift_budget_min:
         parsedMin != null && !Number.isNaN(parsedMin) ? parsedMin : undefined,
@@ -98,6 +104,7 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
       gift_budget_no_ceiling: noCeiling,
     });
     setSaving(false);
+    setSaveFailed(!saved);
   };
 
   return (
@@ -180,6 +187,11 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
                 />
               </View>
             </View>
+            {saveFailed && (
+              <HelperText type="error">
+                {StateCopy.saveFailed("your changes")}
+              </HelperText>
+            )}
             <View style={styles.modalFooter}>
               <Button
                 mode="outlined"

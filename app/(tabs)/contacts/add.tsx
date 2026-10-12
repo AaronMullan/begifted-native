@@ -331,6 +331,7 @@ const AddRecipientFlowInner = ({
     isSaving,
     saveSuccess,
     savedRecipientName,
+    partialSaveMessage,
     messagesEndRef,
     shouldShowNextStepButton,
     conversationContext,
@@ -366,7 +367,10 @@ const AddRecipientFlowInner = ({
     if (!saveSuccess || !onSaved || savedNotified.current) return;
     savedNotified.current = true;
     onSaved();
-  }, [saveSuccess, onSaved]);
+    // After onSaved: finishing the queue shows its own "N people added"
+    // snackbar, and the failure must be the one left standing.
+    if (partialSaveMessage) showSnackbar(partialSaveMessage);
+  }, [saveSuccess, onSaved, partialSaveMessage]);
 
   // Enhanced finish conversation handler with proper error handling
   const handleFinishConversationWithFallback = async () => {

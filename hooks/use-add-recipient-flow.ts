@@ -1,6 +1,7 @@
 import * as Haptics from "expo-haptics";
 import * as Sentry from "@sentry/react-native";
 import * as FileSystem from "expo-file-system/legacy";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -9,6 +10,9 @@ import { logProductEvent, logProductEvents } from "../lib/api";
 import { queryKeys } from "../lib/query-keys";
 import { supabase } from "../lib/supabase";
 import { uploadRecipientPhoto } from "../lib/recipient-photo";
+import { isBackgroundCancelledFetch } from "../lib/sentry-helpers";
+import { StateCopy } from "../lib/state-copy";
+import { showSnackbar } from "../components/GlobalSnackbar";
 import {
   backfillBirthdayFromAge,
   birthdayFromOccasionDate,
@@ -34,6 +38,7 @@ import { useBetaCheckIn } from "../components/beta/BetaCheckInProvider";
 import {
   ExtractedData,
   Message,
+  SAFETY_DECLINED_FALLBACK_MESSAGE,
   useConversationFlow,
 } from "./use-conversation-flow";
 
@@ -154,6 +159,8 @@ interface UseAddRecipientFlowReturn {
   saveSuccess: boolean;
   savedRecipientName: string | null;
   savedRecipientId: string | null;
+  /** Set when the person saved but their photo or moments didn't. */
+  partialSaveMessage: string | null;
   messagesEndRef: React.RefObject<View | null>;
   shouldShowNextStepButton: boolean;
   conversationContext: string;
@@ -174,6 +181,43 @@ interface UseAddRecipientFlowReturn {
   setShowDataReview: (show: boolean) => void;
   setShowOccasionsSelection: (show: boolean) => void;
   setExtractedData: (data: ExtractedData | null) => void;
+}
+
+// synthesize-recipient-profile chains to gift generation server-side, so a
+// run that fails here means no gift ideas ever arrive. invoke() resolves with
+// an error instead of rejecting, so the error has to be read off the result.
+// Never re-sent automatically: a dropped connection or a gateway timeout
+// (504/546) can come back after the server already started gift generation,
+// and a second run retires that first batch. Only an error the function
+// returned itself means nothing ran, so only that offers Try again.
+async function startProfileSynthesis(
+  recipientId: string,
+  name: string
+): Promise<void> {
+  const { data, error } = await supabase.functions.invoke<{
+    safety_declined?: boolean;
+    message?: string;
+  }>("synthesize-recipient-profile", { body: { recipientId } });
+  if (data?.safety_declined) {
+    showSnackbar(data.message ?? SAFETY_DECLINED_FALLBACK_MESSAGE);
+    return;
+  }
+  if (!error || isBackgroundCancelledFetch(error)) return;
+  console.error("Failed to trigger profile synthesis:", error);
+  Sentry.captureException(error, {
+    tags: {
+      flow: "add_recipient",
+      step: "synthesize_profile",
+      edge_function: "synthesize-recipient-profile",
+    },
+  });
+  if (!(error instanceof FunctionsHttpError)) return;
+  const status = (error.context as Response | undefined)?.status;
+  if (status === 504 || status === 546) return;
+  showSnackbar(`We couldn't start on gift ideas for ${name}.`, {
+    label: "Try again",
+    onPress: () => void startProfileSynthesis(recipientId, name),
+  });
 }
 
 export function useAddRecipientFlow(
@@ -216,6 +260,9 @@ export function useAddRecipientFlow(
     null
   );
   const [savedRecipientId, setSavedRecipientId] = useState<string | null>(null);
+  const [partialSaveMessage, setPartialSaveMessage] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     Sentry.addBreadcrumb({
@@ -413,6 +460,8 @@ export function useAddRecipientFlow(
         });
       }
       const photoUrl = photoUri ? await uploadRecipientPhoto(photoUri) : null;
+      const unsaved: string[] = [];
+      if (photoUri && !photoUrl) unsaved.push("the photo");
 
       // When the conversation captured no birthday, a birthday occasion the
       // user dated by hand on the occasions screen is the recipient's
@@ -499,9 +548,14 @@ export function useAddRecipientFlow(
           .from("occasions")
           .insert(occasionsData);
 
+        // The person row already exists, so failing the whole save here would
+        // invite a retry that creates a duplicate. Report the gap instead.
         if (occasionsError) {
           console.error("Error creating occasions:", occasionsError);
-          // Don't fail the whole operation if occasions fail
+          Sentry.captureException(occasionsError, {
+            tags: { flow: "add_recipient", step: "save_occasions" },
+          });
+          unsaved.push("their moments");
         } else {
           logProductEvents(
             userId,
@@ -531,6 +585,9 @@ export function useAddRecipientFlow(
       // Show success immediately — background work happens after
       setSavedRecipientName(data.name || "Recipient");
       setSavedRecipientId(recipient.id);
+      setPartialSaveMessage(
+        unsaved.length > 0 ? StateCopy.saveFailed(unsaved.join(" or ")) : null
+      );
       setSaveSuccess(true);
 
       // A recipient was just saved -> fire the "first recipient added" beta
@@ -544,20 +601,7 @@ export function useAddRecipientFlow(
       // so iOS can't kill the JS task before the long server-side chain
       // (synthesis + gift gen ~60s) finishes.
       if (recipient?.id) {
-        supabase.functions
-          .invoke("synthesize-recipient-profile", {
-            body: { recipientId: recipient.id },
-          })
-          .catch((err) => {
-            console.error("Failed to trigger profile synthesis:", err);
-            Sentry.captureException(err, {
-              tags: {
-                flow: "add_recipient",
-                step: "synthesize_profile",
-                edge_function: "synthesize-recipient-profile",
-              },
-            });
-          });
+        void startProfileSynthesis(recipient.id, data.name || "them");
       }
     } catch (error) {
       console.error("Error saving recipient:", error);
@@ -705,6 +749,7 @@ export function useAddRecipientFlow(
   };
 
   const handleViewRecipients = () => {
+    if (partialSaveMessage) showSnackbar(partialSaveMessage);
     if (savedRecipientId) {
       router.replace(`/contacts/${savedRecipientId}?tab=gifts&generating=true`);
     } else {
@@ -773,6 +818,7 @@ export function useAddRecipientFlow(
     saveSuccess,
     savedRecipientName,
     savedRecipientId,
+    partialSaveMessage,
     messagesEndRef,
     shouldShowNextStepButton,
     conversationContext: conversationContext || "",
