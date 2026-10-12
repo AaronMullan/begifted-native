@@ -778,6 +778,7 @@ export default function RecipientEditPage() {
       (occasion) => occasion?.occasion_type === "birthday"
     );
     let syncedBirthdayMoment = false;
+    let birthdayMomentFailed = false;
     if (
       birthdayOnFile &&
       birthdayMentioned &&
@@ -795,6 +796,7 @@ export default function RecipientEditPage() {
           "Failed to sync birthday moment from update chat:",
           error
         );
+        birthdayMomentFailed = true;
       }
     }
     const persistedOccasions = await persistUpdateChatOccasions(
@@ -807,7 +809,7 @@ export default function RecipientEditPage() {
         : chatOccasions
     );
     const insertedOccasions =
-      persistedOccasions === null
+      persistedOccasions === null || birthdayMomentFailed
         ? null
         : persistedOccasions + (syncedBirthdayMoment ? 1 : 0);
     if (insertedOccasions !== null && insertedOccasions > 0) {

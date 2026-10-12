@@ -366,8 +366,10 @@ const AddRecipientFlowInner = ({
   useEffect(() => {
     if (!saveSuccess || !onSaved || savedNotified.current) return;
     savedNotified.current = true;
-    if (partialSaveMessage) showSnackbar(partialSaveMessage);
     onSaved();
+    // After onSaved: finishing the queue shows its own "N people added"
+    // snackbar, and the failure must be the one left standing.
+    if (partialSaveMessage) showSnackbar(partialSaveMessage);
   }, [saveSuccess, onSaved, partialSaveMessage]);
 
   // Enhanced finish conversation handler with proper error handling

@@ -10,7 +10,7 @@ import { logProductEvent, logProductEvents } from "../lib/api";
 import { queryKeys } from "../lib/query-keys";
 import { supabase } from "../lib/supabase";
 import { uploadRecipientPhoto } from "../lib/recipient-photo";
-import { invokeWithRetry } from "../lib/edge-retry";
+import { isBackgroundCancelledFetch } from "../lib/sentry-helpers";
 import { StateCopy } from "../lib/state-copy";
 import { showSnackbar } from "../components/GlobalSnackbar";
 import {
@@ -186,21 +186,23 @@ interface UseAddRecipientFlowReturn {
 // synthesize-recipient-profile chains to gift generation server-side, so a
 // run that fails here means no gift ideas ever arrive. invoke() resolves with
 // an error instead of rejecting, so the error has to be read off the result.
-// Only an HTTP error is a verdict: a dropped connection (the app backgrounded)
-// leaves the server working.
+// Never re-sent automatically: a dropped connection or a gateway timeout
+// (504/546) can come back after the server already started gift generation,
+// and a second run retires that first batch. Only an error the function
+// returned itself means nothing ran, so only that offers Try again.
 async function startProfileSynthesis(
   recipientId: string,
   name: string
 ): Promise<void> {
-  const { data, error } = await invokeWithRetry<{
+  const { data, error } = await supabase.functions.invoke<{
     safety_declined?: boolean;
     message?: string;
-  }>("synthesize-recipient-profile", { body: { recipientId } }, 2);
+  }>("synthesize-recipient-profile", { body: { recipientId } });
   if (data?.safety_declined) {
     showSnackbar(data.message ?? SAFETY_DECLINED_FALLBACK_MESSAGE);
     return;
   }
-  if (!error) return;
+  if (!error || isBackgroundCancelledFetch(error)) return;
   console.error("Failed to trigger profile synthesis:", error);
   Sentry.captureException(error, {
     tags: {
@@ -210,6 +212,8 @@ async function startProfileSynthesis(
     },
   });
   if (!(error instanceof FunctionsHttpError)) return;
+  const status = (error.context as Response | undefined)?.status;
+  if (status === 504 || status === 546) return;
   showSnackbar(`We couldn't start on gift ideas for ${name}.`, {
     label: "Try again",
     onPress: () => void startProfileSynthesis(recipientId, name),
