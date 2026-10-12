@@ -206,6 +206,17 @@ Deno.test("variant spellings of one relationship don't make a tendency", () => {
     ["brother-in-law", "Brother in law"],
     ["nephew", "Nephew (Sarah's son)"],
     ["coworker", "colleague"],
+    ["close friend", "best friend"],
+    ["co-worker", "coworker"],
+    ["Aunt Sarah", "Aunt Jane"],
+    ["aunt (mom's side)", "aunt (dad's side)"],
+    ["Nephew (Sarah's son)", "Nephew (Tom's son)"],
+    ["older brother", "younger brother"],
+    ["momma", "mom"],
+    ["step mom", "stepmom"],
+    ["friends", "friend"],
+    ["hubby", "husband"],
+    ["fiancée", "fiancée"],
   ];
   for (const [a, b] of pairs) {
     assertEquals(
