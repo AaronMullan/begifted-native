@@ -23,6 +23,12 @@ import {
   SAFETY_PREAMBLE,
 } from "./prompts.ts";
 import { deriveAddRecipientReadiness } from "./readiness.ts";
+import {
+  DEFAULT_INTAKE_RULES,
+  parseIntakeRules,
+  renderRequiredFields,
+  type IntakeRules,
+} from "./intake-rules.ts";
 import { stripAllSetCompletion, stripQuestions } from "./completion.ts";
 // @ts-ignore - Deno environment variables are resolved at runtime
 export const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -61,7 +67,8 @@ export async function handleConversation(
   conversationType: ConversationType = "add_recipient",
   existingData?: RecipientData,
   customSystemPrompt?: string,
-  aiOverride?: AIOverride
+  aiOverride?: AIOverride,
+  customIntakeRules?: IntakeRules
 ): Promise<ConversationResponse> {
   const turnStartedAt = Date.now();
   const timings: Record<string, number> = {};
@@ -115,6 +122,26 @@ export async function handleConversation(
           "prompt_load_ms"
         )
       : null;
+  // A draft from the Playground arrives already validated. An invalid active
+  // row must not break intake for everyone, so it falls back to the defaults
+  // and logs loudly instead.
+  const intakeRulesPromise: Promise<IntakeRules> | null =
+    conversationType !== "add_recipient"
+      ? null
+      : customIntakeRules
+        ? Promise.resolve(customIntakeRules)
+        : timedLoad("add_recipient_rules", "", "rules_load_ms").then((text) => {
+            if (!text) return DEFAULT_INTAKE_RULES;
+            const parsed = parseIntakeRules(text);
+            if (parsed.ok) return parsed.rules;
+            console.error(
+              JSON.stringify({
+                tag: "intake_rules_invalid",
+                errors: parsed.errors,
+              })
+            );
+            return DEFAULT_INTAKE_RULES;
+          });
   // Build context info about what we know
   let contextInfo: ContextInfo = {};
   if (existingData) {
@@ -287,6 +314,7 @@ Return JSON with what's been established:
   // reply LLM for its recognition sentence but still append this fixed close so
   // completion copy stays consistent. Null on every non-acknowledgment path.
   let readyAcknowledgmentClose: string | null = null;
+  const intakeRules = (await intakeRulesPromise) ?? DEFAULT_INTAKE_RULES;
   if (conversationType === "add_recipient") {
     // The extractor is not asked for a readiness block: the runtime is the
     // single source for every anchor and the state, and generating the block
@@ -311,7 +339,11 @@ Return JSON with what's been established:
     const assistantTurns = messages.filter(
       (m) => m.role === "assistant"
     ).length;
-    const derived = deriveAddRecipientReadiness(contextInfo, assistantTurns);
+    const derived = deriveAddRecipientReadiness(
+      contextInfo,
+      assistantTurns,
+      intakeRules
+    );
     contextInfo.readiness.has_recipient_anchor = derived.hasRecipientAnchor;
     contextInfo.readiness.has_occasion_anchor = derived.hasOccasion;
     contextInfo.readiness.has_timing_anchor = derived.hasTiming;
@@ -320,16 +352,7 @@ Return JSON with what's been established:
     contextInfo.readiness.has_specificity_anchor = derived.hasSpecificity;
     contextInfo.readiness.state = derived.state;
     contextInfo.readiness.gift_ready = derived.state === "ready";
-    contextInfo.readiness.missing_requirements = [
-      ["recipient_anchor", derived.hasRecipientAnchor],
-      ["occasion_anchor", derived.hasOccasion],
-      ["timing_anchor", derived.hasTiming],
-      ["price_anchor", derived.hasPrice],
-      ["age_anchor", derived.hasAge],
-      ["specificity_anchor", derived.hasSpecificity],
-    ]
-      .filter(([, satisfied]) => !satisfied)
-      .map(([name]) => name as string);
+    contextInfo.readiness.missing_requirements = derived.missingRequirements;
     if (!contextInfo.readiness.reason) {
       contextInfo.readiness.reason = `Required-field state derived by the runtime: ${derived.state}.`;
     }
@@ -379,7 +402,8 @@ Return JSON with what's been established:
   const stateGuidance = buildStateGuidance(
     readinessState,
     recipientName,
-    textureNeedsFollowup
+    textureNeedsFollowup,
+    intakeRules
   );
   const priorityGuidance = buildPriorityGuidance(contextInfo);
 
@@ -394,7 +418,8 @@ Return JSON with what's been established:
       .replace(/\{\{stateGuidance\}\}/g, stateGuidance)
       .replace(/\{\{priorityGuidance\}\}/g, priorityGuidance)
       .replace(/\{\{recipientName\}\}/g, recipientName)
-      .replace(/\{\{today\}\}/g, today);
+      .replace(/\{\{today\}\}/g, today)
+      .replace(/\{\{requiredFields\}\}/g, renderRequiredFields(intakeRules));
   }
 
   // Build conversation prompt based on conversation type

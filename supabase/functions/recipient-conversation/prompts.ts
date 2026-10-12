@@ -1,4 +1,11 @@
 import type { ContextInfo } from "../types.ts";
+import {
+  DEFAULT_INTAKE_RULES,
+  FIELD_SHORT_NAMES,
+  joinWithOr,
+  requiredFieldsAfter,
+  type IntakeRules,
+} from "./intake-rules.ts";
 
 // Prepended in code to every conversation reply prompt — DB-loaded, playground-
 // custom, or the hardcoded fallback — so the safety boundary can't be dropped by
@@ -27,7 +34,8 @@ Do NOT over-refuse. Ordinary gifting — including emotionally heavy but legitim
 export function buildStateGuidance(
   readinessState: string,
   recipientName: string,
-  textureNeedsFollowup = false
+  textureNeedsFollowup = false,
+  rules: IntakeRules = DEFAULT_INTAKE_RULES
 ): string {
   switch (readinessState) {
     case "not_captured":
@@ -36,12 +44,32 @@ export function buildStateGuidance(
       return "→ We know the person but need both an occasion and more specificity. Follow priority order above.";
     case "captured_needs_occasion":
       return "→ We know the person well but need a giftable moment. Ask what occasion they're thinking about.";
-    case "captured_needs_timing":
-      return "→ Occasion timing is incomplete. Ask for the next required date (one at a time). Do not move to price, age, or texture until all required dates are captured.";
-    case "captured_needs_price":
-      return `→ Timing is complete. Ask how much the user would like to spend for ${recipientName}.`;
+    case "captured_needs_timing": {
+      const later = requiredFieldsAfter(rules, "timing").map(
+        (f) => FIELD_SHORT_NAMES[f]
+      );
+      return `→ Occasion timing is incomplete. Ask for the next required date (one at a time).${
+        later.length > 0
+          ? ` Do not move to ${joinWithOr(
+              later
+            )} until all required dates are captured.`
+          : ""
+      }`;
+    }
+    case "captured_needs_price": {
+      const timingDone =
+        rules.required.timing &&
+        rules.order.indexOf("timing") < rules.order.indexOf("price");
+      return `→ ${
+        timingDone ? "Timing is complete. " : ""
+      }Ask how much the user would like to spend for ${recipientName}.`;
+    }
     case "captured_needs_age":
-      return `→ We still need ${recipientName}'s age so gift ideas aren't age-inappropriate. Ask for ${recipientName}'s age (their full birthday, including the year, works too — it lets us derive the age). Ask for only one thing; do not infer it from relationship, hobbies, or occasion.`;
+      return `→ We still need ${recipientName}'s age so gift ideas aren't age-inappropriate. Ask for ${recipientName}'s age${
+        rules.fullBirthdayCountsAsAge
+          ? " (their full birthday, including the year, works too — it lets us derive the age)"
+          : ""
+      }. Ask for only one thing; do not infer it from relationship, hobbies, or occasion.`;
     case "captured_needs_specificity":
       return textureNeedsFollowup
         ? `→ What we know about ${recipientName} so far is broad. Ask exactly one targeted follow-up that sharpens a single interest they already mentioned, then proceed.`
@@ -111,8 +139,9 @@ export function buildPriorityGuidance(contextInfo: ContextInfo): string {
 // calm and understated — a plain done-signal, nothing more.
 export const ADD_RECIPIENT_WRAP_UP_DEFAULT = `{{recipientName}}'s all set.`;
 
-// Default template for add_recipient_conversation — single source of truth.
-// This matches the structure previously hardcoded in buildAddRecipientPrompt().
+// Fallback for add_recipient_conversation when no active DB row loads. The
+// required-field order comes from the intake rules via {{requiredFields}}, never
+// a hand-written list, so the fallback can't drift from what readiness enforces.
 export const ADD_RECIPIENT_DEFAULT_TEMPLATE = `IMPORTANT: Respond with plain text only. Do NOT return JSON, code blocks, or structured data.
 
 TODAY'S DATE: {{today}}
@@ -133,15 +162,9 @@ YOUR GOAL: Collect the minimum information needed to generate personalized, non-
 
 ONE-ASK-PER-MESSAGE RULE: Each response must contain exactly ONE question or call-to-action. Never combine multiple asks (e.g., don't ask for a date AND hobbies in the same message).
 
-PRIORITY ORDER — when multiple anchors are missing, follow this strict priority:
+PRIORITY ORDER — REQUIRED FIELDS:
 
-1. RECIPIENT IDENTITY (name + relationship)
-2. OCCASION
-3. REQUIRED OCCASION TIMING — one date at a time
-4. DEFAULT PRICE GUIDANCE
-5. AGE / LIFE STAGE
-6. RECIPIENT TEXTURE
-7. WRAP-UP
+{{requiredFields}}
 
 REQUIRED FIELD STATUS:
 

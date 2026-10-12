@@ -26,6 +26,12 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
     playground.currentPrompt
   );
 
+  // A failed deploy's message must not greet the next deploy attempt.
+  function handleDismiss() {
+    playground.resetDeployError();
+    onDismiss();
+  }
+
   async function handleDeploy() {
     try {
       await playground.deployToProduction(notes);
@@ -38,13 +44,27 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
 
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={onDismiss} style={styles.dialog}>
+      <Dialog visible={visible} onDismiss={handleDismiss} style={styles.dialog}>
         <Dialog.Title>Deploy to Production</Dialog.Title>
         <Dialog.Content>
           <Text variant="bodyMedium" style={styles.body}>
             This will update the live{" "}
             {playground.selectedPromptDef?.label ?? "prompt"}. Are you sure?
           </Text>
+          {playground.deployError && (
+            <Text variant="bodyMedium" style={styles.warning}>
+              {playground.deployError.message}
+            </Text>
+          )}
+          {playground.rulesNotInLivePrompt && (
+            <Text variant="bodyMedium" style={styles.warning}>
+              The live Add Recipient Conversation prompt doesn&apos;t include{" "}
+              {"{{requiredFields}}"} yet. These rules will change when the
+              intake counts a detail as done, but the conversation will keep
+              asking by its own wording, and the two can disagree. Add{" "}
+              {"{{requiredFields}}"} to that prompt before changing a rule.
+            </Text>
+          )}
           {missingSections.length > 0 && (
             <Text variant="bodyMedium" style={styles.warning}>
               {missingSections.join(", ")} is no longer in this prompt. Other
@@ -65,7 +85,7 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
           />
         </Dialog.Content>
         <Dialog.Actions>
-          <Button onPress={onDismiss}>Cancel</Button>
+          <Button onPress={handleDismiss}>Cancel</Button>
           <Button
             onPress={handleDeploy}
             disabled={!notes.trim()}

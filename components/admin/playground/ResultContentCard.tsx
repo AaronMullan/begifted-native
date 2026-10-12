@@ -86,7 +86,7 @@ export const ResultContentCard: React.FC<ResultContentCardProps> = ({
         )}
         {playground.isGiftGeneration ? (
           <GenerationResultView result={result} horizontal={desktop} />
-        ) : playground.selectedPromptKey === "add_recipient_conversation" ? (
+        ) : playground.isAddRecipientChat ? (
           <ConversationResultView result={result} />
         ) : playground.selectedPromptKey === "occasion_recommendations" ? (
           <OccasionResultView result={result} />
