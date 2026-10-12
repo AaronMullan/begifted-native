@@ -19,6 +19,21 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-10-12 — OTA
+
+### App
+
+- When part of a save doesn't go through, the app now says what didn't save instead of reporting success: a new person's photo or moments, the start of their gift ideas (with Try again), a profile photo, the Gift Preferences and Information dialogs, moments from an update note, and Settings → Profile. (DEV-510)
+- A replacement gift idea that can't be found now says so instead of spinning, and a profile refresh that fails on the About tab now says it couldn't load and offers Try again. (DEV-512)
+- Add a Moment no longer recommends Mother's Day or Father's Day for a child, and suggests them only when you've said the person is a mom or dad. Either can still be added under "Add your own". (DEV-545)
+- When Add a Person declines a request because it could cause harm, that conversation ends and you're returned to People; it can't be continued to a saved person. Starting a new Add a Person works as usual. (DEV-554)
+- If you've signed into more than one account on the same phone, reminders now arrive for the account you're signed into. Before, they kept going to the first account, and the one in use got nothing. (DEV-560)
+
+### Backend
+
+- Gift ideas for people you've shopped for many times stay closer to what suits them, instead of drifting away from ground already covered. (DEV-555)
+- When you add someone known to be a child, the occasions step no longer proposes Mother's Day, Father's Day or Grandparents Day for them. (DEV-561)
+
 ## 2026-10-07 — OTA
 
 ### App
