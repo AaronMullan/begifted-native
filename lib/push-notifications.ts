@@ -33,9 +33,7 @@ export async function isPushPermissionGranted(): Promise<boolean> {
  * Register for push notifications and store the token in Supabase.
  * No-ops on simulators. Logs errors but never throws.
  */
-export async function registerForPushNotifications(
-  userId: string
-): Promise<void> {
+export async function registerForPushNotifications(): Promise<void> {
   if (!Device.isDevice) {
     console.log("[push] Skipping push registration on simulator");
     return;
@@ -67,7 +65,7 @@ export async function registerForPushNotifications(
   const platform = Platform.OS as "ios" | "android";
 
   try {
-    await upsertPushToken({ user_id: userId, token: tokenData, platform });
+    await upsertPushToken({ token: tokenData, platform });
     console.log("[push] Push token registered:", tokenData);
   } catch (error) {
     console.error("[push] Failed to store push token:", error);
