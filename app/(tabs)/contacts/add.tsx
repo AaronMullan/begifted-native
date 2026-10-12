@@ -331,6 +331,7 @@ const AddRecipientFlowInner = ({
     isSaving,
     saveSuccess,
     savedRecipientName,
+    partialSaveMessage,
     messagesEndRef,
     shouldShowNextStepButton,
     conversationContext,
@@ -365,8 +366,9 @@ const AddRecipientFlowInner = ({
   useEffect(() => {
     if (!saveSuccess || !onSaved || savedNotified.current) return;
     savedNotified.current = true;
+    if (partialSaveMessage) showSnackbar(partialSaveMessage);
     onSaved();
-  }, [saveSuccess, onSaved]);
+  }, [saveSuccess, onSaved, partialSaveMessage]);
 
   // Enhanced finish conversation handler with proper error handling
   const handleFinishConversationWithFallback = async () => {

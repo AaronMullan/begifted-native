@@ -162,7 +162,9 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
     try {
       const url = await uploadRecipientPhoto(result.assets[0].uri);
       if (!url) throw new Error("Upload failed");
-      await handleSavePartial({ photo_url: url }, false);
+      if (!(await handleSavePartial({ photo_url: url }, false))) {
+        throw new Error("Photo URL not saved");
+      }
       showSnackbar("Photo updated.");
     } catch {
       showSnackbar(StateCopy.saveFailed("the photo"));
@@ -593,8 +595,9 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
         defaultEmotionalTone={defaultEmotionalTone}
         onClose={() => setPreferencesOpen(false)}
         onSave={async (fields) => {
-          await handleSavePartial(fields, true);
-          setPreferencesOpen(false);
+          const saved = await handleSavePartial(fields, true);
+          if (saved) setPreferencesOpen(false);
+          return saved;
         }}
       />
 
@@ -614,7 +617,8 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
               birthday: fields.birthday,
             });
           }
-          setInformationOpen(false);
+          if (saved) setInformationOpen(false);
+          return saved;
         }}
       />
     </View>

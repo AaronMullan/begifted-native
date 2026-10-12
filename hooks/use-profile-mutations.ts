@@ -54,6 +54,9 @@ export function useUpdateProfile() {
         .maybeSingle();
 
       if (error) throw error;
+      // RLS filters a non-matching UPDATE to zero rows without an error; no
+      // row back means nothing was written.
+      if (!profile) throw new Error("Profile update matched no rows");
       return profile as Profile;
     },
     ...makeMutationHandlers<Profile, UpdateProfileVariables>({

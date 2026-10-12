@@ -765,9 +765,8 @@ export default function RecipientEditPage() {
       }
     }
 
-    // Persist any occasions mentioned in the update chat. The add-recipient flow
-    // does this; the general update chat previously dropped them on the floor
-    // (DEV-125). Non-fatal: a failure here never breaks the profile update.
+    // Persist any occasions mentioned in the update chat. Non-fatal: a failure
+    // here never undoes a profile update that landed, but it is reported.
     // Once a birthday is known, the Birthday moment follows it through
     // syncBirthdayOccasion, which honours a deleted moment; inserting one
     // here would bring it back.
@@ -822,8 +821,7 @@ export default function RecipientEditPage() {
 
     if (!hasFieldUpdates) {
       // A moment was the note's only content and storing it failed, so there is
-      // nothing saved to report. Where a field update did land, the same
-      // failure stays quiet on purpose (DEV-125).
+      // nothing saved to report.
       if (insertedOccasions === null) {
         showSnackbar(StateCopy.saveFailed("that"));
         return false;
@@ -844,7 +842,13 @@ export default function RecipientEditPage() {
     });
     resynthesizeProfile(recipient.synthesized_profile ?? "");
 
-    showSnackbar(`Updated ${recipient.name}'s profile.`);
+    // The fields landed but the moments didn't: say both, or the moments read
+    // as saved.
+    showSnackbar(
+      insertedOccasions === null
+        ? `Updated ${recipient.name}'s profile. ${StateCopy.saveFailed("the moments")}`
+        : `Updated ${recipient.name}'s profile.`
+    );
     return true;
   };
 

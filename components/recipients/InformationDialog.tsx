@@ -24,12 +24,14 @@ import {
 import { cleanRelationship } from "../../lib/format-name";
 import { dialogStyles as styles } from "./recipient-dialog-styles";
 import { KEYBOARD_CTA_GAP } from "@/lib/constants";
+import { StateCopy } from "@/lib/state-copy";
 
 type InformationDialogProps = {
   visible: boolean;
   recipient: Recipient;
   onClose: () => void;
-  onSave: (fields: Partial<Recipient>) => Promise<void>;
+  /** Resolves false when the save didn't land; the dialog stays open. */
+  onSave: (fields: Partial<Recipient>) => Promise<boolean>;
 };
 
 export const InformationDialog: React.FC<InformationDialogProps> = ({
@@ -67,6 +69,7 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
     recipient.cultural_context ?? ""
   );
   const [saving, setSaving] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
 
   // Re-seed the editable fields only when the dialog opens — never while it's
   // open. The detail screen polls the recipient after a save, and a background
@@ -79,6 +82,7 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
     setPrevVisible(visible);
     if (visible) {
       setSeedKey(seedKey + 1);
+      setSaveFailed(false);
       setName(recipient.name);
       setRelationshipType(cleanRelationship(recipient.relationship_type));
       setBirthday(seedBirthday(recipient.birthday));
@@ -109,8 +113,9 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
   const handleSave = async () => {
     if (!canSave) return;
     setSaving(true);
+    setSaveFailed(false);
     const trimmedBirthday = birthday.trim();
-    await onSave({
+    const saved = await onSave({
       name: name.trim(),
       relationship_type: relationshipType.trim(),
       // Clearing the box removes the birthday, and with it the Birthday
@@ -133,6 +138,7 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
       cultural_context: culturalContext.trim() || null,
     });
     setSaving(false);
+    setSaveFailed(!saved);
   };
 
   return (
@@ -251,6 +257,11 @@ export const InformationDialog: React.FC<InformationDialogProps> = ({
                 style={styles.input}
               />
             </View>
+            {saveFailed && (
+              <HelperText type="error">
+                {StateCopy.saveFailed("your changes")}
+              </HelperText>
+            )}
             <View style={styles.modalFooter}>
               <Button
                 mode="outlined"
