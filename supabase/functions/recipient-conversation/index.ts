@@ -8,6 +8,8 @@ import {
 } from "./extractors.ts";
 import { recommendOccasions } from "./occasions.ts";
 import { SAFETY_PREAMBLE } from "./prompts.ts";
+import { parseIntakeRules, renderRequiredFields } from "./intake-rules.ts";
+import type { IntakeRules } from "./intake-rules.ts";
 import { screenInput } from "../_shared/moderation.ts";
 
 import { parseOpenAIJSON } from "./utils.ts";
@@ -177,6 +179,7 @@ serve(async (req) => {
       existingData,
       extractedData,
       customSystemPrompt,
+      customIntakeRules,
       overrideProvider,
       overrideModel,
     } = requestBody;
@@ -194,6 +197,36 @@ serve(async (req) => {
           status: 400,
         }
       );
+    }
+
+    // The Playground checks a draft of the add_recipient_rules row here before
+    // testing or deploying it, so the editor and the runtime share one parser.
+    if (action === "validate_intake_rules") {
+      const parsed = parseIntakeRules(String(requestBody.rulesText ?? ""));
+      const body = parsed.ok
+        ? { ok: true, requiredFields: renderRequiredFields(parsed.rules) }
+        : { ok: false, errors: parsed.errors };
+      return new Response(JSON.stringify(body), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    let intakeRulesOverride: IntakeRules | undefined;
+    if (customIntakeRules != null) {
+      const parsed = parseIntakeRules(String(customIntakeRules));
+      if (!parsed.ok) {
+        return new Response(
+          JSON.stringify({
+            error: `Invalid intake rules: ${parsed.errors.join(" ")}`,
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 400,
+          }
+        );
+      }
+      intakeRulesOverride = parsed.rules;
     }
 
     // Handle recommend_occasions (interest-based occasion suggestions)
@@ -319,7 +352,8 @@ serve(async (req) => {
         conversationType,
         existingData,
         customSystemPrompt,
-        aiOverride
+        aiOverride,
+        intakeRulesOverride
       );
       timings.handler_ms = Date.now() - handlerStartedAt;
       logRequestTiming(action, conversationType);

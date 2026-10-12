@@ -14,6 +14,8 @@
  */
 
 import type { ContextInfo, ReadinessState } from "../types.ts";
+import { DEFAULT_INTAKE_RULES } from "./intake-rules.ts";
+import type { IntakeFieldKey, IntakeRules } from "./intake-rules.ts";
 
 export interface DerivedReadiness {
   state: ReadinessState;
@@ -35,6 +37,8 @@ export interface DerivedReadiness {
    * follow-up turn, not the initial texture ask.
    */
   textureNeedsFollowup: boolean;
+  /** Anchors of required fields that are not yet satisfied. */
+  missingRequirements: string[];
 }
 
 const BIRTHDAY_RE = /birth\s*day|bday/i;
@@ -73,23 +77,19 @@ function mentionsBirthday(occasions: unknown[]): boolean {
   return occasions.some((o) => BIRTHDAY_RE.test(String(o)));
 }
 
-/**
- * Deterministic termination guard. The one-follow-up cap relies on the
- * extractor flipping specificity_followup_used; if it never does, the flow
- * would re-enter captured_needs_specificity every turn and the next-step
- * button (shown only at "ready") would never appear — the user stuck in
- * endless texture probing. Once the intake has run this many assistant turns
- * and the ONLY thing still missing is texture, force completion. Texture is
- * the only field this can force; timing/price/age keep their own hard gates,
- * so a genuinely incomplete recipient can never be force-completed on them.
- * Set above the longest legitimate intake (identity → relationship → occasion
- * → two dated occasions → price → age → initial texture → one follow-up).
- */
-const SPECIFICITY_TURN_CAP = 10;
+const ANCHOR_NAMES: Record<IntakeFieldKey, string> = {
+  identity: "recipient_anchor",
+  occasion: "occasion_anchor",
+  timing: "timing_anchor",
+  price: "price_anchor",
+  age: "age_anchor",
+  texture: "specificity_anchor",
+};
 
 export function deriveAddRecipientReadiness(
   contextInfo: ContextInfo,
-  assistantTurns = 0
+  assistantTurns = 0,
+  rules: IntakeRules = DEFAULT_INTAKE_RULES
 ): DerivedReadiness {
   const hasName = !!(contextInfo.name || contextInfo.existing_name);
   const hasRelationship = !!(
@@ -109,12 +109,14 @@ export function deriveAddRecipientReadiness(
   // Timing nobody can plan around — a range wider than a month
   // ("03-01/05-31"), or words with no date in them ("spring") — is not a
   // captured birthday. The client would store nothing for it, so counting it
-  // would complete the intake with no birthday at all.
+  // would complete the intake with no birthday at all. When the rules require
+  // an exact day, no range counts.
   const birthdayText = typeof birthday === "string" ? birthday.trim() : "";
   const looksLikeRange = /-.*\/.*-/.test(birthdayText);
   const birthdayIsUnusable =
     !/\d/.test(birthdayText) ||
-    (looksLikeRange && !isBoundedBirthdayRange(birthdayText));
+    (looksLikeRange &&
+      (!rules.approximateBirthday || !isBoundedBirthdayRange(birthdayText)));
   const birthdayDate = !!birthday && !birthdayIsYearOnly && !birthdayIsUnusable;
   const occasionsMentioned = Array.isArray(contextInfo.occasions_mentioned)
     ? contextInfo.occasions_mentioned
@@ -164,7 +166,9 @@ export function deriveAddRecipientReadiness(
   const birthdayHasYear =
     typeof birthday === "string" && /^\d{4}-\d{2}-\d{2}$/.test(birthday);
   const hasAge =
-    !!contextInfo.has_age_context || birthdayHasYear || birthdayIsYearOnly;
+    !!contextInfo.has_age_context ||
+    (rules.fullBirthdayCountsAsAge && birthdayHasYear) ||
+    (rules.birthYearCountsAsAge && birthdayIsYearOnly);
 
   // Specificity is NOT satisfied by broad interests (books, sports, "has
   // kids"). It needs a distinguishing signal, an explicit skip, or the one
@@ -185,43 +189,78 @@ export function deriveAddRecipientReadiness(
     !!contextInfo.last_assistant_asked_specificity_followup ||
     !!contextInfo.specificity_followup_used ||
     (contextInfo.specificity_followup_questions_asked ?? 0) >= 1;
-  let hasSpecificity =
-    hasDistinguishing || !!contextInfo.user_skipped_specificity || followupUsed;
-
-  let state: ReadinessState;
-  if (!hasRecipientAnchor) {
-    state = "not_captured";
-  } else if (!hasOccasion) {
-    state = hasSpecificity ? "captured_needs_occasion" : "captured_needs_both";
-  } else if (!hasTiming) {
-    state = "captured_needs_timing";
-  } else if (!hasPrice) {
-    state = "captured_needs_price";
-  } else if (!hasAge) {
-    state = "captured_needs_age";
-  } else if (!hasSpecificity) {
-    state = "captured_needs_specificity";
-  } else {
-    state = "ready";
-  }
-
-  // Guard only texture: every other field is already captured in this state.
-  if (
-    state === "captured_needs_specificity" &&
-    assistantTurns >= SPECIFICITY_TURN_CAP
-  ) {
-    hasSpecificity = true;
-    state = "ready";
-  }
-
   const interestCount = Array.isArray(contextInfo.interests)
     ? contextInfo.interests.length
     : 0;
+  // With follow-ups turned off, the first broad answer is enough.
+  const broadTextureSuffices = !rules.textureFollowUp && interestCount > 0;
+  let hasSpecificity =
+    hasDistinguishing ||
+    !!contextInfo.user_skipped_specificity ||
+    followupUsed ||
+    broadTextureSuffices;
+
+  const satisfied = (field: IntakeFieldKey): boolean => {
+    switch (field) {
+      case "identity":
+        return hasRecipientAnchor;
+      case "occasion":
+        return hasOccasion;
+      case "timing":
+        return hasTiming;
+      case "price":
+        return hasPrice;
+      case "age":
+        return hasAge;
+      case "texture":
+        return hasSpecificity;
+    }
+  };
+  const stateFor = (field: IntakeFieldKey): ReadinessState => {
+    switch (field) {
+      case "identity":
+        return "not_captured";
+      case "occasion":
+        return rules.required.texture && !hasSpecificity
+          ? "captured_needs_both"
+          : "captured_needs_occasion";
+      case "timing":
+        return "captured_needs_timing";
+      case "price":
+        return "captured_needs_price";
+      case "age":
+        return "captured_needs_age";
+      case "texture":
+        return "captured_needs_specificity";
+    }
+  };
+  // The first required field still missing, in the rules' question order.
+  const findFirstMissing = () =>
+    rules.order.find((field) => rules.required[field] && !satisfied(field));
+  let firstMissing = findFirstMissing();
+
+  // Deterministic termination guard. The one-follow-up cap relies on the
+  // extractor flipping specificity_followup_used; if it never does, the flow
+  // would re-enter captured_needs_specificity every turn and never move past
+  // texture. Once the intake has run textureTurnCap assistant turns, texture
+  // counts as done and the next missing field is asked. Texture is the only
+  // field this can force, so a recipient missing any other required field can
+  // never be force-completed.
+  if (firstMissing === "texture" && assistantTurns >= rules.textureTurnCap) {
+    hasSpecificity = true;
+    firstMissing = findFirstMissing();
+  }
+  const state: ReadinessState = firstMissing ? stateFor(firstMissing) : "ready";
+
   // Broad texture already present (interests captured) but not distinguishing
   // and no follow-up spent → the next texture ask is the sharpening follow-up,
   // not the initial open-ended ask.
   const textureNeedsFollowup =
     state === "captured_needs_specificity" && interestCount > 0;
+
+  const missingRequirements = rules.order
+    .filter((field) => rules.required[field] && !satisfied(field))
+    .map((field) => ANCHOR_NAMES[field]);
 
   return {
     state,
@@ -233,5 +272,6 @@ export function deriveAddRecipientReadiness(
     hasSpecificity,
     pendingDates,
     textureNeedsFollowup,
+    missingRequirements,
   };
 }

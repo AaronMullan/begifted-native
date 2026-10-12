@@ -122,7 +122,22 @@ RESPONSE REQUIREMENTS:
       "stateGuidance",
       "priorityGuidance",
       "recipientName",
+      // Rendered from the active add_recipient_rules version. It depends only
+      // on that version, so place it with the stable text, before the
+      // per-conversation blocks, to keep the cached prompt prefix intact.
+      "requiredFields",
     ],
+    taskModel: { provider: "openai", model: "gpt-4.1-mini" },
+  },
+  {
+    key: "add_recipient_rules",
+    label: "Add Recipient Rules",
+    description:
+      "Which details Add Recipient requires, in what order, and what counts as enough for each. The app enforces these on every turn and renders them into the conversation prompt as {{requiredFields}}. JSON; Test runs a conversation against the live prompt with these rules.",
+    // No seed text: the live rules are the active row in system_prompt_versions
+    // (seeded as v1), and a copy here would drift from it.
+    defaultPrompt: "",
+    templateVariables: [],
     taskModel: { provider: "openai", model: "gpt-4.1-mini" },
   },
   {

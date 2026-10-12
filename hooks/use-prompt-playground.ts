@@ -126,6 +126,11 @@ export function usePromptPlayground(userId: string) {
   const selectedPromptDef = getPromptByKey(selectedPromptKey);
   const defaultPrompt = selectedPromptDef?.defaultPrompt ?? "";
   const isGiftGeneration = selectedPromptKey === "gift_generation_system";
+  // The rules key is tested by running the Add Recipient conversation, so it
+  // shares that key's chat test and result view.
+  const isIntakeRules = selectedPromptKey === "add_recipient_rules";
+  const isAddRecipientChat =
+    selectedPromptKey === "add_recipient_conversation" || isIntakeRules;
 
   // Playground model — defaults to the model the selected prompt actually uses
   // in production, so Playground tests reflect real behavior. User can still
@@ -171,6 +176,11 @@ export function usePromptPlayground(userId: string) {
 
   // Prompt state
   const [currentPrompt, setCurrentPrompt] = useState(defaultPrompt);
+  // A rules draft runs against the live conversation prompt, exactly as
+  // production would pair them once the draft is deployed.
+  const conversationOverrides = isIntakeRules
+    ? { customIntakeRules: currentPrompt }
+    : { customSystemPrompt: currentPrompt };
   const originalPromptRef = useRef(defaultPrompt);
 
   // Chat state
@@ -239,6 +249,21 @@ export function usePromptPlayground(userId: string) {
     queryKey: queryKeys.activeSystemPrompt(selectedPromptKey),
     queryFn: () => fetchActiveSystemPrompt(selectedPromptKey),
   });
+
+  // Rules reach the conversation only through {{requiredFields}}. Until the
+  // live conversation prompt carries it, a rules change moves readiness while
+  // the prompt keeps its own wording, and the two disagree mid-conversation.
+  const liveConversationPromptQuery = useQuery({
+    queryKey: queryKeys.activeSystemPrompt("add_recipient_conversation"),
+    queryFn: () => fetchActiveSystemPrompt("add_recipient_conversation"),
+    enabled: isIntakeRules,
+  });
+  const rulesNotInLivePrompt =
+    isIntakeRules &&
+    !!liveConversationPromptQuery.data &&
+    !liveConversationPromptQuery.data.prompt_text.includes(
+      "{{requiredFields}}"
+    );
 
   const cisPreviewQuery = useQuery({
     queryKey: ["cisPreview", selectedRecipientId],
@@ -413,7 +438,7 @@ export function usePromptPlayground(userId: string) {
         }
 
         data = await response.json();
-      } else if (selectedPromptKey === "add_recipient_conversation") {
+      } else if (isAddRecipientChat) {
         // Test the add-recipient conversation prompt
         const msgs =
           testMessages.length > 0
@@ -433,7 +458,7 @@ export function usePromptPlayground(userId: string) {
               action: "conversation",
               conversationType: "add_recipient",
               messages: msgs,
-              customSystemPrompt: currentPrompt,
+              ...conversationOverrides,
               overrideProvider: playgroundProvider,
               overrideModel: playgroundModel,
             },
@@ -545,13 +570,33 @@ export function usePromptPlayground(userId: string) {
 
   // Deploy current prompt to production
   const deployMutation = useMutation({
-    mutationFn: (changeNotes: string) =>
-      deployNewPromptVersion(
+    mutationFn: async (changeNotes: string) => {
+      // An invalid rules version would be ignored at runtime in favor of the
+      // code defaults, so it must never become the active row.
+      if (isIntakeRules) {
+        const { data, error } = await supabase.functions.invoke(
+          "recipient-conversation",
+          {
+            body: {
+              action: "validate_intake_rules",
+              rulesText: currentPrompt,
+            },
+          }
+        );
+        if (error) throw new Error(await extractInvokeError(error));
+        if (!data?.ok) {
+          throw new Error(
+            `These rules can't be deployed: ${(data?.errors ?? []).join(" ")}`
+          );
+        }
+      }
+      return deployNewPromptVersion(
         selectedPromptKey,
         currentPrompt,
         changeNotes,
         userId
-      ),
+      );
+    },
     onSuccess: () => {
       originalPromptRef.current = currentPrompt;
       queryClient.invalidateQueries({
@@ -617,7 +662,7 @@ export function usePromptPlayground(userId: string) {
             action: "conversation",
             conversationType: "add_recipient",
             messages: [],
-            customSystemPrompt: currentPrompt,
+            ...conversationOverrides,
             overrideProvider: playgroundProvider,
             overrideModel: playgroundModel,
           },
@@ -655,7 +700,7 @@ export function usePromptPlayground(userId: string) {
             action: "conversation",
             conversationType: "add_recipient",
             messages: updatedMessages,
-            customSystemPrompt: currentPrompt,
+            ...conversationOverrides,
             overrideProvider: playgroundProvider,
             overrideModel: playgroundModel,
           },
@@ -722,6 +767,8 @@ export function usePromptPlayground(userId: string) {
     selectedPromptDef,
     promptRegistry: PROMPT_REGISTRY,
     isGiftGeneration,
+    isAddRecipientChat,
+    rulesNotInLivePrompt,
 
     // Selection
     selectedGiverId,
@@ -759,6 +806,8 @@ export function usePromptPlayground(userId: string) {
     // Deploy
     deployToProduction: deployMutation.mutateAsync,
     isDeploying: deployMutation.isPending,
+    deployError: deployMutation.error,
+    resetDeployError: deployMutation.reset,
 
     // Test runs
     loadTestRun,

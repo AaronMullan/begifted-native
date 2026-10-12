@@ -98,7 +98,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
         </Card.Content>
       </Card>
 
-      {playground.selectedPromptKey === "add_recipient_conversation" && (
+      {playground.isAddRecipientChat && (
         <ConversationTestCard
           playground={playground}
           input={conversationInput}
