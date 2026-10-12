@@ -122,6 +122,12 @@ interface UseConversationFlowOptions {
     conversationContext: string | null;
     shouldShowNextStepButton: boolean;
   }) => void;
+  /** Ends the conversation on a refusal (a chat turn or the finish step)
+   * instead of rendering it as a reply the user can talk past: the moderation
+   * gate screens only the latest message, so the next ordinary turn would
+   * pass. When set, the refusal is neither appended to the chat nor handed to
+   * onAssistantReply/onExtractError — this callback owns showing it. */
+  onSafetyDeclined?: (message: string) => void;
 }
 
 interface UseConversationFlowReturn {
@@ -157,6 +163,8 @@ type ConversationRequestBody = {
 };
 
 type ConversationReply = {
+  safety_declined?: boolean;
+  message?: string;
   reply?: string;
   conversationContext?: string;
   shouldShowNextStepButton?: boolean;
@@ -212,6 +220,7 @@ export function useConversationFlow(
     onExtractSuccess,
     onExtractError,
     onAssistantReply,
+    onSafetyDeclined,
   } = options;
 
   const messagesEndRef = useRef<View | null>(null);
@@ -318,6 +327,14 @@ export function useConversationFlow(
         console.error("Supabase function error:", error);
         console.error("Error details:", JSON.stringify(error, null, 2));
         throw error;
+      }
+
+      if (data?.safety_declined && onSafetyDeclined) {
+        setPendingRetry(null);
+        onSafetyDeclined(
+          data.message ?? data.reply ?? SAFETY_DECLINED_FALLBACK_MESSAGE
+        );
+        return;
       }
 
       const assistantMessage: Message = {
@@ -457,7 +474,9 @@ export function useConversationFlow(
         const safetyError = new Error(
           data.message ?? SAFETY_DECLINED_FALLBACK_MESSAGE
         );
-        if (onExtractError) {
+        if (onSafetyDeclined) {
+          onSafetyDeclined(safetyError.message);
+        } else if (onExtractError) {
           onExtractError(safetyError);
         } else {
           Alert.alert("Can't continue", safetyError.message);

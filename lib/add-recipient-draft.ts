@@ -67,3 +67,9 @@ export function clearAddRecipientDraft(): void {
   draft = null;
   writeToken += 1;
 }
+
+/** Clears only while `token` is still the latest writer, so a flow that
+ * outlived its screen can't wipe a newer flow's draft. */
+export function clearAddRecipientDraftIfOwner(token: number | null): void {
+  if (token !== null && token === writeToken) clearAddRecipientDraft();
+}
