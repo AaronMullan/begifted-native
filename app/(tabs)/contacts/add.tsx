@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
-import { useRouter, useLocalSearchParams, useNavigation } from "expo-router";
+import {
+  useIsFocused,
+  useRouter,
+  useLocalSearchParams,
+  useNavigation,
+} from "expo-router";
 import { Button, Dialog, Portal, Text } from "react-native-paper";
 import type { NavigationAction } from "@react-navigation/native";
 import type { User } from "@supabase/supabase-js";
@@ -301,6 +306,7 @@ const AddRecipientFlowInner = ({
   const [partialData, setPartialData] = useState<any>(null);
   const savedNotified = useRef(false);
   const safetyStopHandled = useRef(false);
+  const isFocused = useIsFocused();
 
   // Any prefilled field marks seeded intent — device contacts can lack a name
   // (phone/email only), and such an import must still start fresh rather than
@@ -392,9 +398,10 @@ const AddRecipientFlowInner = ({
   }, [saveSuccess, onSaved, partialSaveMessage]);
 
   // The session can't continue past a refusal, so leave for People rather
-  // than leave a chat the user could keep typing into.
+  // than leave a chat the user could keep typing into. Waits for focus: a
+  // refusal landing after a tab switch must not pull the user off that tab.
   useEffect(() => {
-    if (!safetyStopMessage || safetyStopHandled.current) return;
+    if (!safetyStopMessage || !isFocused || safetyStopHandled.current) return;
     safetyStopHandled.current = true;
     showSnackbar(safetyStopMessage);
     if (onSafetyStop) {
@@ -402,7 +409,7 @@ const AddRecipientFlowInner = ({
     } else {
       router.replace("/contacts");
     }
-  }, [safetyStopMessage, onSafetyStop, router]);
+  }, [safetyStopMessage, isFocused, onSafetyStop, router]);
 
   // Enhanced finish conversation handler with proper error handling
   const handleFinishConversationWithFallback = async () => {

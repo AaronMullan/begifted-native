@@ -31,7 +31,8 @@ import {
 import {
   claimAddRecipientDraftWriteToken,
   clearAddRecipientDraft,
-  clearAddRecipientDraftIfOwner,
+  isAddRecipientConversationRefused,
+  markAddRecipientConversationRefused,
   saveAddRecipientDraft,
 } from "../lib/add-recipient-draft";
 import type { AddRecipientDraft } from "../lib/add-recipient-draft";
@@ -424,12 +425,30 @@ export function useAddRecipientFlow(
       : undefined,
     // A refused session ends outright: clearing the draft means reopening Add
     // Person can't resume it, so nothing from it reaches review or save.
-    onSafetyDeclined: (message) => {
-      safetyStopped.current = true;
-      clearAddRecipientDraftIfOwner(draftWriteToken.current);
-      setSafetyStopMessage(message);
+    onSafetyDeclined: (message, conversation) => {
+      markAddRecipientConversationRefused(conversation);
+      stopForSafety(message);
     },
   });
+
+  const stopForSafety = (message: string) => {
+    safetyStopped.current = true;
+    setSafetyStopMessage(message);
+  };
+
+  // True when this session was refused — including when the refusal reached a
+  // different instance of it (see markAddRecipientConversationRefused).
+  const refusedEarlier = () => {
+    if (safetyStopped.current) return true;
+    if (!isAddRecipientConversationRefused(messages)) return false;
+    stopForSafety(SAFETY_DECLINED_FALLBACK_MESSAGE);
+    return true;
+  };
+
+  const retryLastSendUnlessRefused = async () => {
+    if (refusedEarlier()) return;
+    await retryLastSend();
+  };
 
   // Park the whole flow in the in-memory draft after every change, so
   // navigating away (bottom nav, back, tab switch) doesn't lose an in-progress
@@ -638,7 +657,7 @@ export function useAddRecipientFlow(
 
   // Wrap generic sendMessage to maintain interface
   const sendMessage = async (message: string) => {
-    if (safetyStopped.current) return;
+    if (refusedEarlier()) return;
     await genericSendMessage(message);
   };
 
@@ -646,7 +665,7 @@ export function useAddRecipientFlow(
   const handleFinishConversation = async (): Promise<
     "ready" | "safety_declined" | "incomplete"
   > => {
-    if (safetyStopped.current) return "safety_declined";
+    if (refusedEarlier()) return "safety_declined";
     const extracted = await genericHandleFinishConversation();
     if (extracted === "safety_declined") return "safety_declined";
 
@@ -844,7 +863,7 @@ export function useAddRecipientFlow(
     conversationContext: conversationContext || "",
     sendMessage,
     canRetrySend,
-    retryLastSend,
+    retryLastSend: retryLastSendUnlessRefused,
     handleNavigateBack,
     handleFinishConversation,
     handleDataReviewContinue,

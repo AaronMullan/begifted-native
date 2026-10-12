@@ -4,6 +4,7 @@ import {
   clearAddRecipientDraft,
   peekAddRecipientDraft,
 } from "../../lib/add-recipient-draft";
+import type { AddRecipientDraft } from "../../lib/add-recipient-draft";
 import { invokeWithRetry } from "../../lib/edge-retry";
 
 jest.mock("../../lib/supabase", () => ({
@@ -51,7 +52,7 @@ const SAFETY_DECLINED = {
   suggestions: [],
 };
 
-function renderFlow() {
+function renderFlow(resume: AddRecipientDraft | null = null) {
   return renderHook(() =>
     useAddRecipientFlow(
       "user-1",
@@ -61,7 +62,7 @@ function renderFlow() {
       undefined,
       undefined,
       undefined,
-      { resume: null, persist: true }
+      { resume, persist: true }
     )
   );
 }
@@ -69,9 +70,13 @@ function renderFlow() {
 // Moderation screens only the latest message, so after a refusal the next
 // ordinary description passes the gate. The session itself has to end.
 describe("Add Person safety stop", () => {
+  // Message ids come from Date.now(); keep them distinct across tests so a
+  // refused id from one test can't match a message in the next.
+  let clock = 1_700_000_000_000;
   beforeEach(() => {
     invoke.mockReset();
     clearAddRecipientDraft();
+    jest.spyOn(Date, "now").mockImplementation(() => (clock += 10));
   });
 
   it("ends the session on a refused chat turn so typing on can't reach review", async () => {
@@ -158,5 +163,46 @@ describe("Add Person safety stop", () => {
       "What does she enjoy?"
     );
     expect(peekAddRecipientDraft("user-1")).not.toBeNull();
+  });
+
+  it("stops a resumed copy of the session when the refusal lands after leaving", async () => {
+    let resolveRefusal: (value: unknown) => void = () => {};
+    invoke.mockImplementationOnce(
+      () => new Promise((resolve) => (resolveRefusal = resolve))
+    );
+    const first = await renderFlow();
+    let pendingSend: Promise<void> = Promise.resolve();
+    await act(async () => {
+      pendingSend = first.result.current.sendMessage("something harmful");
+    });
+    await first.unmount();
+
+    const parked = peekAddRecipientDraft("user-1");
+    expect(parked).not.toBeNull();
+    const { result } = await renderFlow(parked);
+
+    await act(async () => {
+      resolveRefusal({ data: SAFETY_DECLINED, error: null });
+      await pendingSend;
+    });
+    expect(peekAddRecipientDraft("user-1")).toBeNull();
+
+    invoke.mockResolvedValue({
+      data: {
+        reply: "Tell me more.",
+        extractedData: { name: "Sam", relationship_type: "sibling" },
+      },
+      error: null,
+    });
+    let finish: string | undefined;
+    await act(async () => {
+      await result.current.sendMessage("He loves cycling.");
+      finish = await result.current.handleFinishConversation();
+    });
+
+    expect(invoke).toHaveBeenCalledTimes(1);
+    expect(finish).toBe("safety_declined");
+    expect(result.current.showDataReview).toBe(false);
+    expect(result.current.safetyStopMessage).not.toBeNull();
   });
 });

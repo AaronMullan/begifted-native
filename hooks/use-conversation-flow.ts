@@ -127,7 +127,7 @@ interface UseConversationFlowOptions {
    * gate screens only the latest message, so the next ordinary turn would
    * pass. When set, the refusal is neither appended to the chat nor handed to
    * onAssistantReply/onExtractError — this callback owns showing it. */
-  onSafetyDeclined?: (message: string) => void;
+  onSafetyDeclined?: (message: string, conversation: Message[]) => void;
 }
 
 interface UseConversationFlowReturn {
@@ -332,7 +332,8 @@ export function useConversationFlow(
       if (data?.safety_declined && onSafetyDeclined) {
         setPendingRetry(null);
         onSafetyDeclined(
-          data.message ?? data.reply ?? SAFETY_DECLINED_FALLBACK_MESSAGE
+          data.message ?? data.reply ?? SAFETY_DECLINED_FALLBACK_MESSAGE,
+          convo
         );
         return;
       }
@@ -475,7 +476,7 @@ export function useConversationFlow(
           data.message ?? SAFETY_DECLINED_FALLBACK_MESSAGE
         );
         if (onSafetyDeclined) {
-          onSafetyDeclined(safetyError.message);
+          onSafetyDeclined(safetyError.message, messages);
         } else if (onExtractError) {
           onExtractError(safetyError);
         } else {
