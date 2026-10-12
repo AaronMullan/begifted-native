@@ -67,3 +67,30 @@ export function clearAddRecipientDraft(): void {
   draft = null;
   writeToken += 1;
 }
+
+// User messages the chat refused. A refusal can land after its screen has
+// unmounted and a reopened Add Person has resumed the same conversation from
+// the draft; marking the messages lets that resumed copy see it was refused
+// (the server screens only the latest message, so it can't tell).
+const refusedMessageIds = new Set<string>();
+
+function containsRefused(messages: Pick<Message, "id" | "role">[]): boolean {
+  return messages.some((m) => m.role === "user" && refusedMessageIds.has(m.id));
+}
+
+/** Marks the conversation's user messages refused and clears the parked
+ * draft if it holds any of them — a newer, unrelated draft is left alone. */
+export function markAddRecipientConversationRefused(
+  messages: Pick<Message, "id" | "role">[]
+): void {
+  for (const m of messages) {
+    if (m.role === "user") refusedMessageIds.add(m.id);
+  }
+  if (draft && containsRefused(draft.messages)) clearAddRecipientDraft();
+}
+
+export function isAddRecipientConversationRefused(
+  messages: Pick<Message, "id" | "role">[]
+): boolean {
+  return containsRefused(messages);
+}

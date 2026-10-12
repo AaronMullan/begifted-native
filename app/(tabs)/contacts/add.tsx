@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
-import { useRouter, useLocalSearchParams, useNavigation } from "expo-router";
+import {
+  useIsFocused,
+  useRouter,
+  useLocalSearchParams,
+  useNavigation,
+} from "expo-router";
 import { Button, Dialog, Portal, Text } from "react-native-paper";
 import type { NavigationAction } from "@react-navigation/native";
 import type { User } from "@supabase/supabase-js";
@@ -151,6 +156,13 @@ const AddRecipient = () => {
 
   const handleRecipientSkipped = () => advanceQueue(addedCount);
 
+  // A refusal ends the whole import, not just this contact; allowLeave lets
+  // the exit past the stop-adding guard.
+  const handleSafetyStop = () => {
+    allowLeave.current = true;
+    router.replace("/contacts");
+  };
+
   const handleKeepAdding = () => {
     pendingLeaveAction.current = null;
     pendingLeaveHref.current = null;
@@ -188,6 +200,7 @@ const AddRecipient = () => {
         seed={queue[queueIndex]}
         onSaved={handleRecipientSaved}
         onSkip={handleRecipientSkipped}
+        onSafetyStop={handleSafetyStop}
       />
       <Portal>
         <Dialog
@@ -224,13 +237,20 @@ type AddRecipientFlowProps = {
   /** Batch mode: called instead of onSaved when this contact is skipped as
    * someone the user already has. */
   onSkip?: () => void;
+  /** Batch mode: leaves the screen after a refusal ends the session. */
+  onSafetyStop?: () => void;
 };
 
 // Auth gate above the flow: the resume decision below reads the parked draft
 // once, in a state initializer on first render — so the flow must not mount
 // until the user is known (useAuth resolves the session asynchronously, and a
 // null-user first render would silently decide "no draft" every time).
-const AddRecipientFlow = ({ seed, onSaved, onSkip }: AddRecipientFlowProps) => {
+const AddRecipientFlow = ({
+  seed,
+  onSaved,
+  onSkip,
+  onSafetyStop,
+}: AddRecipientFlowProps) => {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   // Bumped by "Start fresh": remounting the inner flow discards the restored
@@ -260,6 +280,7 @@ const AddRecipientFlow = ({ seed, onSaved, onSkip }: AddRecipientFlowProps) => {
       seed={seed}
       onSaved={onSaved}
       onSkip={onSkip}
+      onSafetyStop={onSafetyStop}
       onStartFresh={() => {
         clearAddRecipientDraft();
         setFlowKey((k) => k + 1);
@@ -273,6 +294,7 @@ const AddRecipientFlowInner = ({
   seed,
   onSaved,
   onSkip,
+  onSafetyStop,
   onStartFresh,
 }: AddRecipientFlowProps & { user: User; onStartFresh: () => void }) => {
   const router = useRouter();
@@ -283,6 +305,8 @@ const AddRecipientFlowInner = ({
   const [reviewMatch, setReviewMatch] = useState<Recipient | null>(null);
   const [partialData, setPartialData] = useState<any>(null);
   const savedNotified = useRef(false);
+  const safetyStopHandled = useRef(false);
+  const isFocused = useIsFocused();
 
   // Any prefilled field marks seeded intent — device contacts can lack a name
   // (phone/email only), and such an import must still start fresh rather than
@@ -332,6 +356,7 @@ const AddRecipientFlowInner = ({
     saveSuccess,
     savedRecipientName,
     partialSaveMessage,
+    safetyStopMessage,
     messagesEndRef,
     shouldShowNextStepButton,
     conversationContext,
@@ -371,6 +396,20 @@ const AddRecipientFlowInner = ({
     // snackbar, and the failure must be the one left standing.
     if (partialSaveMessage) showSnackbar(partialSaveMessage);
   }, [saveSuccess, onSaved, partialSaveMessage]);
+
+  // The session can't continue past a refusal, so leave for People rather
+  // than leave a chat the user could keep typing into. Waits for focus: a
+  // refusal landing after a tab switch must not pull the user off that tab.
+  useEffect(() => {
+    if (!safetyStopMessage || !isFocused || safetyStopHandled.current) return;
+    safetyStopHandled.current = true;
+    showSnackbar(safetyStopMessage);
+    if (onSafetyStop) {
+      onSafetyStop();
+    } else {
+      router.replace("/contacts");
+    }
+  }, [safetyStopMessage, isFocused, onSafetyStop, router]);
 
   // Enhanced finish conversation handler with proper error handling
   const handleFinishConversationWithFallback = async () => {

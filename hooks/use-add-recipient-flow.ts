@@ -31,6 +31,8 @@ import {
 import {
   claimAddRecipientDraftWriteToken,
   clearAddRecipientDraft,
+  isAddRecipientConversationRefused,
+  markAddRecipientConversationRefused,
   saveAddRecipientDraft,
 } from "../lib/add-recipient-draft";
 import type { AddRecipientDraft } from "../lib/add-recipient-draft";
@@ -161,6 +163,8 @@ interface UseAddRecipientFlowReturn {
   savedRecipientId: string | null;
   /** Set when the person saved but their photo or moments didn't. */
   partialSaveMessage: string | null;
+  /** Set once a refusal has ended this session; the screen must leave. */
+  safetyStopMessage: string | null;
   messagesEndRef: React.RefObject<View | null>;
   shouldShowNextStepButton: boolean;
   conversationContext: string;
@@ -263,6 +267,12 @@ export function useAddRecipientFlow(
   const [partialSaveMessage, setPartialSaveMessage] = useState<string | null>(
     null
   );
+  const [safetyStopMessage, setSafetyStopMessage] = useState<string | null>(
+    null
+  );
+  // A ref, not the state above: the refusal can land after this screen has
+  // unmounted, and later writes from this instance must still see the stop.
+  const safetyStopped = useRef(false);
 
   useEffect(() => {
     Sentry.addBreadcrumb({
@@ -315,6 +325,7 @@ export function useAddRecipientFlow(
     parkedShowNextStep: boolean,
     claimToken: boolean
   ) => {
+    if (safetyStopped.current) return;
     if (claimToken) {
       draftWriteToken.current ??= claimAddRecipientDraftWriteToken();
     }
@@ -395,6 +406,7 @@ export function useAddRecipientFlow(
         if (initialAddress || initialBirthday || initialAnniversary) {
           genericSetExtractedData(merged);
         }
+        if (refusedEarlier()) return;
         setShowDataReview(true);
       }
     },
@@ -412,7 +424,32 @@ export function useAddRecipientFlow(
             false
           )
       : undefined,
+    // A refused session ends outright: clearing the draft means reopening Add
+    // Person can't resume it, so nothing from it reaches review or save.
+    onSafetyDeclined: (message, conversation) => {
+      markAddRecipientConversationRefused(conversation);
+      stopForSafety(message);
+    },
   });
+
+  const stopForSafety = (message: string) => {
+    safetyStopped.current = true;
+    setSafetyStopMessage(message);
+  };
+
+  // True when this session was refused — including when the refusal reached a
+  // different instance of it (see markAddRecipientConversationRefused).
+  const refusedEarlier = () => {
+    if (safetyStopped.current) return true;
+    if (!isAddRecipientConversationRefused(messages)) return false;
+    stopForSafety(SAFETY_DECLINED_FALLBACK_MESSAGE);
+    return true;
+  };
+
+  const retryLastSendUnlessRefused = async () => {
+    if (refusedEarlier()) return;
+    await retryLastSend();
+  };
 
   // Park the whole flow in the in-memory draft after every change, so
   // navigating away (bottom nav, back, tab switch) doesn't lose an in-progress
@@ -439,6 +476,9 @@ export function useAddRecipientFlow(
 
   // Define saveRecipient FIRST so it can be used by other callbacks
   const saveRecipient = async (data: ExtractedData) => {
+    // A resumed copy of a refused session can reach review before the
+    // refusal lands on the original; the save is the last place to stop it.
+    if (refusedEarlier()) return;
     if (!userId) {
       Alert.alert("Error", "User not authenticated");
       return;
@@ -621,6 +661,7 @@ export function useAddRecipientFlow(
 
   // Wrap generic sendMessage to maintain interface
   const sendMessage = async (message: string) => {
+    if (refusedEarlier()) return;
     await genericSendMessage(message);
   };
 
@@ -628,8 +669,11 @@ export function useAddRecipientFlow(
   const handleFinishConversation = async (): Promise<
     "ready" | "safety_declined" | "incomplete"
   > => {
+    if (refusedEarlier()) return "safety_declined";
     const extracted = await genericHandleFinishConversation();
-    if (extracted === "safety_declined") return "safety_declined";
+    if (extracted === "safety_declined" || refusedEarlier()) {
+      return "safety_declined";
+    }
 
     if (extracted && extracted.name && extracted.relationship_type) {
       // Map the extracted data to ensure all fields are properly set
@@ -819,12 +863,13 @@ export function useAddRecipientFlow(
     savedRecipientName,
     savedRecipientId,
     partialSaveMessage,
+    safetyStopMessage,
     messagesEndRef,
     shouldShowNextStepButton,
     conversationContext: conversationContext || "",
     sendMessage,
     canRetrySend,
-    retryLastSend,
+    retryLastSend: retryLastSendUnlessRefused,
     handleNavigateBack,
     handleFinishConversation,
     handleDataReviewContinue,
