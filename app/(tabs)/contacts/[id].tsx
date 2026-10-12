@@ -971,6 +971,23 @@ export default function RecipientEditPage() {
               {innerBackTab === "gifts" ? "Gift Ideas" : "Back"}
             </Text>
           </Pressable>
+          {/* Only when back pops the route: the per-moment links are otherwise
+              the sole way to Gift Ideas, and a recipient with no moments has none. */}
+          {innerBackTab !== "gifts" && (
+            <Pressable
+              onPress={() => {
+                setOccasionFilter(null);
+                showGiftsFromDetails();
+                scrollRef.current?.scrollTo({ y: 0, animated: false });
+              }}
+              style={styles.giftIdeasLink}
+              accessibilityRole="link"
+              accessibilityLabel={`${shortName}'s Gift Ideas`}
+              hitSlop={6}
+            >
+              <Text style={styles.aboutLinkText}>Gift Ideas ›</Text>
+            </Pressable>
+          )}
         </View>
       )}
 
@@ -1162,6 +1179,9 @@ const styles = StyleSheet.create({
     // Cancel the chevron glyph's internal inset so it aligns with the
     // gifts-tab back chevron at the 20pt gutter.
     marginLeft: -4,
+  },
+  giftIdeasLink: {
+    marginLeft: "auto",
   },
   detailsBackText: {
     ...Typography.h2,
