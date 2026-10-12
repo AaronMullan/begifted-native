@@ -64,19 +64,27 @@ export function recommendedMomentsFor(
   relationshipType: string | null | undefined,
   existingOccasionTypes: string[],
   interestMoments: string[] = [],
-  culturalContext?: string | null
+  culturalContext?: string | null,
+  forMinor = false
 ): string[] {
   const relationship = (relationshipType ?? "").toLowerCase();
+  // A parent role on a known minor is the giver's role misfiled ("I'm his
+  // dad"), so the age overrides it. Interest-derived names pass the same gate:
+  // the AI suggests parent holidays off a role it inferred, never one stated.
+  // Matches every spelling utils/occasion-dates resolves, so "Fathersday" from
+  // the AI can't slip past and still date to the holiday.
+  const isBlockedParentDay = (label: string) => {
+    const parent = /^(mother|father)s_?day$/.exec(slugifyOccasionName(label));
+    if (!parent) return false;
+    const roles = parent[1] === "mother" ? MOTHER_ROLES : FATHER_ROLES;
+    return forMinor || !roles.test(relationship);
+  };
+
   const candidates = ["Birthday"];
   if (PARTNER_ROLES.test(relationship)) {
     candidates.push("Anniversary", "Valentine's Day");
   }
-  if (MOTHER_ROLES.test(relationship)) {
-    candidates.push("Mother's Day");
-  }
-  if (FATHER_ROLES.test(relationship)) {
-    candidates.push("Father's Day");
-  }
+  candidates.push("Mother's Day", "Father's Day");
   const statedHoliday = statedHolidayFor(culturalContext);
   if (statedHoliday) candidates.push(statedHoliday);
 
@@ -84,13 +92,16 @@ export function recommendedMomentsFor(
     existingOccasionTypes.map((t) => slugifyOccasionName(t))
   );
   const chips = candidates
-    .filter((label) => !existing.has(slugifyOccasionName(label)))
+    .filter(
+      (label) =>
+        !isBlockedParentDay(label) && !existing.has(slugifyOccasionName(label))
+    )
     .slice(0, MAX_CHIPS);
 
   const seen = new Set([...existing, ...chips.map(slugifyOccasionName)]);
   for (const name of interestMoments) {
     const slug = slugifyOccasionName(name);
-    if (!slug || seen.has(slug)) continue;
+    if (!slug || seen.has(slug) || isBlockedParentDay(name)) continue;
     seen.add(slug);
     chips.push(name);
   }

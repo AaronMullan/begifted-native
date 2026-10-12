@@ -531,7 +531,8 @@ export default function Calendar() {
               )
             : [],
           interestSuggestions.names,
-          momentRecipient?.cultural_context
+          momentRecipient?.cultural_context,
+          isKnownMinor(momentRecipient?.birthday, momentRecipient?.birth_year)
         )}
         forMinor={isKnownMinor(
           momentRecipient?.birthday,

@@ -1073,7 +1073,8 @@ export default function RecipientEditPage() {
           recipient.relationship_type,
           recipientOccasions.map((o) => o.occasion_type),
           interestSuggestions.names,
-          recipient.cultural_context
+          recipient.cultural_context,
+          isKnownMinor(recipient.birthday, recipient.birth_year)
         )}
         suggestionDates={interestSuggestions.dateBySlug}
         onSave={handleSaveMoment}
