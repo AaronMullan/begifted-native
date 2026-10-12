@@ -15,6 +15,7 @@ import { Typography, Radii } from "../../lib/typography";
 import { supabase, EMAIL_CONFIRM_REDIRECT_URL } from "../../lib/supabase";
 import { fetchAppConfig } from "../../lib/api";
 import LegalAcceptanceCheckbox from "../LegalAcceptanceCheckbox";
+import SocialSignInButtons from "../SocialSignInButtons";
 import {
   markPendingLegalAcceptance,
   recordLegalAcceptance,
@@ -36,17 +37,20 @@ type IntroSignUpProps = {
 type SignUpResult =
   { error: string } | { needsVerification: true } | { ok: true };
 
+async function signupsDisabledMessage(): Promise<string | null> {
+  const config = await fetchAppConfig().catch(() => null);
+  return config && !config.signups_enabled
+    ? StateCopy.disabled("Signing up")
+    : null;
+}
+
 async function performSignUp(
   name: string,
   email: string,
   password: string
 ): Promise<SignUpResult> {
-  const config = await fetchAppConfig().catch(() => null);
-  if (config && !config.signups_enabled) {
-    return {
-      error: StateCopy.disabled("Signing up"),
-    };
-  }
+  const disabledMessage = await signupsDisabledMessage();
+  if (disabledMessage) return { error: disabledMessage };
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -232,6 +236,14 @@ export default function IntroSignUp({
         >
           SIGN ME UP!
         </Button>
+
+        <SocialSignInButtons
+          acceptanceMethod="signup_checkbox_social"
+          disabled={!acceptedLegal || submitting}
+          beforeSignIn={signupsDisabledMessage}
+          onSignedIn={onSignedUp}
+          onError={setError}
+        />
 
         <Button
           mode="text"

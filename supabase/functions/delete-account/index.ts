@@ -2,6 +2,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // @ts-ignore - Deno-style ESM import
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// @ts-ignore - Deno-style ESM import
+import { importPKCS8, SignJWT } from "https://esm.sh/jose@5.9.6";
 import { internalErrorResponse } from "../_shared/error-response.ts";
 
 // Permanently deletes the caller's account and all data they own (DEV-260).
@@ -18,6 +20,13 @@ import { internalErrorResponse } from "../_shared/error-response.ts";
 // deleting the auth user cascades app_notifications, user_legal_acceptances,
 // and user_push_tokens. Data is removed before the auth user so a mid-way
 // failure leaves the account intact and safely retryable.
+//
+// Apple requires revoking Sign in with Apple tokens on account deletion.
+// Supabase keeps no Apple refresh token for ID-token sign-ins, so the client
+// re-authorizes with Apple and sends the fresh authorization code; we exchange
+// it for a refresh token and revoke that. Revocation runs before any data is
+// deleted, so a failure leaves the account intact rather than deleted with a
+// live Apple grant.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,6 +41,16 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 // @ts-ignore - Deno env at runtime
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+// @ts-ignore - Deno env at runtime
+const appleTeamId = Deno.env.get("APPLE_TEAM_ID") ?? "";
+// @ts-ignore - Deno env at runtime
+const appleKeyId = Deno.env.get("APPLE_KEY_ID") ?? "";
+// @ts-ignore - Deno env at runtime
+const applePrivateKey = Deno.env.get("APPLE_PRIVATE_KEY") ?? "";
+// The native app's tokens are issued to its bundle ID, so the bundle ID is the
+// client_id Apple expects on token exchange and revocation.
+// @ts-ignore - Deno env at runtime
+const appleClientId = Deno.env.get("APPLE_CLIENT_ID") ?? "com.begifted.app";
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -59,13 +78,31 @@ serve(async (req: Request) => {
       return jsonResponse({ error: "Not authenticated" }, 401);
     }
 
+    const hasAppleIdentity = (user.identities ?? []).some(
+      (identity: { provider: string }) => identity.provider === "apple"
+    );
+    if (hasAppleIdentity) {
+      const body = await req.json().catch(() => ({}));
+      const code =
+        typeof body?.apple_authorization_code === "string"
+          ? body.apple_authorization_code
+          : "";
+      if (!code) {
+        return jsonResponse(
+          { error: "Apple authorization code required" },
+          400
+        );
+      }
+      await revokeAppleGrant(code);
+    }
+
     const admin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false },
     });
     const userId = user.id;
 
     // FK-safe order. Each delete targets only rows owned by the verified user.
-    const ownedDeletes: Array<{ table: string; column: string }> = [
+    const ownedDeletes: { table: string; column: string }[] = [
       { table: "contact_requests", column: "user_id" },
       { table: "occasions", column: "user_id" },
       { table: "recipients", column: "user_id" },
@@ -96,6 +133,64 @@ serve(async (req: Request) => {
     return internalErrorResponse("delete-account", err, corsHeaders);
   }
 });
+
+async function appleClientSecret(): Promise<string> {
+  if (!appleTeamId || !appleKeyId || !applePrivateKey) {
+    throw new Error("Apple revocation secrets are not configured");
+  }
+  // Secrets often store the .p8 with literal "\n" sequences.
+  const key = await importPKCS8(applePrivateKey.replace(/\\n/g, "\n"), "ES256");
+  const now = Math.floor(Date.now() / 1000);
+  return await new SignJWT({})
+    .setProtectedHeader({ alg: "ES256", kid: appleKeyId })
+    .setIssuer(appleTeamId)
+    .setIssuedAt(now)
+    .setExpirationTime(now + 300)
+    .setAudience("https://appleid.apple.com")
+    .setSubject(appleClientId)
+    .sign(key);
+}
+
+async function revokeAppleGrant(authorizationCode: string): Promise<void> {
+  const clientSecret = await appleClientSecret();
+
+  const tokenRes = await fetch("https://appleid.apple.com/auth/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: appleClientId,
+      client_secret: clientSecret,
+      code: authorizationCode,
+      grant_type: "authorization_code",
+    }),
+  });
+  if (!tokenRes.ok) {
+    throw new Error(
+      `Apple token exchange failed: ${tokenRes.status} ${await tokenRes.text()}`
+    );
+  }
+  const tokens = await tokenRes.json();
+  const token: string | undefined = tokens.refresh_token ?? tokens.access_token;
+  const tokenTypeHint = tokens.refresh_token ? "refresh_token" : "access_token";
+  if (!token) throw new Error("Apple token exchange returned no token");
+
+  // Revoking the refresh token ends the user's whole grant for this app.
+  const revokeRes = await fetch("https://appleid.apple.com/auth/revoke", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: appleClientId,
+      client_secret: clientSecret,
+      token,
+      token_type_hint: tokenTypeHint,
+    }),
+  });
+  if (!revokeRes.ok) {
+    throw new Error(
+      `Apple token revocation failed: ${revokeRes.status} ${await revokeRes.text()}`
+    );
+  }
+}
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
