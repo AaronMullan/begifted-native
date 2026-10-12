@@ -69,9 +69,11 @@ export async function recordLegalAcceptance(
  * be recorded at checkbox time (the edge function needs the user's JWT).
  * Stash a marker; the first authenticated load flushes it.
  */
-export async function markPendingLegalAcceptance(): Promise<void> {
+export async function markPendingLegalAcceptance(
+  acceptanceMethod = "signup_checkbox"
+): Promise<void> {
   try {
-    await AsyncStorage.setItem(PENDING_KEY, "signup_checkbox");
+    await AsyncStorage.setItem(PENDING_KEY, acceptanceMethod);
   } catch {
     // Best-effort: worst case this user's acceptance goes unrecorded.
   }

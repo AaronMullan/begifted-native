@@ -158,11 +158,9 @@ export default function ProfileSettings() {
   }
 
   async function handleDeleteAccount() {
-    if (!user) return;
     setDeleting(true);
     try {
-      const appleAuthorizationCode =
-        await appleAuthorizationCodeForDeletion(user);
+      const appleAuthorizationCode = await appleAuthorizationCodeForDeletion();
       const { error } = await supabase.functions.invoke("delete-account", {
         method: "POST",
         body: appleAuthorizationCode
