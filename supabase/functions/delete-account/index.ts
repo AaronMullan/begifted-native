@@ -26,8 +26,9 @@ import { internalErrorResponse } from "../_shared/error-response.ts";
 // re-authorizes with Apple and sends the fresh authorization code; we exchange
 // it for a refresh token and revoke that. Revocation runs before any data is
 // deleted, so a failure leaves the account intact rather than deleted with a
-// live Apple grant. Off iOS no code can be obtained; deletion must still be
-// possible there, so it proceeds unrevoked and is logged.
+// live Apple grant. When the right grant can't be reached — off iOS, where no
+// code can be obtained, or a device signed into a different Apple ID — deletion
+// must still be possible, so it proceeds unrevoked and is logged.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -79,8 +80,7 @@ serve(async (req: Request) => {
       return jsonResponse({ error: "Not authenticated" }, 401);
     }
 
-    const appleError = await revokeAppleIfLinked(req, user);
-    if (appleError) return appleError;
+    await revokeAppleIfLinked(req, user);
 
     const admin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false },
@@ -120,15 +120,14 @@ serve(async (req: Request) => {
   }
 });
 
-// Resolves an error response to stop deletion, or null to proceed.
 async function revokeAppleIfLinked(
   req: Request,
   user: { id: string; identities?: { id: string; provider: string }[] }
-): Promise<Response | null> {
+): Promise<void> {
   const appleIdentity = (user.identities ?? []).find(
     (identity) => identity.provider === "apple"
   );
-  if (!appleIdentity) return null;
+  if (!appleIdentity) return;
 
   const body = await req.json().catch(() => ({}));
   const code =
@@ -139,13 +138,15 @@ async function revokeAppleIfLinked(
     console.warn(
       `[delete-account] Apple identity without authorization code; deleting unrevoked (user ${user.id})`
     );
-    return null;
+    return;
   }
 
   const revoked = await revokeAppleGrant(code, appleIdentity.id);
-  return revoked
-    ? null
-    : jsonResponse({ error: "Apple ID does not match this account" }, 409);
+  if (!revoked) {
+    console.warn(
+      `[delete-account] Device Apple ID differs from the account's; deleting unrevoked (user ${user.id})`
+    );
+  }
 }
 
 async function appleClientSecret(): Promise<string> {
