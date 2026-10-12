@@ -283,9 +283,12 @@ Deno.test("isParentHoliday matches the model's spellings", () => {
     "Mother’s Day",
     "Grandparents' Day",
     "Grandparents Day",
+    "National Grandparents Day",
+    "Father's Day (June 21)",
   ]) {
     assert(isParentHoliday(name), name);
   }
   assert(!isParentHoliday("Birthday"));
   assert(!isParentHoliday("Pi Day"));
+  assert(!isParentHoliday("Godmother's Day"));
 });

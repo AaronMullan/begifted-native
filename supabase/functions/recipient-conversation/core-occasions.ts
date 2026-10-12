@@ -79,7 +79,7 @@ export function isParentHoliday(name: string): boolean {
     .replace(/['’]/g, "")
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "");
-  return /^(mother|father|grandparent)s?_?day$/.test(slug);
+  return /(^|_)(mother|father|grandparent)s?_?day(_|$)/.test(slug);
 }
 
 const MILESTONE_AGES = new Set([1, 16, 18, 21, 30, 40, 50, 60, 70, 100]);
