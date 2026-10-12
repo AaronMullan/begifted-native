@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // @ts-ignore - Deno-style ESM import
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // @ts-ignore - Deno-style ESM import
-import { importPKCS8, SignJWT } from "https://esm.sh/jose@5.9.6";
+import { decodeJwt, importPKCS8, SignJWT } from "https://esm.sh/jose@5.9.6";
 import { internalErrorResponse } from "../_shared/error-response.ts";
 
 // Permanently deletes the caller's account and all data they own (DEV-260).
@@ -26,7 +26,8 @@ import { internalErrorResponse } from "../_shared/error-response.ts";
 // re-authorizes with Apple and sends the fresh authorization code; we exchange
 // it for a refresh token and revoke that. Revocation runs before any data is
 // deleted, so a failure leaves the account intact rather than deleted with a
-// live Apple grant.
+// live Apple grant. Off iOS no code can be obtained; deletion must still be
+// possible there, so it proceeds unrevoked and is logged.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -78,23 +79,8 @@ serve(async (req: Request) => {
       return jsonResponse({ error: "Not authenticated" }, 401);
     }
 
-    const hasAppleIdentity = (user.identities ?? []).some(
-      (identity: { provider: string }) => identity.provider === "apple"
-    );
-    if (hasAppleIdentity) {
-      const body = await req.json().catch(() => ({}));
-      const code =
-        typeof body?.apple_authorization_code === "string"
-          ? body.apple_authorization_code
-          : "";
-      if (!code) {
-        return jsonResponse(
-          { error: "Apple authorization code required" },
-          400
-        );
-      }
-      await revokeAppleGrant(code);
-    }
+    const appleError = await revokeAppleIfLinked(req, user);
+    if (appleError) return appleError;
 
     const admin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false },
@@ -195,6 +181,34 @@ async function removeUserFolder(
   return "too many files to remove";
 }
 
+// Resolves an error response to stop deletion, or null to proceed.
+async function revokeAppleIfLinked(
+  req: Request,
+  user: { id: string; identities?: { id: string; provider: string }[] }
+): Promise<Response | null> {
+  const appleIdentity = (user.identities ?? []).find(
+    (identity) => identity.provider === "apple"
+  );
+  if (!appleIdentity) return null;
+
+  const body = await req.json().catch(() => ({}));
+  const code =
+    typeof body?.apple_authorization_code === "string"
+      ? body.apple_authorization_code
+      : "";
+  if (!code) {
+    console.warn(
+      `[delete-account] Apple identity without authorization code; deleting unrevoked (user ${user.id})`
+    );
+    return null;
+  }
+
+  const revoked = await revokeAppleGrant(code, appleIdentity.id);
+  return revoked
+    ? null
+    : jsonResponse({ error: "Apple ID does not match this account" }, 409);
+}
+
 async function appleClientSecret(): Promise<string> {
   if (!appleTeamId || !appleKeyId || !applePrivateKey) {
     throw new Error("Apple revocation secrets are not configured");
@@ -212,7 +226,13 @@ async function appleClientSecret(): Promise<string> {
     .sign(key);
 }
 
-async function revokeAppleGrant(authorizationCode: string): Promise<void> {
+// Resolves false without revoking when the code belongs to a different Apple
+// ID than the account's (e.g. a shared device), which would otherwise revoke
+// the wrong grant and leave the account's own grant live.
+async function revokeAppleGrant(
+  authorizationCode: string,
+  expectedSub: string
+): Promise<boolean> {
   const clientSecret = await appleClientSecret();
 
   const tokenRes = await fetch("https://appleid.apple.com/auth/token", {
@@ -231,6 +251,11 @@ async function revokeAppleGrant(authorizationCode: string): Promise<void> {
     );
   }
   const tokens = await tokenRes.json();
+  // Received directly from Apple over TLS, so decoding without verifying the
+  // signature is sufficient to read the subject.
+  if (!tokens.id_token || decodeJwt(tokens.id_token).sub !== expectedSub) {
+    return false;
+  }
   const token: string | undefined = tokens.refresh_token ?? tokens.access_token;
   const tokenTypeHint = tokens.refresh_token ? "refresh_token" : "access_token";
   if (!token) throw new Error("Apple token exchange returned no token");
@@ -251,6 +276,7 @@ async function revokeAppleGrant(authorizationCode: string): Promise<void> {
       `Apple token revocation failed: ${revokeRes.status} ${await revokeRes.text()}`
     );
   }
+  return true;
 }
 
 function jsonResponse(body: unknown, status = 200) {
