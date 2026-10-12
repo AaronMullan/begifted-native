@@ -812,7 +812,8 @@ export default function RecipientEditPage() {
       persistedOccasions === null || birthdayMomentFailed
         ? null
         : persistedOccasions + (syncedBirthdayMoment ? 1 : 0);
-    if (insertedOccasions !== null && insertedOccasions > 0) {
+    // Refresh on any row that landed, even when another part of the note failed.
+    if ((persistedOccasions ?? 0) > 0 || syncedBirthdayMoment) {
       await queryClient.invalidateQueries({
         queryKey: queryKeys.occasions(user.id),
       });
