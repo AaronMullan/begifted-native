@@ -39,6 +39,7 @@ import {
 } from "../../utils/birthday";
 import { formatOccasionType, possessive } from "../../utils/home-occasions";
 import { formatOccasionDate } from "../../utils/occasion-dates";
+import { formatBudget } from "../../utils/budget";
 import { cleanRelationship } from "../../lib/format-name";
 import { StateCopy } from "../../lib/state-copy";
 import StateMessage from "../StateMessage";
@@ -186,14 +187,12 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
   };
 
   const addressBlock = formatAddress(recipient);
-  const budgetMin =
-    recipient.gift_budget_min != null ? `$${recipient.gift_budget_min}` : "—";
-  const budgetMax =
-    recipient.gift_budget_max != null
-      ? `$${recipient.gift_budget_max}`
-      : recipient.gift_budget_no_ceiling
-        ? "No limit"
-        : "—";
+  const budget =
+    formatBudget(
+      recipient.gift_budget_min,
+      recipient.gift_budget_max,
+      recipient.gift_budget_no_ceiling
+    ) ?? "—";
 
   return (
     <View style={styles.container}>
@@ -420,15 +419,9 @@ export const AboutRecipientView: React.FC<AboutRecipientViewProps> = ({
               )}
             </View>
 
-            <View style={styles.budgetRow}>
-              <View>
-                <Text style={styles.fieldLabel}>Min. Budget</Text>
-                <Text style={styles.fieldValueEmphasis}>{budgetMin}</Text>
-              </View>
-              <View>
-                <Text style={styles.fieldLabel}>Max. Budget</Text>
-                <Text style={styles.fieldValueEmphasis}>{budgetMax}</Text>
-              </View>
+            <View>
+              <Text style={styles.fieldLabel}>Budget</Text>
+              <Text style={styles.fieldValueEmphasis}>{budget}</Text>
             </View>
           </View>
         </View>
@@ -793,10 +786,6 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     color: Colors.blues.medium,
     marginTop: 2,
-  },
-  budgetRow: {
-    flexDirection: "row",
-    gap: 24,
   },
   // Two-column field rows: trailing column starts at x=230 within the card
   // content (frame 5651:15232), aligned across rows.
