@@ -23,6 +23,7 @@ import {
   ADD_RECIPIENT_EXTRACTION_DEFAULT,
   interpolateExtractionPrompt,
   SAFETY_PREAMBLE,
+  isPreambleDecline,
 } from "./prompts.ts";
 import { deriveAddRecipientReadiness } from "./readiness.ts";
 import {
@@ -479,6 +480,7 @@ export async function handleConversation(
       // Not valid JSON — use the raw text as-is
     }
   }
+  if (isPreambleDecline(reply)) throw new AIRefusalError(reply);
 
   // Acknowledgment path: the reply LLM should produce only the recognition
   // sentence. Strip any close it wrote anyway (against the recognition-only
