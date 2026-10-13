@@ -466,7 +466,6 @@ export async function handleConversation(
     temperature: 0.7,
   });
   timings.reply_ms = Date.now() - replyStartedAt;
-  if (isPreambleDecline(reply)) throw new AIRefusalError(reply);
 
   // Guard: if the LLM returned a JSON object instead of plain text, extract the
   // reply field so we never display raw JSON to the user.
@@ -481,6 +480,7 @@ export async function handleConversation(
       // Not valid JSON — use the raw text as-is
     }
   }
+  if (isPreambleDecline(reply)) throw new AIRefusalError(reply);
 
   // Acknowledgment path: the reply LLM should produce only the recognition
   // sentence. Strip any close it wrote anyway (against the recognition-only
