@@ -23,6 +23,7 @@ import {
   ADD_RECIPIENT_EXTRACTION_DEFAULT,
   interpolateExtractionPrompt,
   SAFETY_PREAMBLE,
+  isPreambleDecline,
 } from "./prompts.ts";
 import { deriveAddRecipientReadiness } from "./readiness.ts";
 import {
@@ -465,6 +466,7 @@ export async function handleConversation(
     temperature: 0.7,
   });
   timings.reply_ms = Date.now() - replyStartedAt;
+  if (isPreambleDecline(reply)) throw new AIRefusalError(reply);
 
   // Guard: if the LLM returned a JSON object instead of plain text, extract the
   // reply field so we never display raw JSON to the user.

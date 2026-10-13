@@ -7,7 +7,7 @@ import {
   extractField,
 } from "./extractors.ts";
 import { recommendOccasions } from "./occasions.ts";
-import { SAFETY_PREAMBLE } from "./prompts.ts";
+import { isPreambleDecline, SAFETY_PREAMBLE } from "./prompts.ts";
 import { parseIntakeRules, renderRequiredFields } from "./intake-rules.ts";
 import type { IntakeRules } from "./intake-rules.ts";
 import { screenInput } from "../_shared/moderation.ts";
@@ -74,6 +74,7 @@ Rules:
     maxTokens: 150,
     temperature: 0.3,
   });
+  if (isPreambleDecline(reply)) throw new AIRefusalError(reply);
   // Show the save button after the first AI response (user has stated the occasion)
   const userMessages = messages.filter((m) => m.role === "user");
   const shouldShowNextStepButton = userMessages.length >= 1;
