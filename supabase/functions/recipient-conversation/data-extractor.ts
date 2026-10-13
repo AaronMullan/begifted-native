@@ -38,6 +38,11 @@ export const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 export const supabaseServiceKey =
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
+// How long a Playground deploy of the extractor prompt can take to reach a
+// warm isolate.
+const EXTRACTION_TEMPLATE_TTL_MS = 60_000;
+let extractionTemplateCache: { text: string; loadedAt: number } | null = null;
+
 export type AIConfig = { provider: Provider; model: string; apiKey: string };
 
 export async function resolveAIConfig(
@@ -119,23 +124,35 @@ export async function handleConversation(
           "prompt_load_ms"
         )
       : null;
+  // The extraction call can't start until its prompt is in hand, so unlike
+  // the loads above this one would add a full round trip to every turn; a
+  // per-isolate cache keeps that off all but the first turn in each window.
   // An active row without the transcript would have the extractor judge an
   // empty conversation on every turn, so it falls back to the default instead.
   const extractionTemplatePromise: Promise<string> | null = existingData
     ? null
     : customExtractionPrompt
       ? Promise.resolve(customExtractionPrompt)
-      : timedLoad(
-          "add_recipient_extraction",
-          ADD_RECIPIENT_EXTRACTION_DEFAULT,
-          "extraction_prompt_load_ms"
-        ).then((text) => {
-          if (text.includes("{{conversationHistory}}")) return text;
-          console.error(
-            JSON.stringify({ tag: "extraction_prompt_missing_history" })
-          );
-          return ADD_RECIPIENT_EXTRACTION_DEFAULT;
-        });
+      : extractionTemplateCache &&
+          Date.now() - extractionTemplateCache.loadedAt <
+            EXTRACTION_TEMPLATE_TTL_MS
+        ? Promise.resolve(extractionTemplateCache.text)
+        : timedLoad(
+            "add_recipient_extraction",
+            ADD_RECIPIENT_EXTRACTION_DEFAULT,
+            "extraction_prompt_load_ms"
+          ).then((loaded) => {
+            const text = loaded.includes("{{conversationHistory}}")
+              ? loaded
+              : ADD_RECIPIENT_EXTRACTION_DEFAULT;
+            if (text !== loaded) {
+              console.error(
+                JSON.stringify({ tag: "extraction_prompt_missing_history" })
+              );
+            }
+            extractionTemplateCache = { text, loadedAt: Date.now() };
+            return text;
+          });
   // A draft from the Playground arrives already validated. An invalid active
   // row must not break intake for everyone, so it falls back to the defaults
   // and logs loudly instead.
