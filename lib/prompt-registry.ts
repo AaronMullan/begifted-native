@@ -141,6 +141,22 @@ RESPONSE REQUIREMENTS:
     taskModel: { provider: "openai", model: "gpt-4.1-mini" },
   },
   {
+    key: "add_recipient_extraction",
+    label: "Add Recipient Extraction",
+    description:
+      "Reads the Add Recipient conversation on every turn and returns what has been captured: name, birthday, occasions, price, age, texture. The app decides readiness from this JSON, so keep every field name. Test runs a conversation against the live conversation prompt with this extractor; the Context panel shows what it returned.",
+    // No seed text: the live prompt is the active row in
+    // system_prompt_versions (seeded as v1), and a copy here would drift.
+    defaultPrompt: "",
+    templateVariables: [
+      "conversationHistory",
+      // Filled from code, not editable here: the Finish extractor writes the
+      // same range form, and readiness parses it.
+      "approximateBirthdayRule",
+    ],
+    taskModel: { provider: "openai", model: "gpt-4.1-mini" },
+  },
+  {
     key: "add_recipient_wrap_up",
     label: "Add Recipient Wrap-up",
     description:

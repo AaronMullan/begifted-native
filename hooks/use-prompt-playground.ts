@@ -126,11 +126,14 @@ export function usePromptPlayground(userId: string) {
   const selectedPromptDef = getPromptByKey(selectedPromptKey);
   const defaultPrompt = selectedPromptDef?.defaultPrompt ?? "";
   const isGiftGeneration = selectedPromptKey === "gift_generation_system";
-  // The rules key is tested by running the Add Recipient conversation, so it
-  // shares that key's chat test and result view.
+  // The rules and extractor keys are tested by running the Add Recipient
+  // conversation, so they share that key's chat test and result view.
   const isIntakeRules = selectedPromptKey === "add_recipient_rules";
+  const isExtraction = selectedPromptKey === "add_recipient_extraction";
   const isAddRecipientChat =
-    selectedPromptKey === "add_recipient_conversation" || isIntakeRules;
+    selectedPromptKey === "add_recipient_conversation" ||
+    isIntakeRules ||
+    isExtraction;
 
   // Playground model — defaults to the model the selected prompt actually uses
   // in production, so Playground tests reflect real behavior. User can still
@@ -176,11 +179,13 @@ export function usePromptPlayground(userId: string) {
 
   // Prompt state
   const [currentPrompt, setCurrentPrompt] = useState(defaultPrompt);
-  // A rules draft runs against the live conversation prompt, exactly as
-  // production would pair them once the draft is deployed.
+  // A rules or extractor draft runs against the live conversation prompt,
+  // exactly as production would pair them once the draft is deployed.
   const conversationOverrides = isIntakeRules
     ? { customIntakeRules: currentPrompt }
-    : { customSystemPrompt: currentPrompt };
+    : isExtraction
+      ? { customExtractionPrompt: currentPrompt }
+      : { customSystemPrompt: currentPrompt };
   const originalPromptRef = useRef(defaultPrompt);
 
   // Chat state
@@ -589,6 +594,13 @@ export function usePromptPlayground(userId: string) {
             `These rules can't be deployed: ${(data?.errors ?? []).join(" ")}`
           );
         }
+      }
+      // The runtime ignores an active extractor without the transcript and
+      // keeps the code default, so the deploy would silently do nothing.
+      if (isExtraction && !currentPrompt.includes("{{conversationHistory}}")) {
+        throw new Error(
+          "This prompt can't be deployed without {{conversationHistory}} — the extractor would have no conversation to read."
+        );
       }
       return deployNewPromptVersion(
         selectedPromptKey,

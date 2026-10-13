@@ -9,10 +9,8 @@ import type {
 import { parseOpenAIJSON } from "./utils.ts";
 import { normalizeBudgetRange } from "./budget.ts";
 import { isBoundedBirthdayRange } from "./readiness.ts";
-import {
-  APPROXIMATE_BIRTHDAY_RULE,
-  resolveAIConfig,
-} from "./data-extractor.ts";
+import { resolveAIConfig } from "./data-extractor.ts";
+import { APPROXIMATE_BIRTHDAY_RULE } from "./prompts.ts";
 
 // The LLM occasionally emits the literal string "null" (or a similar
 // placeholder) for an unknown name/relationship. Because recipients.name and
