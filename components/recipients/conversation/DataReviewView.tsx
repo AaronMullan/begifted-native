@@ -10,7 +10,7 @@ import {
 import {
   HelperText,
   IconButton,
-  Switch,
+  SegmentedButtons,
   Text,
   TextInput,
 } from "react-native-paper";
@@ -83,7 +83,10 @@ export function DataReviewView({
     });
   };
 
-  const noCeiling = extractedData.gift_budget_no_ceiling === true;
+  // A stated maximum outranks the flag on save, so it decides the mode too.
+  const noCeiling =
+    extractedData.gift_budget_no_ceiling === true &&
+    extractedData.gift_budget_max == null;
 
   const updateInterests = (value: string) => {
     // Store raw text value for smooth editing
@@ -203,11 +206,31 @@ export function DataReviewView({
             Gift Preferences
           </Text>
 
+          <View style={styles.fieldContainer}>
+            <SegmentedButtons
+              value={noCeiling ? "noLimit" : "range"}
+              onValueChange={(value) =>
+                onDataChange({
+                  ...extractedData,
+                  gift_budget_no_ceiling: value === "noLimit",
+                  gift_budget_max:
+                    value === "noLimit"
+                      ? undefined
+                      : extractedData.gift_budget_max,
+                })
+              }
+              buttons={[
+                { value: "range", label: "Set a range" },
+                { value: "noLimit", label: "No set limit" },
+              ]}
+            />
+          </View>
+
           <View style={styles.row}>
             <View style={[styles.fieldContainer, styles.halfWidth]}>
               <TextInput
                 mode="outlined"
-                label="Budget Min"
+                label={noCeiling ? "From (optional)" : "Budget Min"}
                 value={extractedData.gift_budget_min?.toString() || ""}
                 onChangeText={(value) =>
                   updateField(
@@ -222,16 +245,8 @@ export function DataReviewView({
               />
             </View>
 
-            <View style={[styles.fieldContainer, styles.halfWidth]}>
-              {noCeiling ? (
-                <TextInput
-                  mode="outlined"
-                  label="Budget Max"
-                  value="No limit"
-                  editable={false}
-                  style={styles.input}
-                />
-              ) : (
+            {!noCeiling && (
+              <View style={[styles.fieldContainer, styles.halfWidth]}>
                 <TextInput
                   mode="outlined"
                   label="Budget Max"
@@ -247,25 +262,8 @@ export function DataReviewView({
                   returnKeyType="done"
                   style={styles.input}
                 />
-              )}
-            </View>
-          </View>
-
-          <View style={styles.switchRow}>
-            <Text variant="bodyLarge">No upper limit</Text>
-            <Switch
-              value={noCeiling}
-              onValueChange={(value) =>
-                onDataChange({
-                  ...extractedData,
-                  gift_budget_no_ceiling: value,
-                  gift_budget_max: value
-                    ? undefined
-                    : extractedData.gift_budget_max,
-                })
-              }
-              color={Colors.brand.mediumTeal}
-            />
+              </View>
+            )}
           </View>
         </View>
 
@@ -420,10 +418,5 @@ const styles = StyleSheet.create({
   },
   halfWidth: {
     flex: 1,
-  },
-  switchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
   },
 });

@@ -11,7 +11,7 @@ import {
   Button,
   HelperText,
   IconButton,
-  Switch,
+  SegmentedButtons,
   Text,
   TextInput,
 } from "react-native-paper";
@@ -19,7 +19,6 @@ import type { Recipient } from "../../types/recipient";
 import { dialogStyles as styles } from "./recipient-dialog-styles";
 import { KEYBOARD_CTA_GAP } from "@/lib/constants";
 import { StateCopy } from "@/lib/state-copy";
-import { Colors } from "@/lib/colors";
 
 type GiftPreferencesDialogProps = {
   visible: boolean;
@@ -148,25 +147,26 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
                 submitBehavior="blurAndSubmit"
                 style={styles.input}
               />
+              <SegmentedButtons
+                value={noCeiling ? "noLimit" : "range"}
+                onValueChange={(value) => setNoCeiling(value === "noLimit")}
+                buttons={[
+                  { value: "range", label: "Set a range" },
+                  { value: "noLimit", label: "No set limit" },
+                ]}
+                style={styles.input}
+              />
               <View style={styles.row}>
                 <TextInput
                   mode="outlined"
-                  label="Min $"
+                  label={noCeiling ? "From $ (optional)" : "Min $"}
                   defaultValue={minBudget}
                   onChangeText={setMinBudget}
                   keyboardType="number-pad"
                   returnKeyType="done"
                   style={[styles.input, styles.budgetInput]}
                 />
-                {noCeiling ? (
-                  <TextInput
-                    mode="outlined"
-                    label="Max $"
-                    value="No limit"
-                    editable={false}
-                    style={[styles.input, styles.budgetInput]}
-                  />
-                ) : (
+                {!noCeiling && (
                   <TextInput
                     mode="outlined"
                     label="Max $"
@@ -177,14 +177,6 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
                     style={[styles.input, styles.budgetInput]}
                   />
                 )}
-              </View>
-              <View style={styles.switchRow}>
-                <Text variant="bodyLarge">No upper limit</Text>
-                <Switch
-                  value={noCeiling}
-                  onValueChange={setNoCeiling}
-                  color={Colors.brand.mediumTeal}
-                />
               </View>
             </View>
             {saveFailed && (
