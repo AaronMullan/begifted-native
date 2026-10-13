@@ -180,6 +180,7 @@ serve(async (req) => {
       extractedData,
       customSystemPrompt,
       customIntakeRules,
+      customExtractionPrompt,
       overrideProvider,
       overrideModel,
     } = requestBody;
@@ -353,7 +354,10 @@ serve(async (req) => {
         existingData,
         customSystemPrompt,
         aiOverride,
-        intakeRulesOverride
+        intakeRulesOverride,
+        typeof customExtractionPrompt === "string"
+          ? customExtractionPrompt
+          : undefined
       );
       timings.handler_ms = Date.now() - handlerStartedAt;
       logRequestTiming(action, conversationType);
