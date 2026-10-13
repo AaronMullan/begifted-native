@@ -139,9 +139,13 @@ export async function handleConversation(
         ? Promise.resolve(extractionTemplateCache.text)
         : timedLoad(
             "add_recipient_extraction",
-            ADD_RECIPIENT_EXTRACTION_DEFAULT,
+            "",
             "extraction_prompt_load_ms"
           ).then((loaded) => {
+            // No row loaded: a failed query, or the gap mid-deploy when no
+            // version is active. Not cached, so the next turn retries rather
+            // than pinning the default over a version an admin just activated.
+            if (!loaded) return ADD_RECIPIENT_EXTRACTION_DEFAULT;
             const text = loaded.includes("{{conversationHistory}}")
               ? loaded
               : ADD_RECIPIENT_EXTRACTION_DEFAULT;
