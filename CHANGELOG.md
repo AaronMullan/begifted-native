@@ -19,6 +19,21 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-10-14 — OTA
+
+### App
+
+- About a person now has a Gift Ideas link at the top when you open it directly, so you can reach their ideas even before they have any moments. (DEV-486)
+- Budget is now one setting: a range, or "No set limit" with an optional starting amount. The profile shows it on a single line. (DEV-563)
+
+### Backend
+
+- Your gifting profile can now pick up the kind of gift you reach for across different people — hands-on, personal, practical — once the same quality shows up in gifts you chose for two different kinds of relationship. Choices for one person stay with that person. (DEV-507)
+- A birthday given with its year when adding someone ("her birthday is October 6 2009") now keeps the year, so their age is known and gift ideas fit it. (DEV-544)
+- The Playground has a new "Add Recipient Rules" entry: which details adding someone requires, in what order, and what counts as enough for each. Adding someone works exactly as before; a change made there takes effect on the next conversation. (DEV-544)
+- The Playground has a new "Add Recipient Extraction" entry: the instructions that decide which details an answer has captured, such as how an approximate birthday is recorded. Adding someone works exactly as before; a change made there takes effect on the next conversation. (DEV-562)
+- Asking what to send someone who has blocked you, or who asked you to stop contacting them, now ends Add a Person rather than moving on to ask who to add. (DEV-564)
+
 ## 2026-10-12 — OTA
 
 ### App
