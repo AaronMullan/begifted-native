@@ -82,7 +82,10 @@ export default function GiftIdeasPage() {
   // actually loaded and there is something to view. The count must be the
   // partition the list renders: an occasion filter can leave the screen on
   // its empty state while older suggestions for other occasions exist.
-  const { visible, past } = partitionSuggestions(suggestions, occasionFilter);
+  const { visible, active, past } = partitionSuggestions(
+    suggestions,
+    occasionFilter
+  );
   const visibleSuggestionCount = visible.length;
   // A failed fetch with nothing cached must not read as "no ideas".
   const loadFailed = suggestionsFailed && suggestions.length === 0;
@@ -112,9 +115,11 @@ export default function GiftIdeasPage() {
     logProductEvent(user.id, "recommendations_viewed", {
       recipient_id: id,
       suggestion_count: visibleSuggestionCount,
+      suggestion_ids: active.map((s) => s.id),
+      past_suggestion_ids: past.map((s) => s.id),
       screen: "gift_ideas",
     });
-  }, [user, id, loadingSuggestions, visibleSuggestionCount]);
+  }, [user, id, loadingSuggestions, visibleSuggestionCount, active, past]);
 
   const isLoading =
     loadingRecipient ||

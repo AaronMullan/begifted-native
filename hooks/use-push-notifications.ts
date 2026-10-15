@@ -7,6 +7,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { Href } from "expo-router";
 import { router, usePathname } from "expo-router";
 import { useAuth } from "./use-auth";
+import { noteNotificationTap } from "./use-app-open-tracking";
+import { logProductEvent } from "../lib/api";
 import { queryKeys } from "../lib/query-keys";
 import {
   isPushPermissionGranted,
@@ -49,24 +51,42 @@ if (Platform.OS === "android") {
 // each response at most once so the second sighting can't push a duplicate.
 let lastAppliedResponseId: string | null = null;
 
+function stringOrNull(value: unknown): string | null {
+  return typeof value === "string" && value ? value : null;
+}
+
 /**
- * Applies a notification tap: refreshes the target's cached gift suggestions
- * and returns the Gift Ideas route to open, or null when the payload carries
- * no target or the response was already applied. The caller navigates.
+ * Applies a notification tap: logs `notification_opened`, refreshes the
+ * target's cached gift suggestions and returns the Gift Ideas route to open,
+ * or null when the payload carries no target or the response was already
+ * applied. The caller navigates. `launch` is "cold" when the tap started the
+ * app from a killed state.
  */
 export function consumeNotificationResponse(
   response: Notifications.NotificationResponse,
-  queryClient: QueryClient
+  queryClient: QueryClient,
+  userId: string | undefined,
+  launch: "cold" | "warm"
 ): Href | null {
   const responseId = response.notification.request.identifier;
   if (responseId === lastAppliedResponseId) return null;
-  const data = response.notification.request.content.data;
-  const recipientId = data?.recipientId;
-  if (typeof recipientId !== "string" || !recipientId) return null;
   lastAppliedResponseId = responseId;
+  const data = response.notification.request.content.data;
+  noteNotificationTap();
+  if (userId) {
+    logProductEvent(userId, "notification_opened", {
+      type: stringOrNull(data?.type),
+      recipient_id: stringOrNull(data?.recipientId),
+      occasion_id: stringOrNull(data?.occasionId),
+      notification_id: stringOrNull(data?.notificationId),
+      cold_start: launch === "cold",
+    });
+  }
   // Otherwise a stale tap resurfaces as "the launch tap" the next time the
   // auth gate routes a signed-in user (e.g. after sign-out and sign-in).
   Notifications.clearLastNotificationResponse();
+  const recipientId = data?.recipientId;
+  if (typeof recipientId !== "string" || !recipientId) return null;
   // Invalidate the target's cached suggestions before navigating so the gifts
   // screen refetches on mount instead of serving the still-fresh cached list.
   queryClient.invalidateQueries({
@@ -86,11 +106,14 @@ export function consumeNotificationResponse(
  * auth gate reads it once it knows where the user may go.
  */
 export function consumeLaunchNotification(
-  queryClient: QueryClient
+  queryClient: QueryClient,
+  userId: string
 ): Href | null {
   if (Platform.OS === "web") return null;
   const response = Notifications.getLastNotificationResponse();
-  return response ? consumeNotificationResponse(response, queryClient) : null;
+  return response
+    ? consumeNotificationResponse(response, queryClient, userId, "cold")
+    : null;
 }
 
 /** Drops a launch tap the current session may not act on. */
@@ -184,13 +207,18 @@ export function usePushNotifications(): PushIntroControls {
     if (pathname === "/") return;
     const subscription = Notifications.addNotificationResponseReceivedListener(
       (response) => {
-        const href = consumeNotificationResponse(response, queryClient);
+        const href = consumeNotificationResponse(
+          response,
+          queryClient,
+          user?.id,
+          "warm"
+        );
         if (href) router.push(href);
       }
     );
 
     return () => subscription.remove();
-  }, [pathname, queryClient]);
+  }, [pathname, queryClient, user?.id]);
 
   // On foreground: clear the badge and re-register the push token. Registration
   // otherwise runs only once per JS context (login/cold start), so a token the

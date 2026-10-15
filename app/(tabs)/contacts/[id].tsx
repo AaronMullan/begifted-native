@@ -368,7 +368,10 @@ export default function RecipientEditPage() {
   // list actually renders (an occasion filter can leave the screen empty
   // while older suggestions for other occasions exist).
   const isFocused = useIsFocused();
-  const { visible, past } = partitionSuggestions(suggestions, occasionFilter);
+  const { visible, active, past } = partitionSuggestions(
+    suggestions,
+    occasionFilter
+  );
   const visibleSuggestionCount = visible.length;
   // A failed fetch with nothing cached must not read as "no ideas".
   const suggestionsLoadFailed = suggestionsFailed && suggestions.length === 0;
@@ -396,19 +399,22 @@ export default function RecipientEditPage() {
     visibleSuggestionCount > 0;
   const loggedRecommendationsViewRef = useRef(false);
   useEffect(() => {
-    if (!giftsReady) return;
-    triggerCheckIn("first_gift_set");
-    // Log recommendations_viewed once per screen visit, when the gifts tab
-    // actually shows a settled set — not merely on mount.
-    if (user && recipientId && !loggedRecommendationsViewRef.current) {
-      loggedRecommendationsViewRef.current = true;
-      logProductEvent(user.id, "recommendations_viewed", {
-        recipient_id: recipientId,
-        suggestion_count: suggestions.length,
-        screen: "recipient_detail",
-      });
-    }
-  }, [giftsReady, triggerCheckIn, user, recipientId, suggestions.length]);
+    if (giftsReady) triggerCheckIn("first_gift_set");
+  }, [giftsReady, triggerCheckIn]);
+  // Log recommendations_viewed once per screen visit, when the gifts tab
+  // actually shows a settled set — not merely on mount.
+  useEffect(() => {
+    if (!giftsReady || !user || !recipientId) return;
+    if (loggedRecommendationsViewRef.current) return;
+    loggedRecommendationsViewRef.current = true;
+    logProductEvent(user.id, "recommendations_viewed", {
+      recipient_id: recipientId,
+      suggestion_count: suggestions.length,
+      suggestion_ids: active.map((s) => s.id),
+      past_suggestion_ids: past.map((s) => s.id),
+      screen: "recipient_detail",
+    });
+  }, [giftsReady, user, recipientId, suggestions.length, active, past]);
 
   // Start generation tracking when navigated from the add flow with
   // generating=true (only when there is nothing to show yet).

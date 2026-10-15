@@ -24,6 +24,7 @@ import PushNotificationsIntro from "../components/PushNotificationsIntro";
 import { Colors } from "../lib/colors";
 import { useFontsLoader } from "../hooks/use-fonts-loader";
 import { usePushNotifications } from "../hooks/use-push-notifications";
+import { useAppOpenTracking } from "../hooks/use-app-open-tracking";
 import { defaultQueryOptions } from "../lib/query-defaults";
 import { persistOptions } from "../lib/query-persister";
 import { captureMutationError, captureQueryError } from "../lib/sentry-helpers";
@@ -182,6 +183,7 @@ const customTheme = {
 function AppShell() {
   // Set up push notification registration, handlers, and deep linking
   const pushIntro = usePushNotifications();
+  useAppOpenTracking();
 
   return (
     <View style={styles.container}>
