@@ -7,7 +7,8 @@
 --   failed    - no device accepted it; push_error holds the Expo error code
 --               or HTTP status
 --   no_device - the user has no registered push token
--- Users with push turned off get no row at all, so there is no status for them.
+--   disabled  - a deferred row whose user turned push off before it was sent
+-- Users who already had push turned off get no row at all.
 -- Rows written before this column existed stay NULL.
 
 ALTER TABLE app_notifications
