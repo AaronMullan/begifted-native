@@ -36,6 +36,7 @@ import Avatar, { deriveUserInitials } from "../../../components/Avatar";
 import StateDropdown from "../../../components/settings/StateDropdown";
 import { invokeWithRetry } from "../../../lib/edge-retry";
 import { supabase } from "../../../lib/supabase";
+import { appleAuthorizationCodeForDeletion } from "../../../lib/social-auth";
 import { Colors } from "../../../lib/colors";
 import { Typography } from "../../../lib/typography";
 import {
@@ -159,8 +160,12 @@ export default function ProfileSettings() {
   async function handleDeleteAccount() {
     setDeleting(true);
     try {
+      const appleAuthorizationCode = await appleAuthorizationCodeForDeletion();
       const { error } = await supabase.functions.invoke("delete-account", {
         method: "POST",
+        body: appleAuthorizationCode
+          ? { apple_authorization_code: appleAuthorizationCode }
+          : {},
       });
       if (error) throw error;
 
@@ -169,8 +174,17 @@ export default function ProfileSettings() {
       await supabase.auth.signOut({ scope: "local" });
       router.replace("/");
       showSnackbar("Your account has been deleted.");
-    } catch {
+    } catch (err) {
       setConfirmDeleteVisible(false);
+      // Dismissing Apple's re-authorization sheet is a change of mind, not a
+      // failure.
+      if (
+        err instanceof Error &&
+        "code" in err &&
+        err.code === "ERR_REQUEST_CANCELED"
+      ) {
+        return;
+      }
       showSnackbar(StateCopy.deleteFailed("your account"));
     } finally {
       setDeleting(false);
