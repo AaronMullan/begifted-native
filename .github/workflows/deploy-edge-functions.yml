@@ -47,7 +47,6 @@ jobs:
             supabase functions deploy refine-prompt --project-ref $SUPABASE_PROJECT_REF
             supabase functions deploy synthesize-giver-profile --project-ref $SUPABASE_PROJECT_REF
             supabase functions deploy synthesize-recipient-profile --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy generate-gift-suggestions --project-ref $SUPABASE_PROJECT_REF
             supabase functions deploy upload-recipient-photo --project-ref $SUPABASE_PROJECT_REF
             supabase functions deploy upload-avatar --project-ref $SUPABASE_PROJECT_REF
             supabase functions deploy record-legal-acceptance --project-ref $SUPABASE_PROJECT_REF
@@ -62,7 +61,6 @@ jobs:
             supabase functions deploy refine-prompt --project-ref $SUPABASE_PROJECT_REF
             supabase functions deploy synthesize-giver-profile --project-ref $SUPABASE_PROJECT_REF
             supabase functions deploy synthesize-recipient-profile --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy generate-gift-suggestions --project-ref $SUPABASE_PROJECT_REF
             supabase functions deploy upload-recipient-photo --project-ref $SUPABASE_PROJECT_REF
             supabase functions deploy upload-avatar --project-ref $SUPABASE_PROJECT_REF
             supabase functions deploy record-legal-acceptance --project-ref $SUPABASE_PROJECT_REF

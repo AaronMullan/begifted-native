@@ -76,7 +76,8 @@ All Supabase queries live in `lib/api.ts`. Query cache keys are centralized in `
 **Edge Functions** (Deno, in `supabase/functions/`):
 
 - `recipient-conversation` — AI conversation for extracting recipient data from natural language
-- `generate-gift-suggestions` — AI gift recommendations
+
+Gift generation is not an edge function: it lives in the sibling `be-gifted` backend (`lib/services/gift-generation.ts`), reached by the app through `/api/generate-gifts`.
 
 **Before modifying any edge function parser or response types**, query the active prompt from `system_prompt_versions` to confirm the real JSON schema. The prompt is the source of truth — never derive types from PM descriptions or assumptions.
 

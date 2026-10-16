@@ -12,9 +12,7 @@ Handles AI-powered conversations for adding and updating recipients. Uses OpenAI
 - Extract recipient data (name, relationship, interests, birthday, etc.)
 - Support partial field updates (e.g., just updating interests)
 
-### generate-gift-suggestions
-
-Generates personalized gift suggestions based on recipient data.
+Gift generation does not live here: it runs in the `be-gifted` backend (`lib/services/gift-generation.ts`).
 
 ## Deployment
 
