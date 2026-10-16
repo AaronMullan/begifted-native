@@ -60,7 +60,8 @@ test("a retried backfill restarts the stall clock on an old gap", async () => {
   await triggerGiftBackfill("r1", "o1");
   const [during] = await fetchGiftSuggestions("r1");
   expect(during.backfill_stalled_in_occasion).toBe(false);
-  expect(during.backfill_stalled_in_recipient).toBe(false);
+  // A retry on one occasion's list leaves the recipient-wide verdict alone.
+  expect(during.backfill_stalled_in_recipient).toBe(true);
 
   jest.spyOn(Date, "now").mockReturnValue(now + BACKFILL_MAX_MS + 1);
   const [after] = await fetchGiftSuggestions("r1");

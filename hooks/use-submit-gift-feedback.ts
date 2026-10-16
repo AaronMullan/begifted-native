@@ -9,6 +9,7 @@ import { invokeWithRetry } from "../lib/edge-retry";
 import {
   BACKFILL_MAX_MS,
   GIFT_REMOVAL_ACTIONS,
+  backfillScopeKey,
   insertGiftFeedback,
   triggerGiftBackfill,
   type GiftFeedbackAction,
@@ -162,9 +163,11 @@ function pollForBackfill(
   }
 }
 
-/** Scopes already retried this session, so a backfill that keeps failing
- * costs one generation per launch rather than one per visit. */
-const retriedStalledScopes = new Set<string>();
+/** A backfill that keeps failing costs one generation per scope per hour,
+ * not one per visit. Timed rather than once per session: iOS keeps a
+ * backgrounded app's JS alive for days, and the gap would go dead again. */
+const STALLED_RETRY_COOLDOWN_MS = 60 * 60 * 1000;
+const stalledRetryAt = new Map<string, number>();
 
 /**
  * Asks again for a replacement when the list shows a gap whose backfill never
@@ -181,18 +184,24 @@ export function useRetryStalledBackfill(
 
   useEffect(() => {
     if (!recipientId || !stalled) return;
-    const scope = `${recipientId}:${occasionId ?? ""}`;
-    if (retriedStalledScopes.has(scope)) return;
-    retriedStalledScopes.add(scope);
+    const scope = backfillScopeKey(recipientId, occasionId);
+    const last = stalledRetryAt.get(scope);
+    if (last !== undefined && Date.now() - last < STALLED_RETRY_COOLDOWN_MS) {
+      return;
+    }
+    stalledRetryAt.set(scope, Date.now());
 
+    // Only this scope's verdict: another list's stall is not being retried.
     queryClient.setQueryData<GiftSuggestion[]>(
       queryKeys.giftSuggestions(recipientId),
       (old) =>
-        old?.map((s) => ({
-          ...s,
-          backfill_stalled_in_recipient: false,
-          backfill_stalled_in_occasion: false,
-        }))
+        old?.map((s) =>
+          occasionId
+            ? s.occasion_id === occasionId
+              ? { ...s, backfill_stalled_in_occasion: false }
+              : s
+            : { ...s, backfill_stalled_in_recipient: false }
+        )
     );
     triggerGiftBackfill(recipientId, occasionId);
     pollForBackfill(queryClient, recipientId, occasionId);
