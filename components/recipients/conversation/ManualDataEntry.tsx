@@ -85,6 +85,10 @@ export function ManualDataEntry({
       // unless a maximum typed here replaces it.
       gift_budget_no_ceiling:
         partialData?.gift_budget_no_ceiling === true && !budgetMax,
+      // No control here either; what the chat heard about owned items and
+      // avoids is kept rather than lost to the form.
+      already_owns: partialData?.already_owns,
+      avoid: partialData?.avoid,
       address: address.trim() || undefined,
       address_line_2: addressLine2.trim() || undefined,
       city: city.trim() || undefined,

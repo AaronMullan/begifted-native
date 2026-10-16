@@ -45,6 +45,10 @@ export interface ExtractedData {
   // Interests the user wants dropped in an update conversation. Reconciled
   // against the recipient's existing interests on the client (DEV-119).
   interests_removed?: string[];
+  // Things the giver says the recipient already has, and things not to give.
+  // Saved to recipients.avoid_list, which generation reads as hard blocks.
+  already_owns?: string[];
+  avoid?: string[];
   birthday?: string;
   /** Current age in whole years, only when the user explicitly stated it. */
   age?: number | null;

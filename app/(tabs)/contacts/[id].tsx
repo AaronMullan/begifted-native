@@ -69,6 +69,10 @@ import {
 } from "../../../utils/birthday";
 import { sanitizeExtractedOccasionDate } from "../../../utils/occasion-dates";
 import { reconcileInterests } from "../../../utils/interests";
+import {
+  describeAvoidAdditions,
+  mergeAvoidList,
+} from "../../../utils/avoid-list";
 
 // Insert occasions captured by the general "Update what we know" chat into the
 // occasions table, de-duplicating against the recipient's existing occasions by
@@ -685,6 +689,36 @@ export default function RecipientEditPage() {
       delete (updates as Record<string, unknown>).interests;
     }
 
+    // Owned items and avoids are appended to the list generation blocks on;
+    // a note that mentions neither leaves it untouched. The feedback trigger
+    // also appends to this column server-side, so merge against a fresh read
+    // rather than the cached recipient. This narrows the window for losing a
+    // just-rejected title to one round-trip; it does not close it.
+    let avoidMerge = mergeAvoidList(
+      recipient.avoid_list,
+      extracted.already_owns,
+      extracted.avoid
+    );
+    if (avoidMerge.avoidList) {
+      const { data: fresh, error: freshError } = await supabase
+        .from("recipients")
+        .select("avoid_list")
+        .eq("id", recipient.id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (freshError || !fresh) {
+        console.error("Failed to read avoid list:", freshError);
+        showSnackbar(StateCopy.saveFailed("that"));
+        return false;
+      }
+      avoidMerge = mergeAvoidList(
+        fresh.avoid_list,
+        extracted.already_owns,
+        extracted.avoid
+      );
+      if (avoidMerge.avoidList) updates.avoid_list = avoidMerge.avoidList;
+    }
+
     // Normalize any extracted birthday into canonical storage form so we never
     // persist a loose "08-18" (DEV-105).
     if (typeof updates.birthday === "string") {
@@ -863,10 +897,16 @@ export default function RecipientEditPage() {
 
     // The fields landed but the moments didn't: say both, or the moments read
     // as saved.
+    const remembered =
+      describeAvoidAdditions(
+        recipient.name,
+        avoidMerge.addedOwned,
+        avoidMerge.addedAvoid
+      ) || `Updated ${recipient.name}'s profile.`;
     showSnackbar(
       insertedOccasions === null
-        ? `Updated ${recipient.name}'s profile. ${StateCopy.saveFailed("the moments")}`
-        : `Updated ${recipient.name}'s profile.`
+        ? `${remembered} ${StateCopy.saveFailed("the moments")}`
+        : remembered
     );
     return true;
   };
