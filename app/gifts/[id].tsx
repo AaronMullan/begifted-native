@@ -71,6 +71,7 @@ export default function GiftIdeasPage() {
   const {
     data: suggestions = [],
     isLoading: loadingSuggestions,
+    isFetching: fetchingSuggestions,
     isError: suggestionsFailed,
     refetch: refetchSuggestions,
   } = useGiftSuggestions(id);
@@ -109,7 +110,13 @@ export default function GiftIdeasPage() {
   const loggedViewRef = useRef(false);
   useEffect(() => {
     if (loggedViewRef.current) return;
-    if (!user || !id || loadingSuggestions || visibleSuggestionCount === 0)
+    if (
+      !user ||
+      !id ||
+      loadingSuggestions ||
+      fetchingSuggestions ||
+      visibleSuggestionCount === 0
+    )
       return;
     loggedViewRef.current = true;
     logProductEvent(user.id, "recommendations_viewed", {
@@ -119,7 +126,15 @@ export default function GiftIdeasPage() {
       past_suggestion_ids: past.map((s) => s.id),
       screen: "gift_ideas",
     });
-  }, [user, id, loadingSuggestions, visibleSuggestionCount, active, past]);
+  }, [
+    user,
+    id,
+    loadingSuggestions,
+    fetchingSuggestions,
+    visibleSuggestionCount,
+    active,
+    past,
+  ]);
 
   const isLoading =
     loadingRecipient ||

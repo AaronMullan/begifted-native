@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { AppState, Platform } from "react-native";
+import type { AppStateStatus } from "react-native";
 import * as Notifications from "expo-notifications";
 import { useAuth } from "./use-auth";
 import { logProductEvent } from "../lib/api";
@@ -9,29 +10,68 @@ import { logProductEvent } from "../lib/api";
 const APP_OPEN_GAP_MS = 30 * 60 * 1000;
 
 // iOS can deliver a tap's response just before or just after the "active"
-// transition, so a resume waits briefly and then checks for a tap near it.
+// transition, so an open that follows a transition waits briefly and then
+// checks for a tap near it.
 const NOTIFICATION_TAP_SETTLE_MS = 2000;
 
 // Read at module load, before the auth gate consumes and clears the launch tap.
-const launchedFromNotification =
-  Platform.OS !== "web" && Notifications.getLastNotificationResponse() !== null;
+const launchResponse =
+  Platform.OS === "web" ? null : Notifications.getLastNotificationResponse();
+
+/**
+ * Identifier of the tap that started this process, if one did. A later read of
+ * the "last response" that doesn't match it was tapped while the app was
+ * already running.
+ */
+export const launchNotificationId =
+  launchResponse?.notification.request.identifier ?? null;
 
 // Per JS context: one cold start per process, however many sign-ins it sees.
 let coldStartLogged = false;
 let backgroundedAt: number | null = null;
 let lastNotificationTapAt = 0;
+let settleTimer: ReturnType<typeof setTimeout> | null = null;
 
-/** Called for every applied notification tap, so a resume can attribute itself. */
+/** Called for every applied notification tap, so an open can attribute itself. */
 export function noteNotificationTap(): void {
   lastNotificationTapAt = Date.now();
 }
 
-function logColdStart(userId: string): void {
-  coldStartLogged = true;
-  logProductEvent(userId, "app_opened", {
-    cold_start: true,
-    from_notification: launchedFromNotification,
-  });
+function logOpenAfterSettle(userId: string, coldStart: boolean): void {
+  const activeAt = Date.now();
+  settleTimer = setTimeout(() => {
+    settleTimer = null;
+    logProductEvent(userId, "app_opened", {
+      cold_start: coldStart,
+      from_notification:
+        (coldStart && launchResponse !== null) ||
+        lastNotificationTapAt >= activeAt - NOTIFICATION_TAP_SETTLE_MS,
+    });
+  }, NOTIFICATION_TAP_SETTLE_MS);
+}
+
+// Kept outside the hook on purpose: React Compiler rewrites hook bodies, and it
+// compiled a copy-then-null of `backgroundedAt` into a read after the null,
+// so every resume looked like the app had never left.
+function handleAppStateChange(
+  state: AppStateStatus,
+  userId: string | undefined
+): void {
+  if (state === "background") {
+    backgroundedAt = Date.now();
+    return;
+  }
+  if (state !== "active" || !userId) return;
+  if (!coldStartLogged) {
+    // A process launched in the background (e.g. by a silent push) is first
+    // opened here, possibly by a tap.
+    coldStartLogged = true;
+    logOpenAfterSettle(userId, true);
+    return;
+  }
+  const awayMs = backgroundedAt === null ? 0 : Date.now() - backgroundedAt;
+  backgroundedAt = null;
+  if (awayMs >= APP_OPEN_GAP_MS) logOpenAfterSettle(userId, false);
 }
 
 /**
@@ -44,42 +84,24 @@ export function useAppOpenTracking(): void {
   const { user } = useAuth();
   const userId = user?.id;
 
-  // A process launched in the background (e.g. by a silent push) hasn't been
-  // opened yet; the first "active" transition logs its cold start instead.
   useEffect(() => {
     if (!userId || coldStartLogged) return;
-    if (AppState.currentState === "active") logColdStart(userId);
+    if (AppState.currentState !== "active") return;
+    coldStartLogged = true;
+    logProductEvent(userId, "app_opened", {
+      cold_start: true,
+      from_notification: launchResponse !== null,
+    });
   }, [userId]);
 
   useEffect(() => {
-    let settleTimer: ReturnType<typeof setTimeout> | null = null;
-    const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "background") {
-        backgroundedAt = Date.now();
-        return;
-      }
-      if (state !== "active" || !userId) return;
-      if (!coldStartLogged) {
-        logColdStart(userId);
-        return;
-      }
-      const leftAt = backgroundedAt;
-      backgroundedAt = null;
-      if (leftAt === null) return;
-      const activeAt = Date.now();
-      if (activeAt - leftAt < APP_OPEN_GAP_MS) return;
-      settleTimer = setTimeout(() => {
-        logProductEvent(userId, "app_opened", {
-          cold_start: false,
-          from_notification:
-            lastNotificationTapAt >= activeAt - NOTIFICATION_TAP_SETTLE_MS,
-        });
-      }, NOTIFICATION_TAP_SETTLE_MS);
-    });
-
+    const subscription = AppState.addEventListener("change", (state) =>
+      handleAppStateChange(state, userId)
+    );
     return () => {
       subscription.remove();
       if (settleTimer) clearTimeout(settleTimer);
+      settleTimer = null;
     };
   }, [userId]);
 }

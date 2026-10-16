@@ -7,7 +7,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { Href } from "expo-router";
 import { router, usePathname } from "expo-router";
 import { useAuth } from "./use-auth";
-import { noteNotificationTap } from "./use-app-open-tracking";
+import {
+  launchNotificationId,
+  noteNotificationTap,
+} from "./use-app-open-tracking";
 import { logProductEvent } from "../lib/api";
 import { queryKeys } from "../lib/query-keys";
 import {
@@ -111,9 +114,14 @@ export function consumeLaunchNotification(
 ): Href | null {
   if (Platform.OS === "web") return null;
   const response = Notifications.getLastNotificationResponse();
-  return response
-    ? consumeNotificationResponse(response, queryClient, userId, "cold")
-    : null;
+  if (!response) return null;
+  // The gate also reads a tap made on its sign-in screen, where the listener
+  // is detached; only the tap that started the process is a cold launch.
+  const launch =
+    response.notification.request.identifier === launchNotificationId
+      ? "cold"
+      : "warm";
+  return consumeNotificationResponse(response, queryClient, userId, launch);
 }
 
 /** Drops a launch tap the current session may not act on. */

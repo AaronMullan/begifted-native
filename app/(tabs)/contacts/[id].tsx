@@ -316,6 +316,7 @@ export default function RecipientEditPage() {
   const {
     data: suggestions = [],
     isLoading: loadingSuggestions,
+    isFetching: fetchingSuggestions,
     isError: suggestionsFailed,
     refetch: refetchSuggestions,
   } = useGiftSuggestions(recipientId, {
@@ -402,9 +403,10 @@ export default function RecipientEditPage() {
     if (giftsReady) triggerCheckIn("first_gift_set");
   }, [giftsReady, triggerCheckIn]);
   // Log recommendations_viewed once per screen visit, when the gifts tab
-  // actually shows a settled set — not merely on mount.
+  // actually shows a settled set — not merely on mount, and not the cached
+  // list a push tap is still refetching past.
   useEffect(() => {
-    if (!giftsReady || !user || !recipientId) return;
+    if (!giftsReady || fetchingSuggestions || !user || !recipientId) return;
     if (loggedRecommendationsViewRef.current) return;
     loggedRecommendationsViewRef.current = true;
     logProductEvent(user.id, "recommendations_viewed", {
@@ -414,7 +416,15 @@ export default function RecipientEditPage() {
       past_suggestion_ids: past.map((s) => s.id),
       screen: "recipient_detail",
     });
-  }, [giftsReady, user, recipientId, suggestions.length, active, past]);
+  }, [
+    giftsReady,
+    fetchingSuggestions,
+    user,
+    recipientId,
+    suggestions.length,
+    active,
+    past,
+  ]);
 
   // Start generation tracking when navigated from the add flow with
   // generating=true (only when there is nothing to show yet).
