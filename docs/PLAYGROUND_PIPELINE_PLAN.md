@@ -37,7 +37,7 @@ Production gift generation
 
 ### Pre-work: Git cleanup (begifted-native)
 
-- [ ] Remove `supabase/functions/generate-gift-suggestions/` from repo (unused legacy, production uses Vercel backend). Keep deployed function on Supabase for now.
+- [x] Remove `supabase/functions/generate-gift-suggestions/` from repo (unused legacy, production uses Vercel backend). Keep deployed function on Supabase for now.
 - [ ] Add `.claude/` and `supabase/.temp/` to `.gitignore`
 - [ ] Commit playground UI fixes + migrations + plan doc + cleanup
 - [ ] Push to develop

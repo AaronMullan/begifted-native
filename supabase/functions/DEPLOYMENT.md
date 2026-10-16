@@ -10,7 +10,7 @@
 
 Deploy a specific function:
 supabase functions deploy recipient-conversation
-supabase functions deploy generate-gift-suggestionsDeploy all functions:sh
+Deploy all functions:sh
 supabase functions deploy## Environment Variables
 
 Edge functions require the following environment variables set in Supabase Dashboard:
