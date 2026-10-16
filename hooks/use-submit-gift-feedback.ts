@@ -72,6 +72,12 @@ async function resynthesize(
   queryClient.invalidateQueries({ queryKey: staleKey });
 }
 
+const inFlightRecipientResynth = new Set<string>();
+const rerunRecipientResynth = new Set<string>();
+
+/** One rebuild per recipient at a time. Each run reads feedback once and
+ * overwrites the profile, so two overlapping runs can finish out of order and
+ * leave the older reading in place; a request made mid-run reruns after it. */
 function resynthesizeRecipient(
   queryClient: QueryClient,
   userId: string,
@@ -79,12 +85,24 @@ function resynthesizeRecipient(
 ) {
   clearTimeout(pendingRecipientResynth.get(recipientId));
   pendingRecipientResynth.delete(recipientId);
+  if (inFlightRecipientResynth.has(recipientId)) {
+    rerunRecipientResynth.add(recipientId);
+    return;
+  }
+  inFlightRecipientResynth.add(recipientId);
   resynthesize(
     queryClient,
     "synthesize-recipient-profile",
     { recipientId, skipGiftGeneration: true },
     queryKeys.recipient(userId, recipientId)
-  ).catch((err) => console.error("Recipient re-synthesis threw:", err));
+  )
+    .catch((err) => console.error("Recipient re-synthesis threw:", err))
+    .finally(() => {
+      inFlightRecipientResynth.delete(recipientId);
+      if (rerunRecipientResynth.delete(recipientId)) {
+        resynthesizeRecipient(queryClient, userId, recipientId);
+      }
+    });
 }
 
 /** Rebuilds the recipient profile once feedback on them has gone quiet. The
