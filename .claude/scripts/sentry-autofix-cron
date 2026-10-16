@@ -61,15 +61,23 @@ else
   unset CLAUDE_CODE_OAUTH_TOKEN
 fi
 
+# With no network at all, the DM and the webhook fail together. An alert that
+# couldn't be delivered is kept here and leads the next run's DM.
+UNDELIVERED_FILE="$LOG_DIR/.undelivered-alert"
+
 webhook_alert() {
   if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
     echo "no SLACK_WEBHOOK_URL in .env.local — skipping webhook alert"
+    echo "$(date +%Y-%m-%d): $1" >>"$UNDELIVERED_FILE"
     return 0
   fi
   local text=${1//\\/\\\\}
   text=${text//\"/\\\"}
   retry 3 curl -sS -m 10 -o /dev/null -X POST -H 'Content-type: application/json' \
-    --data "{\"text\":\"$text\"}" "$SLACK_WEBHOOK_URL" || echo "webhook alert failed (non-fatal)"
+    --data "{\"text\":\"$text\"}" "$SLACK_WEBHOOK_URL" || {
+    echo "webhook alert failed (non-fatal)"
+    echo "$(date +%Y-%m-%d): $1" >>"$UNDELIVERED_FILE"
+  }
 }
 
 # launchd fires runs missed during sleep immediately on wake, when Wi-Fi may
@@ -129,6 +137,11 @@ if ! mkdir "$LOCK_DIR" 2>/dev/null; then
 fi
 trap 'rmdir "$LOCK_DIR"' EXIT
 
+UNDELIVERED=""
+if [ -s "$UNDELIVERED_FILE" ]; then
+  UNDELIVERED="Alerts from earlier runs that never reached Slack: $(tr '\n' ' ' <"$UNDELIVERED_FILE")"
+fi
+
 fail() {
   echo "FAILED: $1"
   notify "failed — see $(basename "$LOG")"
@@ -138,7 +151,7 @@ fail() {
   if [ -z "${DM_SENT:-}" ]; then
     local dm_dir="$AUTOFIX_ROOT/begifted-native"
     [ -d "$dm_dir/.git" ] || dm_dir="$MAIN_CHECKOUT"
-    (cd "$dm_dir" && run_claude_retry "The overnight triage run FAILED before completing: $1. The log is at $LOG. Send a Slack DM to myself — the authenticated Slack user — with one short line saying the overnight triage failed and why. Use slack_send_message to my own DM channel; a real send (not a draft) is explicitly authorized for this self-notification. Do not message anyone else or post in any channel." "$NOTIFY_TIMEOUT_SECS" "failure DM") || {
+    (cd "$dm_dir" && run_claude_retry "The overnight triage run FAILED before completing: $1. ${UNDELIVERED:+$UNDELIVERED }The log is at $LOG. Send a Slack DM to myself — the authenticated Slack user — with one short line saying the overnight triage failed and why${UNDELIVERED:+, then one line listing the earlier alerts that never arrived}. Use slack_send_message to my own DM channel; a real send (not a draft) is explicitly authorized for this self-notification. Do not message anyone else or post in any channel." "$NOTIFY_TIMEOUT_SECS" "failure DM") && rm -f "$UNDELIVERED_FILE" || {
       echo "failure DM failed (non-fatal)"
       webhook_alert "Overnight triage FAILED: $1 — and the Claude-sent failure DM also failed (likely expired OAuth session; run claude /login). Log: $(basename "$LOG")"
     }
@@ -185,6 +198,25 @@ run_claude_retry "/slack-to-jira sweep #bugs" "$SWEEP_TIMEOUT_SECS" || SWEEP_STA
 
 find "$LOG_DIR" -name '*.log' -mtime +30 -delete || true
 
+# The feedback pass reports unreadable TestFlight feedback as a skipped source
+# and still exits 0, so probe the source here and count it as a failure, with
+# how long it has been down. Only the Apple Account Holder can accept a lapsed
+# agreement, so from the second night on it also goes out on the webhook.
+TF_DOWN_FILE="$LOG_DIR/.testflight-down-since"
+TF_FAILURE=""
+if TF_ERR=$(.claude/scripts/asc-api check 2>&1 >/dev/null); then
+  rm -f "$TF_DOWN_FILE"
+else
+  TF_REASON=$(printf '%s\n' "$TF_ERR" | grep -oE '"code" : "[^"]+"' | head -1 | cut -d'"' -f4 || true)
+  TF_REASON=${TF_REASON:-$(printf '%s\n' "$TF_ERR" | head -1)}
+  [ -s "$TF_DOWN_FILE" ] || date +%Y-%m-%d >"$TF_DOWN_FILE"
+  TF_SINCE=$(cat "$TF_DOWN_FILE")
+  TF_FAILURE="TestFlight feedback unreadable since $TF_SINCE ($TF_REASON)"
+  if [ "$TF_SINCE" != "$(date +%Y-%m-%d)" ]; then
+    webhook_alert "$TF_FAILURE — tester feedback sent through TestFlight is not being read. If the reason is REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED, the Apple Account Holder must accept the agreement in App Store Connect → Business."
+  fi
+fi
+
 FAILURES=""
 if [ "$AUTOFIX_STATUS" -ne 0 ]; then
   FAILURES="autofix exited $AUTOFIX_STATUS"
@@ -195,15 +227,18 @@ fi
 if [ "$SWEEP_STATUS" -ne 0 ]; then
   FAILURES="${FAILURES:+$FAILURES; }slack sweep exited $SWEEP_STATUS"
 fi
+if [ -n "$TF_FAILURE" ]; then
+  FAILURES="${FAILURES:+$FAILURES; }$TF_FAILURE"
+fi
 # DM Aaron the run summary. This is the one place a real slack_send_message
 # (not a draft) is authorized: it's a self-notification to the authenticated
 # user, nothing a teammate sees. Runs on failure too, so a broken pass still
 # surfaces in Slack; the DM itself failing must not fail the run.
-OUTCOME="${FAILURES:-all passes completed}"
+OUTCOME="${FAILURES:-all passes completed}${UNDELIVERED:+. $UNDELIVERED}"
 NOTIFY_PROMPT="Read today's overnight triage log at $LOG. Then send a Slack DM to myself — the authenticated Slack user — summarizing the run: one short line per pass (sentry-autofix, sentry-feedback-to-jira, #bugs sweep) saying what was filed/opened/archived or that it was quiet, and lead with any failures. Then the log's STRANDED RECIPIENTS line: if anyone is listed, put it under Needs attention with each recipient's id, the date they were added and their moments' status — these are people a tester added who have no gift ideas at all. Overall outcome: $OUTCOME. Use slack_send_message to my own DM channel; a real send (not a draft) is explicitly authorized for this self-notification. Do not message anyone else or post in any channel."
-run_claude_retry "$NOTIFY_PROMPT" "$NOTIFY_TIMEOUT_SECS" "slack DM notification" || {
+run_claude_retry "$NOTIFY_PROMPT" "$NOTIFY_TIMEOUT_SECS" "slack DM notification" && rm -f "$UNDELIVERED_FILE" || {
   echo "slack notify failed (non-fatal)"
-  webhook_alert "Overnight triage: summary DM could not be sent (likely expired OAuth session; run claude /login). Outcome: $OUTCOME. Log: $(basename "$LOG")"
+  webhook_alert "Overnight triage: summary DM could not be sent (likely expired OAuth session; run claude /login). Outcome: ${FAILURES:-all passes completed}. Log: $(basename "$LOG")"
 }
 # The summary DM above already led with any failures — don't double-DM from fail().
 DM_SENT=1

@@ -79,7 +79,7 @@ On approval, create the reply as a **Slack draft** with `slack_send_message_draf
 
 `sweep <#channel|C…-id> [lookback] [dry-run]` — the daily headless pass the launchd wrapper runs against **#bugs** (`C0B96TUSCUC`). Never waits for input: rubric-clean bug reports are filed straight to To Do; anything borderline is skipped and reported, never filed. `dry-run` executes everything with zero writes (no tickets, no reactions), printing what each write would have been.
 
-Defaults: lookback **3d** (covers a weekend or a failed run — the ✅/permalink dedup makes overlap harmless). Cap: **≤ 10 new tickets per run** — a runaway guard; over-cap messages stay unreacted and get picked up next run.
+Defaults: lookback **14d** (covers a weekend plus a week or more of failed runs, so a post never ages out unread — the ✅/permalink dedup makes overlap harmless). Cap: **≤ 10 new tickets per run** — a runaway guard; over-cap messages stay unreacted and get picked up next run.
 
 Flow, reusing the interactive steps' craft (thread reading, image pulling, dedup discipline, carry-research-into-the-ticket):
 
