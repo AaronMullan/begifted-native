@@ -102,7 +102,11 @@ api_get() {
   body=$(mktemp)
   # --globoff: the fields[...] query parameters would otherwise be parsed as
   # curl URL globs and rejected as malformed.
-  status=$(curl -s --globoff -o "$body" -w '%{http_code}' -H "Authorization: Bearer $(token)" -H 'Accept: application/json' "$BASE$path")
+  status=$(curl -s -m 30 --globoff -o "$body" -w '%{http_code}' -H "Authorization: Bearer $(token)" -H 'Accept: application/json' "$BASE$path") || {
+    echo "asc-api: request failed (curl exit $?) for $path" >&2
+    rm -f "$body"
+    return 1
+  }
   if [ "$status" != "200" ]; then
     echo "asc-api: HTTP $status for $path" >&2
     cat "$body" >&2

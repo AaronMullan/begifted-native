@@ -51,7 +51,7 @@ else
 fi
 ```
 
-If `check` fails (no key in `.env.local`, or Apple 401/403 — wrong key or role, or a lapsed agreement) or either pull errors, **skip the rest of Step 1b entirely**, continue with the Sentry items only, and put `testflight: source unavailable (<reason>)` in the Step 7 report. This is never a run failure.
+If `check` fails (no key in `.env.local`, or Apple 401/403 — wrong key or role, or a lapsed agreement) or either pull errors, **skip the rest of Step 1b entirely**, continue with the Sentry items only, and put `testflight: source unavailable (<reason>)` in the Step 7 report. This pass still completes; the launchd wrapper's own `check` is what marks the overnight run failed.
 
 Both lists are newest-first, `data[]` entries with `id` (the submission id — the stable ref for everything below), `attributes.createdDate`, `attributes.comment` (the tester's words; often empty on screenshot-only submissions), `attributes.email`, `deviceModel`, `osVersion`, and for screenshots `attributes.screenshots[]` (`url`, `width`, `height`, `expirationDate` — the URLs are pre-signed and expire, so download in this run). `included[]` carries the build (`version`) and tester (`firstName`/`lastName`/`email`) referenced by each entry's `relationships`.
 
