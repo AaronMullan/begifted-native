@@ -7,14 +7,23 @@ import { supabase } from "../supabase";
  * client — a DB trigger on auth.users writes it server-side, where a signup
  * that ends without a session (email verification pending) can't drop it.
  * `recommendation_engaged` is not an event here: outbound_clicks already
- * captures it.
+ * captures it. `app_opened` and `notification_opened` are usage signals for
+ * retention analysis only; the Customer.io trigger skips them so they never
+ * reach email journeys.
  */
 export type ProductEventName =
-  "signed_up" | "person_added" | "occasion_added" | "recommendations_viewed";
+  | "signed_up"
+  | "person_added"
+  | "occasion_added"
+  | "recommendations_viewed"
+  | "app_opened"
+  | "notification_opened";
 
+// String arrays land as jsonb arrays, so ID lists stay queryable with jsonb
+// operators instead of being split back out of a joined string.
 export type ProductEventProperties = Record<
   string,
-  string | number | boolean | null
+  string | number | boolean | null | string[]
 >;
 
 export type ProductEventInput = {

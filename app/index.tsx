@@ -75,7 +75,10 @@ export default function Index() {
         // The push must wait for the replace to commit: queued in the same
         // tick, expo-router has no mounted tab navigator to descend into and
         // pushes a second one onto the root stack instead.
-        const notificationHref = consumeLaunchNotification(queryClient);
+        const notificationHref = consumeLaunchNotification(
+          queryClient,
+          session.user.id
+        );
         router.replace("/dashboard" as Href);
         if (notificationHref) {
           setTimeout(() => router.push(notificationHref), 0);
