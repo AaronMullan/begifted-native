@@ -180,6 +180,8 @@ Extract and return valid JSON (no markdown formatting) with this exact structure
   "age": "The recipient's CURRENT age in whole years as a number, but ONLY when the user explicitly states it (e.g. \"he's 47\", \"she just turned 30\", \"my 8 year old\"). Do NOT infer age from relationship, life stage, grade, graduation, hobbies, or occasion. null if not explicitly stated.",
   "interests": ["array of interests the recipient LIKES / is into, as expressed in this conversation. NEVER include a topic the conversation negates ('does not', 'not interested in', 'no interest in', 'hates') — a statement like 'he is not interested in fish' must never produce a fishing-related interest here."],
   "interests_removed": ["array of interests the user says the recipient is NO LONGER into, dislikes, or wants removed (e.g. \"not into pokemon anymore\", \"she's over hiking\"). When a CURRENTLY STORED INTERESTS list is provided above, every stored entry matching the dropped topic must appear here verbatim; also include the user's own wording. Empty array if no interest was dropped — never put a newly-liked interest here."],
+  "already_owns": ["array of specific things the user says the recipient ALREADY HAS or owns, as short noun phrases in the user's own wording without the verb — e.g. \"She already has a Kindle\" -> \"a Kindle\", \"already uses AirPods\" -> \"AirPods\". Only explicit statements of ownership; never infer ownership from an interest. Empty array if none."],
+  "avoid": ["array of things the user says to NOT give or that no longer suit the recipient, as short noun phrases without 'no'/'avoid' — e.g. \"No food gifts for Michelle\" -> \"food gifts\", \"he can't garden anymore\" -> \"gardening gifts\", \"she hates candles\" -> \"candles\". Only explicit statements; an owned item goes in already_owns, not here. Empty array if none."],
   "gift_budget_min": "Lower end of the gift budget range as a number, or null. RULES: (a) explicit range like \"$50-$75\" -> 50. (b) single anchor like \"around $150\"/\"$150\" -> about 0.8x the anchor (e.g. 120). (c) upper-limit only like \"under $150\"/\"up to $250\" -> null. (d) vague answer like \"flexible\"/\"nothing too expensive\" -> null. (e) no upper limit like \"the sky's the limit\" -> null unless a minimum was also stated. NEVER set min equal to max for a single anchor; a single amount must become a range.",
   "gift_budget_max": "Upper end of the gift budget range as a number, or null. RULES: (a) explicit range like \"$50-$75\" -> 75. (b) single anchor like \"around $150\"/\"$150\" -> about 1.25x the anchor (e.g. 190). (c) upper-limit only like \"under $150\"/\"up to $250\" -> that number (150 / 250). (d) vague answer -> null. (e) no upper limit like \"the sky's the limit\" -> null; never invent a high number for it.",
   "gift_budget_no_ceiling": "true ONLY when the user explicitly says there is no upper limit on price — e.g. \"the sky's the limit\", \"no limit\", \"money is no object\", \"whatever it costs\". false for everything else, including a stated amount or range, an upper limit, a vague answer like \"flexible\"/\"not sure\"/\"whatever feels right\", and no mention of price at all.",
@@ -216,7 +218,7 @@ IMPORTANT:
     aiConfig.apiKey,
     {
       messages: [{ role: "user", content: fullExtractionPrompt }],
-      maxTokens: 500,
+      maxTokens: 700,
       temperature: 0.3,
       jsonMode: true,
     }
@@ -237,6 +239,8 @@ IMPORTANT:
       birthday: undefined,
       interests: [],
       interests_removed: [],
+      already_owns: [],
+      avoid: [],
       gift_budget_min: undefined,
       gift_budget_max: undefined,
       gift_budget_no_ceiling: false,

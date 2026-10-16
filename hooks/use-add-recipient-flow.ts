@@ -43,6 +43,7 @@ import {
   SAFETY_DECLINED_FALLBACK_MESSAGE,
   useConversationFlow,
 } from "./use-conversation-flow";
+import { mergeAvoidList } from "../utils/avoid-list";
 
 type InitialAddress = Partial<
   Pick<ExtractedData, "address" | "city" | "state" | "zip_code" | "country">
@@ -552,6 +553,7 @@ export function useAddRecipientFlow(
         // Only ever the user's own words — the extractor refuses to infer this
         // from a name, language or food, and nothing here may add to it.
         cultural_context: data.culturalContext?.trim() || null,
+        avoid_list: mergeAvoidList([], data.already_owns, data.avoid).avoidList,
       };
 
       // Insert recipient
