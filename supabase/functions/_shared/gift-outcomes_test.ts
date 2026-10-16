@@ -389,3 +389,28 @@ Deno.test(
     assertEquals(context, "");
   }
 );
+
+Deno.test(
+  "a product problem reported right after a note drops it despite an earlier decision",
+  () => {
+    const context = buildRecipientNoteContext([
+      row({
+        gift_suggestion_id: "g5",
+        action: "keep_in_mix",
+        created_at: "2026-06-10T00:00:00Z",
+      }),
+      row({
+        gift_suggestion_id: "g5",
+        action: "gift_feedback",
+        notes: "Different product than described",
+        created_at: "2026-06-16T18:23:20Z",
+      }),
+      row({
+        gift_suggestion_id: "g5",
+        action: "product_problem",
+        created_at: "2026-06-16T18:23:27Z",
+      }),
+    ]);
+    assertEquals(context, "");
+  }
+);

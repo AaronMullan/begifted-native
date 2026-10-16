@@ -46,7 +46,7 @@ const RECIPIENT_SIGNAL_ACTIONS: GiftFeedbackAction[] = [
 
 /** Long enough to cover a rejection and the note typed after it, or a run of
  * rejections across a set, so they rebuild the profile once. */
-const RECIPIENT_RESYNTH_DEBOUNCE_MS = 20000;
+const RECIPIENT_RESYNTH_DEBOUNCE_MS = 60000;
 
 const pendingRecipientResynth = new Map<
   string,
@@ -72,26 +72,42 @@ async function resynthesize(
   queryClient.invalidateQueries({ queryKey: staleKey });
 }
 
-/** Rebuilds the recipient profile once feedback on them has gone quiet. The
- * synthesizer reads every feedback row, so the last rebuild in a burst sees
- * all of it. */
-function scheduleRecipientResynthesis(
+function resynthesizeRecipient(
   queryClient: QueryClient,
   userId: string,
   recipientId: string
 ) {
   clearTimeout(pendingRecipientResynth.get(recipientId));
+  pendingRecipientResynth.delete(recipientId);
+  resynthesize(
+    queryClient,
+    "synthesize-recipient-profile",
+    { recipientId, skipGiftGeneration: true },
+    queryKeys.recipient(userId, recipientId)
+  ).catch((err) => console.error("Recipient re-synthesis threw:", err));
+}
+
+/** Rebuilds the recipient profile once feedback on them has gone quiet. The
+ * synthesizer reads every feedback row, so the last rebuild in a burst sees
+ * all of it. A choice runs at once instead: the giver often leaves the app
+ * to buy the gift, and a backgrounded timer may never fire. */
+function scheduleRecipientResynthesis(
+  queryClient: QueryClient,
+  userId: string,
+  recipientId: string,
+  immediate: boolean
+) {
+  if (immediate) {
+    resynthesizeRecipient(queryClient, userId, recipientId);
+    return;
+  }
+  clearTimeout(pendingRecipientResynth.get(recipientId));
   pendingRecipientResynth.set(
     recipientId,
-    setTimeout(() => {
-      pendingRecipientResynth.delete(recipientId);
-      resynthesize(
-        queryClient,
-        "synthesize-recipient-profile",
-        { recipientId, skipGiftGeneration: true },
-        queryKeys.recipient(userId, recipientId)
-      ).catch((err) => console.error("Recipient re-synthesis threw:", err));
-    }, RECIPIENT_RESYNTH_DEBOUNCE_MS)
+    setTimeout(
+      () => resynthesizeRecipient(queryClient, userId, recipientId),
+      RECIPIENT_RESYNTH_DEBOUNCE_MS
+    )
   );
 }
 
@@ -181,7 +197,8 @@ export function useSubmitGiftFeedback() {
         scheduleRecipientResynthesis(
           queryClient,
           data.user_id,
-          vars.recipientId
+          vars.recipientId,
+          vars.action === "chose"
         );
       }
       // A choice is the giver's strongest taste signal; only the recipient

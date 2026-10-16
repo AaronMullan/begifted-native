@@ -338,6 +338,7 @@ export function buildRecipientOutcomeContext(
 
 const MAX_NOTES = 60;
 const MAX_NOTE_LENGTH = 300;
+const NOTE_DECISION_WINDOW_MS = 2 * 60 * 1000;
 
 const NOTE_DECISION_PHRASES: Record<string, string> = {
   not_for_them: "judged not for them",
@@ -373,6 +374,19 @@ export function buildRecipientNoteContext(rows: FeedbackRow[]): string {
     );
   };
 
+  // Older notes were saved just before their decision, so a product problem
+  // reported moments after a note marks the note as about the product even
+  // when an earlier decision on the gift is the one it pairs with.
+  const productProblemJustAfter = (note: FeedbackRow) =>
+    decisions.some(
+      (d) =>
+        d.action === "product_problem" &&
+        d.gift_suggestion_id === note.gift_suggestion_id &&
+        d.created_at > note.created_at &&
+        Date.parse(d.created_at) - Date.parse(note.created_at) <=
+          NOTE_DECISION_WINDOW_MS
+    );
+
   const seen = new Set<string>();
   const lines = rows
     .filter((r) => r.action === "gift_feedback" && r.notes?.trim())
@@ -381,6 +395,7 @@ export function buildRecipientNoteContext(rows: FeedbackRow[]): string {
       const text = (note.notes ?? "").replace(/\s+/g, " ").trim();
       const decision = decisionFor(note);
       if (decision?.action === "product_problem") return [];
+      if (productProblemJustAfter(note)) return [];
       const key = text.toLowerCase();
       if (seen.has(key)) return [];
       seen.add(key);
