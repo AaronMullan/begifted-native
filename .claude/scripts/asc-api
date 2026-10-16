@@ -13,7 +13,7 @@
 # ASC_PRIVATE_KEY_PATH=<path to .p8> is accepted instead of the base64 value.
 #
 # Usage:
-#   asc-api check                          # 0 if credentials are present, 2 if not
+#   asc-api check                          # 0 if feedback is readable, 2 if no credentials, 1 if Apple refuses
 #   asc-api token                          # print a fresh 15-minute JWT (for ad-hoc curl)
 #   asc-api get <path>                     # raw GET, e.g. get '/v1/apps?limit=5'
 #   asc-api screenshots [limit]            # screenshot feedback, newest first
@@ -39,12 +39,10 @@ APP_ID=$(env_val ASC_APP_ID)
 APP_ID="${APP_ID:-6758072456}"
 
 if [ "$cmd" = "check" ]; then
-  if [ -n "$KEY_ID" ] && [ -n "$ISSUER_ID" ] && { [ -n "$KEY_B64" ] || [ -n "$KEY_PATH" ]; }; then
-    echo "asc credentials present (key $KEY_ID, app $APP_ID)"
-    exit 0
+  if [ -z "$KEY_ID" ] || [ -z "$ISSUER_ID" ] || { [ -z "$KEY_B64" ] && [ -z "$KEY_PATH" ]; }; then
+    echo "no App Store Connect credentials in $ENV_FILE (need ASC_KEY_ID, ASC_ISSUER_ID, ASC_PRIVATE_KEY_B64)" >&2
+    exit 2
   fi
-  echo "no App Store Connect credentials in $ENV_FILE (need ASC_KEY_ID, ASC_ISSUER_ID, ASC_PRIVATE_KEY_B64)" >&2
-  exit 2
 fi
 
 if [ "$cmd" = "download" ]; then
@@ -96,14 +94,19 @@ print(f"{header}.{payload}.{b64(sig)}")
 EOF
 }
 
-# A 403 here usually means the key's role can't see TestFlight feedback — keep
+# A 403 here means the key's role can't see TestFlight feedback or an account
+# agreement needs accepting (FORBIDDEN.REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED) — keep
 # Apple's error body visible instead of curl -f's bare exit code.
 api_get() {
   local path="$1" body status
   body=$(mktemp)
   # --globoff: the fields[...] query parameters would otherwise be parsed as
   # curl URL globs and rejected as malformed.
-  status=$(curl -s --globoff -o "$body" -w '%{http_code}' -H "Authorization: Bearer $(token)" -H 'Accept: application/json' "$BASE$path")
+  status=$(curl -s -m 30 --globoff -o "$body" -w '%{http_code}' -H "Authorization: Bearer $(token)" -H 'Accept: application/json' "$BASE$path") || {
+    echo "asc-api: request failed (curl exit $?) for $path" >&2
+    rm -f "$body"
+    return 1
+  }
   if [ "$status" != "200" ]; then
     echo "asc-api: HTTP $status for $path" >&2
     cat "$body" >&2
@@ -118,6 +121,12 @@ api_get() {
 FEEDBACK_FIELDS="createdDate,comment,email,deviceModel,osVersion,locale,appPlatform,buildBundleId"
 
 case "$cmd" in
+  check)
+    # Read one real submission: a valid key still gets a 403 when an account
+    # agreement has lapsed, and only a data request shows that.
+    api_get "/v1/apps/$APP_ID/betaFeedbackScreenshotSubmissions?limit=1&fields[betaFeedbackScreenshotSubmissions]=createdDate" >/dev/null
+    echo "asc feedback readable (key $KEY_ID, app $APP_ID)"
+    ;;
   token)
     token
     ;;

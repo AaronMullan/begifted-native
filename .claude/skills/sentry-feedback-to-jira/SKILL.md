@@ -26,7 +26,7 @@ Convert the Sentry **User Feedback** inbox and TestFlight's **native feedback** 
 ## Constants
 
 - Sentry: org `begifted`, feedback project `4511361418395648` (react-native). Token: `SENTRY_TOKEN_TWO` in `.env.local` (never echo it): `TOKEN=$(grep -E '^SENTRY_TOKEN_TWO=' .env.local | sed -E 's/^SENTRY_TOKEN_TWO=//' | tr -d '"\r\n ')`.
-- App Store Connect (TestFlight feedback): app `6758072456`, via `.claude/scripts/asc-api` (mints its own JWT from `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_PRIVATE_KEY_B64` in `.env.local`; never echo them). `asc-api check` exits 2 when the key isn't configured — then the TestFlight source is **skipped and reported**, never a run failure. See _Setup_ at the end.
+- App Store Connect (TestFlight feedback): app `6758072456`, via `.claude/scripts/asc-api` (mints its own JWT from `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_PRIVATE_KEY_B64` in `.env.local`; never echo them). `asc-api check` reads one real submission: it exits 2 when the key isn't configured and 1 when Apple refuses (bad role, or a lapsed account agreement — `REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED`). Either way the TestFlight source is **skipped and reported**; this pass doesn't fail, but the launchd wrapper re-runs the check and fails the overall run. See _Setup_ at the end.
 - Jira: project `DEV`. Reads/searches via `.claude/scripts/jira-api`; writes via the Jira MCP. Create issues **one at a time** (`jira_batch_create_issues` is unreliable). Never pass `comment` to `jira_transition_issue` (requires ADF) — use `jira_add_comment`.
 - Parse Sentry response bodies with python3, not jq — they carry unescaped control characters.
 
@@ -51,7 +51,7 @@ else
 fi
 ```
 
-If `check` fails (no key in `.env.local`) or either pull errors (Apple 401/403 — wrong key or role), **skip the rest of Step 1b entirely**, continue with the Sentry items only, and put `testflight: source unavailable (<reason>)` in the Step 7 report. This is never a run failure.
+If `check` fails (no key in `.env.local`, or Apple 401/403 — wrong key or role, or a lapsed agreement) or either pull errors, **skip the rest of Step 1b entirely**, continue with the Sentry items only, and put `testflight: source unavailable (<reason>)` in the Step 7 report. This pass still completes; the launchd wrapper's own `check` is what marks the overnight run failed.
 
 Both lists are newest-first, `data[]` entries with `id` (the submission id — the stable ref for everything below), `attributes.createdDate`, `attributes.comment` (the tester's words; often empty on screenshot-only submissions), `attributes.email`, `deviceModel`, `osVersion`, and for screenshots `attributes.screenshots[]` (`url`, `width`, `height`, `expirationDate` — the URLs are pre-signed and expire, so download in this run). `included[]` carries the build (`version`) and tester (`firstName`/`lastName`/`email`) referenced by each entry's `relationships`.
 
