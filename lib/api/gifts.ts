@@ -9,9 +9,14 @@ import { replayActiveBand } from "../gift-band";
 /**
  * How long after a removal its backfill can still land. The backend answers
  * at once and generates in the background under a 300-second hard limit, so
- * a gap older than this has no replacement coming until the daily run.
+ * a gap older than this has no replacement coming unless the app asks again.
  */
 export const BACKFILL_MAX_MS = 6 * 60 * 1000;
+
+/** Latest backfill request per recipient this session. A retry on an old gap
+ * restarts the stall clock; measured from the removal alone, the gap would
+ * read as stalled again on the next refetch while the retry is generating. */
+const backfillRequestedAt = new Map<string, number>();
 
 /**
  * Fetch gift suggestions for a recipient
@@ -83,9 +88,11 @@ export async function fetchGiftSuggestions(
 
   // Judged against the fetch time, so the verdict advances with each refetch.
   const fetchedAt = Date.now();
+  const requestedAt = backfillRequestedAt.get(recipientId) ?? 0;
   const stalled = (band: ReturnType<typeof replayActiveBand> | undefined) =>
     !!band?.lastEmptiedAt &&
-    fetchedAt - Date.parse(band.lastEmptiedAt) > BACKFILL_MAX_MS;
+    fetchedAt - Math.max(Date.parse(band.lastEmptiedAt), requestedAt) >
+      BACKFILL_MAX_MS;
   const recipientStalled = stalled(recipientBand);
 
   return rows
@@ -370,8 +377,8 @@ export async function checkGiftLinkOnTap(
  * (DEV-118). Fire-and-forget: the backend generates only the deficit (so
  * un-dismissed suggestions are preserved), dedupes against history + the avoid
  * list, and stores the replacement. Failures are only logged: the pending
- * card reads a gap past BACKFILL_MAX_MS as stalled, and the next daily run
- * fills it.
+ * card reads a gap past BACKFILL_MAX_MS as stalled, and the list asks again
+ * the next time it shows that gap (`useRetryStalledBackfill`).
  */
 export async function triggerGiftBackfill(
   recipientId: string,
@@ -385,6 +392,7 @@ export async function triggerGiftBackfill(
     } = await supabase.auth.getSession();
     if (!session) return;
 
+    backfillRequestedAt.set(recipientId, Date.now());
     const res = await fetch(`${BEGIFTED_BACKEND_URL}/api/generate-gifts`, {
       method: "POST",
       headers: {

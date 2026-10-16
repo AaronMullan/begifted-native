@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   useMutation,
   useQueryClient,
@@ -159,6 +160,43 @@ function pollForBackfill(
       queryClient.invalidateQueries({ queryKey: key });
     }, delay);
   }
+}
+
+/** Scopes already retried this session, so a backfill that keeps failing
+ * costs one generation per launch rather than one per visit. */
+const retriedStalledScopes = new Set<string>();
+
+/**
+ * Asks again for a replacement when the list shows a gap whose backfill never
+ * landed. Only a removal starts a backfill, and the daily run tops up only
+ * occasions inside the reminder window, so without this a missed gap stays
+ * empty until its occasion comes due.
+ */
+export function useRetryStalledBackfill(
+  recipientId: string | undefined,
+  occasionId: string | null,
+  stalled: boolean
+) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!recipientId || !stalled) return;
+    const scope = `${recipientId}:${occasionId ?? ""}`;
+    if (retriedStalledScopes.has(scope)) return;
+    retriedStalledScopes.add(scope);
+
+    queryClient.setQueryData<GiftSuggestion[]>(
+      queryKeys.giftSuggestions(recipientId),
+      (old) =>
+        old?.map((s) => ({
+          ...s,
+          backfill_stalled_in_recipient: false,
+          backfill_stalled_in_occasion: false,
+        }))
+    );
+    triggerGiftBackfill(recipientId, occasionId);
+    pollForBackfill(queryClient, recipientId, occasionId);
+  }, [queryClient, recipientId, occasionId, stalled]);
 }
 
 export function useSubmitGiftFeedback() {
