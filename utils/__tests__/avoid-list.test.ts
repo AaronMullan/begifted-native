@@ -50,6 +50,12 @@ describe("mergeAvoidList", () => {
     expect(result.addedOwned).toEqual(["AirPods"]);
   });
 
+  it("keeps a title that starts with No", () => {
+    expect(mergeAvoidList(null, [], ["No Man's Sky"]).addedAvoid).toEqual([
+      "No Man's Sky",
+    ]);
+  });
+
   it("strips a repeated verb and ignores non-strings and blanks", () => {
     const result = mergeAvoidList(
       null,

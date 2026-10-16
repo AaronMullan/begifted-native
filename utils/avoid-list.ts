@@ -8,7 +8,8 @@ export const AVOID_PREFIX = "Avoid: ";
 // The model sometimes repeats the verb it was told to drop ("no food gifts",
 // "avoid candles"), which would double up inside the prefix and the snackbar.
 const OWNED_VERB = /^already (owns|has)\s+/i;
-const AVOID_VERB = /^(avoid|no)\s+/i;
+// "No" only before a lowercase word, so a title like "No Man's Sky" survives.
+const AVOID_VERB = /^(?:[Aa]void\s+|[Nn]o\s+(?=[a-z]))/;
 const PLACEHOLDERS = new Set(["null", "undefined", "none", "n/a"]);
 
 const cleanItems = (items: unknown, leadingVerb: RegExp): string[] => {

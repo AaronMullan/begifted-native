@@ -692,7 +692,8 @@ export default function RecipientEditPage() {
     // Owned items and avoids are appended to the list generation blocks on;
     // a note that mentions neither leaves it untouched. The feedback trigger
     // also appends to this column server-side, so merge against a fresh read
-    // rather than the cached recipient, or a just-rejected title is lost.
+    // rather than the cached recipient. This narrows the window for losing a
+    // just-rejected title to one round-trip; it does not close it.
     let avoidMerge = mergeAvoidList(
       recipient.avoid_list,
       extracted.already_owns,
