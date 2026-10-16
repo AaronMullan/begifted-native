@@ -9,9 +9,21 @@ import { replayActiveBand } from "../gift-band";
 /**
  * How long after a removal its backfill can still land. The backend answers
  * at once and generates in the background under a 300-second hard limit, so
- * a gap older than this has no replacement coming until the daily run.
+ * a gap older than this has no replacement coming unless the app asks again.
  */
 export const BACKFILL_MAX_MS = 6 * 60 * 1000;
+
+/** One key per list the app renders: recipient-wide, or one occasion. */
+export const backfillScopeKey = (
+  recipientId: string,
+  occasionId?: string | null
+) => (occasionId ? `${recipientId}:${occasionId}` : recipientId);
+
+/** Latest backfill request per scope this session. A retry on an old gap
+ * restarts that scope's stall clock; measured from the removal alone, the gap
+ * would read as stalled again on the next refetch while the retry generates.
+ * Per scope, so a request for one list can't hide another list's stall. */
+const backfillRequestedAt = new Map<string, number>();
 
 /**
  * Fetch gift suggestions for a recipient
@@ -83,10 +95,21 @@ export async function fetchGiftSuggestions(
 
   // Judged against the fetch time, so the verdict advances with each refetch.
   const fetchedAt = Date.now();
-  const stalled = (band: ReturnType<typeof replayActiveBand> | undefined) =>
+  const stalled = (
+    band: ReturnType<typeof replayActiveBand> | undefined,
+    scope: string
+  ) =>
     !!band?.lastEmptiedAt &&
-    fetchedAt - Date.parse(band.lastEmptiedAt) > BACKFILL_MAX_MS;
-  const recipientStalled = stalled(recipientBand);
+    fetchedAt -
+      Math.max(
+        Date.parse(band.lastEmptiedAt),
+        backfillRequestedAt.get(scope) ?? 0
+      ) >
+      BACKFILL_MAX_MS;
+  const recipientStalled = stalled(
+    recipientBand,
+    backfillScopeKey(recipientId)
+  );
 
   return rows
     .filter((s) => !removedAt.has(s.id))
@@ -99,7 +122,10 @@ export async function fetchGiftSuggestions(
         peak_in_recipient: recipientBand.peak,
         peak_in_occasion: occasionBand?.peak ?? 0,
         backfill_stalled_in_recipient: recipientStalled,
-        backfill_stalled_in_occasion: stalled(occasionBand),
+        backfill_stalled_in_occasion: stalled(
+          occasionBand,
+          backfillScopeKey(recipientId, s.occasion_id)
+        ),
       };
     });
 }
@@ -370,13 +396,19 @@ export async function checkGiftLinkOnTap(
  * (DEV-118). Fire-and-forget: the backend generates only the deficit (so
  * un-dismissed suggestions are preserved), dedupes against history + the avoid
  * list, and stores the replacement. Failures are only logged: the pending
- * card reads a gap past BACKFILL_MAX_MS as stalled, and the next daily run
- * fills it.
+ * card reads a gap past BACKFILL_MAX_MS as stalled, and the list asks again
+ * the next time it shows that gap (`useRetryStalledBackfill`).
  */
 export async function triggerGiftBackfill(
   recipientId: string,
   occasionId?: string | null
 ): Promise<void> {
+  // Stamped before any await: the caller's poll schedule is timed from this
+  // call, and its last refetch must land after the stall window closes.
+  backfillRequestedAt.set(
+    backfillScopeKey(recipientId, occasionId),
+    Date.now()
+  );
   try {
     // The backend verifies this JWT and recipient ownership; without a
     // session the request would 401, so skip the doomed call entirely.

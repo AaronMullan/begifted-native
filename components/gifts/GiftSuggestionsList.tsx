@@ -10,6 +10,7 @@ import CollapsedGiftCard from "./CollapsedGiftCard";
 import GiftGenerationWaiting from "./GiftGenerationWaiting";
 import PendingGiftCard from "./PendingGiftCard";
 import { partitionSuggestions } from "./partition";
+import { useRetryStalledBackfill } from "../../hooks/use-submit-gift-feedback";
 import type { GiftIdeasEmptyState } from "./gift-ideas-state";
 import StateMessage from "../StateMessage";
 import { StateCopy } from "../../lib/state-copy";
@@ -87,6 +88,12 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
     pendingSlots,
     pendingStalled,
   } = partitionSuggestions(suggestions, occasionId);
+
+  useRetryStalledBackfill(
+    visibleSuggestions[0]?.recipient_id,
+    occasionId,
+    pendingSlots > 0 && pendingStalled
+  );
 
   // If the currently open gift was just removed (or filtered out of view), the
   // stale `expandedId` would match no card and collapse the page to a list-only
