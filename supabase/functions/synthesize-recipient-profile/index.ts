@@ -19,6 +19,14 @@ import {
   latestDecisionPerGift,
 } from "../_shared/gift-outcomes.ts";
 import type { FeedbackRow } from "../_shared/gift-outcomes.ts";
+import {
+  AVOID_PREFIX,
+  NON_RULE_DECISIONS,
+  NOTE_RULES_PROMPT,
+  mergeNoteRules,
+  parseNoteRules,
+  ruleCandidateRows,
+} from "../_shared/note-rules.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -74,6 +82,56 @@ Return ONLY valid JSON:
   "householdContext": "short sentence or empty string"
 }`;
 
+async function storeNoteRules(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  recipientId: string,
+  ruleNotes: string,
+  avoidList: string[],
+  apiKey: string
+): Promise<void> {
+  const existingRules = avoidList.filter((e) => e.startsWith(AVOID_PREFIX));
+  const raw = await callAI("openai", CONVERSATION_MODEL, apiKey, {
+    messages: [
+      { role: "system", content: NOTE_RULES_PROMPT },
+      {
+        role: "user",
+        content: `Existing rules:\n${
+          existingRules.length > 0
+            ? existingRules
+                .map((e) => `- ${e.slice(AVOID_PREFIX.length)}`)
+                .join("\n")
+            : "(none)"
+        }\n\nNotes, oldest first:\n${ruleNotes}`,
+      },
+    ],
+    maxTokens: 300,
+    temperature: 0,
+    jsonMode: true,
+  });
+  const rules = parseNoteRules(raw, avoidList);
+  if (rules.length === 0) return;
+
+  // The feedback trigger appends rejected titles to this column, so merge
+  // against a fresh read rather than the copy read at the start of the run.
+  const { data: fresh, error } = await supabase
+    .from("recipients")
+    .select("avoid_list")
+    .eq("id", recipientId)
+    .maybeSingle();
+  if (error || !fresh) throw error ?? new Error("Recipient vanished");
+  const merged = mergeNoteRules(fresh.avoid_list, rules);
+  if (!merged) return;
+  const { error: updateError } = await supabase
+    .from("recipients")
+    .update({ avoid_list: merged })
+    .eq("id", recipientId);
+  if (updateError) throw updateError;
+  console.log(
+    `[note-rules] recipient=${recipientId} added ${JSON.stringify(rules)}`
+  );
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -103,7 +161,7 @@ serve(async (req) => {
     const { data: recipient, error: recipientError } = await supabase
       .from("recipients")
       .select(
-        "user_id, name, relationship_type, interests, birthday, birth_year, emotional_tone_preference, gift_budget_min, gift_budget_max, city, state, country"
+        "user_id, name, relationship_type, interests, birthday, birth_year, emotional_tone_preference, gift_budget_min, gift_budget_max, city, state, country, avoid_list"
       )
       .eq("id", recipientId)
       .maybeSingle();
@@ -267,6 +325,23 @@ serve(async (req) => {
     const provider = "openai" as const;
     const model = CONVERSATION_MODEL;
     const apiKey = getApiKey(provider);
+
+    // Rules ride along with every rebuild rather than a separate trigger: this
+    // function already runs after each note and reads all of them.
+    const ruleNotes = buildRecipientNoteContext(
+      ruleCandidateRows((feedback ?? []) as FeedbackRow[]),
+      NON_RULE_DECISIONS
+    );
+    const rulesDone = ruleNotes
+      ? storeNoteRules(
+          supabase,
+          recipientId,
+          ruleNotes,
+          (recipient.avoid_list ?? []) as string[],
+          apiKey
+        ).catch((err) => console.error("Note rule extraction failed:", err))
+      : Promise.resolve();
+
     const rawContent = await callAI(provider, model, apiKey, {
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
@@ -320,6 +395,9 @@ serve(async (req) => {
         updated_at: new Date().toISOString(),
       })
       .eq("id", recipientId);
+
+    // Before chaining to generation, so the run it starts sees the new rules.
+    await rulesDone;
 
     // Chain to gift generation now that synthesized_profile is in place. We
     // run this server-side so mobile clients don't have to keep their JS task

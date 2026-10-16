@@ -359,7 +359,10 @@ const NOTE_DECISION_PHRASES: Record<string, string> = {
  * winning, because the profile is rebuilt from scratch and is the only place
  * these facts outlive the CIS's short recent-notes window.
  */
-export function buildRecipientNoteContext(rows: FeedbackRow[]): string {
+export function buildRecipientNoteContext(
+  rows: FeedbackRow[],
+  skipDecisions: string[] = []
+): string {
   const decisions = rows.filter(
     (r) => r.action !== "gift_feedback" && r.gift_suggestion_id
   );
@@ -395,6 +398,7 @@ export function buildRecipientNoteContext(rows: FeedbackRow[]): string {
       const text = (note.notes ?? "").replace(/\s+/g, " ").trim();
       const decision = decisionFor(note);
       if (decision?.action === "product_problem") return [];
+      if (decision && skipDecisions.includes(decision.action)) return [];
       if (productProblemJustAfter(note)) return [];
       const key = text.toLowerCase();
       if (seen.has(key)) return [];
