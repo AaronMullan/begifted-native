@@ -14,6 +14,7 @@ import {
 } from "../_shared/error-response.ts";
 import { requireUser } from "../_shared/require-user.ts";
 import {
+  buildRecipientNoteContext,
   buildRecipientOutcomeContext,
   latestDecisionPerGift,
 } from "../_shared/gift-outcomes.ts";
@@ -42,8 +43,11 @@ Draw from ALL available signals:
 - Interests and hobbies
 - Budget range
 - Gift outcomes: gifts the giver chose for them, and gifts judged wrong (already owned, not for them, poor quality). Read these together as evidence of taste — what a chosen gift and a rejected one reveal about the person — and describe the person they point to. Do not list or repeat the gifts themselves.
+- What the giver wrote about suggested gifts: the giver's own words, each shown with the gift it was about. These often hold lasting facts about the person — circumstances, abilities, living situation, standing likes and dislikes ("he can no longer garden", "no food items", "she picks out her own clothes"). Carry every lasting fact into the profile, however old the note; later notes do not cancel earlier ones unless they contradict them. A note is newer than the interests and household details above: where they conflict, follow the note in both the profile and householdContext (a pet that has died is no longer part of the household). Ignore remarks about one item only ("Off", "Similar", "Not worth the price") and anything describing the product, listing, price, or website rather than the person ("the page won't load", "it's a different product than described") — these say nothing about who they are.
 
 Write in third person (e.g. "Sarah is..."). Be specific and concrete. Surface personality, lifestyle, and values where the context shows them — not gift ideas or upcoming events.
+
+SENSITIVE CIRCUMSTANCES: the giver reads this profile. A loss, illness, injury, or declining ability belongs in it when it should shape gifts, but state only the present-day fact gifts depend on, in one short clause — "no longer has a dog", "has limited mobility and no longer gardens". Never name a death, loss, or diagnosis ("her dog died", "has passed away"), never draw wider conclusions from it, and never make it the center of the profile.
 
 GIFT TONE: do not describe how gifts for this person should feel. The app appends that separately.
 
@@ -60,6 +64,8 @@ Also extract two structured fields that downstream occasion suggestions consume:
 STAY WITH WHAT IS KNOWN (applies to synthesized_profile):
 - Every statement about the recipient must come from the context. Do not guess at lifestyle, values, personality, or daily life from location, relationship, budget, or a single interest — no "likely", "probably", "suggests", or "may" statements about the person. "Living in the US, she is likely balancing school…" is exactly what to avoid.
 - When the context is thin, write fewer sentences (as few as 1) rather than pad. State plainly what is known; do not comment on what is missing. Do not end with a summary sentence restating what came before.
+
+FINAL CHECK before returning: reread synthesized_profile. If any clause names a death, loss, or diagnosis ("passed away", "died", "lost her"), rewrite it as the bare present-day fact ("no longer has a dog").
 
 Return ONLY valid JSON:
 {
@@ -123,7 +129,7 @@ serve(async (req) => {
       supabase
         .from("gift_feedback")
         .select(
-          "gift_suggestion_id, recipient_id, occasion_id, action, gift_title, price, created_at"
+          "gift_suggestion_id, recipient_id, occasion_id, action, gift_title, price, notes, created_at"
         )
         .eq("recipient_id", recipientId),
     ]);
@@ -246,6 +252,15 @@ serve(async (req) => {
       )
     );
     if (outcomeContext) parts.push(`Gift outcomes:\n${outcomeContext}`);
+
+    const noteContext = buildRecipientNoteContext(
+      (feedback ?? []) as FeedbackRow[]
+    );
+    if (noteContext) {
+      parts.push(
+        `What the giver wrote about suggested gifts, oldest first:\n${noteContext}`
+      );
+    }
 
     const recipientContext = parts.join("\n");
 

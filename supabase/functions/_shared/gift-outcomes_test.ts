@@ -1,6 +1,7 @@
 import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert@1";
 import {
   buildGiverChoiceContext,
+  buildRecipientNoteContext,
   buildRecipientOutcomeContext,
   crossRelationshipTendencies,
   latestDecisionPerGift,
@@ -259,3 +260,157 @@ Deno.test("a third, different relationship still makes a tendency", () => {
     ["handmade"]
   );
 });
+
+Deno.test(
+  "notes reach the recipient context with the gift they explain",
+  () => {
+    const context = buildRecipientNoteContext([
+      row({
+        gift_suggestion_id: "g1",
+        action: "not_for_them",
+        gift_title: "Raised garden bed",
+        created_at: "2026-09-01T00:00:00Z",
+      }),
+      row({
+        gift_suggestion_id: "g1",
+        action: "gift_feedback",
+        gift_title: "Raised garden bed",
+        notes: "Due to his mobility issues, he is no longer able to garden",
+        created_at: "2026-09-01T00:00:05Z",
+      }),
+    ]);
+    assertEquals(
+      context,
+      '- "Due to his mobility issues, he is no longer able to garden" (about "Raised garden bed", judged not for them)'
+    );
+  }
+);
+
+Deno.test("an old note survives many newer ones", () => {
+  const rows = [
+    row({
+      gift_suggestion_id: "old",
+      action: "gift_feedback",
+      notes: "Her dog died",
+      created_at: "2026-01-01T00:00:00Z",
+    }),
+    ...Array.from({ length: 15 }, (_, i) =>
+      row({
+        gift_suggestion_id: `n${i}`,
+        action: "gift_feedback",
+        notes: `note ${i}`,
+        created_at: `2026-09-${String(i + 10).padStart(2, "0")}T00:00:00Z`,
+      })
+    ),
+  ];
+  const context = buildRecipientNoteContext(rows);
+  assert(context.startsWith('- "Her dog died"'));
+  assertStringIncludes(context, "note 14");
+});
+
+Deno.test("notes on product problems never reach the profile", () => {
+  const context = buildRecipientNoteContext([
+    row({
+      gift_suggestion_id: "g2",
+      action: "product_problem",
+      created_at: "2026-09-01T00:00:00Z",
+    }),
+    row({
+      gift_suggestion_id: "g2",
+      action: "gift_feedback",
+      notes: "Website won't load",
+      created_at: "2026-09-01T00:00:05Z",
+    }),
+  ]);
+  assertEquals(context, "");
+});
+
+Deno.test(
+  "a note is paired with the decision before it, not a later one",
+  () => {
+    const context = buildRecipientNoteContext([
+      row({
+        gift_suggestion_id: "g3",
+        action: "not_for_them",
+        gift_title: "Cookbook",
+        created_at: "2026-09-01T00:00:00Z",
+      }),
+      row({
+        gift_suggestion_id: "g3",
+        action: "gift_feedback",
+        gift_title: "Cookbook",
+        notes: "He doesn't cook much",
+        created_at: "2026-09-01T00:00:05Z",
+      }),
+      row({
+        gift_suggestion_id: "g3",
+        action: "product_problem",
+        created_at: "2026-09-05T00:00:00Z",
+      }),
+    ]);
+    assertStringIncludes(context, "He doesn't cook much");
+    assertStringIncludes(context, "judged not for them");
+  }
+);
+
+Deno.test("repeated notes appear once", () => {
+  const context = buildRecipientNoteContext([
+    row({
+      gift_suggestion_id: "a",
+      action: "gift_feedback",
+      notes: "No food items",
+    }),
+    row({
+      gift_suggestion_id: "b",
+      action: "gift_feedback",
+      notes: " no food  items ",
+      created_at: "2026-09-02T00:00:00Z",
+    }),
+  ]);
+  assertEquals(context.split("\n").length, 1);
+});
+
+Deno.test(
+  "a note written before its product-problem decision is still left out",
+  () => {
+    const context = buildRecipientNoteContext([
+      row({
+        gift_suggestion_id: "g4",
+        action: "gift_feedback",
+        notes: "This leads to a dead link",
+        created_at: "2026-06-16T18:23:20Z",
+      }),
+      row({
+        gift_suggestion_id: "g4",
+        action: "product_problem",
+        created_at: "2026-06-16T18:23:27Z",
+      }),
+    ]);
+    assertEquals(context, "");
+  }
+);
+
+Deno.test(
+  "a product problem reported right after a note drops it despite an earlier decision",
+  () => {
+    const context = buildRecipientNoteContext([
+      row({
+        gift_suggestion_id: "g5",
+        action: "keep_in_mix",
+        created_at: "2026-06-10T00:00:00Z",
+      }),
+      row({
+        gift_suggestion_id: "g5",
+        action: "gift_feedback",
+        notes: "Different product than described",
+        created_at: "2026-06-16T18:23:20Z",
+      }),
+      row({
+        gift_suggestion_id: "g5",
+        action: "product_problem",
+        created_at: "2026-06-16T18:23:27Z",
+      }),
+    ]);
+    assertEquals(context, "");
+  }
+);

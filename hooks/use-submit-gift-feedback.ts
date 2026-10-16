@@ -34,39 +34,99 @@ type SubmitGiftFeedbackVars = {
 const emptySlots = (rows: GiftSuggestion[], occasionId?: string | null) =>
   partitionSuggestions(rows, occasionId ?? null).pendingSlots;
 
+/** Feedback that says something about who the recipient is: a choice, a
+ * judgement on fit, or a note the giver wrote. Price, product and display
+ * removals say nothing about the person. */
+const RECIPIENT_SIGNAL_ACTIONS: GiftFeedbackAction[] = [
+  "chose",
+  "not_for_them",
+  "already_have",
+  "gift_feedback",
+];
+
+/** Long enough to cover a rejection and the note typed after it, or a run of
+ * rejections across a set, so they rebuild the profile once. */
+const RECIPIENT_RESYNTH_DEBOUNCE_MS = 60000;
+
+const pendingRecipientResynth = new Map<
+  string,
+  ReturnType<typeof setTimeout>
+>();
+
 /**
- * A choice is the strongest taste signal there is, so both profiles rebuild
- * from it. Fire-and-forget: a failed synthesis must never fail the feedback
- * write, which has already landed. Gift generation is skipped because a
- * refresh would retire the chosen gift along with the rest of the set.
+ * Fire-and-forget: a failed synthesis must never fail the feedback write,
+ * which has already landed. Gift generation is skipped because a refresh would
+ * retire the active set, including a gift just chosen.
  */
-function resynthesizeAfterChoice(
+async function resynthesize(
+  queryClient: QueryClient,
+  fn: string,
+  body: Record<string, unknown>,
+  staleKey: readonly unknown[]
+) {
+  const { error } = await invokeWithRetry(fn, { body });
+  if (error) {
+    console.error(`${fn} after feedback failed:`, error);
+    return;
+  }
+  queryClient.invalidateQueries({ queryKey: staleKey });
+}
+
+const inFlightRecipientResynth = new Set<string>();
+const rerunRecipientResynth = new Set<string>();
+
+/** One rebuild per recipient at a time. Each run reads feedback once and
+ * overwrites the profile, so two overlapping runs can finish out of order and
+ * leave the older reading in place; a request made mid-run reruns after it. */
+function resynthesizeRecipient(
   queryClient: QueryClient,
   userId: string,
   recipientId: string
 ) {
-  const run = async (
-    fn: string,
-    body: Record<string, unknown>,
-    staleKey: readonly unknown[]
-  ) => {
-    const { error } = await invokeWithRetry(fn, { body });
-    if (error) {
-      console.error(`${fn} after choice failed:`, error);
-      return;
-    }
-    queryClient.invalidateQueries({ queryKey: staleKey });
-  };
-  run(
+  clearTimeout(pendingRecipientResynth.get(recipientId));
+  pendingRecipientResynth.delete(recipientId);
+  if (inFlightRecipientResynth.has(recipientId)) {
+    rerunRecipientResynth.add(recipientId);
+    return;
+  }
+  inFlightRecipientResynth.add(recipientId);
+  resynthesize(
+    queryClient,
     "synthesize-recipient-profile",
     { recipientId, skipGiftGeneration: true },
     queryKeys.recipient(userId, recipientId)
-  ).catch((err) => console.error("Recipient re-synthesis threw:", err));
-  run(
-    "synthesize-giver-profile",
-    { userId },
-    queryKeys.userPreferences(userId)
-  ).catch((err) => console.error("Giver re-synthesis threw:", err));
+  )
+    .catch((err) => console.error("Recipient re-synthesis threw:", err))
+    .finally(() => {
+      inFlightRecipientResynth.delete(recipientId);
+      if (rerunRecipientResynth.delete(recipientId)) {
+        resynthesizeRecipient(queryClient, userId, recipientId);
+      }
+    });
+}
+
+/** Rebuilds the recipient profile once feedback on them has gone quiet. The
+ * synthesizer reads every feedback row, so the last rebuild in a burst sees
+ * all of it. A choice runs at once instead: the giver often leaves the app
+ * to buy the gift, and a backgrounded timer may never fire. */
+function scheduleRecipientResynthesis(
+  queryClient: QueryClient,
+  userId: string,
+  recipientId: string,
+  immediate: boolean
+) {
+  if (immediate) {
+    resynthesizeRecipient(queryClient, userId, recipientId);
+    return;
+  }
+  clearTimeout(pendingRecipientResynth.get(recipientId));
+  pendingRecipientResynth.set(
+    recipientId,
+    setTimeout(
+      () => resynthesizeRecipient(queryClient, userId, recipientId),
+      RECIPIENT_RESYNTH_DEBOUNCE_MS
+    )
+  );
 }
 
 /**
@@ -151,8 +211,23 @@ export function useSubmitGiftFeedback() {
     // backend to backfill the deficit and poll for the replacement to land
     // (DEV-118).
     onSuccess: (data, vars) => {
+      if (RECIPIENT_SIGNAL_ACTIONS.includes(vars.action)) {
+        scheduleRecipientResynthesis(
+          queryClient,
+          data.user_id,
+          vars.recipientId,
+          vars.action === "chose"
+        );
+      }
+      // A choice is the giver's strongest taste signal; only the recipient
+      // profile learns from rejections and notes, which describe one person.
       if (vars.action === "chose") {
-        resynthesizeAfterChoice(queryClient, data.user_id, vars.recipientId);
+        resynthesize(
+          queryClient,
+          "synthesize-giver-profile",
+          { userId: data.user_id },
+          queryKeys.userPreferences(data.user_id)
+        ).catch((err) => console.error("Giver re-synthesis threw:", err));
       }
       if (!GIFT_REMOVAL_ACTIONS.includes(vars.action)) return;
       const remaining =

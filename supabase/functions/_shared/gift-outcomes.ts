@@ -22,6 +22,7 @@ export type FeedbackRow = {
   gift_title: string | null;
   price: number | string | null;
   category_tags?: string[] | null;
+  notes?: string | null;
   created_at: string;
 };
 
@@ -333,4 +334,86 @@ export function buildRecipientOutcomeContext(
   }
 
   return sections.join("\n\n");
+}
+
+const MAX_NOTES = 60;
+const MAX_NOTE_LENGTH = 300;
+const NOTE_DECISION_WINDOW_MS = 2 * 60 * 1000;
+
+const NOTE_DECISION_PHRASES: Record<string, string> = {
+  not_for_them: "judged not for them",
+  already_have: "they already have it",
+  price_off: "price felt off",
+  keep_in_mix: "kept in the mix",
+  chose: "chosen",
+  remove: "removed",
+};
+
+/**
+ * Recipient-profile context: what the giver wrote about this person's gifts.
+ * A note is saved as its own "gift_feedback" row beside the decision it
+ * explains, so each is paired with the latest decision on the same gift at or
+ * before it — or, for notes written before the decision, the first one after —
+ * and the model can tell a lasting fact from a remark about one item. Notes explaining a product problem describe the listing, not the
+ * person, and are left out. Every note is kept up to a generous cap, newest
+ * winning, because the profile is rebuilt from scratch and is the only place
+ * these facts outlive the CIS's short recent-notes window.
+ */
+export function buildRecipientNoteContext(rows: FeedbackRow[]): string {
+  const decisions = rows.filter(
+    (r) => r.action !== "gift_feedback" && r.gift_suggestion_id
+  );
+  const decisionFor = (note: FeedbackRow): FeedbackRow | null => {
+    const forGift = decisions
+      .filter((d) => d.gift_suggestion_id === note.gift_suggestion_id)
+      .sort((x, y) => x.created_at.localeCompare(y.created_at));
+    return (
+      forGift.filter((d) => d.created_at <= note.created_at).pop() ??
+      forGift[0] ??
+      null
+    );
+  };
+
+  // Older notes were saved just before their decision, so a product problem
+  // reported moments after a note marks the note as about the product even
+  // when an earlier decision on the gift is the one it pairs with.
+  const productProblemJustAfter = (note: FeedbackRow) =>
+    decisions.some(
+      (d) =>
+        d.action === "product_problem" &&
+        d.gift_suggestion_id === note.gift_suggestion_id &&
+        d.created_at > note.created_at &&
+        Date.parse(d.created_at) - Date.parse(note.created_at) <=
+          NOTE_DECISION_WINDOW_MS
+    );
+
+  const seen = new Set<string>();
+  const lines = rows
+    .filter((r) => r.action === "gift_feedback" && r.notes?.trim())
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    .flatMap((note) => {
+      const text = (note.notes ?? "").replace(/\s+/g, " ").trim();
+      const decision = decisionFor(note);
+      if (decision?.action === "product_problem") return [];
+      if (productProblemJustAfter(note)) return [];
+      const key = text.toLowerCase();
+      if (seen.has(key)) return [];
+      seen.add(key);
+      const clipped =
+        text.length > MAX_NOTE_LENGTH
+          ? `${text.slice(0, MAX_NOTE_LENGTH).trimEnd()}…`
+          : text;
+      const title = (decision?.gift_title ?? note.gift_title)?.trim();
+      const phrase = decision ? NOTE_DECISION_PHRASES[decision.action] : null;
+      const about = title
+        ? ` (about "${title}"${phrase ? `, ${phrase}` : ""})`
+        : phrase
+          ? ` (${phrase})`
+          : "";
+      return [`- "${clipped}"${about}`];
+    })
+    .slice(0, MAX_NOTES)
+    .reverse();
+
+  return lines.join("\n");
 }
