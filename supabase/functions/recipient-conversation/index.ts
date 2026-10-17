@@ -8,6 +8,7 @@ import {
 } from "./extractors.ts";
 import { recommendOccasions } from "./occasions.ts";
 import { isPreambleDecline, SAFETY_PREAMBLE } from "./prompts.ts";
+import { moderationStopKind, readSelfHarm } from "./safety-kind.ts";
 import { parseIntakeRules, renderRequiredFields } from "./intake-rules.ts";
 import type { IntakeRules } from "./intake-rules.ts";
 import { screenInput } from "../_shared/moderation.ts";
@@ -164,6 +165,9 @@ serve(async (req) => {
       })
     );
   };
+  // Kept outside the try so a refusal caught below can re-read the
+  // conversation to word a self-harm decline.
+  let conversation: { role: string; content: unknown }[] = [];
   try {
     const authStartedAt = Date.now();
     const { user, errorResponse } = await requireUser(req, corsHeaders);
@@ -185,6 +189,7 @@ serve(async (req) => {
       overrideProvider,
       overrideModel,
     } = requestBody;
+    if (Array.isArray(messages)) conversation = messages;
 
     const aiOverride: AIOverride = {
       provider: overrideProvider,
@@ -310,13 +315,14 @@ serve(async (req) => {
         getApiKey("openai")
       );
       timings.moderation_ms = Date.now() - moderationStartedAt;
-      if (moderation.blocked) {
+      const stopKind = await moderationStopKind(moderation, messages);
+      if (stopKind) {
         console.warn(
-          `[moderation] blocked recipient-conversation input; categories=${moderation.categories.join(
+          `[moderation] stopped recipient-conversation input; categories=${moderation.categories.join(
             ","
-          )}; action=${action}; conversationType=${conversationType}`
+          )}; borderline=${!!moderation.selfHarmBorderline}; kind=${stopKind}; action=${action}; conversationType=${conversationType}`
         );
-        return safetyDeclinedResponse(corsHeaders);
+        return safetyDeclinedResponse(corsHeaders, stopKind);
       }
     }
 
@@ -453,6 +459,15 @@ serve(async (req) => {
     );
   } catch (error) {
     if (error instanceof AIRefusalError) {
+      // The decline doesn't say what it refused, so the narrow check decides
+      // whether it was self-harm and whose. Anything else, including a
+      // failed check, keeps the plain decline.
+      const reading = await readSelfHarm(conversation);
+      if (reading === "self")
+        return safetyDeclinedResponse(corsHeaders, "self_harm");
+      if (reading === "other") {
+        return safetyDeclinedResponse(corsHeaders, "self_harm_other");
+      }
       return safetyDeclinedResponse(corsHeaders);
     }
     return internalErrorResponse("recipient-conversation", error, corsHeaders);

@@ -31,7 +31,7 @@ import {
 import {
   claimAddRecipientDraftWriteToken,
   clearAddRecipientDraft,
-  isAddRecipientConversationRefused,
+  addRecipientConversationRefusal,
   markAddRecipientConversationRefused,
   saveAddRecipientDraft,
 } from "../lib/add-recipient-draft";
@@ -43,6 +43,7 @@ import {
   SAFETY_DECLINED_FALLBACK_MESSAGE,
   useConversationFlow,
 } from "./use-conversation-flow";
+import type { SafetyKind } from "./use-conversation-flow";
 import { mergeAvoidList } from "../utils/avoid-list";
 
 type InitialAddress = Partial<
@@ -166,6 +167,8 @@ interface UseAddRecipientFlowReturn {
   partialSaveMessage: string | null;
   /** Set once a refusal has ended this session; the screen must leave. */
   safetyStopMessage: string | null;
+  /** Which refusal ended it: the self-harm kinds keep their message on screen. */
+  safetyStopKind: SafetyKind | null;
   messagesEndRef: React.RefObject<View | null>;
   shouldShowNextStepButton: boolean;
   conversationContext: string;
@@ -271,6 +274,7 @@ export function useAddRecipientFlow(
   const [safetyStopMessage, setSafetyStopMessage] = useState<string | null>(
     null
   );
+  const [safetyStopKind, setSafetyStopKind] = useState<SafetyKind | null>(null);
   // A ref, not the state above: the refusal can land after this screen has
   // unmounted, and later writes from this instance must still see the stop.
   const safetyStopped = useRef(false);
@@ -427,23 +431,25 @@ export function useAddRecipientFlow(
       : undefined,
     // A refused session ends outright: clearing the draft means reopening Add
     // Person can't resume it, so nothing from it reaches review or save.
-    onSafetyDeclined: (message, conversation) => {
-      markAddRecipientConversationRefused(conversation);
-      stopForSafety(message);
+    onSafetyDeclined: (message, conversation, kind) => {
+      markAddRecipientConversationRefused(conversation, { message, kind });
+      stopForSafety(message, kind);
     },
   });
 
-  const stopForSafety = (message: string) => {
+  const stopForSafety = (message: string, kind: SafetyKind = "generic") => {
     safetyStopped.current = true;
     setSafetyStopMessage(message);
+    setSafetyStopKind(kind);
   };
 
   // True when this session was refused — including when the refusal reached a
   // different instance of it (see markAddRecipientConversationRefused).
   const refusedEarlier = () => {
     if (safetyStopped.current) return true;
-    if (!isAddRecipientConversationRefused(messages)) return false;
-    stopForSafety(SAFETY_DECLINED_FALLBACK_MESSAGE);
+    const refusal = addRecipientConversationRefusal(messages);
+    if (!refusal) return false;
+    stopForSafety(refusal.message, refusal.kind);
     return true;
   };
 
@@ -866,6 +872,7 @@ export function useAddRecipientFlow(
     savedRecipientId,
     partialSaveMessage,
     safetyStopMessage,
+    safetyStopKind,
     messagesEndRef,
     shouldShowNextStepButton,
     conversationContext: conversationContext || "",
