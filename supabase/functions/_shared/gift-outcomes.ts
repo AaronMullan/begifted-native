@@ -378,12 +378,12 @@ export function buildRecipientNoteContext(
   };
 
   // Older notes were saved just before their decision, so a product problem
-  // reported moments after a note marks the note as about the product even
-  // when an earlier decision on the gift is the one it pairs with.
-  const productProblemJustAfter = (note: FeedbackRow) =>
+  // (or a skipped decision) reported moments after a note claims the note
+  // even when an earlier decision on the gift is the one it pairs with.
+  const skippedJustAfter = (note: FeedbackRow) =>
     decisions.some(
       (d) =>
-        d.action === "product_problem" &&
+        (d.action === "product_problem" || skipDecisions.includes(d.action)) &&
         d.gift_suggestion_id === note.gift_suggestion_id &&
         d.created_at > note.created_at &&
         Date.parse(d.created_at) - Date.parse(note.created_at) <=
@@ -399,7 +399,7 @@ export function buildRecipientNoteContext(
       const decision = decisionFor(note);
       if (decision?.action === "product_problem") return [];
       if (decision && skipDecisions.includes(decision.action)) return [];
-      if (productProblemJustAfter(note)) return [];
+      if (skippedJustAfter(note)) return [];
       const key = text.toLowerCase();
       if (seen.has(key)) return [];
       seen.add(key);

@@ -6,10 +6,20 @@ import {
 } from "./note-rules.ts";
 
 Deno.test(
-  "parseNoteRules strips repeated verbs and skips rules already listed",
+  "parseNoteRules keeps only rule verdicts, strips repeated verbs and skips rules already listed",
   () => {
-    const raw =
-      '```json\n{"rules": ["No food items", "board games", "avoid Clothes", "", 4]}\n```';
+    const v = (rule: unknown, kind = "rule") => ({ note: "n", kind, rule });
+    const raw = `\`\`\`json\n${JSON.stringify({
+      notes: [
+        v("No food items"),
+        v("board games"),
+        v("avoid Clothes"),
+        v(""),
+        v(4),
+        v("candles", "item"),
+        v(null, "product"),
+      ],
+    })}\n\`\`\``;
     assertEquals(
       parseNoteRules(raw, ["Avoid: board games", "Kindle Paperwhite"]),
       ["food items", "Clothes"]
@@ -19,7 +29,7 @@ Deno.test(
 
 Deno.test("parseNoteRules returns nothing for malformed output", () => {
   assertEquals(parseNoteRules("not json", []), []);
-  assertEquals(parseNoteRules('{"rules": "food"}', []), []);
+  assertEquals(parseNoteRules('{"notes": "food"}', []), []);
 });
 
 Deno.test(
@@ -54,3 +64,18 @@ Deno.test(
     );
   }
 );
+
+Deno.test("ruleCandidateRows keeps rules stated as verbs or 'nothing'", () => {
+  const notes = [
+    "Avoid candles",
+    "Nothing edible",
+    "She hates anything scented",
+    "Skip food",
+  ];
+  assertEquals(
+    ruleCandidateRows(
+      notes.map((notes) => ({ action: "gift_feedback", notes }))
+    ).length,
+    4
+  );
+});

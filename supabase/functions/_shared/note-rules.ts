@@ -14,11 +14,13 @@ export const NON_RULE_DECISIONS = [
   "price_off",
 ];
 
-// A rule always says no in some form; typed fast it loses the apostrophe
+// A rule always says no in some form, often as a verb ("avoid", "skip",
+// "hates") or "nothing"; typed fast it loses the apostrophe
 // ("doesnt", "wouldnt"), hence the bare "nt". Over-matching ("want") only
 // sends the note on to the model. Notes without one — "Ear plugs", "Outdoor
 // glassware" — are fragments the model would otherwise read as a category.
-const NEGATION = /\b(?:no|not|never|none)\b|n['’]?t\b/i;
+const NEGATION =
+  /\b(?:no|not|never|none|nothing|avoid|skip|stop|hates?|dislikes?|allergic|without)\b|n['’]?t\b/i;
 
 /** Feedback rows a rule could come from: every decision row, for pairing, and
  * only the notes that say no. */
@@ -50,7 +52,7 @@ Not a rule — return nothing for these:
 
 Name each category in two to four plain lowercase words, as broad as the note says and no broader: "No frames" is "picture frames", not "home decor". Return only rules not already covered by the existing rules you are given. When unsure, leave it out — every rule you return blocks a whole category from now on.
 
-Return ONLY valid JSON: {"rules": ["category", ...]}`;
+Give a verdict for every note, in order. "kind" is "rule" for a standing rule about the person, "item" for a remark about one gift, "product" for a listing, price or website problem, and "other" for anything else. Return ONLY valid JSON: {"notes": [{"note": "<the note>", "kind": "rule" | "item" | "product" | "other", "rule": "<category>" or null}]}`;
 
 /** The model's reply as clean category names, minus any it repeated a verb on
  * ("no food items") or that are already on the list. */
@@ -66,12 +68,13 @@ export function parseNoteRules(raw: string, existing: string[]): string[] {
   } catch {
     return [];
   }
-  const rules = (parsed as { rules?: unknown })?.rules;
-  if (!Array.isArray(rules)) return [];
+  const verdicts = (parsed as { notes?: unknown })?.notes;
+  if (!Array.isArray(verdicts)) return [];
   const seen = new Set(existing.map((e) => e.trim().toLowerCase()));
   const out: string[] = [];
-  for (const r of rules) {
-    if (typeof r !== "string") continue;
+  for (const v of verdicts) {
+    const { kind, rule: r } = (v ?? {}) as { kind?: unknown; rule?: unknown };
+    if (kind !== "rule" || typeof r !== "string") continue;
     const value = r
       .trim()
       .replace(/^(?:avoid|no)\s+/i, "")

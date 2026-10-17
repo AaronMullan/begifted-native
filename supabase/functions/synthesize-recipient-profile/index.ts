@@ -137,6 +137,9 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // Awaited on every exit: the worker can be torn down once the response is
+  // sent, which would drop a rule mid-write when synthesis itself fails.
+  let rulesDone: Promise<void> = Promise.resolve();
   try {
     const { user, errorResponse } = await requireUser(req, corsHeaders);
     if (errorResponse) return errorResponse;
@@ -332,7 +335,7 @@ serve(async (req) => {
       ruleCandidateRows((feedback ?? []) as FeedbackRow[]),
       NON_RULE_DECISIONS
     );
-    const rulesDone = ruleNotes
+    rulesDone = ruleNotes
       ? storeNoteRules(
           supabase,
           recipientId,
@@ -449,6 +452,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
+    await rulesDone;
     if (error instanceof AIRefusalError) {
       return safetyDeclinedResponse(corsHeaders);
     }

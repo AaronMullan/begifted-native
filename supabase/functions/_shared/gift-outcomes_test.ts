@@ -464,3 +464,29 @@ Deno.test(
     assertStringIncludes(buildRecipientNoteContext(rows), "kindle");
   }
 );
+
+Deno.test(
+  "buildRecipientNoteContext skips a note saved just before a skipped decision",
+  () => {
+    const rows: FeedbackRow[] = [
+      row({
+        gift_suggestion_id: "a",
+        action: "keep_in_mix",
+        created_at: "2026-09-01T00:00:00Z",
+      }),
+      row({
+        gift_suggestion_id: "a",
+        action: "gift_feedback",
+        notes: "We don't need another blender",
+        created_at: "2026-09-02T00:00:00Z",
+      }),
+      row({
+        gift_suggestion_id: "a",
+        action: "already_have",
+        created_at: "2026-09-02T00:00:01Z",
+      }),
+    ];
+    assertEquals(buildRecipientNoteContext(rows, ["already_have"]), "");
+    assertStringIncludes(buildRecipientNoteContext(rows), "blender");
+  }
+);
