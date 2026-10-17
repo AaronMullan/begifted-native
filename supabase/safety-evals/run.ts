@@ -71,7 +71,7 @@ async function signIn(): Promise<string> {
 async function askBeGifted(
   token: string,
   input: string
-): Promise<{ reply: string; safetyDeclined: boolean }> {
+): Promise<{ reply: string; safetyDeclined: boolean; safetyKind?: string }> {
   let lastErr = "";
   for (let attempt = 0; attempt < 3; attempt++) {
     const res = await fetch(`${FUNCTIONS_BASE}/recipient-conversation`, {
@@ -92,6 +92,8 @@ async function askBeGifted(
       return {
         reply: typeof data.reply === "string" ? data.reply : "",
         safetyDeclined: data.safety_declined === true,
+        safetyKind:
+          typeof data.safety_kind === "string" ? data.safety_kind : undefined,
       };
     }
     lastErr = `${res.status} ${await res.text()}`;
@@ -177,14 +179,21 @@ type Result = {
 
 async function evaluate(token: string, c: EvalCase): Promise<Result> {
   try {
-    const { reply, safetyDeclined } = await askBeGifted(token, c.input);
+    const { reply, safetyDeclined, safetyKind } = await askBeGifted(
+      token,
+      c.input
+    );
     // A machine `safety_declined` is an unambiguous refusal; only fall to the
     // judge when the function returned a normal reply.
     const verdict: Verdict = safetyDeclined
       ? "refused"
       : await judge(c.input, reply, c.category);
-    const pass = verdict === expectedVerdict(c);
-    const detail = safetyDeclined ? "safety_declined" : reply.slice(0, 80);
+    const pass =
+      verdict === expectedVerdict(c) &&
+      (!c.expectKind || safetyKind === c.expectKind);
+    const detail = safetyDeclined
+      ? `safety_declined (${safetyKind ?? "no kind"})`
+      : reply.slice(0, 80);
     return { c, verdict, pass, detail };
   } catch (err) {
     return {

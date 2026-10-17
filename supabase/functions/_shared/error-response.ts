@@ -6,18 +6,37 @@
 export const SAFETY_DECLINE_MESSAGE =
   "This isn't something BeGifted can help with, so I've stopped here rather than guess. If that wasn't what you meant, try rephrasing what you're looking for.";
 
+// Self-harm stops answer with crisis resources instead of "try rephrasing".
+// `self_harm` is the user's own current intent; `self_harm_other` is a request
+// that would help someone else hurt themselves, or someone else in danger,
+// worded so the giver isn't treated as the one at risk. The wording is the
+// product owner's and is final.
+export type SafetyKind = "self_harm" | "self_harm_other" | "generic";
+
+export const SAFETY_MESSAGES: Record<SafetyKind, string> = {
+  self_harm:
+    "I’m sorry you’re going through this. Your safety matters more than finishing this right now.\nIf you’re in the U.S., you can call or text 988 to speak with a crisis counselor, anytime. If you might hurt yourself soon or are in immediate danger, call 911 or go to the nearest emergency department.\nWe’ll stop this gift setup here.",
+  self_harm_other:
+    "I’m concerned about their safety. I can’t recommend something that could help a person hurt themselves.\nIf you’re in the U.S., you can call or text 988 for guidance on supporting someone else. If they’re in immediate danger, call 911.\nWe’ll stop this gift setup here.",
+  generic: SAFETY_DECLINE_MESSAGE,
+};
+
 // Fail-closed response for a model refusal: 200 (not an error) so clients read
 // the body and render the message. The superset of fields lets every caller
 // read its own shape — the recipient-conversation chat renders `reply`, the
 // gift flow reads `status`/`suggestions` — without special-casing per function.
+// `safety_kind` tells the app whether to hold the crisis message on screen.
 export function safetyDeclinedResponse(
-  corsHeaders: Record<string, string>
+  corsHeaders: Record<string, string>,
+  kind: SafetyKind = "generic"
 ): Response {
+  const message = SAFETY_MESSAGES[kind];
   return new Response(
     JSON.stringify({
       safety_declined: true,
-      message: SAFETY_DECLINE_MESSAGE,
-      reply: SAFETY_DECLINE_MESSAGE,
+      safety_kind: kind,
+      message,
+      reply: message,
       status: "safety_declined",
       suggestions: [],
     }),

@@ -22,6 +22,8 @@ import { DataReviewView } from "../../../components/recipients/conversation/Data
 import { OccasionsSelectionView } from "../../../components/recipients/conversation/OccasionsSelectionView";
 import { ManualDataEntry } from "../../../components/recipients/conversation/ManualDataEntry";
 import { ProfileReadyInterstitial } from "../../../components/ProfileReadyInterstitial";
+import { SafetyCrisisView } from "../../../components/recipients/conversation/SafetyCrisisView";
+import { isCrisisSafetyKind } from "../../../hooks/use-conversation-flow";
 import { showSnackbar } from "../../../components/GlobalSnackbar";
 import { formatShortName } from "../../../lib/format-name";
 import { registerLeaveGuard } from "../../../lib/leave-guard";
@@ -357,6 +359,7 @@ const AddRecipientFlowInner = ({
     savedRecipientName,
     partialSaveMessage,
     safetyStopMessage,
+    safetyStopKind,
     messagesEndRef,
     shouldShowNextStepButton,
     conversationContext,
@@ -400,8 +403,19 @@ const AddRecipientFlowInner = ({
   // The session can't continue past a refusal, so leave for People rather
   // than leave a chat the user could keep typing into. Waits for focus: a
   // refusal landing after a tab switch must not pull the user off that tab.
+  // Crisis stops are the exception: their resources stay on screen until the
+  // user closes them (see SafetyCrisisView below).
+  const leaveAfterSafetyStop = () => {
+    if (onSafetyStop) {
+      onSafetyStop();
+    } else {
+      router.replace("/contacts");
+    }
+  };
+  const crisisStop = isCrisisSafetyKind(safetyStopKind);
   useEffect(() => {
     if (!safetyStopMessage || !isFocused || safetyStopHandled.current) return;
+    if (crisisStop) return;
     safetyStopHandled.current = true;
     showSnackbar(safetyStopMessage);
     if (onSafetyStop) {
@@ -409,7 +423,7 @@ const AddRecipientFlowInner = ({
     } else {
       router.replace("/contacts");
     }
-  }, [safetyStopMessage, isFocused, onSafetyStop, router]);
+  }, [safetyStopMessage, isFocused, crisisStop, onSafetyStop, router]);
 
   // Enhanced finish conversation handler with proper error handling
   const handleFinishConversationWithFallback = async () => {
@@ -522,6 +536,15 @@ const AddRecipientFlowInner = ({
       </Dialog>
     </Portal>
   );
+
+  if (crisisStop && safetyStopMessage) {
+    return (
+      <SafetyCrisisView
+        message={safetyStopMessage}
+        onClose={leaveAfterSafetyStop}
+      />
+    );
+  }
 
   // Save complete → the "profile is ready" transition (Figma 5051:7621);
   // auto-advances to the new person's gift ideas, no CTA.

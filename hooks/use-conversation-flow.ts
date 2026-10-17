@@ -131,7 +131,11 @@ interface UseConversationFlowOptions {
    * gate screens only the latest message, so the next ordinary turn would
    * pass. When set, the refusal is neither appended to the chat nor handed to
    * onAssistantReply/onExtractError — this callback owns showing it. */
-  onSafetyDeclined?: (message: string, conversation: Message[]) => void;
+  onSafetyDeclined?: (
+    message: string,
+    conversation: Message[],
+    kind: SafetyKind
+  ) => void;
 }
 
 interface UseConversationFlowReturn {
@@ -168,6 +172,7 @@ type ConversationRequestBody = {
 
 type ConversationReply = {
   safety_declined?: boolean;
+  safety_kind?: SafetyKind;
   message?: string;
   reply?: string;
   conversationContext?: string;
@@ -181,9 +186,17 @@ type ConversationReply = {
 export const SAFETY_DECLINED_FALLBACK_MESSAGE =
   "This isn't something BeGifted can help with.";
 
+// Mirrors `SafetyKind` in supabase/functions/_shared/error-response.ts. The
+// self-harm kinds carry crisis resources, which must stay on screen.
+export type SafetyKind = "self_harm" | "self_harm_other" | "generic";
+
+export const isCrisisSafetyKind = (kind: SafetyKind | null | undefined) =>
+  kind === "self_harm" || kind === "self_harm_other";
+
 type ExtractResponse = ExtractedData & {
   extractedData?: ExtractedData;
   safety_declined?: boolean;
+  safety_kind?: SafetyKind;
   message?: string;
 };
 
@@ -337,7 +350,8 @@ export function useConversationFlow(
         setPendingRetry(null);
         onSafetyDeclined(
           data.message ?? data.reply ?? SAFETY_DECLINED_FALLBACK_MESSAGE,
-          convo
+          convo,
+          data.safety_kind ?? "generic"
         );
         return;
       }
@@ -480,7 +494,11 @@ export function useConversationFlow(
           data.message ?? SAFETY_DECLINED_FALLBACK_MESSAGE
         );
         if (onSafetyDeclined) {
-          onSafetyDeclined(safetyError.message, messages);
+          onSafetyDeclined(
+            safetyError.message,
+            messages,
+            data.safety_kind ?? "generic"
+          );
         } else if (onExtractError) {
           onExtractError(safetyError);
         } else {

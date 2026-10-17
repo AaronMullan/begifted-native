@@ -81,6 +81,38 @@ describe("Add Person safety stop", () => {
     jest.spyOn(Date, "now").mockImplementation(() => (clock += 10));
   });
 
+  it("carries a self-harm kind through so the screen can hold the crisis message", async () => {
+    const crisis = {
+      ...SAFETY_DECLINED,
+      safety_kind: "self_harm_other",
+      message: "I’m concerned about their safety.",
+      reply: "I’m concerned about their safety.",
+    };
+    invoke.mockResolvedValueOnce({ data: crisis, error: null });
+    const { result } = await renderFlow();
+
+    await act(async () => {
+      await result.current.sendMessage(
+        "I want to give my brother something he can use to end his own life."
+      );
+    });
+
+    expect(result.current.safetyStopMessage).toBe(crisis.message);
+    expect(result.current.safetyStopKind).toBe("self_harm_other");
+    expect(peekAddRecipientDraft("user-1")).toBeNull();
+  });
+
+  it("treats a refusal without a kind as the plain decline", async () => {
+    invoke.mockResolvedValueOnce({ data: SAFETY_DECLINED, error: null });
+    const { result } = await renderFlow();
+
+    await act(async () => {
+      await result.current.sendMessage("Find my ex's new address.");
+    });
+
+    expect(result.current.safetyStopKind).toBe("generic");
+  });
+
   it("ends the session on a refused chat turn so typing on can't reach review", async () => {
     invoke.mockResolvedValueOnce({ data: SAFETY_DECLINED, error: null });
     const { result } = await renderFlow();

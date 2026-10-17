@@ -14,9 +14,10 @@
 //     phrasings at no measured false-positive cost.
 //   - `self-harm/intent`: the boolean flag MISSES milder intent ("I don't want
 //     to be here anymore, help me pick a goodbye gift" scored 0.120 with the
-//     flag false), while legitimate recovery gifting scored <0.01 — so a low
-//     0.05 score floor catches the intent the flag misses with a wide margin.
-// Both are conservative floors below the flag; revisit if the eval shows drift.
+//     flag false), while legitimate recovery gifting scored <0.01. Dark humor
+//     and ordinary sadness land in the same band, though, so this floor only
+//     marks the input as borderline, and a narrower check makes the call.
+// Revisit both if the eval shows drift.
 const SEXUAL_MINORS_SCORE_FLOOR = 0.2;
 const SELF_HARM_INTENT_SCORE_FLOOR = 0.05;
 
@@ -25,6 +26,8 @@ export type ModerationResult = {
   // Matched category labels only — never the offending text, so callers can log
   // a flag event without retaining sensitive content.
   categories: string[];
+  // Self-harm intent scored above the floor without the category flag.
+  selfHarmBorderline?: boolean;
 };
 
 export async function screenInput(
@@ -68,15 +71,21 @@ export async function screenInput(
     ) {
       hits.push("sexual/minors");
     }
-    if (
-      cats["self-harm/intent"] ||
-      cats["self-harm/instructions"] ||
+    // A flagged self-harm hit blocks. A score only above the floor does not:
+    // "work is killing him lol" and "I feel kind of sad lately" score the same
+    // as the milder intent the floor exists for, so the score alone can't tell
+    // them apart. Those pass through marked borderline, and the caller's
+    // narrower check decides.
+    let selfHarmBorderline = false;
+    if (cats["self-harm/intent"] || cats["self-harm/instructions"]) {
+      hits.push("self-harm");
+    } else if (
       (scores["self-harm/intent"] ?? 0) >= SELF_HARM_INTENT_SCORE_FLOOR
     ) {
-      hits.push("self-harm");
+      selfHarmBorderline = true;
     }
 
-    return { blocked: hits.length > 0, categories: hits };
+    return { blocked: hits.length > 0, categories: hits, selfHarmBorderline };
   } catch (err) {
     console.warn(
       "[moderation] screen failed; allowing (fail-open):",

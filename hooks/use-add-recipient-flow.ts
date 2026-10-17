@@ -43,6 +43,7 @@ import {
   SAFETY_DECLINED_FALLBACK_MESSAGE,
   useConversationFlow,
 } from "./use-conversation-flow";
+import type { SafetyKind } from "./use-conversation-flow";
 import { mergeAvoidList } from "../utils/avoid-list";
 
 type InitialAddress = Partial<
@@ -166,6 +167,8 @@ interface UseAddRecipientFlowReturn {
   partialSaveMessage: string | null;
   /** Set once a refusal has ended this session; the screen must leave. */
   safetyStopMessage: string | null;
+  /** Which refusal ended it: the self-harm kinds keep their message on screen. */
+  safetyStopKind: SafetyKind | null;
   messagesEndRef: React.RefObject<View | null>;
   shouldShowNextStepButton: boolean;
   conversationContext: string;
@@ -271,6 +274,7 @@ export function useAddRecipientFlow(
   const [safetyStopMessage, setSafetyStopMessage] = useState<string | null>(
     null
   );
+  const [safetyStopKind, setSafetyStopKind] = useState<SafetyKind | null>(null);
   // A ref, not the state above: the refusal can land after this screen has
   // unmounted, and later writes from this instance must still see the stop.
   const safetyStopped = useRef(false);
@@ -427,15 +431,16 @@ export function useAddRecipientFlow(
       : undefined,
     // A refused session ends outright: clearing the draft means reopening Add
     // Person can't resume it, so nothing from it reaches review or save.
-    onSafetyDeclined: (message, conversation) => {
+    onSafetyDeclined: (message, conversation, kind) => {
       markAddRecipientConversationRefused(conversation);
-      stopForSafety(message);
+      stopForSafety(message, kind);
     },
   });
 
-  const stopForSafety = (message: string) => {
+  const stopForSafety = (message: string, kind: SafetyKind = "generic") => {
     safetyStopped.current = true;
     setSafetyStopMessage(message);
+    setSafetyStopKind(kind);
   };
 
   // True when this session was refused — including when the refusal reached a
@@ -866,6 +871,7 @@ export function useAddRecipientFlow(
     savedRecipientId,
     partialSaveMessage,
     safetyStopMessage,
+    safetyStopKind,
     messagesEndRef,
     shouldShowNextStepButton,
     conversationContext: conversationContext || "",

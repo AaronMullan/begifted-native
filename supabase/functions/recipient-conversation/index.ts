@@ -7,7 +7,12 @@ import {
   extractField,
 } from "./extractors.ts";
 import { recommendOccasions } from "./occasions.ts";
-import { isPreambleDecline, SAFETY_PREAMBLE } from "./prompts.ts";
+import {
+  isPreambleDecline,
+  preambleDeclineKind,
+  SAFETY_PREAMBLE,
+} from "./prompts.ts";
+import { moderationStopKind } from "./safety-kind.ts";
 import { parseIntakeRules, renderRequiredFields } from "./intake-rules.ts";
 import type { IntakeRules } from "./intake-rules.ts";
 import { screenInput } from "../_shared/moderation.ts";
@@ -310,13 +315,14 @@ serve(async (req) => {
         getApiKey("openai")
       );
       timings.moderation_ms = Date.now() - moderationStartedAt;
-      if (moderation.blocked) {
+      const stopKind = await moderationStopKind(moderation, messages);
+      if (stopKind) {
         console.warn(
-          `[moderation] blocked recipient-conversation input; categories=${moderation.categories.join(
+          `[moderation] stopped recipient-conversation input; categories=${moderation.categories.join(
             ","
-          )}; action=${action}; conversationType=${conversationType}`
+          )}; borderline=${!!moderation.selfHarmBorderline}; kind=${stopKind}; action=${action}; conversationType=${conversationType}`
         );
-        return safetyDeclinedResponse(corsHeaders);
+        return safetyDeclinedResponse(corsHeaders, stopKind);
       }
     }
 
@@ -453,7 +459,10 @@ serve(async (req) => {
     );
   } catch (error) {
     if (error instanceof AIRefusalError) {
-      return safetyDeclinedResponse(corsHeaders);
+      return safetyDeclinedResponse(
+        corsHeaders,
+        preambleDeclineKind(error.refusalText ?? "") ?? "generic"
+      );
     }
     return internalErrorResponse("recipient-conversation", error, corsHeaders);
   }
