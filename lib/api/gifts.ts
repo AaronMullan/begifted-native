@@ -25,12 +25,31 @@ export const backfillScopeKey = (
  * Per scope, so a request for one list can't hide another list's stall. */
 const backfillRequestedAt = new Map<string, number>();
 
+/** One rendered list's standing against its active band. */
+export type ScopeGap = {
+  /** Most slots the scope ever held at once. The shortfall against the active
+   * rows is the gap a removal left, which is what the backfill generates
+   * against — a scope that never reached three has no gap. */
+  peak: number;
+  /** The gap is older than any backfill could take to fill it, so its
+   * pending slots have stopped rather than still generating. */
+  stalled: boolean;
+};
+
+export type GiftSuggestionsData = {
+  /** Newest first, removed rows excluded. */
+  suggestions: GiftSuggestion[];
+  /** Keyed by `backfillScopeKey`. Kept apart from the rows because a scope
+   * whose every idea was removed has no row left to carry its gap. */
+  scopes: Record<string, ScopeGap>;
+};
+
 /**
  * Fetch gift suggestions for a recipient
  */
 export async function fetchGiftSuggestions(
   recipientId: string
-): Promise<GiftSuggestion[]> {
+): Promise<GiftSuggestionsData> {
   // Fetch suggestions and any "removal" feedback in parallel so rejected/owned/
   // problem gifts stay hidden across refetches, not just optimistically (DEV-108).
   const [suggestionsRes, removedRes] = await Promise.all([
@@ -106,28 +125,29 @@ export async function fetchGiftSuggestions(
         backfillRequestedAt.get(scope) ?? 0
       ) >
       BACKFILL_MAX_MS;
-  const recipientStalled = stalled(
-    recipientBand,
-    backfillScopeKey(recipientId)
-  );
 
-  return rows
+  const scopes: Record<string, ScopeGap> = {
+    [backfillScopeKey(recipientId)]: {
+      peak: recipientBand.peak,
+      stalled: stalled(recipientBand, backfillScopeKey(recipientId)),
+    },
+  };
+  for (const [key, band] of occasionBands) {
+    if (!key) continue;
+    const scope = backfillScopeKey(recipientId, key);
+    scopes[scope] = { peak: band.peak, stalled: stalled(band, scope) };
+  }
+
+  const suggestions = rows
     .filter((s) => !removedAt.has(s.id))
-    .map((s) => {
-      const occasionBand = occasionBands.get(s.occasion_id ?? "");
-      return {
-        ...s,
-        active_in_recipient: recipientBand.active.has(s.id),
-        active_in_occasion: occasionBand?.active.has(s.id) ?? false,
-        peak_in_recipient: recipientBand.peak,
-        peak_in_occasion: occasionBand?.peak ?? 0,
-        backfill_stalled_in_recipient: recipientStalled,
-        backfill_stalled_in_occasion: stalled(
-          occasionBand,
-          backfillScopeKey(recipientId, s.occasion_id)
-        ),
-      };
-    });
+    .map((s) => ({
+      ...s,
+      active_in_recipient: recipientBand.active.has(s.id),
+      active_in_occasion:
+        occasionBands.get(s.occasion_id ?? "")?.active.has(s.id) ?? false,
+    }));
+
+  return { suggestions, scopes };
 }
 
 export const GIFT_FEEDBACK_ACTIONS = [

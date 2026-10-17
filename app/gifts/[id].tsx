@@ -69,12 +69,13 @@ export default function GiftIdeasPage() {
   );
   const { data: recipient, isLoading: loadingRecipient } = useRecipient(id);
   const {
-    data: suggestions = [],
+    data: suggestionsData,
     isLoading: loadingSuggestions,
     isFetching: fetchingSuggestions,
     isError: suggestionsFailed,
     refetch: refetchSuggestions,
   } = useGiftSuggestions(id);
+  const suggestions = suggestionsData?.suggestions ?? [];
   const { user } = useAuth();
   const scrollRef = useRef<ScrollView>(null);
   const contentRef = useRef<View>(null);
@@ -195,7 +196,9 @@ export default function GiftIdeasPage() {
         <View ref={contentRef} style={styles.content}>
           <GiftIdeasHeader name={name} onAboutPress={handleAboutPress} />
           <GiftSuggestionsList
+            recipientId={id}
             suggestions={suggestions}
+            scopes={suggestionsData?.scopes ?? {}}
             recipientName={name}
             emptyState={emptyState}
             stateOccasionType={stateOccasionType}
