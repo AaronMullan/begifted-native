@@ -32,10 +32,8 @@ export const asyncStoragePersister = createAsyncStoragePersister({
 });
 
 /** Bump whenever a persisted query's shape changes, so a rehydrated cache from
- * the previous build is discarded rather than read with missing fields. Gift
- * suggestions gained their active-band flags in DEV-488: without those, every
- * idea reads as inactive and the whole list renders as Past Gifts. */
-const PERSIST_BUSTER = "dev-488-gift-band";
+ * the previous build is discarded rather than read with missing fields. */
+const PERSIST_BUSTER = "dev-571-gift-scopes";
 
 export const persistOptions = {
   persister: asyncStoragePersister,

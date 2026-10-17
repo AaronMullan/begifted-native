@@ -5,6 +5,8 @@ import { Colors } from "../../lib/colors";
 import { Typography } from "../../lib/typography";
 import { Spacing } from "../../lib/spacing";
 import type { GiftSuggestion } from "../../types/recipient";
+import type { ScopeGap } from "../../lib/api/gifts";
+import { backfillScopeKey } from "../../lib/api/gifts";
 import PrimaryGiftCard from "./PrimaryGiftCard";
 import CollapsedGiftCard from "./CollapsedGiftCard";
 import GiftGenerationWaiting from "./GiftGenerationWaiting";
@@ -22,7 +24,10 @@ import {
 } from "../../utils/home-occasions";
 
 type GiftSuggestionsListProps = {
+  recipientId: string;
   suggestions: GiftSuggestion[];
+  /** `GiftSuggestionsData.scopes`: each list's gap left by removals. */
+  scopes: Record<string, ScopeGap>;
   /** Recipient first name, used in the empty state copy. */
   recipientName: string;
   loading?: boolean;
@@ -45,7 +50,9 @@ type GiftSuggestionsListProps = {
 };
 
 const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
+  recipientId,
   suggestions,
+  scopes,
   recipientName,
   loading = false,
   isGenerating = false,
@@ -87,10 +94,14 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
     active: activeSuggestions,
     pendingSlots,
     pendingStalled,
-  } = partitionSuggestions(suggestions, occasionId);
+  } = partitionSuggestions(
+    suggestions,
+    occasionId,
+    scopes[backfillScopeKey(recipientId, occasionId)]
+  );
 
   useRetryStalledBackfill(
-    visibleSuggestions[0]?.recipient_id,
+    recipientId,
     occasionId,
     pendingSlots > 0 && pendingStalled
   );
@@ -137,6 +148,25 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
 
   const renderEmptyState = () => {
     const name = recipientName || "them";
+    // Every idea in the list was removed: replacements are on their way, which
+    // the generic empty copy would misreport as nothing to show.
+    if (pendingSlots > 0 && emptyState !== "failed") {
+      const replacements = recipientName
+        ? `${possessive(recipientName)} new gift ideas`
+        : "new gift ideas";
+      return pendingStalled ? (
+        <StateMessage
+          size="hero"
+          message={StateCopy.loadFailed(replacements)}
+        />
+      ) : (
+        <StateMessage
+          size="hero"
+          loading
+          message={StateCopy.inProgress(replacements)}
+        />
+      );
+    }
     switch (emptyState) {
       case "generating":
         return <GiftGenerationWaiting recipientName={recipientName} />;

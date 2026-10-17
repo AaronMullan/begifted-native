@@ -318,7 +318,7 @@ export default function RecipientEditPage() {
   // GIFT_REMOVAL_ACTIONS filter, so dismissed gifts disappear and stay gone
   // here too — not only on the standalone Gift Ideas screen (DEV-137).
   const {
-    data: suggestions = [],
+    data: suggestionsData,
     isLoading: loadingSuggestions,
     isFetching: fetchingSuggestions,
     isError: suggestionsFailed,
@@ -339,6 +339,7 @@ export default function RecipientEditPage() {
         }
       : false,
   });
+  const suggestions = suggestionsData?.suggestions ?? [];
 
   // Completion latches, adjusted during render: once the watched value moves
   // past its baseline, the poll is over.
@@ -1105,7 +1106,9 @@ export default function RecipientEditPage() {
           <>
             <View style={styles.giftsContainer}>
               <GiftSuggestionsList
+                recipientId={recipientId}
                 suggestions={suggestions}
+                scopes={suggestionsData?.scopes ?? {}}
                 loading={
                   loadingSuggestions ||
                   (loadingGiftState && visibleSuggestionCount === 0)

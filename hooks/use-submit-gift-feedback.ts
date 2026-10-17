@@ -13,9 +13,9 @@ import {
   insertGiftFeedback,
   triggerGiftBackfill,
   type GiftFeedbackAction,
+  type GiftSuggestionsData,
   type InsertGiftFeedbackInput,
 } from "../lib/api";
-import type { GiftSuggestion } from "../types/recipient";
 import { partitionSuggestions } from "../components/gifts/partition";
 import { useAuth } from "./use-auth";
 
@@ -33,8 +33,18 @@ type SubmitGiftFeedbackVars = {
  * a card removed from an occasion-filtered list empties an occasion slot, and
  * counting recipient-wide would call that list full and never ask for a
  * replacement (DEV-488). */
-const emptySlots = (rows: GiftSuggestion[], occasionId?: string | null) =>
-  partitionSuggestions(rows, occasionId ?? null).pendingSlots;
+const emptySlots = (
+  data: GiftSuggestionsData | undefined,
+  recipientId: string,
+  occasionId?: string | null
+) =>
+  data
+    ? partitionSuggestions(
+        data.suggestions,
+        occasionId ?? null,
+        data.scopes[backfillScopeKey(recipientId, occasionId)]
+      ).pendingSlots
+    : 0;
 
 /** Feedback that says something about who the recipient is: a choice, a
  * judgement on fit, or a note the giver wrote. Price, product and display
@@ -156,8 +166,8 @@ function pollForBackfill(
   ];
   for (const delay of delaysMs) {
     setTimeout(() => {
-      const current = queryClient.getQueryData<GiftSuggestion[]>(key) ?? [];
-      if (emptySlots(current, occasionId) === 0) return; // already refilled
+      const current = queryClient.getQueryData<GiftSuggestionsData>(key);
+      if (emptySlots(current, recipientId, occasionId) === 0) return; // already refilled
       queryClient.invalidateQueries({ queryKey: key });
     }, delay);
   }
@@ -192,16 +202,18 @@ export function useRetryStalledBackfill(
     stalledRetryAt.set(scope, Date.now());
 
     // Only this scope's verdict: another list's stall is not being retried.
-    queryClient.setQueryData<GiftSuggestion[]>(
+    queryClient.setQueryData<GiftSuggestionsData>(
       queryKeys.giftSuggestions(recipientId),
       (old) =>
-        old?.map((s) =>
-          occasionId
-            ? s.occasion_id === occasionId
-              ? { ...s, backfill_stalled_in_occasion: false }
-              : s
-            : { ...s, backfill_stalled_in_recipient: false }
-        )
+        old?.scopes[scope]
+          ? {
+              ...old,
+              scopes: {
+                ...old.scopes,
+                [scope]: { ...old.scopes[scope], stalled: false },
+              },
+            }
+          : old
     );
     triggerGiftBackfill(recipientId, occasionId);
     pollForBackfill(queryClient, recipientId, occasionId);
@@ -232,17 +244,23 @@ export function useSubmitGiftFeedback() {
       if (!GIFT_REMOVAL_ACTIONS.includes(vars.action)) return;
       const key = queryKeys.giftSuggestions(vars.recipientId);
       await queryClient.cancelQueries({ queryKey: key });
-      const previous = queryClient.getQueryData<GiftSuggestion[]>(key);
+      const previous = queryClient.getQueryData<GiftSuggestionsData>(key);
       // This removal starts a fresh backfill, so a stall verdict from an
       // older gap must not show on the slot it empties.
-      queryClient.setQueryData<GiftSuggestion[]>(key, (old) =>
-        (old ?? [])
-          .filter((s) => s.id !== vars.giftSuggestionId)
-          .map((s) => ({
-            ...s,
-            backfill_stalled_in_recipient: false,
-            backfill_stalled_in_occasion: false,
-          }))
+      queryClient.setQueryData<GiftSuggestionsData>(
+        key,
+        (old) =>
+          old && {
+            suggestions: old.suggestions.filter(
+              (s) => s.id !== vars.giftSuggestionId
+            ),
+            scopes: Object.fromEntries(
+              Object.entries(old.scopes).map(([scope, gap]) => [
+                scope,
+                { ...gap, stalled: false },
+              ])
+            ),
+          }
       );
       return { previous };
     },
@@ -277,14 +295,15 @@ export function useSubmitGiftFeedback() {
         ).catch((err) => console.error("Giver re-synthesis threw:", err));
       }
       if (!GIFT_REMOVAL_ACTIONS.includes(vars.action)) return;
-      const remaining =
-        queryClient.getQueryData<GiftSuggestion[]>(
-          queryKeys.giftSuggestions(vars.recipientId)
-        ) ?? [];
+      const remaining = queryClient.getQueryData<GiftSuggestionsData>(
+        queryKeys.giftSuggestions(vars.recipientId)
+      );
       // Count emptied slots, not the whole list: a recipient with a Past Gifts
       // band always had 3+ rows left, so this gate used to swallow every
       // removal they made and no replacement was ever requested (DEV-488).
-      if (emptySlots(remaining, vars.occasionId) === 0) return;
+      if (emptySlots(remaining, vars.recipientId, vars.occasionId) === 0) {
+        return;
+      }
       triggerGiftBackfill(vars.recipientId, vars.occasionId);
       pollForBackfill(queryClient, vars.recipientId, vars.occasionId);
     },

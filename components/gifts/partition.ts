@@ -1,4 +1,5 @@
 import type { GiftSuggestion } from "../../types/recipient";
+import type { ScopeGap } from "../../lib/api/gifts";
 import { ACTIVE_COUNT } from "../../lib/gift-band";
 
 export { ACTIVE_COUNT };
@@ -11,10 +12,14 @@ export { ACTIVE_COUNT };
  * generate/remove timeline, not by list position — see `lib/gift-band.ts`.
  * Each row carries a flag per scope because the two views band differently: a
  * recipient's newest three overall are not the newest three within one
- * occasion. */
+ * occasion.
+ *
+ * `gap` is the scope's entry from `GiftSuggestionsData.scopes`; without it no
+ * slot reads as pending. */
 export function partitionSuggestions(
   suggestions: GiftSuggestion[],
-  occasionId?: string | null
+  occasionId?: string | null,
+  gap?: ScopeGap
 ) {
   const visible = occasionId
     ? suggestions.filter((s) => s.occasion_id === occasionId)
@@ -30,23 +35,13 @@ export function partitionSuggestions(
   // a run where one idea came back unpriced, a recipient still generating —
   // has no gap, and holding a slot open there would spin forever because only
   // a removal starts a backfill (DEV-488).
-  const peak = visible[0]
-    ? occasionId
-      ? visible[0].peak_in_occasion
-      : visible[0].peak_in_recipient
-    : 0;
-
-  const pendingStalled = visible[0]
-    ? occasionId
-      ? visible[0].backfill_stalled_in_occasion
-      : visible[0].backfill_stalled_in_recipient
-    : false;
+  const peak = gap?.peak ?? 0;
 
   return {
     visible,
     active,
     past: visible.filter((s) => !isActive(s)),
     pendingSlots: Math.max(0, Math.min(peak, ACTIVE_COUNT) - active.length),
-    pendingStalled,
+    pendingStalled: gap?.stalled ?? false,
   };
 }

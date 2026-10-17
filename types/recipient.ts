@@ -50,13 +50,4 @@ export interface GiftSuggestion {
    * single occasion, and the two views partition independently. */
   active_in_recipient: boolean;
   active_in_occasion: boolean;
-  /** Most slots the scope ever held at once. The shortfall against the active
-   * rows is the gap a removal left, which is what the backfill generates
-   * against — a scope that never reached three has no gap. */
-  peak_in_recipient: number;
-  peak_in_occasion: number;
-  /** The scope's gap is older than any backfill could take to fill it, so its
-   * pending slots have stopped rather than still generating. */
-  backfill_stalled_in_recipient: boolean;
-  backfill_stalled_in_occasion: boolean;
 }
