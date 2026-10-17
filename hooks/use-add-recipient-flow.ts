@@ -31,7 +31,7 @@ import {
 import {
   claimAddRecipientDraftWriteToken,
   clearAddRecipientDraft,
-  isAddRecipientConversationRefused,
+  addRecipientConversationRefusal,
   markAddRecipientConversationRefused,
   saveAddRecipientDraft,
 } from "../lib/add-recipient-draft";
@@ -432,7 +432,7 @@ export function useAddRecipientFlow(
     // A refused session ends outright: clearing the draft means reopening Add
     // Person can't resume it, so nothing from it reaches review or save.
     onSafetyDeclined: (message, conversation, kind) => {
-      markAddRecipientConversationRefused(conversation);
+      markAddRecipientConversationRefused(conversation, { message, kind });
       stopForSafety(message, kind);
     },
   });
@@ -447,8 +447,9 @@ export function useAddRecipientFlow(
   // different instance of it (see markAddRecipientConversationRefused).
   const refusedEarlier = () => {
     if (safetyStopped.current) return true;
-    if (!isAddRecipientConversationRefused(messages)) return false;
-    stopForSafety(SAFETY_DECLINED_FALLBACK_MESSAGE);
+    const refusal = addRecipientConversationRefusal(messages);
+    if (!refusal) return false;
+    stopForSafety(refusal.message, refusal.kind);
     return true;
   };
 

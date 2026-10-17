@@ -240,6 +240,40 @@ describe("Add Person safety stop", () => {
     expect(result.current.safetyStopMessage).not.toBeNull();
   });
 
+  it("shows a resumed copy the same crisis message the original got", async () => {
+    let resolveRefusal: (value: unknown) => void = () => {};
+    invoke.mockImplementationOnce(
+      () => new Promise((resolve) => (resolveRefusal = resolve))
+    );
+    const first = await renderFlow();
+    let pendingSend: Promise<void> = Promise.resolve();
+    await act(async () => {
+      pendingSend = first.result.current.sendMessage(
+        "I don't want to be here anymore."
+      );
+    });
+    await first.unmount();
+
+    const { result } = await renderFlow(peekAddRecipientDraft("user-1"));
+    const crisis = {
+      ...SAFETY_DECLINED,
+      safety_kind: "self_harm",
+      message: "I’m sorry you’re going through this.",
+    };
+    await act(async () => {
+      resolveRefusal({ data: crisis, error: null });
+      await pendingSend;
+    });
+
+    await act(async () => {
+      await result.current.sendMessage("Never mind, it's for my sister.");
+    });
+
+    expect(invoke).toHaveBeenCalledTimes(1);
+    expect(result.current.safetyStopKind).toBe("self_harm");
+    expect(result.current.safetyStopMessage).toBe(crisis.message);
+  });
+
   it("blocks the save when the refusal lands after a resumed copy reached review", async () => {
     let resolveRefusal: (value: unknown) => void = () => {};
     invoke.mockImplementationOnce(

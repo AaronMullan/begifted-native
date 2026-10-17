@@ -1,4 +1,8 @@
-import type { ExtractedData, Message } from "../hooks/use-conversation-flow";
+import type {
+  ExtractedData,
+  Message,
+  SafetyKind,
+} from "../hooks/use-conversation-flow";
 import type { PendingContactSeed } from "./pending-contact-queue";
 
 export type AddRecipientDraftSeed = PendingContactSeed & {
@@ -68,29 +72,35 @@ export function clearAddRecipientDraft(): void {
   writeToken += 1;
 }
 
-// User messages the chat refused. A refusal can land after its screen has
-// unmounted and a reopened Add Person has resumed the same conversation from
-// the draft; marking the messages lets that resumed copy see it was refused
-// (the server screens only the latest message, so it can't tell).
-const refusedMessageIds = new Set<string>();
+// User messages the chat refused, with the refusal itself. A refusal can land
+// after its screen has unmounted and a reopened Add Person has resumed the
+// same conversation from the draft; marking the messages lets that resumed
+// copy see it was refused (the server screens only the latest message, so it
+// can't tell) and show the same message, crisis resources included.
+export type AddRecipientRefusal = { message: string; kind: SafetyKind };
 
-function containsRefused(messages: Pick<Message, "id" | "role">[]): boolean {
-  return messages.some((m) => m.role === "user" && refusedMessageIds.has(m.id));
-}
+const refusedMessages = new Map<string, AddRecipientRefusal>();
 
 /** Marks the conversation's user messages refused and clears the parked
  * draft if it holds any of them — a newer, unrelated draft is left alone. */
 export function markAddRecipientConversationRefused(
-  messages: Pick<Message, "id" | "role">[]
+  messages: Pick<Message, "id" | "role">[],
+  refusal: AddRecipientRefusal
 ): void {
   for (const m of messages) {
-    if (m.role === "user") refusedMessageIds.add(m.id);
+    if (m.role === "user") refusedMessages.set(m.id, refusal);
   }
-  if (draft && containsRefused(draft.messages)) clearAddRecipientDraft();
+  if (draft && addRecipientConversationRefusal(draft.messages)) {
+    clearAddRecipientDraft();
+  }
 }
 
-export function isAddRecipientConversationRefused(
+export function addRecipientConversationRefusal(
   messages: Pick<Message, "id" | "role">[]
-): boolean {
-  return containsRefused(messages);
+): AddRecipientRefusal | null {
+  for (const m of messages) {
+    const refusal = m.role === "user" ? refusedMessages.get(m.id) : undefined;
+    if (refusal) return refusal;
+  }
+  return null;
 }
