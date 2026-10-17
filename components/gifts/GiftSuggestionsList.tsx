@@ -149,8 +149,9 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
   const renderEmptyState = () => {
     const name = recipientName || "them";
     // Every idea in the list was removed: replacements are on their way, which
-    // the generic empty copy would misreport as nothing to show.
-    if (pendingSlots > 0 && emptyState !== "failed") {
+    // the generic empty copy would misreport as nothing to show. Ahead of
+    // `emptyState`, whose occasion status predates the removal.
+    if (pendingSlots > 0) {
       const replacements = recipientName
         ? `${possessive(recipientName)} new gift ideas`
         : "new gift ideas";
