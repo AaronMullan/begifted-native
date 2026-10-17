@@ -414,3 +414,79 @@ Deno.test(
     assertEquals(context, "");
   }
 );
+
+Deno.test(
+  "buildRecipientNoteContext skips notes explaining the given decisions",
+  () => {
+    const rows: FeedbackRow[] = [
+      row({
+        gift_suggestion_id: "a",
+        action: "already_have",
+        created_at: "2026-09-01T00:00:00Z",
+      }),
+      row({
+        gift_suggestion_id: "a",
+        action: "gift_feedback",
+        notes: "Already own a kindle",
+        created_at: "2026-09-01T00:00:05Z",
+      }),
+      row({
+        gift_suggestion_id: "b",
+        action: "price_off",
+        created_at: "2026-09-02T00:00:00Z",
+      }),
+      row({
+        gift_suggestion_id: "b",
+        action: "gift_feedback",
+        notes: "Not worth the price",
+        created_at: "2026-09-02T00:00:05Z",
+      }),
+      row({
+        gift_suggestion_id: "c",
+        action: "not_for_them",
+        created_at: "2026-09-03T00:00:00Z",
+      }),
+      row({
+        gift_suggestion_id: "c",
+        action: "gift_feedback",
+        notes: "No food items",
+        created_at: "2026-09-03T00:00:05Z",
+      }),
+    ];
+    const context = buildRecipientNoteContext(rows, [
+      "already_have",
+      "product_problem",
+      "price_off",
+    ]);
+    assertStringIncludes(context, "No food items");
+    assertEquals(context.includes("kindle"), false);
+    assertEquals(context.includes("worth the price"), false);
+    assertStringIncludes(buildRecipientNoteContext(rows), "kindle");
+  }
+);
+
+Deno.test(
+  "buildRecipientNoteContext skips a note saved just before a skipped decision",
+  () => {
+    const rows: FeedbackRow[] = [
+      row({
+        gift_suggestion_id: "a",
+        action: "keep_in_mix",
+        created_at: "2026-09-01T00:00:00Z",
+      }),
+      row({
+        gift_suggestion_id: "a",
+        action: "gift_feedback",
+        notes: "We don't need another blender",
+        created_at: "2026-09-02T00:00:00Z",
+      }),
+      row({
+        gift_suggestion_id: "a",
+        action: "already_have",
+        created_at: "2026-09-02T00:00:01Z",
+      }),
+    ];
+    assertEquals(buildRecipientNoteContext(rows, ["already_have"]), "");
+    assertStringIncludes(buildRecipientNoteContext(rows), "blender");
+  }
+);
