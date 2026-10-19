@@ -38,9 +38,15 @@ const FADE_MS = 450;
 type Props = {
   /** Recipient first name, or empty when unknown. */
   recipientName: string;
+  /** Only runs started by saving a person send a "gift ideas ready" push;
+   * one started by opening the list doesn't, so it mustn't promise one. */
+  promiseNotification?: boolean;
 };
 
-const GiftGenerationWaiting: React.FC<Props> = ({ recipientName }) => {
+const GiftGenerationWaiting: React.FC<Props> = ({
+  recipientName,
+  promiseNotification = true,
+}) => {
   const router = useRouter();
   const messages = waitingMessages(recipientName);
   const [messageIndex, setMessageIndex] = useState(0);
@@ -118,11 +124,13 @@ const GiftGenerationWaiting: React.FC<Props> = ({ recipientName }) => {
           <Text style={styles.message}>{messages[messageIndex]}</Text>
         </Animated.View>
       </View>
-      <Text style={styles.notification}>
-        {
-          "We'll send you a notification when you have new recommendations to review."
-        }
-      </Text>
+      {promiseNotification && (
+        <Text style={styles.notification}>
+          {
+            "We'll send you a notification when you have new recommendations to review."
+          }
+        </Text>
+      )}
       <Pressable
         style={styles.addPill}
         onPress={handleAddPress}

@@ -108,6 +108,27 @@ export function giftIdeasEmptyState({
 }
 
 /**
+ * Whether an empty list should ask the server to generate ideas for this
+ * occasion. Only for an upcoming occasion that has never had a set this
+ * cycle: a set that exists and emptied was removed by the user, which the
+ * backfill refills; a run that failed or found nothing shows that state with
+ * a retry instead of starting a run on every open; a chosen gift needs none.
+ */
+export function canRequestGiftIdeas(
+  occasion: GenerationOccasion | null,
+  now: number
+): boolean {
+  if (!occasion) return false;
+  const days = daysUntilOccasion(occasion);
+  if (days === null || days < 0) return false;
+  if (isGenerationInFlight(occasion, now)) return false;
+  if (!isCurrentCycle(occasion)) return true;
+  const stampAge = stampAgeMs(occasion, now);
+  if (stampAge !== null && stampAge < ABANDONED_STAMP_MS) return false;
+  return !occasion.fulfilled_at && !occasion.last_generation_status;
+}
+
+/**
  * The occasion that decides an unfiltered list's empty state: one with a run
  * in flight if any, otherwise the next upcoming one.
  */

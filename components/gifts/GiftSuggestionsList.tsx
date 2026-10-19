@@ -35,10 +35,14 @@ type GiftSuggestionsListProps = {
   isGenerating?: boolean;
   /** What an empty list says; see `giftIdeasEmptyState`. */
   emptyState: GiftIdeasEmptyState;
+  /** The run behind a generating list will send a "gift ideas ready" push. */
+  notifiesWhenReady?: boolean;
   /** occasion_type of the occasion behind `emptyState`, for the not-due copy. */
   stateOccasionType?: string | null;
   /** Set only when the suggestions fetch itself failed. */
   onRetryLoad?: () => void;
+  /** Starts a fresh run when the last one for this occasion failed. */
+  onRetryGeneration?: () => void;
   /** When set, only suggestions for this occasion are shown, and gift
    * feedback is attributed to it. */
   occasionId?: string | null;
@@ -57,8 +61,10 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
   loading = false,
   isGenerating = false,
   emptyState,
+  notifiesWhenReady = true,
   stateOccasionType = null,
   onRetryLoad,
+  onRetryGeneration,
   occasionId = null,
   onClearOccasionFilter,
   onScrollCardIntoView,
@@ -170,18 +176,25 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
     }
     switch (emptyState) {
       case "generating":
-        return <GiftGenerationWaiting recipientName={recipientName} />;
-      case "failed":
-        return onRetryLoad ? (
+        return (
+          <GiftGenerationWaiting
+            recipientName={recipientName}
+            promiseNotification={notifiesWhenReady}
+          />
+        );
+      case "failed": {
+        const onRetry = onRetryLoad ?? onRetryGeneration;
+        return onRetry ? (
           <View style={styles.stateTop}>
             <StateMessage
               message={StateCopy.loadFailed(thing)}
-              onRetry={onRetryLoad}
+              onRetry={onRetry}
             />
           </View>
         ) : (
           <StateMessage size="hero" message={StateCopy.loadFailed(thing)} />
         );
+      }
       case "no_results":
         return (
           <StateMessage

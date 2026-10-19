@@ -456,3 +456,49 @@ export async function triggerGiftBackfill(
     console.warn("[backfill] trigger failed (non-blocking):", err);
   }
 }
+
+/** Skips that still leave the list served: a full list or a run already
+ * going. Any other skip (a passed occasion, recommendations switched off)
+ * means no ideas are coming. */
+const SERVED_SKIPS = new Set(["list_full", "in_flight"]);
+
+/**
+ * Ask the backend to make sure an occasion someone is looking at has gift
+ * ideas, whatever its date. The backend claims the occasion's in-flight stamp
+ * before it responds, so an occasions read after this resolves shows the run;
+ * it skips occasions whose list is already full or already generating.
+ * Resolves false when no run is coming and the list isn't already served.
+ */
+export async function requestGiftIdeas(
+  recipientId: string,
+  occasionId: string
+): Promise<boolean> {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) return false;
+
+    const res = await fetch(`${BEGIFTED_BACKEND_URL}/api/generate-gifts`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ recipientId, occasionId, mode: "ensure" }),
+    });
+    if (!res.ok) {
+      console.warn(`[ensure] request rejected: ${res.status}`);
+      return false;
+    }
+    const body: { skipped?: string } = await res.json().catch(() => ({}));
+    if (body.skipped && !SERVED_SKIPS.has(body.skipped)) {
+      console.warn(`[ensure] skipped: ${body.skipped}`);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn("[ensure] request failed:", err);
+    return false;
+  }
+}
