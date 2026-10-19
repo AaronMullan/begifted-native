@@ -27,7 +27,7 @@ Deno.test("the top-level handler withholds a SyntaxError's message", () => {
   };
   try {
     try {
-      JSON.parse(TYPED);
+      JSON.parse("Mi\nchelle has been talking about hurting herself");
     } catch (err) {
       internalErrorResponse("test", err, {});
     }
@@ -35,5 +35,6 @@ Deno.test("the top-level handler withholds a SyntaxError's message", () => {
     console.error = original;
   }
   assertEquals(lines.length, 1);
-  assert(!lines[0].includes("Michelle"));
+  assert(!lines[0].includes("chelle"));
+  assert(lines[0].includes("at "));
 });
