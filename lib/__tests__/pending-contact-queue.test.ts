@@ -140,6 +140,15 @@ describe("unfinished people store", () => {
     ]);
     expect(picked).toHaveLength(2);
     expect(await readUnfinishedPeople(USER)).toHaveLength(2);
+
+    const again = await addUnfinishedPeople(USER, [
+      { name: "Chris", address: {} },
+      { name: "Chris", address: {} },
+    ]);
+    expect(again.map((p) => p.id).sort()).toEqual(
+      picked.map((p) => p.id).sort()
+    );
+    expect(await readUnfinishedPeople(USER)).toHaveLength(2);
   });
 
   it("drops the new photo copy when a waiting person is picked again", async () => {

@@ -126,8 +126,10 @@ export function addUnfinishedPeople(
     const waiting = [...list];
     const picked: PendingContact[] = [];
     for (const seed of seeds) {
-      const existing = waiting.find((p) => sameName(p.seed.name, seed.name));
-      if (existing && !picked.includes(existing)) {
+      const existing = waiting.find(
+        (p) => sameName(p.seed.name, seed.name) && !picked.includes(p)
+      );
+      if (existing) {
         picked.push(existing);
         await deleteOwnPhoto(seed.photoUri);
         continue;
@@ -222,9 +224,11 @@ export function removeRefusedUnfinishedPerson(
     const list = await readList(userId);
     const entry = list.find((p) => p.id === id);
     if (!entry) return;
-    const holdsRefused =
-      !entry.progress ||
-      entry.progress.messages.some((m) => refusedMessageIds.includes(m.id));
+    // A refused message is always parked before its refusal returns, so
+    // empty progress means a fresh conversation that wasn't refused.
+    const holdsRefused = !!entry.progress?.messages.some((m) =>
+      refusedMessageIds.includes(m.id)
+    );
     if (!holdsRefused) return;
     revokeWriters(id);
     await writeList(
