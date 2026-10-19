@@ -64,8 +64,37 @@ serve(async (req: Request) => {
     });
     const userId = user.id;
 
+    // A preservation hold keeps the account and everything in it. The user
+    // sees the ordinary delete failure, not a reason.
+    const { data: restriction, error: restrictionError } = await admin
+      .from("account_restrictions")
+      .select("hold_at")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (restrictionError) {
+      return jsonResponse({ error: "Failed to delete account" }, 500);
+    }
+    if (restriction?.hold_at) {
+      console.warn(
+        `[delete-account] refused: preservation hold user=${userId}`
+      );
+      return jsonResponse({ error: "Failed to delete account" }, 500);
+    }
+
+    // Photos sit at public URLs, so they go before the rows that point at
+    // them. Both buckets key objects by the owner's user ID.
+    for (const bucket of PHOTO_BUCKETS) {
+      const removeError = await removeUserFolder(admin, bucket, userId);
+      if (removeError) {
+        return jsonResponse(
+          { error: `Failed to delete ${bucket}: ${removeError}` },
+          500
+        );
+      }
+    }
+
     // FK-safe order. Each delete targets only rows owned by the verified user.
-    const ownedDeletes: Array<{ table: string; column: string }> = [
+    const ownedDeletes: { table: string; column: string }[] = [
       { table: "contact_requests", column: "user_id" },
       { table: "occasions", column: "user_id" },
       { table: "recipients", column: "user_id" },
@@ -96,6 +125,38 @@ serve(async (req: Request) => {
     return internalErrorResponse("delete-account", err, corsHeaders);
   }
 });
+
+const PHOTO_BUCKETS = ["avatars", "recipient-photos"];
+
+// Storage lists at most `limit` entries per call, so page until a short page.
+// Returns an error message, or null once the folder is empty.
+async function removeUserFolder(
+  // deno-lint-ignore no-explicit-any
+  admin: any,
+  bucket: string,
+  userId: string
+): Promise<string | null> {
+  const pageSize = 100;
+  // A remove that reports success but leaves the files would otherwise list
+  // the same page forever.
+  for (let page = 0; page < 50; page++) {
+    const { data, error } = await admin.storage
+      .from(bucket)
+      .list(userId, { limit: pageSize });
+    if (error) return error.message;
+    // Folder entries have no id and can't be removed by path; uploads are
+    // flat under the user's folder, so skipping them leaves nothing behind.
+    const files = (data ?? []).filter((f: { id: string | null }) => f.id);
+    if (files.length === 0) return null;
+    const paths = files.map((f: { name: string }) => `${userId}/${f.name}`);
+    const { error: removeError } = await admin.storage
+      .from(bucket)
+      .remove(paths);
+    if (removeError) return removeError.message;
+    if (data.length < pageSize) return null;
+  }
+  return "too many files to remove";
+}
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
