@@ -25,13 +25,18 @@ export type WebSearchCallOptions = {
 // response instead of routing a refusal into their generic parse-error
 // fallback — which would silently substitute fabricated/empty output for a
 // refusal. `refusalText` carries the model's own wording when the provider
-// supplies it.
+// supplies it. That wording can quote what the user typed, so it is
+// non-enumerable: logging the error (console.error prints an error's own
+// enumerable properties) must not write it to the function logs.
 export class AIRefusalError extends Error {
-  readonly refusalText?: string;
+  declare readonly refusalText?: string;
   constructor(refusalText?: string) {
     super("AI provider refused the request");
     this.name = "AIRefusalError";
-    this.refusalText = refusalText;
+    Object.defineProperty(this, "refusalText", {
+      value: refusalText,
+      enumerable: false,
+    });
   }
 }
 

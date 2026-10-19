@@ -57,7 +57,13 @@ export function internalErrorResponse(
   corsHeaders: Record<string, string>
 ): Response {
   const requestId = crypto.randomUUID();
-  console.error(`[${functionName}] requestId=${requestId}`, error);
+  // A SyntaxError from JSON.parse quotes the start of its input, which is
+  // usually model output built from what the user typed. Its stack locates it.
+  const logged =
+    error instanceof SyntaxError
+      ? `SyntaxError (message withheld)\n${error.stack?.split("\n").slice(1).join("\n") ?? ""}`
+      : error;
+  console.error(`[${functionName}] requestId=${requestId}`, logged);
   return new Response(
     JSON.stringify({ error: "Internal server error", requestId }),
     {

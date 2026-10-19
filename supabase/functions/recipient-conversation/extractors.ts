@@ -86,7 +86,6 @@ export async function extractFullRecipient(
   const conversationHistory = messages
     .map((m) => `${m.role}: ${m.content}`)
     .join("\n");
-  console.log("Full conversation being analyzed:", conversationHistory);
   // PASS 1: Critical fields extraction
   const criticalFieldsPrompt = `EXTRACT NAME AND RELATIONSHIP - This is the most important task.
 
@@ -121,11 +120,9 @@ Return ONLY valid JSON (no markdown formatting):
       jsonMode: true,
     }
   );
-  console.log("Critical fields raw response:", criticalRaw);
   let criticalFields;
   try {
     criticalFields = parseOpenAIJSON(criticalRaw);
-    console.log("✅ Successfully parsed critical fields:", criticalFields);
   } catch (e) {
     console.error("❌ Failed to parse critical fields, using fallback:", e);
     criticalFields = {
@@ -223,11 +220,9 @@ IMPORTANT:
       jsonMode: true,
     }
   );
-  console.log("Full extraction raw response:", fullRaw);
   let extractedData;
   try {
     extractedData = parseOpenAIJSON(fullRaw);
-    console.log("✅ Successfully parsed full extraction:", extractedData);
   } catch (e) {
     console.error(
       "❌ Failed to parse full extraction, using fallback with critical fields:",
@@ -314,9 +309,7 @@ IMPORTANT:
   }
   console.log("🎯 FINAL EXTRACTION RESULTS:", {
     name: extractedData.name ? "✅ FOUND" : "❌ MISSING",
-    nameValue: extractedData.name,
     relationship: extractedData.relationship_type ? "✅ FOUND" : "❌ MISSING",
-    relationshipValue: extractedData.relationship_type,
     hasRequiredFields: !!(
       extractedData.name && extractedData.relationship_type
     ),
@@ -338,7 +331,6 @@ export async function extractFields(
   const aiConfig = await resolveAIConfig(aiOverride);
   console.log("=== PARTIAL FIELD EXTRACTION ===");
   console.log("Target fields:", targetFields);
-  console.log("Existing data:", existingData);
   const conversationHistory = messages
     .map((m) => `${m.role}: ${m.content}`)
     .join("\n");
@@ -405,11 +397,9 @@ Only include the requested fields. If a field wasn't mentioned, set it to null.`
       jsonMode: true,
     }
   );
-  console.log("Field extraction raw response:", fieldsRaw);
   let extractedData;
   try {
     extractedData = parseOpenAIJSON(fieldsRaw);
-    console.log("✅ Successfully parsed field extraction:", extractedData);
   } catch (e) {
     console.error("❌ Failed to parse field extraction:", e);
     // Return empty object if parsing fails

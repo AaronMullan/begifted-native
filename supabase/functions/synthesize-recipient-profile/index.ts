@@ -128,7 +128,7 @@ async function storeNoteRules(
     .eq("id", recipientId);
   if (updateError) throw updateError;
   console.log(
-    `[note-rules] recipient=${recipientId} added ${JSON.stringify(rules)}`
+    `[note-rules] recipient=${recipientId} added ${rules.length} rule(s)`
   );
 }
 
