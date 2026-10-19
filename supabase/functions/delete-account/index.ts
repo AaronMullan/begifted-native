@@ -144,8 +144,11 @@ async function removeUserFolder(
       .from(bucket)
       .list(userId, { limit: pageSize });
     if (error) return error.message;
-    if (!data || data.length === 0) return null;
-    const paths = data.map((f: { name: string }) => `${userId}/${f.name}`);
+    // Folder entries have no id and can't be removed by path; uploads are
+    // flat under the user's folder, so skipping them leaves nothing behind.
+    const files = (data ?? []).filter((f: { id: string | null }) => f.id);
+    if (files.length === 0) return null;
+    const paths = files.map((f: { name: string }) => `${userId}/${f.name}`);
     const { error: removeError } = await admin.storage
       .from(bucket)
       .remove(paths);

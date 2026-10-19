@@ -1,10 +1,14 @@
 -- Preservation hold for the safety procedure: while it is set, the account and
--- its people, occasions, gift feedback, gift history and photos cannot be
--- deleted by the user, and delete-account refuses to run. It shares
--- account_restrictions with suspension, which only the service role reads.
+-- its people, occasions, gift suggestions, feedback, history and photos cannot
+-- be deleted or edited by the user, and delete-account refuses to run. Edits
+-- are blocked too because blanking a field erases it as surely as a delete.
+-- It shares account_restrictions with suspension, which only the service role
+-- reads.
 ALTER TABLE public.account_restrictions
   ADD COLUMN IF NOT EXISTS hold_at timestamptz,
-  ADD COLUMN IF NOT EXISTS hold_by text;
+  ADD COLUMN IF NOT EXISTS hold_by text,
+  ADD COLUMN IF NOT EXISTS hold_lifted_at timestamptz,
+  ADD COLUMN IF NOT EXISTS hold_lifted_by text;
 
 -- Reads only the caller's own row. authenticated needs EXECUTE because the
 -- policies below call it.
@@ -41,7 +45,8 @@ BEGIN
   INSERT INTO public.account_restrictions (user_id, hold_at, hold_by, updated_at)
   VALUES (p_user_id, now(), p_by, now())
   ON CONFLICT (user_id) DO UPDATE
-    SET hold_at = now(), hold_by = EXCLUDED.hold_by, updated_at = now();
+    SET hold_at = now(), hold_by = EXCLUDED.hold_by,
+      hold_lifted_at = NULL, hold_lifted_by = NULL, updated_at = now();
 END;
 $$;
 
@@ -57,7 +62,8 @@ BEGIN
   END IF;
 
   UPDATE public.account_restrictions
-    SET hold_at = NULL, hold_by = p_by, updated_at = now()
+    SET hold_at = NULL, hold_lifted_at = now(), hold_lifted_by = p_by,
+      updated_at = now()
     WHERE user_id = p_user_id AND hold_at IS NOT NULL;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'account % has no hold to lift', p_user_id;
@@ -71,19 +77,30 @@ GRANT EXECUTE ON FUNCTION public.place_preservation_hold(uuid, text) TO service_
 GRANT EXECUTE ON FUNCTION public.lift_preservation_hold(uuid, text) TO service_role;
 
 -- RESTRICTIVE, so they only ever take access away from the existing
--- permissive delete policies. Deleting a recipient cascades to its
--- occasions, gift history and feedback, so recipients is the main door; the
--- others close direct deletes of those rows.
+-- permissive policies. Foreign-key cascades ignore RLS, so every table a
+-- protected row cascades from must be listed too: gift_feedback cascades from
+-- gift_suggestions, and recipients cascades to most of the rest.
 DO $$
 DECLARE
   t text;
 BEGIN
   FOREACH t IN ARRAY ARRAY[
-    'recipients', 'occasions', 'gift_feedback', 'gift_history'
+    'recipients', 'occasions', 'gift_suggestions', 'gift_feedback',
+    'gift_history'
   ] LOOP
     EXECUTE format('DROP POLICY IF EXISTS "Held accounts cannot delete" ON public.%I', t);
     EXECUTE format(
       'CREATE POLICY "Held accounts cannot delete" ON public.%I AS RESTRICTIVE FOR DELETE TO authenticated USING (NOT (SELECT public.is_account_on_hold()))',
+      t
+    );
+  END LOOP;
+  FOREACH t IN ARRAY ARRAY[
+    'recipients', 'occasions', 'gift_suggestions', 'gift_feedback',
+    'gift_history', 'profiles', 'user_preferences'
+  ] LOOP
+    EXECUTE format('DROP POLICY IF EXISTS "Held accounts cannot update" ON public.%I', t);
+    EXECUTE format(
+      'CREATE POLICY "Held accounts cannot update" ON public.%I AS RESTRICTIVE FOR UPDATE TO authenticated USING (NOT (SELECT public.is_account_on_hold()))',
       t
     );
   END LOOP;
@@ -93,4 +110,9 @@ $$;
 DROP POLICY IF EXISTS "Held accounts cannot delete" ON storage.objects;
 CREATE POLICY "Held accounts cannot delete" ON storage.objects
   AS RESTRICTIVE FOR DELETE TO authenticated
+  USING (NOT (SELECT public.is_account_on_hold()));
+
+DROP POLICY IF EXISTS "Held accounts cannot replace uploads" ON storage.objects;
+CREATE POLICY "Held accounts cannot replace uploads" ON storage.objects
+  AS RESTRICTIVE FOR UPDATE TO authenticated
   USING (NOT (SELECT public.is_account_on_hold()));
