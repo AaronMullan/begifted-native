@@ -14,9 +14,11 @@ import AddMorePeopleButton from "../../../components/AddMorePeopleButton";
 import AddPeopleChooserModal from "../../../components/AddPeopleChooserModal";
 import ContactsImportFailedModal from "../../../components/ContactsImportFailedModal";
 import PeopleRecipientCard from "../../../components/contacts/PeopleRecipientCard";
+import UnfinishedPeopleSection from "../../../components/contacts/UnfinishedPeopleSection";
 import { useContactImportFlow } from "../../../hooks/use-contact-import-flow";
 import { useAuth } from "../../../hooks/use-auth";
 import { useRecipients } from "../../../hooks/use-recipients";
+import { useUnfinishedPeople } from "../../../hooks/use-unfinished-people";
 import { useAllOccasions } from "../../../hooks/use-occasions";
 import { getNextUpcomingOccasion } from "../../../utils/upcoming-occasion";
 import type { Occasion } from "../../../lib/api";
@@ -33,6 +35,7 @@ export default function Contacts() {
     refetch: refetchRecipients,
   } = useRecipients();
   const recipients = recipientsData ?? [];
+  const { data: unfinishedPeople = [] } = useUnfinishedPeople();
   const {
     data: occasionsData,
     isError: occasionsFailed,
@@ -120,6 +123,10 @@ export default function Contacts() {
             <ContactFileImport onImport={importFromFile} />
           )}
 
+          {unfinishedPeople.length > 0 && (
+            <UnfinishedPeopleSection people={unfinishedPeople} />
+          )}
+
           {loading && recipients.length === 0 ? (
             <StateMessage
               loading
@@ -134,12 +141,16 @@ export default function Contacts() {
               retrying={refetchingRecipients}
             />
           ) : recipients.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>{StateCopy.empty("people")}</Text>
-              <Text style={styles.emptySubtext}>
-                Add the first one to get started.
-              </Text>
-            </View>
+            unfinishedPeople.length > 0 ? null : (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>
+                  {StateCopy.empty("people")}
+                </Text>
+                <Text style={styles.emptySubtext}>
+                  Add the first one to get started.
+                </Text>
+              </View>
+            )
           ) : (
             <View style={styles.list}>
               {occasionsFailed && !momentsKnown && (

@@ -35,7 +35,12 @@ import {
   markAddRecipientConversationRefused,
   saveAddRecipientDraft,
 } from "../lib/add-recipient-draft";
-import type { AddRecipientDraft } from "../lib/add-recipient-draft";
+import {
+  claimUnfinishedWriteToken,
+  removeUnfinishedPerson,
+  saveUnfinishedProgress,
+} from "../lib/pending-contact-queue";
+import type { PendingContactProgress } from "../lib/pending-contact-queue";
 import { useBetaCheckIn } from "../components/beta/BetaCheckInProvider";
 import {
   ExtractedData,
@@ -240,10 +245,13 @@ export function useAddRecipientFlow(
   initialAnniversary?: string,
   draftOptions?: {
     /** Parked draft to restore; null starts fresh. */
-    resume: AddRecipientDraft | null;
-    /** Continuously park progress so an abandoned flow can be resumed.
-     * Off in batch (contact-queue) mode. */
+    resume: PendingContactProgress | null;
+    /** Continuously park progress so an abandoned flow can be resumed. */
     persist: boolean;
+    /** An unfinished person picked from Contacts: progress parks on their
+     * entry instead of the Add Person draft, and saving, or a refusal,
+     * removes them from "Finish adding". */
+    pendingId?: string;
   }
 ): UseAddRecipientFlowReturn {
   const router = useRouter();
@@ -252,6 +260,7 @@ export function useAddRecipientFlow(
   // Stable cached copy of the contact photo — expo-contacts temp files are cleaned up by iOS
   const cachedPhotoUri = useRef<string | null>(initialPhotoUri ?? null);
   const resume = draftOptions?.resume ?? null;
+  const pendingId = draftOptions?.pendingId;
   // Claimed lazily on the first mounted write (never by the background reply
   // writer): an idle visit to the screen must not revoke a previous flow's
   // still-pending reply.
@@ -332,9 +341,29 @@ export function useAddRecipientFlow(
   ) => {
     if (safetyStopped.current) return;
     if (claimToken) {
-      draftWriteToken.current ??= claimAddRecipientDraftWriteToken();
+      draftWriteToken.current ??= pendingId
+        ? claimUnfinishedWriteToken(pendingId)
+        : claimAddRecipientDraftWriteToken();
     }
     if (draftWriteToken.current === null) return;
+    const progress: PendingContactProgress = {
+      messages: parkedMessages,
+      conversationContext: parkedContext,
+      shouldShowNextStepButton: parkedShowNextStep,
+      extractedData,
+      showDataReview,
+      showOccasionsSelection,
+    };
+    if (pendingId) {
+      // The entry already holds the seed, with its photo in a durable folder.
+      void saveUnfinishedProgress(
+        userId,
+        pendingId,
+        progress,
+        draftWriteToken.current
+      );
+      return;
+    }
     saveAddRecipientDraft(
       {
         userId,
@@ -346,14 +375,21 @@ export function useAddRecipientFlow(
           address: initialAddress ?? {},
           note: initialNote,
         },
-        messages: parkedMessages,
-        conversationContext: parkedContext,
-        shouldShowNextStepButton: parkedShowNextStep,
-        extractedData,
-        showDataReview,
-        showOccasionsSelection,
+        ...progress,
       },
       draftWriteToken.current
+    );
+  };
+
+  // The persist effect re-runs on every render after a save, so remove once.
+  const pendingForgotten = useRef(false);
+  const forgetPendingPerson = () => {
+    if (!pendingId || pendingForgotten.current) return;
+    pendingForgotten.current = true;
+    void removeUnfinishedPerson(userId, pendingId).then(() =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.unfinishedPeople(userId),
+      })
     );
   };
 
@@ -433,6 +469,7 @@ export function useAddRecipientFlow(
     // Person can't resume it, so nothing from it reaches review or save.
     onSafetyDeclined: (message, conversation, kind) => {
       markAddRecipientConversationRefused(conversation, { message, kind });
+      forgetPendingPerson();
       stopForSafety(message, kind);
     },
   });
@@ -466,7 +503,11 @@ export function useAddRecipientFlow(
   useEffect(() => {
     if (!draftOptions?.persist) return;
     if (saveSuccess) {
-      clearAddRecipientDraft();
+      if (pendingId) {
+        forgetPendingPerson();
+      } else {
+        clearAddRecipientDraft();
+      }
       return;
     }
     // A welcome-only chat has nothing worth resuming.
@@ -475,6 +516,8 @@ export function useAddRecipientFlow(
   }, [
     draftOptions?.persist,
     saveSuccess,
+    pendingId,
+    forgetPendingPerson,
     parkDraft,
     messages,
     conversationContext,

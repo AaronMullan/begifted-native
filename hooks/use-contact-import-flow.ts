@@ -2,8 +2,15 @@ import * as FileSystem from "expo-file-system/legacy";
 import * as Sentry from "@sentry/react-native";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
-import { setPendingContactQueue } from "../lib/pending-contact-queue";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  addUnfinishedPeople,
+  setPendingContactQueue,
+  UNFINISHED_PHOTO_DIR,
+} from "../lib/pending-contact-queue";
 import type { PendingContactSeed } from "../lib/pending-contact-queue";
+import { queryKeys } from "../lib/query-keys";
+import { useAuth } from "./use-auth";
 import {
   compareContactsByName,
   DeviceContact,
@@ -25,15 +32,18 @@ function contactDateString(
 }
 
 // expo-contacts photo URIs are temp files iOS cleans up quickly; copy each to
-// a stable cache path so it survives until the recipient is saved.
-async function cacheContactPhoto(contact: DeviceContact): Promise<{
+// a stable path so it survives until the recipient is saved.
+async function cacheContactPhoto(
+  contact: DeviceContact,
+  dir: string = FileSystem.cacheDirectory ?? ""
+): Promise<{
   uri?: string;
   outcome: "copied" | "fallback_original" | "no_image";
 }> {
   if (!contact.imageUri) return { outcome: "no_image" };
   try {
     // Random suffix: a batch can cache several photos in the same millisecond.
-    const dest = `${FileSystem.cacheDirectory}contact-photo-${Date.now()}-${Math.random()
+    const dest = `${dir}contact-photo-${Date.now()}-${Math.random()
       .toString(36)
       .slice(2)}.jpg`;
     await FileSystem.copyAsync({ from: contact.imageUri, to: dest });
@@ -66,6 +76,8 @@ function buildContactSeed(
 
 export function useContactImportFlow() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [pickerVisible, setPickerVisible] = useState(false);
   const [accessIntroVisible, setAccessIntroVisible] = useState(false);
   const [importFailedVisible, setImportFailedVisible] = useState(false);
@@ -184,6 +196,7 @@ export function useContactImportFlow() {
       await selectContact(selected[0]);
       return;
     }
+    if (!user) return;
 
     setIsAddingContacts(true);
     Sentry.addBreadcrumb({
@@ -197,12 +210,21 @@ export function useContactImportFlow() {
       },
     });
     try {
+      await FileSystem.makeDirectoryAsync(UNFINISHED_PHOTO_DIR, {
+        intermediates: true,
+      }).catch(() => undefined);
       const seeds: PendingContactSeed[] = [];
       for (const contact of selected) {
-        const { uri } = await cacheContactPhoto(contact);
+        const { uri } = await cacheContactPhoto(contact, UNFINISHED_PHOTO_DIR);
         seeds.push(buildContactSeed(contact, uri));
       }
-      setPendingContactQueue(seeds);
+      // Remembered before the add screen opens, so people the user doesn't
+      // get to wait under "Finish adding" in People.
+      const queue = await addUnfinishedPeople(user.id, seeds);
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.unfinishedPeople(user.id),
+      });
+      setPendingContactQueue(queue);
       setPickerVisible(false);
       router.push("/contacts/add");
     } finally {

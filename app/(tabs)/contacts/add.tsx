@@ -1,13 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
-import {
-  useIsFocused,
-  useRouter,
-  useLocalSearchParams,
-  useNavigation,
-} from "expo-router";
+import { useIsFocused, useRouter, useLocalSearchParams } from "expo-router";
 import { Button, Dialog, Portal, Text } from "react-native-paper";
-import type { NavigationAction } from "@react-navigation/native";
 import type { User } from "@supabase/supabase-js";
 import { useAuth } from "../../../hooks/use-auth";
 import { useRecipients } from "../../../hooks/use-recipients";
@@ -26,16 +20,24 @@ import { SafetyCrisisView } from "../../../components/recipients/conversation/Sa
 import { isCrisisSafetyKind } from "../../../hooks/use-conversation-flow";
 import { showSnackbar } from "../../../components/GlobalSnackbar";
 import { formatShortName } from "../../../lib/format-name";
-import { registerLeaveGuard } from "../../../lib/leave-guard";
 import {
   clearPendingContactQueue,
+  clearUnfinishedProgress,
   peekPendingContactQueue,
 } from "../../../lib/pending-contact-queue";
+import type {
+  PendingContact,
+  PendingContactProgress,
+} from "../../../lib/pending-contact-queue";
+import { useRemoveUnfinishedPerson } from "../../../hooks/use-unfinished-people";
 import {
   clearAddRecipientDraft,
   peekAddRecipientDraft,
 } from "../../../lib/add-recipient-draft";
-import type { AddRecipientDraftSeed } from "../../../lib/add-recipient-draft";
+import type {
+  AddRecipientDraft,
+  AddRecipientDraftSeed,
+} from "../../../lib/add-recipient-draft";
 import { Spacing } from "../../../lib/spacing";
 import GradientBackground from "../../../components/GradientBackground";
 import StateMessage from "../../../components/StateMessage";
@@ -43,8 +45,6 @@ import { StateCopy } from "../../../lib/state-copy";
 
 const AddRecipient = () => {
   const router = useRouter();
-  const navigation = useNavigation();
-  const { user, loading: authLoading } = useAuth();
   const params = useLocalSearchParams<{
     name?: string;
     birthday?: string;
@@ -58,16 +58,14 @@ const AddRecipient = () => {
     initialNote?: string;
   }>();
 
-  // A multi-select contact import parks its queue in module memory right
-  // before navigating here. Peek in the initializer (it must stay pure —
+  // A multi-select contact import, or "Finish" on someone in People's
+  // "Finish adding" group, parks its queue in module memory right before
+  // navigating here. Peek in the initializer (it must stay pure —
   // StrictMode/concurrent React can replay it) and claim in the effect below.
   const [queue] = useState(() => peekPendingContactQueue());
   const [queueIndex, setQueueIndex] = useState(0);
   const [addedCount, setAddedCount] = useState(0);
-  const [confirmStopVisible, setConfirmStopVisible] = useState(false);
-  const pendingLeaveAction = useRef<NavigationAction | null>(null);
-  const pendingLeaveHref = useRef<string | null>(null);
-  const allowLeave = useRef(false);
+  const removeUnfinished = useRemoveUnfinishedPerson();
 
   // Capture device-contact prefill once at mount.
   const [paramSeed] = useState<AddRecipientDraftSeed>(() => ({
@@ -93,38 +91,6 @@ const AddRecipient = () => {
     if (queue) clearPendingContactQueue();
   }, [queue]);
 
-  // Leaving mid-queue must be deliberate: pending contacts silently vanish
-  // (they were never written to the DB), so intercept any removal — back
-  // button, gesture, tab pop — and confirm first. When auth is lost the
-  // flow's redirect to "/" must pass through, or the dialog would trap the
-  // user in a reopen loop over a dead flow.
-  useEffect(() => {
-    if (!queue) return;
-    return navigation.addListener("beforeRemove", (e) => {
-      if (allowLeave.current) return;
-      if (!authLoading && !user) return;
-      e.preventDefault();
-      pendingLeaveAction.current = e.data.action;
-      setConfirmStopVisible(true);
-    });
-  }, [navigation, queue, user, authLoading]);
-
-  // beforeRemove only sees stack pops. The BottomNav/Header Links dispatch a
-  // tab switch (or an unpreventable pop for the People tab) that skips it, so
-  // they consult this guard before following the link.
-  useEffect(() => {
-    if (!queue) return;
-    return registerLeaveGuard((href) => {
-      if (allowLeave.current) return false;
-      // Auth lost: the flow is already redirecting to "/"; blocking a nav tap
-      // here would show the stop dialog over a dead flow.
-      if (!authLoading && !user) return false;
-      pendingLeaveHref.current = href;
-      setConfirmStopVisible(true);
-      return true;
-    });
-  }, [queue, user, authLoading]);
-
   if (!queue) {
     return (
       <View style={styles.queueContainer}>
@@ -134,15 +100,15 @@ const AddRecipient = () => {
     );
   }
 
+  // Leaving partway needs no confirmation: everyone not yet added stays in
+  // People under "Finish adding".
   const total = queue.length;
-  const remaining = total - queueIndex;
 
   const advanceQueue = (added: number) => {
     if (queueIndex + 1 < total) {
       setQueueIndex(queueIndex + 1);
       return;
     }
-    allowLeave.current = true;
     showSnackbar(
       added === 0
         ? "No one new was added."
@@ -156,77 +122,33 @@ const AddRecipient = () => {
     advanceQueue(addedCount + 1);
   };
 
-  const handleRecipientSkipped = () => advanceQueue(addedCount);
+  // Skipped as someone the user already has: nothing left to finish.
+  const handleRecipientSkipped = () => {
+    removeUnfinished.mutate(queue[queueIndex].id);
+    advanceQueue(addedCount);
+  };
 
-  // A refusal ends the whole import, not just this contact; allowLeave lets
-  // the exit past the stop-adding guard.
+  // A refusal ends the whole import, not just this contact.
   const handleSafetyStop = () => {
-    allowLeave.current = true;
     router.replace("/contacts");
-  };
-
-  const handleKeepAdding = () => {
-    pendingLeaveAction.current = null;
-    pendingLeaveHref.current = null;
-    setConfirmStopVisible(false);
-  };
-
-  const handleStop = () => {
-    setConfirmStopVisible(false);
-    allowLeave.current = true;
-    const action = pendingLeaveAction.current;
-    const href = pendingLeaveHref.current;
-    pendingLeaveAction.current = null;
-    pendingLeaveHref.current = null;
-    if (action) {
-      navigation.dispatch(action);
-      return;
-    }
-    // Replace first so this screen leaves the contacts stack — a bare tab
-    // switch would keep the dead queue mounted and show it on the next visit
-    // to People.
-    router.replace("/contacts");
-    if (href && href !== "/contacts") {
-      router.navigate(href as Parameters<typeof router.navigate>[0]);
-    }
   };
 
   return (
     <View style={styles.queueContainer}>
       <GradientBackground />
-      <Text style={styles.progressLabel}>
-        {queueIndex + 1} of {total}
-      </Text>
+      {total > 1 && (
+        <Text style={styles.progressLabel}>
+          {queueIndex + 1} of {total}
+        </Text>
+      )}
       <AddRecipientFlow
         key={queueIndex}
-        seed={queue[queueIndex]}
+        seed={queue[queueIndex].seed}
+        pending={queue[queueIndex]}
         onSaved={handleRecipientSaved}
         onSkip={handleRecipientSkipped}
         onSafetyStop={handleSafetyStop}
       />
-      <Portal>
-        <Dialog
-          visible={confirmStopVisible}
-          onDismiss={handleKeepAdding}
-          style={{ borderRadius: 16 }}
-        >
-          <Dialog.Title>Stop adding people?</Dialog.Title>
-          <Dialog.Content>
-            <Text variant="bodyMedium">
-              {addedCount} of {total} {addedCount === 1 ? "has" : "have"} been
-              added.{" "}
-              {remaining === 1
-                ? "The remaining person"
-                : `The remaining ${remaining}`}{" "}
-              won&apos;t be added.
-            </Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={handleKeepAdding}>Keep Adding</Button>
-            <Button onPress={handleStop}>Stop</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
     </View>
   );
 };
@@ -241,6 +163,9 @@ type AddRecipientFlowProps = {
   onSkip?: () => void;
   /** Batch mode: leaves the screen after a refusal ends the session. */
   onSafetyStop?: () => void;
+  /** Batch mode: the unfinished person this flow sets up, whose progress it
+   * resumes and keeps. */
+  pending?: PendingContact;
 };
 
 // Auth gate above the flow: the resume decision below reads the parked draft
@@ -252,12 +177,15 @@ const AddRecipientFlow = ({
   onSaved,
   onSkip,
   onSafetyStop,
+  pending,
 }: AddRecipientFlowProps) => {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   // Bumped by "Start fresh": remounting the inner flow discards the restored
   // conversation and re-runs the resume decision against the cleared store.
   const [flowKey, setFlowKey] = useState(0);
+  // The pending entry was read before "Start fresh" cleared its progress.
+  const [pendingProgressCleared, setPendingProgressCleared] = useState(false);
 
   if (authLoading) {
     return (
@@ -283,8 +211,18 @@ const AddRecipientFlow = ({
       onSaved={onSaved}
       onSkip={onSkip}
       onSafetyStop={onSafetyStop}
+      pending={
+        pending && pendingProgressCleared
+          ? { ...pending, progress: undefined }
+          : pending
+      }
       onStartFresh={() => {
-        clearAddRecipientDraft();
+        if (pending) {
+          void clearUnfinishedProgress(user.id, pending.id);
+          setPendingProgressCleared(true);
+        } else {
+          clearAddRecipientDraft();
+        }
         setFlowKey((k) => k + 1);
       }}
     />
@@ -297,6 +235,7 @@ const AddRecipientFlowInner = ({
   onSaved,
   onSkip,
   onSafetyStop,
+  pending,
   onStartFresh,
 }: AddRecipientFlowProps & { user: User; onStartFresh: () => void }) => {
   const router = useRouter();
@@ -322,16 +261,19 @@ const AddRecipientFlowInner = ({
     Object.keys(seed.address).length > 0
   );
 
-  // Resume an abandoned flow only on a bare "+ Add person" entry. A seeded
-  // entry (contact import, Moments note) is an explicit new-person intent, and
-  // batch mode advances a queue — both start fresh. Read once at mount: the
-  // draft keeps updating as this flow runs, so re-reading would loop state
-  // back into itself.
-  const [resume] = useState(() => {
-    if (onSaved || seedHasContent) return null;
-    return peekAddRecipientDraft(user.id);
-  });
-  const effectiveSeed = resume?.seed ?? seed;
+  // Resume an abandoned flow only on a bare "+ Add person" entry, or from an
+  // unfinished person's own progress. A seeded solo entry (single contact,
+  // Moments note) is an explicit new-person intent and starts fresh. Read
+  // once at mount: the draft keeps updating as this flow runs, so re-reading
+  // would loop state back into itself.
+  const [resume] = useState<AddRecipientDraft | PendingContactProgress | null>(
+    () => {
+      if (pending) return pending.progress ?? null;
+      if (onSaved || seedHasContent) return null;
+      return peekAddRecipientDraft(user.id);
+    }
+  );
+  const effectiveSeed = resume && "seed" in resume ? resume.seed : seed;
 
   // A seeded solo entry supersedes whatever was parked — clear it up front so
   // an immediately-abandoned seeded flow can't resurrect the older draft.
@@ -385,7 +327,7 @@ const AddRecipientFlowInner = ({
     effectiveSeed.photoUri,
     effectiveSeed.note,
     effectiveSeed.anniversary,
-    { resume, persist: !onSaved }
+    { resume, persist: !onSaved || !!pending, pendingId: pending?.id }
   );
 
   // saveSuccess flips exactly once per mounted flow (the queue remounts via

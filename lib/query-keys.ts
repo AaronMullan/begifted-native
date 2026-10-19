@@ -34,6 +34,9 @@ export const queryKeys = {
   // Gift Feedback (DEV-48)
   giftFeedback: (recipientId: string) => ["giftFeedback", recipientId] as const,
 
+  // Contacts picked in "Add X People" whose setup hasn't finished (on-device)
+  unfinishedPeople: (userId: string) => ["unfinishedPeople", userId] as const,
+
   // Notifications
   notifications: (userId: string) => ["notifications", userId] as const,
   unreadNotificationCount: (userId: string) =>
