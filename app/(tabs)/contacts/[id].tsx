@@ -387,6 +387,7 @@ export default function RecipientEditPage() {
     stateOccasionType,
     loading: loadingGiftState,
     retryGeneration,
+    notifiesWhenReady,
   } = useGiftIdeasState({
     recipientId,
     occasionId: occasionFilter,
@@ -1125,6 +1126,7 @@ export default function RecipientEditPage() {
                 recipientName={formatShortName(recipient.name)}
                 isGenerating={isGenerating}
                 emptyState={emptyState}
+                notifiesWhenReady={notifiesWhenReady}
                 stateOccasionType={stateOccasionType}
                 onRetryLoad={
                   suggestionsLoadFailed ? () => refetchSuggestions() : undefined

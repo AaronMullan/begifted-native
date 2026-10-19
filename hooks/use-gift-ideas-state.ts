@@ -63,6 +63,9 @@ export function useGiftIdeasState({
   loading: boolean;
   /** Starts a fresh run for an occasion whose last one failed. */
   retryGeneration: (() => void) | undefined;
+  /** A generating list's run will push when ready: only the screen's own
+   * add-flow or profile-save run is known to. */
+  notifiesWhenReady: boolean;
 } {
   const queryClient = useQueryClient();
   const [mountedAt] = useState(() => Date.now());
@@ -215,5 +218,6 @@ export function useGiftIdeasState({
     loading:
       (isPending && !!recipientId && !clientGenerating) || awaitingFreshRead,
     retryGeneration,
+    notifiesWhenReady: runCoversList,
   };
 }

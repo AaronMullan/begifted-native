@@ -98,6 +98,7 @@ export default function GiftIdeasPage() {
     stateOccasionType,
     loading: loadingState,
     retryGeneration,
+    notifiesWhenReady,
   } = useGiftIdeasState({
     recipientId: id,
     occasionId: occasionFilter,
@@ -210,6 +211,7 @@ export default function GiftIdeasPage() {
             scopes={suggestionsData?.scopes ?? {}}
             recipientName={name}
             emptyState={emptyState}
+            notifiesWhenReady={notifiesWhenReady}
             stateOccasionType={stateOccasionType}
             onRetryLoad={loadFailed ? () => refetchSuggestions() : undefined}
             onRetryGeneration={retryGeneration}

@@ -35,6 +35,8 @@ type GiftSuggestionsListProps = {
   isGenerating?: boolean;
   /** What an empty list says; see `giftIdeasEmptyState`. */
   emptyState: GiftIdeasEmptyState;
+  /** The run behind a generating list will send a "gift ideas ready" push. */
+  notifiesWhenReady?: boolean;
   /** occasion_type of the occasion behind `emptyState`, for the not-due copy. */
   stateOccasionType?: string | null;
   /** Set only when the suggestions fetch itself failed. */
@@ -59,6 +61,7 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
   loading = false,
   isGenerating = false,
   emptyState,
+  notifiesWhenReady = true,
   stateOccasionType = null,
   onRetryLoad,
   onRetryGeneration,
@@ -173,7 +176,12 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
     }
     switch (emptyState) {
       case "generating":
-        return <GiftGenerationWaiting recipientName={recipientName} />;
+        return (
+          <GiftGenerationWaiting
+            recipientName={recipientName}
+            promiseNotification={notifiesWhenReady}
+          />
+        );
       case "failed": {
         const onRetry = onRetryLoad ?? onRetryGeneration;
         return onRetry ? (
