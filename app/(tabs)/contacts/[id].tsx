@@ -28,6 +28,7 @@ import type { Recipient, GiftSuggestion } from "../../../types/recipient";
 import { AboutRecipientView } from "../../../components/recipients/AboutRecipientView";
 import GiftSuggestionsList from "../../../components/gifts/GiftSuggestionsList";
 import { partitionSuggestions } from "../../../components/gifts/partition";
+import { backfillScopeKey } from "../../../lib/api/gifts";
 import PastGiftsSection from "../../../components/gifts/PastGiftsSection";
 import { useBetaCheckIn } from "../../../components/beta/BetaCheckInProvider";
 import { useAuth } from "../../../hooks/use-auth";
@@ -393,6 +394,13 @@ export default function RecipientEditPage() {
     focused: isFocused && activeTab === "gifts",
     clientGenerating: isGenerating,
     loadFailed: suggestionsLoadFailed,
+    mayRequestIdeas:
+      !loadingSuggestions &&
+      partitionSuggestions(
+        suggestions,
+        occasionFilter,
+        suggestionsData?.scopes?.[backfillScopeKey(recipientId, occasionFilter)]
+      ).pendingSlots === 0,
   });
   // When the past band renders it is the last thing in the scroll, so it
   // carries the nav clearance itself and its fill reaches the nav.

@@ -15,6 +15,7 @@ import GradientBackground from "../../components/GradientBackground";
 import GiftSuggestionsList from "../../components/gifts/GiftSuggestionsList";
 import PastGiftsSection from "../../components/gifts/PastGiftsSection";
 import { partitionSuggestions } from "../../components/gifts/partition";
+import { backfillScopeKey } from "../../lib/api/gifts";
 
 /** Gap left above an expanded card once it's scrolled to the top of the visible
  * area, so it sits a touch below the sticky header rather than flush against it. */
@@ -104,6 +105,13 @@ export default function GiftIdeasPage() {
     focused: isFocused,
     clientGenerating: false,
     loadFailed,
+    mayRequestIdeas:
+      !loadingSuggestions &&
+      partitionSuggestions(
+        suggestions,
+        occasionFilter,
+        suggestionsData?.scopes?.[backfillScopeKey(id, occasionFilter)]
+      ).pendingSlots === 0,
   });
   // When the past band renders it is the last thing in the scroll, so it
   // carries the nav clearance itself and its fill reaches the nav.

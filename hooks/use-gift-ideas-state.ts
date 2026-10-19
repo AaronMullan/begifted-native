@@ -43,6 +43,7 @@ export function useGiftIdeasState({
   focused,
   clientGenerating,
   loadFailed,
+  mayRequestIdeas,
 }: {
   recipientId: string | undefined;
   occasionId: string | null;
@@ -52,6 +53,9 @@ export function useGiftIdeasState({
   clientGenerating: boolean;
   /** The suggestions fetch failed with nothing cached. */
   loadFailed: boolean;
+  /** Suggestions have loaded and no removed slot is waiting on its
+   * replacement, so an empty list really means the occasion has no set. */
+  mayRequestIdeas: boolean;
 }): {
   emptyState: GiftIdeasEmptyState;
   stateOccasionType: string | null;
@@ -100,26 +104,36 @@ export function useGiftIdeasState({
   >({});
   const sentRef = useRef(new Set<string>());
   const request = occasion ? requests[occasion.id] : undefined;
-  const wantsIdeas =
+  const askable =
     !!recipientId &&
     listEmpty &&
+    mayRequestIdeas &&
+    !loadFailed &&
     focused &&
     !runCoversList &&
     request === undefined &&
     canRequestGiftIdeas(occasion, now);
-  // Wait for this visit's occasions read before asking: a cached row can
-  // predate a run that has since started or finished. Marked during render;
-  // the effect below sends it.
-  if (wantsIdeas && isFetchedAfterMount && occasion) {
+  // Only on this visit's occasions read: a cached row can predate a run that
+  // has since started or finished. Until it lands the list reads as loading,
+  // not as generating, so nothing promises a run that may never be asked for.
+  const wantsIdeas = askable && isFetchedAfterMount;
+  const awaitingFreshRead = askable && !isFetchedAfterMount;
+  // Marked during render; the effect below sends it.
+  if (wantsIdeas && occasion) {
     setRequests((prev) => ({ ...prev, [occasion.id]: "pending" }));
   }
   const listLoadFailed = loadFailed || (isError && !occasions);
+  // A request that errored client-side may still have reached the server:
+  // once its run shows in flight, that run is the truth.
+  const requestFailed =
+    request === "failed" &&
+    !(occasion !== null && isGenerationInFlight(occasion, now));
   const emptyState = giftIdeasEmptyState({
     occasion,
     leadDays: preferences?.notification_lead_days ?? DEFAULT_LEAD_DAYS,
     remindersEnabled: preferences?.occasion_reminders_enabled !== false,
     clientGenerating: runCoversList || wantsIdeas || request === "pending",
-    loadFailed: listLoadFailed || request === "failed",
+    loadFailed: listLoadFailed || requestFailed,
     now,
   });
   const retryGeneration =
@@ -198,7 +212,8 @@ export function useGiftIdeasState({
   return {
     emptyState,
     stateOccasionType: occasion?.occasion_type ?? null,
-    loading: isPending && !!recipientId && !clientGenerating,
+    loading:
+      (isPending && !!recipientId && !clientGenerating) || awaitingFreshRead,
     retryGeneration,
   };
 }
