@@ -321,7 +321,9 @@ export default function Calendar() {
   }
 
   function handleOccasionPress(occasion: Occasion) {
-    router.push(`/contacts/${occasion.recipient_id}?tab=gifts`);
+    router.push(
+      `/contacts/${occasion.recipient_id}?tab=gifts&occasionId=${occasion.id}`
+    );
   }
 
   function handleConfirmDelete() {

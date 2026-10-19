@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRecipientOccasions } from "./use-occasion-mutations";
 import { useUserPreferences } from "./use-user-preferences";
 import { queryKeys } from "../lib/query-keys";
+import { requestGiftIdeas } from "../lib/api/gifts";
 import {
   DEFAULT_LEAD_DAYS,
+  canRequestGiftIdeas,
   giftIdeasEmptyState,
   isGenerationInFlight,
   pickStateOccasion,
@@ -29,6 +31,10 @@ const UNSTARTED_POLL_MAX_MS = 5 * 60 * 1000;
  * run finished, a suggestions read that starts afterwards includes its gifts.
  * The same pairing runs once on open, since suggestions may be served from a
  * cache older than the occasions just fetched.
+ *
+ * An empty list for an occasion that has never had a set asks the server for
+ * one, once per occasion per visit, and reads as generating from the first
+ * render so the not-due copy never flashes before the run starts.
  */
 export function useGiftIdeasState({
   recipientId,
@@ -51,6 +57,8 @@ export function useGiftIdeasState({
   stateOccasionType: string | null;
   /** Occasions haven't loaded yet, so the empty state isn't known. */
   loading: boolean;
+  /** Starts a fresh run for an occasion whose last one failed. */
+  retryGeneration: (() => void) | undefined;
 } {
   const queryClient = useQueryClient();
   const [mountedAt] = useState(() => Date.now());
@@ -84,14 +92,64 @@ export function useGiftIdeasState({
   const runCoversList =
     clientGenerating &&
     (!occasionId || !occasions || occasionId === runTargetId);
+
+  // Per occasion, this visit's ask: waiting to send or in flight, answered,
+  // or never answered.
+  const [requests, setRequests] = useState<
+    Record<string, "pending" | "done" | "failed">
+  >({});
+  const sentRef = useRef(new Set<string>());
+  const request = occasion ? requests[occasion.id] : undefined;
+  const wantsIdeas =
+    !!recipientId &&
+    listEmpty &&
+    focused &&
+    !runCoversList &&
+    request === undefined &&
+    canRequestGiftIdeas(occasion, now);
+  // Wait for this visit's occasions read before asking: a cached row can
+  // predate a run that has since started or finished. Marked during render;
+  // the effect below sends it.
+  if (wantsIdeas && isFetchedAfterMount && occasion) {
+    setRequests((prev) => ({ ...prev, [occasion.id]: "pending" }));
+  }
+  const listLoadFailed = loadFailed || (isError && !occasions);
   const emptyState = giftIdeasEmptyState({
     occasion,
     leadDays: preferences?.notification_lead_days ?? DEFAULT_LEAD_DAYS,
     remindersEnabled: preferences?.occasion_reminders_enabled !== false,
-    clientGenerating: runCoversList,
-    loadFailed: loadFailed || (isError && !occasions),
+    clientGenerating: runCoversList || wantsIdeas || request === "pending",
+    loadFailed: listLoadFailed || request === "failed",
     now,
   });
+  const retryGeneration =
+    emptyState === "failed" && !listLoadFailed && occasion
+      ? () => {
+          sentRef.current.delete(occasion.id);
+          setRequests((prev) => ({ ...prev, [occasion.id]: "pending" }));
+        }
+      : undefined;
+
+  useEffect(() => {
+    if (!recipientId) return;
+    for (const [target, state] of Object.entries(requests)) {
+      if (state !== "pending" || sentRef.current.has(target)) continue;
+      sentRef.current.add(target);
+      requestGiftIdeas(recipientId, target).then(async (ok) => {
+        // The occasions read must follow the response: the server claims the
+        // in-flight stamp before answering, so this read shows the run.
+        await queryClient.refetchQueries(
+          { queryKey: queryKeys.recipientOccasions(recipientId), exact: true },
+          { cancelRefetch: false }
+        );
+        await queryClient.refetchQueries(
+          { queryKey: queryKeys.giftSuggestions(recipientId), exact: true },
+          { cancelRefetch: false }
+        );
+        setRequests((prev) => ({ ...prev, [target]: ok ? "done" : "failed" }));
+      });
+    }
+  }, [requests, recipientId, queryClient]);
 
   const shouldPoll =
     !!recipientId &&
@@ -141,5 +199,6 @@ export function useGiftIdeasState({
     emptyState,
     stateOccasionType: occasion?.occasion_type ?? null,
     loading: isPending && !!recipientId && !clientGenerating,
+    retryGeneration,
   };
 }

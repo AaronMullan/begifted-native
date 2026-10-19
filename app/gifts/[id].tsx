@@ -96,6 +96,7 @@ export default function GiftIdeasPage() {
     emptyState,
     stateOccasionType,
     loading: loadingState,
+    retryGeneration,
   } = useGiftIdeasState({
     recipientId: id,
     occasionId: occasionFilter,
@@ -203,6 +204,7 @@ export default function GiftIdeasPage() {
             emptyState={emptyState}
             stateOccasionType={stateOccasionType}
             onRetryLoad={loadFailed ? () => refetchSuggestions() : undefined}
+            onRetryGeneration={retryGeneration}
             occasionId={occasionFilter}
             onClearOccasionFilter={() => setOccasionFilter(null)}
             onScrollCardIntoView={handleScrollCardIntoView}

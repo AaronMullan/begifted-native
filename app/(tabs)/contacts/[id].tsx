@@ -385,6 +385,7 @@ export default function RecipientEditPage() {
     emptyState,
     stateOccasionType,
     loading: loadingGiftState,
+    retryGeneration,
   } = useGiftIdeasState({
     recipientId,
     occasionId: occasionFilter,
@@ -1120,6 +1121,7 @@ export default function RecipientEditPage() {
                 onRetryLoad={
                   suggestionsLoadFailed ? () => refetchSuggestions() : undefined
                 }
+                onRetryGeneration={retryGeneration}
                 occasionId={occasionFilter}
                 onClearOccasionFilter={() => setOccasionFilter(null)}
               />

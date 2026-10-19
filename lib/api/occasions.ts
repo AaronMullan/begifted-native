@@ -101,7 +101,10 @@ export async function fetchOccasions(userId: string): Promise<Occasion[]> {
     .select("id, date, occasion_type, recipient_id, is_annual")
     .eq("user_id", userId)
     .gte("date", today.toISOString().split("T")[0])
-    .order("date", { ascending: true });
+    .order("date", { ascending: true })
+    // Home's hero is the first row; the backend pre-generates the same one
+    // and must break same-day ties the same way.
+    .order("id", { ascending: true });
 
   // Throw network failures too — returned as [] they read as "no upcoming
   // moments" on Home. Sentry already drops network-shaped errors.

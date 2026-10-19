@@ -1,5 +1,6 @@
 import {
   GENERATION_STALE_MS,
+  canRequestGiftIdeas,
   giftIdeasEmptyState,
   pickStateOccasion,
 } from "../gift-ideas-state";
@@ -154,5 +155,60 @@ describe("pickStateOccasion", () => {
     const past = occasion({ date: "2026-09-01" });
     expect(pickStateOccasion([later, past, sooner], NOW)).toBe(sooner);
     expect(pickStateOccasion([past], NOW)).toBeNull();
+  });
+});
+
+describe("canRequestGiftIdeas", () => {
+  it("asks for an upcoming occasion that has never had a set, whatever the date", () => {
+    expect(canRequestGiftIdeas(occasion(), NOW)).toBe(true);
+    expect(canRequestGiftIdeas(occasion({ date: "2027-02-14" }), NOW)).toBe(
+      true
+    );
+  });
+
+  it("asks for an annual row still carrying last cycle's outcome", () => {
+    expect(
+      canRequestGiftIdeas(
+        occasion({
+          date: "2025-11-13",
+          is_annual: true,
+          last_generation_status: "success",
+        }),
+        NOW
+      )
+    ).toBe(true);
+  });
+
+  it("leaves alone a set this cycle already has, a failed or empty run, and a chosen gift", () => {
+    for (const status of ["success", "error", "no_results"]) {
+      expect(
+        canRequestGiftIdeas(occasion({ last_generation_status: status }), NOW)
+      ).toBe(false);
+    }
+    expect(
+      canRequestGiftIdeas(
+        occasion({ fulfilled_at: new Date(NOW).toISOString() }),
+        NOW
+      )
+    ).toBe(false);
+  });
+
+  it("never asks while a run is in flight or its stamp reads as failed", () => {
+    const fresh = new Date(NOW - 60_000).toISOString();
+    const stale = new Date(NOW - GENERATION_STALE_MS - 1).toISOString();
+    expect(
+      canRequestGiftIdeas(occasion({ generation_started_at: fresh }), NOW)
+    ).toBe(false);
+    expect(
+      canRequestGiftIdeas(occasion({ generation_started_at: stale }), NOW)
+    ).toBe(false);
+  });
+
+  it("never asks for a passed one-time occasion, an undated one, or none", () => {
+    expect(canRequestGiftIdeas(occasion({ date: "2026-09-01" }), NOW)).toBe(
+      false
+    );
+    expect(canRequestGiftIdeas(occasion({ date: null }), NOW)).toBe(false);
+    expect(canRequestGiftIdeas(null, NOW)).toBe(false);
   });
 });

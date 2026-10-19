@@ -456,3 +456,38 @@ export async function triggerGiftBackfill(
     console.warn("[backfill] trigger failed (non-blocking):", err);
   }
 }
+
+/**
+ * Ask the backend to make sure an occasion someone is looking at has gift
+ * ideas, whatever its date. The backend claims the occasion's in-flight stamp
+ * before it responds, so an occasions read after this resolves shows the run;
+ * it skips occasions whose list is already full or already generating.
+ * Resolves false when the request never reached a verdict.
+ */
+export async function requestGiftIdeas(
+  recipientId: string,
+  occasionId: string
+): Promise<boolean> {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) return false;
+
+    const res = await fetch(`${BEGIFTED_BACKEND_URL}/api/generate-gifts`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ recipientId, occasionId, mode: "ensure" }),
+    });
+    if (!res.ok) {
+      console.warn(`[ensure] request rejected: ${res.status}`);
+    }
+    return res.ok;
+  } catch (err) {
+    console.warn("[ensure] request failed:", err);
+    return false;
+  }
+}
