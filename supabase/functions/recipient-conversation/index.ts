@@ -12,6 +12,7 @@ import { moderationStopKind, readSelfHarm } from "./safety-kind.ts";
 import { parseIntakeRules, renderRequiredFields } from "./intake-rules.ts";
 import type { IntakeRules } from "./intake-rules.ts";
 import { screenInput } from "../_shared/moderation.ts";
+import { recordGateIncident } from "../_shared/safety-incidents.ts";
 
 import { parseOpenAIJSON } from "./utils.ts";
 import { loadAIConfig, type AIOverride } from "../_shared/ai-config-loader.ts";
@@ -317,11 +318,26 @@ serve(async (req) => {
       timings.moderation_ms = Date.now() - moderationStartedAt;
       const stopKind = await moderationStopKind(moderation, messages);
       if (stopKind) {
+        const incidentRequestId = crypto.randomUUID();
         console.warn(
           `[moderation] stopped recipient-conversation input; categories=${moderation.categories.join(
             ","
-          )}; borderline=${!!moderation.selfHarmBorderline}; kind=${stopKind}; action=${action}; conversationType=${conversationType}`
+          )}; borderline=${!!moderation.selfHarmBorderline}; kind=${stopKind}; action=${action}; conversationType=${conversationType}; requestId=${incidentRequestId}`
         );
+        // Awaited, not fire-and-forget: the worker can be torn down once the
+        // response is returned, and this record is the one that must survive.
+        await recordGateIncident(supabaseUrl, supabaseServiceKey, {
+          userId: user.id,
+          // A borderline self-harm stop has no flagged category of its own.
+          categories:
+            moderation.categories.length > 0
+              ? moderation.categories
+              : ["self-harm/borderline"],
+          kind: stopKind,
+          action,
+          conversationType,
+          requestId: incidentRequestId,
+        });
         return safetyDeclinedResponse(corsHeaders, stopKind);
       }
     }
