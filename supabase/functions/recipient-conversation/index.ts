@@ -12,6 +12,7 @@ import { moderationStopKind, readSelfHarm } from "./safety-kind.ts";
 import { parseIntakeRules, renderRequiredFields } from "./intake-rules.ts";
 import type { IntakeRules } from "./intake-rules.ts";
 import { screenInput } from "../_shared/moderation.ts";
+import { recordGateIncident } from "../_shared/safety-incidents.ts";
 
 import { parseOpenAIJSON } from "./utils.ts";
 import { loadAIConfig, type AIOverride } from "../_shared/ai-config-loader.ts";
@@ -168,6 +169,11 @@ serve(async (req) => {
   // Kept outside the try so a refusal caught below can re-read the
   // conversation to word a self-harm decline.
   let conversation: { role: string; content: unknown }[] = [];
+  let caller: {
+    userId: string;
+    action: unknown;
+    conversationType: unknown;
+  } | null = null;
   try {
     const authStartedAt = Date.now();
     const { user, errorResponse } = await requireUser(req, corsHeaders);
@@ -190,6 +196,7 @@ serve(async (req) => {
       overrideModel,
     } = requestBody;
     if (Array.isArray(messages)) conversation = messages;
+    caller = { userId: user.id, action, conversationType };
 
     const aiOverride: AIOverride = {
       provider: overrideProvider,
@@ -317,11 +324,26 @@ serve(async (req) => {
       timings.moderation_ms = Date.now() - moderationStartedAt;
       const stopKind = await moderationStopKind(moderation, messages);
       if (stopKind) {
+        const incidentRequestId = crypto.randomUUID();
         console.warn(
           `[moderation] stopped recipient-conversation input; categories=${moderation.categories.join(
             ","
-          )}; borderline=${!!moderation.selfHarmBorderline}; kind=${stopKind}; action=${action}; conversationType=${conversationType}`
+          )}; borderline=${!!moderation.selfHarmBorderline}; kind=${stopKind}; action=${action}; conversationType=${conversationType}; requestId=${incidentRequestId}`
         );
+        // Awaited, not fire-and-forget: the worker can be torn down once the
+        // response is returned, and this record is the one that must survive.
+        await recordGateIncident(supabaseUrl, supabaseServiceKey, {
+          userId: user.id,
+          // A borderline self-harm stop has no flagged category of its own.
+          categories:
+            moderation.categories.length > 0
+              ? moderation.categories
+              : ["self-harm/borderline"],
+          kind: stopKind,
+          action,
+          conversationType,
+          requestId: incidentRequestId,
+        });
         return safetyDeclinedResponse(corsHeaders, stopKind);
       }
     }
@@ -463,12 +485,25 @@ serve(async (req) => {
       // whether it was self-harm and whose. Anything else, including a
       // failed check, keeps the plain decline.
       const reading = await readSelfHarm(conversation);
-      if (reading === "self")
-        return safetyDeclinedResponse(corsHeaders, "self_harm");
-      if (reading === "other") {
-        return safetyDeclinedResponse(corsHeaders, "self_harm_other");
+      const kind =
+        reading === "self"
+          ? "self_harm"
+          : reading === "other"
+            ? "self_harm_other"
+            : null;
+      // A plain refusal can be about anything, so only a self-harm reading is
+      // recorded as an incident.
+      if (kind && caller) {
+        await recordGateIncident(supabaseUrl, supabaseServiceKey, {
+          ...caller,
+          categories: ["model-refusal/self-harm"],
+          kind,
+          requestId: crypto.randomUUID(),
+        });
       }
-      return safetyDeclinedResponse(corsHeaders);
+      return kind
+        ? safetyDeclinedResponse(corsHeaders, kind)
+        : safetyDeclinedResponse(corsHeaders);
     }
     return internalErrorResponse("recipient-conversation", error, corsHeaders);
   }
