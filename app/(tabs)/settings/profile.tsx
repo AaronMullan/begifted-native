@@ -28,6 +28,7 @@ import {
   KEYBOARD_CTA_GAP,
 } from "../../../lib/constants";
 import { useAuth } from "../../../hooks/use-auth";
+import { clearUnfinishedPeople } from "../../../lib/pending-contact-queue";
 import { useKeyboardHeight } from "../../../hooks/use-keyboard-height";
 import { useProfile } from "../../../hooks/use-profile";
 import { useUpdateProfile } from "../../../hooks/use-profile-mutations";
@@ -165,6 +166,9 @@ export default function ProfileSettings() {
       if (error) throw error;
 
       setConfirmDeleteVisible(false);
+      // Unfinished contacts live only on the device, so the server delete
+      // can't reach them.
+      if (user) await clearUnfinishedPeople(user.id);
       // The account is gone; drop the local session and return to landing.
       await supabase.auth.signOut({ scope: "local" });
       router.replace("/");

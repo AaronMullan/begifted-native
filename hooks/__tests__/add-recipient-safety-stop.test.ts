@@ -19,6 +19,11 @@ jest.mock("../../lib/supabase", () => ({
     from: jest.fn(),
   },
 }));
+jest.mock("@react-native-async-storage/async-storage", () =>
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock"
+  )
+);
 jest.mock("../../lib/edge-retry", () => ({ invokeWithRetry: jest.fn() }));
 jest.mock("../../lib/api", () => ({
   logProductEvent: jest.fn(),
