@@ -57,7 +57,20 @@ export function internalErrorResponse(
   corsHeaders: Record<string, string>
 ): Response {
   const requestId = crypto.randomUUID();
-  console.error(`[${functionName}] requestId=${requestId}`, error);
+  // A SyntaxError from JSON.parse quotes the start of its input, which is
+  // usually model output built from what the user typed. Only the stack frames
+  // are kept: the quoted input can itself contain newlines, so dropping just
+  // the stack's first line would still leak the rest of it.
+  const logged =
+    error instanceof SyntaxError
+      ? [
+          "SyntaxError (message withheld)",
+          ...(error.stack ?? "")
+            .split("\n")
+            .filter((line) => line.trimStart().startsWith("at ")),
+        ].join("\n")
+      : error;
+  console.error(`[${functionName}] requestId=${requestId}`, logged);
   return new Response(
     JSON.stringify({ error: "Internal server error", requestId }),
     {

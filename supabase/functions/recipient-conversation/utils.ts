@@ -1,6 +1,8 @@
 // Helper function to clean and parse JSON from OpenAI responses
+// Model output here is built from what the user typed, so it never reaches the
+// logs. The thrown error carries only the length: a SyntaxError from
+// JSON.parse quotes the start of its input, and callers log the error.
 export function parseOpenAIJSON(content: string): any {
-  console.log("Raw OpenAI content:", content);
   // Remove markdown code block formatting if present
   let cleanContent = content.trim();
   if (cleanContent.startsWith("")) {
@@ -8,13 +10,12 @@ export function parseOpenAIJSON(content: string): any {
   } else if (cleanContent.startsWith("```")) {
     cleanContent = cleanContent.replace(/^```\s*/, "").replace(/\s*```$/, "");
   }
-  console.log("Cleaned content for parsing:", cleanContent);
   try {
     return JSON.parse(cleanContent);
-  } catch (error) {
-    console.error("JSON parse error after cleaning:", error);
-    console.error("Content that failed to parse:", cleanContent);
-    throw error;
+  } catch {
+    throw new SyntaxError(
+      `Model output is not valid JSON (${cleanContent.length} chars)`
+    );
   }
 }
 // Helper function to get next occurrence of a date
@@ -44,7 +45,7 @@ export function getNextOccurrenceDate(month: number, day: number): string {
 // This is a FALLBACK lookup for common holidays when dates aren't provided in conversation
 export function convertHolidaysToOccasions(
   holidayNames: string[]
-): Array<{ date: string; occasion_type: string }> {
+): { date: string; occasion_type: string }[] {
   const holidayDateMap: Record<string, { month: number; day: number }> = {
     christmas: { month: 12, day: 25 },
     "christmas day": { month: 12, day: 25 },
@@ -71,7 +72,7 @@ export function convertHolidaysToOccasions(
     "summer solstice": { month: 6, day: 21 }, // Approximate - varies by year
   };
 
-  const occasions: Array<{ date: string; occasion_type: string }> = [];
+  const occasions: { date: string; occasion_type: string }[] = [];
 
   for (const holiday of holidayNames) {
     const normalized = holiday.toLowerCase().trim();
