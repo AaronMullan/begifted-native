@@ -52,7 +52,10 @@ BEGIN
   ON CONFLICT (user_id) DO UPDATE
     SET suspended_at = now(), suspended_by = EXCLUDED.suspended_by, updated_at = now();
 
-  UPDATE auth.users SET banned_until = 'infinity' WHERE id = p_user_id;
+  -- Finite, like the Auth API's ban_duration: GoTrue scans banned_until into
+  -- a Go time, which a Postgres 'infinity' would fail to load.
+  UPDATE auth.users SET banned_until = now() + interval '100 years'
+    WHERE id = p_user_id;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'no auth user %', p_user_id;
   END IF;
@@ -73,6 +76,9 @@ BEGIN
   UPDATE public.account_restrictions
     SET suspended_at = NULL, suspended_by = p_by, updated_at = now()
     WHERE user_id = p_user_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'account % has no restriction to lift', p_user_id;
+  END IF;
 
   UPDATE auth.users SET banned_until = NULL WHERE id = p_user_id;
 END;
