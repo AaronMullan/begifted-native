@@ -21,8 +21,14 @@ export async function recordGateIncident(
   incident: GateIncident
 ): Promise<void> {
   try {
+    // The caller awaits this before returning the safety decline, so a slow
+    // database must not hold that response hostage.
     const admin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false },
+      global: {
+        fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+          fetch(input, { ...init, signal: AbortSignal.timeout(3000) }),
+      },
     });
     // No .select(): the service role may insert into this table but not read
     // it, so asking for the inserted row back would fail the write.

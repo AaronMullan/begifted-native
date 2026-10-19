@@ -169,6 +169,11 @@ serve(async (req) => {
   // Kept outside the try so a refusal caught below can re-read the
   // conversation to word a self-harm decline.
   let conversation: { role: string; content: unknown }[] = [];
+  let caller: {
+    userId: string;
+    action: unknown;
+    conversationType: unknown;
+  } | null = null;
   try {
     const authStartedAt = Date.now();
     const { user, errorResponse } = await requireUser(req, corsHeaders);
@@ -191,6 +196,7 @@ serve(async (req) => {
       overrideModel,
     } = requestBody;
     if (Array.isArray(messages)) conversation = messages;
+    caller = { userId: user.id, action, conversationType };
 
     const aiOverride: AIOverride = {
       provider: overrideProvider,
@@ -479,12 +485,25 @@ serve(async (req) => {
       // whether it was self-harm and whose. Anything else, including a
       // failed check, keeps the plain decline.
       const reading = await readSelfHarm(conversation);
-      if (reading === "self")
-        return safetyDeclinedResponse(corsHeaders, "self_harm");
-      if (reading === "other") {
-        return safetyDeclinedResponse(corsHeaders, "self_harm_other");
+      const kind =
+        reading === "self"
+          ? "self_harm"
+          : reading === "other"
+            ? "self_harm_other"
+            : null;
+      // A plain refusal can be about anything, so only a self-harm reading is
+      // recorded as an incident.
+      if (kind && caller) {
+        await recordGateIncident(supabaseUrl, supabaseServiceKey, {
+          ...caller,
+          categories: ["model-refusal/self-harm"],
+          kind,
+          requestId: crypto.randomUUID(),
+        });
       }
-      return safetyDeclinedResponse(corsHeaders);
+      return kind
+        ? safetyDeclinedResponse(corsHeaders, kind)
+        : safetyDeclinedResponse(corsHeaders);
     }
     return internalErrorResponse("recipient-conversation", error, corsHeaders);
   }

@@ -6,10 +6,12 @@
 -- the account is deleted.
 --
 -- No client role can touch these tables, admins included. The service role
--- can insert (the moderation gate writes rows) but cannot select, so every
--- read goes through read_safety_incidents(), which logs the reader. The
--- postgres role still reads directly; that is the database owner, not an
--- application path.
+-- can insert (the moderation gate writes rows) but cannot select or update, so
+-- every read goes through read_safety_incidents() and every change to the
+-- manual record through update_safety_incident(), both of which log who did
+-- it. The postgres role (SQL editor, table editor) still reads and writes
+-- directly and is not logged; that is the database owner, not an application
+-- path.
 CREATE TABLE IF NOT EXISTS public.safety_incidents (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -32,18 +34,20 @@ CREATE TABLE IF NOT EXISTS public.safety_incidents (
 CREATE INDEX IF NOT EXISTS safety_incidents_user_id_idx
   ON public.safety_incidents (user_id);
 
-CREATE TABLE IF NOT EXISTS public.safety_incident_reads (
+CREATE TABLE IF NOT EXISTS public.safety_incident_access (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   incident_id uuid NOT NULL,
-  read_by text NOT NULL,
-  read_at timestamptz NOT NULL DEFAULT now()
+  access text NOT NULL CHECK (access IN ('read', 'update')),
+  accessed_by text NOT NULL,
+  accessed_at timestamptz NOT NULL DEFAULT now()
 );
 
 ALTER TABLE public.safety_incidents ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.safety_incident_reads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.safety_incident_access ENABLE ROW LEVEL SECURITY;
 
 REVOKE ALL ON public.safety_incidents FROM PUBLIC, anon, authenticated, service_role;
-REVOKE ALL ON public.safety_incident_reads FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON public.safety_incident_access FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON SEQUENCE public.safety_incident_access_id_seq FROM PUBLIC, anon, authenticated, service_role;
 GRANT INSERT ON public.safety_incidents TO service_role;
 
 -- Returns one incident, or all of them when p_incident_id is null, and logs a
@@ -62,8 +66,8 @@ BEGIN
     RAISE EXCEPTION 'read_by is required';
   END IF;
 
-  INSERT INTO public.safety_incident_reads (incident_id, read_by)
-  SELECT i.id, p_read_by
+  INSERT INTO public.safety_incident_access (incident_id, access, accessed_by)
+  SELECT i.id, 'read', p_read_by
   FROM public.safety_incidents i
   WHERE p_incident_id IS NULL OR i.id = p_incident_id;
 
@@ -77,3 +81,45 @@ $$;
 
 REVOKE ALL ON FUNCTION public.read_safety_incidents(text, uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.read_safety_incidents(text, uuid) TO service_role;
+
+-- Updates the manual incident record (procedure section 3). A null argument
+-- leaves that field as it is. Logs the change as an 'update' access.
+CREATE OR REPLACE FUNCTION public.update_safety_incident(
+  p_incident_id uuid,
+  p_updated_by text,
+  p_discovered_by text DEFAULT NULL,
+  p_object_ids text[] DEFAULT NULL,
+  p_restriction_status text DEFAULT NULL,
+  p_counsel_contacted_at timestamptz DEFAULT NULL,
+  p_report_confirmation_number text DEFAULT NULL,
+  p_next_review_date date DEFAULT NULL
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  IF coalesce(btrim(p_updated_by), '') = '' THEN
+    RAISE EXCEPTION 'updated_by is required';
+  END IF;
+
+  UPDATE public.safety_incidents SET
+    discovered_by = coalesce(p_discovered_by, discovered_by),
+    object_ids = coalesce(p_object_ids, object_ids),
+    restriction_status = coalesce(p_restriction_status, restriction_status),
+    counsel_contacted_at = coalesce(p_counsel_contacted_at, counsel_contacted_at),
+    report_confirmation_number = coalesce(p_report_confirmation_number, report_confirmation_number),
+    next_review_date = coalesce(p_next_review_date, next_review_date)
+  WHERE id = p_incident_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'no safety incident %', p_incident_id;
+  END IF;
+
+  INSERT INTO public.safety_incident_access (incident_id, access, accessed_by)
+  VALUES (p_incident_id, 'update', p_updated_by);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.update_safety_incident(uuid, text, text, text[], text, timestamptz, text, date) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.update_safety_incident(uuid, text, text, text[], text, timestamptz, text, date) TO service_role;
