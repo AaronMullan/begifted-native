@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Button, Dialog, Portal, Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -37,13 +37,23 @@ const UnfinishedPeopleSection: React.FC<UnfinishedPeopleSectionProps> = ({
     null
   );
 
+  // A second tap during the read below would open the same person twice.
+  const opening = useRef(false);
+
   // Re-read before opening: the cached list doesn't track progress, which
   // the add flow writes after every reply.
   const handleFinish = async (person: PendingContact) => {
-    if (!user) return;
-    const fresh = (await readUnfinishedPeople(user.id)).find(
-      (p) => p.id === person.id
-    );
+    if (!user || opening.current) return;
+    opening.current = true;
+    const fresh = await readUnfinishedPeople(user.id)
+      .then((list) => list.find((p) => p.id === person.id))
+      .finally(() => {
+        // Released once the add screen is on top, so returning to People
+        // can open someone again.
+        setTimeout(() => {
+          opening.current = false;
+        }, 600);
+      });
     if (!fresh) {
       void queryClient.invalidateQueries({
         queryKey: queryKeys.unfinishedPeople(user.id),

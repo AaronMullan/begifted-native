@@ -37,6 +37,7 @@ import {
 } from "../lib/add-recipient-draft";
 import {
   claimUnfinishedWriteToken,
+  removeRefusedUnfinishedPerson,
   removeUnfinishedPerson,
   saveUnfinishedProgress,
 } from "../lib/pending-contact-queue";
@@ -383,10 +384,13 @@ export function useAddRecipientFlow(
 
   // The persist effect re-runs on every render after a save, so remove once.
   const pendingForgotten = useRef(false);
-  const forgetPendingPerson = () => {
+  const forgetPendingPerson = (refusedMessageIds?: string[]) => {
     if (!pendingId || pendingForgotten.current) return;
     pendingForgotten.current = true;
-    void removeUnfinishedPerson(userId, pendingId).then(() =>
+    const removal = refusedMessageIds
+      ? removeRefusedUnfinishedPerson(userId, pendingId, refusedMessageIds)
+      : removeUnfinishedPerson(userId, pendingId);
+    void removal.then(() =>
       queryClient.invalidateQueries({
         queryKey: queryKeys.unfinishedPeople(userId),
       })
@@ -469,7 +473,9 @@ export function useAddRecipientFlow(
     // Person can't resume it, so nothing from it reaches review or save.
     onSafetyDeclined: (message, conversation, kind) => {
       markAddRecipientConversationRefused(conversation, { message, kind });
-      forgetPendingPerson();
+      forgetPendingPerson(
+        conversation.filter((m) => m.role === "user").map((m) => m.id)
+      );
       stopForSafety(message, kind);
     },
   });

@@ -47,11 +47,31 @@ function serialized<T>(task: () => Promise<T>): Promise<T> {
   return next;
 }
 
+// Stored photo paths are relative to the photo folder: iOS can move the app
+// container on update, which would orphan an absolute path.
+const STORED_PHOTO_PREFIX = "unfinished-photo:";
+
+function withPhotoPath(
+  list: PendingContact[],
+  convert: (uri: string) => string
+): PendingContact[] {
+  return list.map((p) =>
+    p.seed.photoUri
+      ? { ...p, seed: { ...p.seed, photoUri: convert(p.seed.photoUri) } }
+      : p
+  );
+}
+
 async function readList(userId: string): Promise<PendingContact[]> {
   try {
     const raw = await AsyncStorage.getItem(storageKey(userId));
     const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    return withPhotoPath(parsed, (uri) =>
+      uri.startsWith(STORED_PHOTO_PREFIX)
+        ? `${UNFINISHED_PHOTO_DIR}${uri.slice(STORED_PHOTO_PREFIX.length)}`
+        : uri
+    );
   } catch {
     return [];
   }
@@ -65,7 +85,12 @@ async function writeList(
     if (list.length === 0) {
       await AsyncStorage.removeItem(storageKey(userId));
     } else {
-      await AsyncStorage.setItem(storageKey(userId), JSON.stringify(list));
+      const stored = withPhotoPath(list, (uri) =>
+        uri.startsWith(UNFINISHED_PHOTO_DIR)
+          ? `${STORED_PHOTO_PREFIX}${uri.slice(UNFINISHED_PHOTO_DIR.length)}`
+          : uri
+      );
+      await AsyncStorage.setItem(storageKey(userId), JSON.stringify(stored));
     }
   } catch {
     // Worst case the user picks this person from Contacts again.
@@ -81,20 +106,30 @@ export function readUnfinishedPeople(
   return serialized(() => readList(userId));
 }
 
+async function deleteOwnPhoto(uri: string | undefined): Promise<void> {
+  if (!uri?.startsWith(UNFINISHED_PHOTO_DIR)) return;
+  await FileSystem.deleteAsync(uri, { idempotent: true }).catch(
+    () => undefined
+  );
+}
+
 /** Remembers the picks and returns them in pick order. Someone already
  * waiting under the same name keeps their entry and progress instead of
- * gaining a duplicate. */
+ * gaining a duplicate; two same-named picks in one batch are different
+ * contacts and both kept. */
 export function addUnfinishedPeople(
   userId: string,
   seeds: PendingContactSeed[]
 ): Promise<PendingContact[]> {
   return serialized(async () => {
     const list = await readList(userId);
+    const waiting = [...list];
     const picked: PendingContact[] = [];
     for (const seed of seeds) {
-      const existing = list.find((p) => sameName(p.seed.name, seed.name));
-      if (existing) {
-        if (!picked.includes(existing)) picked.push(existing);
+      const existing = waiting.find((p) => sameName(p.seed.name, seed.name));
+      if (existing && !picked.includes(existing)) {
+        picked.push(existing);
+        await deleteOwnPhoto(seed.photoUri);
         continue;
       }
       const entry: PendingContact = {
@@ -171,12 +206,42 @@ export function removeUnfinishedPerson(
       userId,
       list.filter((p) => p.id !== id)
     );
-    const photo = entry.seed.photoUri;
-    if (photo?.startsWith(UNFINISHED_PHOTO_DIR)) {
-      await FileSystem.deleteAsync(photo, { idempotent: true }).catch(
-        () => undefined
-      );
-    }
+    await deleteOwnPhoto(entry.seed.photoUri);
+  });
+}
+
+/** Removes a person whose conversation was refused. A refusal can land after
+ * "Start fresh" has begun a new conversation for them; that one wasn't
+ * refused, so the person stays. */
+export function removeRefusedUnfinishedPerson(
+  userId: string,
+  id: string,
+  refusedMessageIds: string[]
+): Promise<void> {
+  return serialized(async () => {
+    const list = await readList(userId);
+    const entry = list.find((p) => p.id === id);
+    if (!entry) return;
+    const holdsRefused =
+      !entry.progress ||
+      entry.progress.messages.some((m) => refusedMessageIds.includes(m.id));
+    if (!holdsRefused) return;
+    revokeWriters(id);
+    await writeList(
+      userId,
+      list.filter((p) => p.id !== id)
+    );
+    await deleteOwnPhoto(entry.seed.photoUri);
+  });
+}
+
+/** Forgets every unfinished person for a deleted account. */
+export function clearUnfinishedPeople(userId: string): Promise<void> {
+  return serialized(async () => {
+    const list = await readList(userId);
+    for (const entry of list) revokeWriters(entry.id);
+    await writeList(userId, []);
+    for (const entry of list) await deleteOwnPhoto(entry.seed.photoUri);
   });
 }
 

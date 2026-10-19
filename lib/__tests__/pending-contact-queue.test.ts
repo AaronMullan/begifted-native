@@ -2,6 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system/legacy";
 import {
   addUnfinishedPeople,
+  clearUnfinishedPeople,
+  removeRefusedUnfinishedPerson,
   claimUnfinishedWriteToken,
   clearUnfinishedProgress,
   readUnfinishedPeople,
@@ -129,5 +131,69 @@ describe("unfinished people store", () => {
       `${UNFINISHED_PHOTO_DIR}contact-photo-1.jpg`,
       { idempotent: true }
     );
+  });
+
+  it("keeps two same-named contacts picked in one batch", async () => {
+    const picked = await addUnfinishedPeople(USER, [
+      { name: "Chris", address: { city: "Austin" } },
+      { name: "Chris", address: { city: "Boston" } },
+    ]);
+    expect(picked).toHaveLength(2);
+    expect(await readUnfinishedPeople(USER)).toHaveLength(2);
+  });
+
+  it("drops the new photo copy when a waiting person is picked again", async () => {
+    await addUnfinishedPeople(USER, [{ name: "Maya", address: {} }]);
+    await addUnfinishedPeople(USER, [
+      {
+        name: "Maya",
+        address: {},
+        photoUri: `${UNFINISHED_PHOTO_DIR}contact-photo-2.jpg`,
+      },
+    ]);
+    expect(FileSystem.deleteAsync).toHaveBeenCalledWith(
+      `${UNFINISHED_PHOTO_DIR}contact-photo-2.jpg`,
+      { idempotent: true }
+    );
+  });
+
+  it("stores photo paths relative to the photo folder", async () => {
+    await addUnfinishedPeople(USER, [
+      {
+        name: "Maya",
+        address: {},
+        photoUri: `${UNFINISHED_PHOTO_DIR}contact-photo-1.jpg`,
+      },
+    ]);
+    const raw = await AsyncStorage.getItem(
+      `@begifted/unfinished_people:${USER}`
+    );
+    expect(raw).not.toContain("file:///docs/");
+    const [entry] = await readUnfinishedPeople(USER);
+    expect(entry.seed.photoUri).toBe(
+      `${UNFINISHED_PHOTO_DIR}contact-photo-1.jpg`
+    );
+  });
+
+  it("a refusal of an older conversation keeps a person restarted fresh", async () => {
+    const [maya] = await addUnfinishedPeople(USER, [
+      { name: "Maya", address: {} },
+    ]);
+    const fresh = claimUnfinishedWriteToken(maya.id);
+    await saveUnfinishedProgress(USER, maya.id, progress("new chat"), fresh);
+    await removeRefusedUnfinishedPerson(USER, maya.id, ["old-user-message"]);
+    expect(await readUnfinishedPeople(USER)).toHaveLength(1);
+
+    await removeRefusedUnfinishedPerson(USER, maya.id, ["2"]);
+    expect(await readUnfinishedPeople(USER)).toEqual([]);
+  });
+
+  it("forgets everyone for a deleted account", async () => {
+    await addUnfinishedPeople(USER, [
+      { name: "Maya", address: {} },
+      { name: "Sam", address: {} },
+    ]);
+    await clearUnfinishedPeople(USER);
+    expect(await readUnfinishedPeople(USER)).toEqual([]);
   });
 });
