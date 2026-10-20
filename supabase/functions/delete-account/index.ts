@@ -80,8 +80,6 @@ serve(async (req: Request) => {
       return jsonResponse({ error: "Not authenticated" }, 401);
     }
 
-    await revokeAppleIfLinked(req, user);
-
     const admin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false },
     });
@@ -103,6 +101,9 @@ serve(async (req: Request) => {
       );
       return jsonResponse({ error: "Failed to delete account" }, 500);
     }
+
+    // After the hold check: a refused delete must leave the Apple grant live.
+    await revokeAppleIfLinked(req, user);
 
     // Photos sit at public URLs, so they go before the rows that point at
     // them. Both buckets key objects by the owner's user ID.
