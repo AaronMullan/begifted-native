@@ -19,6 +19,42 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-10-19 — OTA
+
+### App
+
+- About a person now has a Gift Ideas link at the top when you open it directly, so you can reach their ideas even before they have any moments (DEV-486).
+- Budget is now one setting: a range, or "No set limit" with an optional starting amount. The profile shows it on a single line. (DEV-563)
+- When a gift idea you removed never got a replacement, opening that person's Gift Ideas now asks for one again, rather than leaving the slot empty until the occasion comes due (DEV-569).
+- Marking every gift idea for someone as not right now asks for replacements and says new ideas are on the way, instead of showing an empty list. DEV-571
+- Opening someone with no gift ideas yet starts finding them for that occasion, instead of asking you to come back closer to the day. You can leave while it works; the ideas will be there when you return (DEV-572).
+- Turning down a gift or writing about one now refreshes that person's description, not only choosing one. A run of turn-downs refreshes it once (DEV-574).
+- An update note on someone's page can now say what they already have or what to steer clear of ("She already has a Kindle", "No food gifts"), and gift ideas leave those out from then on. Adding someone picks up the same details (DEV-575).
+- Nothing changes on screen. The app now notes when it's opened, when a notification brings someone in, and which gift ideas were in view, so repeat use and click-through can be measured. None of it is sent to email tools (DEV-576).
+- The crisis message stays on screen with Call 988 and Text 988 buttons until you close it, rather than disappearing as a brief notice (DEV-581).
+- People you pick from Contacts and don't finish setting up now wait in People under "Finish adding", where you can pick up where you left off or remove them (DEV-583).
+
+### Backend
+
+- Your gifting profile can now pick up the kind of gift you reach for across different people — hands-on, personal, practical — once the same quality shows up in gifts you chose for two different kinds of relationship. Choices for one person stay with that person (DEV-507).
+- A birthday given with its year when adding someone ("her birthday is October 6 2009") now keeps the year, so their age is known and gift ideas fit it (DEV-544).
+- The Playground has a new "Add Recipient Rules" entry: which details adding someone requires, in what order, and what counts as enough for each. Adding someone works exactly as before; a change made there takes effect on the next conversation (DEV-544).
+- The Playground has a new "Add Recipient Extraction" entry: the instructions that decide which details an answer has captured, such as how an approximate birthday is recorded. Adding someone works exactly as before; a change made there takes effect on the next conversation (DEV-562).
+- Asking what to send someone who has blocked you, or who asked you to stop contacting them, now ends Add a Person rather than moving on to ask who to add (DEV-564).
+- A gift idea whose link opens a shop's home page, rather than the product itself, is no longer shown, and one already on Gift Ideas is swapped out when it's rechecked or tapped (DEV-570).
+- The person at the top of Home has gift ideas waiting, however far off their day is (DEV-572).
+- Removed an old, unused gift-suggestion service. Gift ideas come from the same engine as before, so nothing in the app changes (DEV-573).
+- What you write about a gift that missed — "he no longer gardens", "no food items" — now stays in the description of that person and keeps shaping their ideas, however much feedback follows (DEV-574).
+- Nothing changes on screen. Each notification now records whether its push reached a device, was turned away, or had no device to go to, and the push carries the notification's ID so a tap can be matched to it (DEV-577).
+- A rule written in gift feedback, like "No food items" or "No board games for Michelle", now holds for every gift idea after it, however many notes follow. Remarks about one gift ("Too utilitarian") and problems with a listing ("Website won't load") are not treated as rules (DEV-579).
+- When someone in the Add a Person chat says they want to hurt themselves, or asks for something that could help another person do so, BeGifted now stops with crisis resources (call or text 988) instead of asking them to rephrase. Sadness, grief and dark humor ("work is killing him") no longer stop the chat (DEV-581).
+- Requests for a gift meant to hurt, sicken or frighten someone are now declined reliably, while gifts that only sound rough (a hunting knife, boxing gloves, a Nerf blaster) still go through (DEV-581).
+- Admin, subscription and account-status settings on a profile can now only be changed by BeGifted itself, not from the app (DEV-584).
+- What people type into BeGifted no longer shows up in our server logs (DEV-585).
+- When BeGifted stops a message for safety reasons, it now keeps a private record of which account it came from, never the message itself (DEV-586).
+- BeGifted can now pause an account for safety reasons, so it can no longer sign in or add or change anything (DEV-587).
+- Deleting your account now also removes your profile photo and the photos of the people you added (DEV-588).
+
 ## 2026-10-12 — OTA
 
 ### App
