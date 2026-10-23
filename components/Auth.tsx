@@ -228,7 +228,7 @@ export default function Auth() {
           </Text>
 
           {isSignUp && (
-            <View style={[styles.verticallySpaced, styles.mt20]}>
+            <View style={styles.verticallySpaced}>
               <TextInput
                 mode="outlined"
                 value={name}
@@ -248,7 +248,7 @@ export default function Auth() {
           )}
 
           {/* Email Field */}
-          <View style={[styles.verticallySpaced, !isSignUp && styles.mt20]}>
+          <View style={styles.verticallySpaced}>
             <Controller
               control={control}
               name="email"
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   container: {
-    marginTop: 40,
+    marginTop: 16,
     padding: 12,
     maxWidth: 400,
     alignSelf: "center",
