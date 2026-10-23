@@ -21,8 +21,10 @@ import {
 // Supabase Google provider must list both. The iOS SDK also embeds a nonce it
 // never exposes, so that provider needs "Skip nonce checks" on. The iOS client
 // ID must match the `iosUrlScheme` in app.json.
-const GOOGLE_WEB_CLIENT_ID = "REPLACE_WITH_WEB_CLIENT_ID";
-const GOOGLE_IOS_CLIENT_ID = "REPLACE_WITH_IOS_CLIENT_ID";
+const GOOGLE_WEB_CLIENT_ID =
+  "488776271966-7e61kap3hdn9s3tt6j42vu4b575gju2v.apps.googleusercontent.com";
+const GOOGLE_IOS_CLIENT_ID =
+  "488776271966-22q4djqpsbdu4lr5jbvdsm51e4n85foq.apps.googleusercontent.com";
 
 export type SocialProvider = "apple" | "google";
 
