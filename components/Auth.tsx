@@ -349,8 +349,9 @@ export default function Auth() {
             </View>
           )}
 
-          {/* Submit Button */}
-          <View style={[styles.verticallySpaced, styles.mt20]}>
+          {/* Submit Button. Sign-in skips the top margin: its forgot-password
+              row already spaces the CTA from the fields. */}
+          <View style={[styles.verticallySpaced, isSignUp && styles.mt20]}>
             <PrimaryCta
               label={isSignUp ? "Create Account" : "Sign In"}
               state={loading ? "loading" : "idle"}

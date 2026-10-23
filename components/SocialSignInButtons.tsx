@@ -16,6 +16,7 @@ import type {
 } from "../lib/social-auth";
 import { Colors } from "../lib/colors";
 import { Typography, Radii } from "../lib/typography";
+import { Spacing } from "../lib/spacing";
 
 type SocialSignInButtonsProps = {
   acceptanceMethod: SocialAcceptanceMethod;
@@ -76,7 +77,14 @@ const SocialSignInButtons: React.FC<SocialSignInButtonsProps> = ({
 
   return (
     <View style={styles.root}>
-      <View style={styles.dividerRow}>
+      {/* Sign-up screens have no room to spare above the bottom bar, so only
+          sign-in sets the buttons further below the divider. */}
+      <View
+        style={[
+          styles.dividerRow,
+          acceptanceMethod === "sign_in_notice_social" && styles.dividerSpaced,
+        ]}
+      >
         <View style={styles.dividerLine} />
         <Text style={[Typography.caption, styles.dividerText]}>or</Text>
         <View style={styles.dividerLine} />
@@ -163,6 +171,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+  },
+  dividerSpaced: {
+    marginBottom: Spacing.marginCompact,
   },
   dividerLine: {
     flex: 1,
