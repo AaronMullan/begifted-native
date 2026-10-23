@@ -16,6 +16,7 @@ import {
 } from "../lib/supabase";
 import { fetchAppConfig } from "../lib/api";
 import LegalAcceptanceCheckbox from "./LegalAcceptanceCheckbox";
+import SocialSignInButtons from "./SocialSignInButtons";
 import { PrimaryCta } from "./PrimaryCta";
 import {
   markPendingLegalAcceptance,
@@ -36,6 +37,13 @@ type FormData = {
   email: string;
   password: string;
 };
+
+async function signupsDisabledMessage(): Promise<string | null> {
+  const config = await fetchAppConfig().catch(() => null);
+  return config && !config.signups_enabled
+    ? StateCopy.disabled("Signing up")
+    : null;
+}
 
 export default function Auth() {
   const router = useRouter();
@@ -220,7 +228,7 @@ export default function Auth() {
           </Text>
 
           {isSignUp && (
-            <View style={[styles.verticallySpaced, styles.mt20]}>
+            <View style={styles.verticallySpaced}>
               <TextInput
                 mode="outlined"
                 value={name}
@@ -240,7 +248,7 @@ export default function Auth() {
           )}
 
           {/* Email Field */}
-          <View style={[styles.verticallySpaced, !isSignUp && styles.mt20]}>
+          <View style={styles.verticallySpaced}>
             <Controller
               control={control}
               name="email"
@@ -341,8 +349,9 @@ export default function Auth() {
             </View>
           )}
 
-          {/* Submit Button */}
-          <View style={[styles.verticallySpaced, styles.mt20]}>
+          {/* Submit Button. Sign-in skips the top margin: its forgot-password
+              row already spaces the CTA from the fields. */}
+          <View style={[styles.verticallySpaced, isSignUp && styles.mt20]}>
             <PrimaryCta
               label={isSignUp ? "Create Account" : "Sign In"}
               state={loading ? "loading" : "idle"}
@@ -365,6 +374,20 @@ export default function Auth() {
                 ? "Already have an account? Sign In"
                 : "Don't have an account? Create one"}
             </Button>
+          </View>
+
+          {/* Sign-in needs no handoff: the session listener in app/index.tsx
+              routes the new session. */}
+          <View style={styles.verticallySpaced}>
+            <SocialSignInButtons
+              acceptanceMethod={
+                isSignUp ? "signup_checkbox_social" : "sign_in_notice_social"
+              }
+              disabled={loading || (isSignUp && !acceptedLegal)}
+              beforeSignIn={isSignUp ? signupsDisabledMessage : undefined}
+              onSignedIn={() => setMessage("")}
+              onError={(error) => setMessage(`Error: ${error}`)}
+            />
           </View>
 
           {/* Success/Error Messages */}
@@ -400,7 +423,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   container: {
-    marginTop: 40,
+    marginTop: 16,
     padding: 12,
     maxWidth: 400,
     alignSelf: "center",

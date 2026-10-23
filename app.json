@@ -2,7 +2,7 @@
   "expo": {
     "name": "BeGifted",
     "slug": "begifted",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "begifted",
@@ -11,6 +11,7 @@
       "buildNumber": "17",
       "bundleIdentifier": "com.begifted.app",
       "supportsTablet": true,
+      "usesAppleSignIn": true,
       "infoPlist": {
         "NSContactsUsageDescription": "This app would like to access your contacts to help you import gift recipients.",
         "NSPhotoLibraryUsageDescription": "BeGifted needs access to your photos so you can attach a screenshot to a bug report.",
@@ -62,7 +63,14 @@
       ],
       "@sentry/react-native",
       "expo-image",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-apple-authentication",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.488776271966-22q4djqpsbdu4lr5jbvdsm51e4n85foq"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

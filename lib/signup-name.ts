@@ -69,6 +69,34 @@ export async function markPendingSignUpName(
 }
 
 /**
+ * Writes `name` to `profiles.full_name` only when the profile has none, so an
+ * existing account's name is never replaced. Resolves true when it wrote.
+ * Throws on failure; callers decide whether that is reportable or retryable.
+ */
+export async function fillProfileNameIfMissing(
+  userId: string,
+  name: string
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  if (data?.full_name) return false;
+
+  // .select().single() turns an RLS-filtered no-op into an error, which a bare
+  // write would not surface.
+  const { error: writeError } = await supabase
+    .from("profiles")
+    .upsert({ id: userId, full_name: name }, { onConflict: "id" })
+    .select("full_name")
+    .single();
+  if (writeError) throw writeError;
+  return true;
+}
+
+/**
  * Fills `profiles.full_name` only when it is still NULL, so a repeat signup
  * never overwrites a name the account already has. Only the account the name
  * was typed for gets it; a marker for another email is left for that account.
@@ -83,26 +111,9 @@ export async function flushPendingSignUpName(user: User): Promise<boolean> {
     const pending = JSON.parse(raw) as PendingSignUpName;
     if (pending.email !== user.email?.toLowerCase()) return false;
 
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("full_name")
-      .eq("id", user.id)
-      .maybeSingle();
-    if (error) throw error;
-
-    const needsName = !data?.full_name;
-    if (needsName) {
-      // .select().single() turns an RLS-filtered no-op into an error, which a
-      // bare write would not surface.
-      const { error: writeError } = await supabase
-        .from("profiles")
-        .upsert({ id: user.id, full_name: pending.name }, { onConflict: "id" })
-        .select("full_name")
-        .single();
-      if (writeError) throw writeError;
-    }
+    const wrote = await fillProfileNameIfMissing(user.id, pending.name);
     await AsyncStorage.removeItem(PENDING_KEY);
-    return needsName;
+    return wrote;
   } catch (err) {
     // Marker stays; retried on the next authenticated load.
     Sentry.captureException(

@@ -67,21 +67,45 @@ export async function recordLegalAcceptance(
 /**
  * Signup with email verification returns no session, so the acceptance can't
  * be recorded at checkbox time (the edge function needs the user's JWT).
- * Stash a marker; the first authenticated load flushes it.
+ * Stash a marker; the first authenticated load flushes it. Pass `userId` when
+ * a session already exists, so the marker can't be recorded against whichever
+ * account signs in next on this device.
  */
-export async function markPendingLegalAcceptance(): Promise<void> {
+export async function markPendingLegalAcceptance(
+  acceptanceMethod = "signup_checkbox",
+  userId?: string
+): Promise<void> {
   try {
-    await AsyncStorage.setItem(PENDING_KEY, "signup_checkbox");
+    await AsyncStorage.setItem(
+      PENDING_KEY,
+      userId
+        ? JSON.stringify({ method: acceptanceMethod, userId })
+        : acceptanceMethod
+    );
   } catch {
     // Best-effort: worst case this user's acceptance goes unrecorded.
   }
 }
 
-export async function flushPendingLegalAcceptance(): Promise<void> {
+function parsePendingMarker(raw: string): { method: string; userId?: string } {
   try {
-    const method = await AsyncStorage.getItem(PENDING_KEY);
-    if (!method) return;
-    const recorded = await recordLegalAcceptance(method);
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.method === "string") return parsed;
+  } catch {
+    // A bare method string from the pre-session signup path.
+  }
+  return { method: raw };
+}
+
+export async function flushPendingLegalAcceptance(
+  userId: string
+): Promise<void> {
+  try {
+    const raw = await AsyncStorage.getItem(PENDING_KEY);
+    if (!raw) return;
+    const marker = parsePendingMarker(raw);
+    if (marker.userId && marker.userId !== userId) return;
+    const recorded = await recordLegalAcceptance(marker.method);
     if (recorded) {
       await AsyncStorage.removeItem(PENDING_KEY);
     }
