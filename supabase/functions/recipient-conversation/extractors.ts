@@ -11,6 +11,7 @@ import { normalizeBudgetRange } from "./budget.ts";
 import { isBoundedBirthdayRange } from "./readiness.ts";
 import { resolveAIConfig } from "./data-extractor.ts";
 import { APPROXIMATE_BIRTHDAY_RULE } from "./prompts.ts";
+import { isPronounOnly } from "./relationships.ts";
 
 // The LLM occasionally emits the literal string "null" (or a similar
 // placeholder) for an unknown name/relationship. Because recipients.name and
@@ -131,10 +132,14 @@ Return ONLY valid JSON (no markdown formatting):
     };
   }
   // Don't let a "null"-the-string placeholder pose as a real value (DEV-139).
-  criticalFields.name = coercePlaceholderToNull(criticalFields.name);
-  criticalFields.relationship_type = coercePlaceholderToNull(
+  criticalFields.name = isPronounOnly(criticalFields.name)
+    ? null
+    : coercePlaceholderToNull(criticalFields.name);
+  criticalFields.relationship_type = isPronounOnly(
     criticalFields.relationship_type
-  );
+  )
+    ? null
+    : coercePlaceholderToNull(criticalFields.relationship_type);
   // PASS 2: Full extraction with critical fields as context
   // The stored-interests block exists so removals land: the client deletes an
   // interest only when interests_removed contains the stored string, so a
@@ -247,9 +252,14 @@ IMPORTANT:
   // Final validation and enhancement
   // Strip any "null"-the-string the model echoed back, so it doesn't pose as a
   // real value below or get persisted (DEV-139).
-  extractedData.name = coercePlaceholderToNull(extractedData.name) ?? undefined;
-  extractedData.relationship_type =
-    coercePlaceholderToNull(extractedData.relationship_type) ?? undefined;
+  extractedData.name = isPronounOnly(extractedData.name)
+    ? undefined
+    : (coercePlaceholderToNull(extractedData.name) ?? undefined);
+  extractedData.relationship_type = isPronounOnly(
+    extractedData.relationship_type
+  )
+    ? undefined
+    : (coercePlaceholderToNull(extractedData.relationship_type) ?? undefined);
   if (criticalFields.name && !extractedData.name) {
     extractedData.name = criticalFields.name;
   }

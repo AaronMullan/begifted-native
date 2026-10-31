@@ -141,3 +141,41 @@ export function normalizeRelationship(relationship: string): string {
   const trimmed = relationship.trim();
   return RELATIONSHIP_SYNONYMS[trimmed.toLowerCase()] ?? trimmed;
 }
+
+// The extractor is told to find a name and relationship aggressively, so a
+// message that names neither ("she's into Sardinian pasta") comes back with the
+// pronoun as the value. The update note writes any non-empty name or
+// relationship over the stored one, so a pronoun here would replace "sister"
+// with "she".
+const PRONOUNS = new Set([
+  "she",
+  "he",
+  "they",
+  "her",
+  "him",
+  "them",
+  "hers",
+  "his",
+  "theirs",
+  "herself",
+  "himself",
+  "themselves",
+  "it",
+  "she/her",
+  "he/him",
+  "they/them",
+]);
+export function isPronounOnly(relationship: unknown): boolean {
+  return (
+    typeof relationship === "string" &&
+    PRONOUNS.has(
+      relationship
+        .trim()
+        .toLowerCase()
+        .replace(/\u2019/g, "'")
+        .replace(/'(s|re|d|ll|ve)$/, "")
+        .replace(/[.,!?'"]/g, "")
+        .replace(/\s*\/\s*/g, "/")
+    )
+  );
+}
