@@ -185,6 +185,14 @@ ${JSON.stringify(existingInterests)}
 REMOVALS: when the conversation says the recipient is NOT interested in, no longer into, dislikes, or wants to drop a topic, "interests_removed" must include EVERY stored interest above that relates to that topic, copied VERBATIM from the stored list — e.g. if the user says "he does not fish" and the stored list contains "fly fishing occasionally" and "gifts related to fish", interests_removed must include both exact strings. Also include the user's own wording for the dropped topic.
 `
       : "";
+  // Pass 1 returns no name on most updates, which leaves this pass without a
+  // subject; a birthday stated for someone else in the note would then land on
+  // the saved recipient.
+  const subjectBlock = savedIdentity?.name
+    ? `
+The gift recipient is ${JSON.stringify(savedIdentity.name)}. Other people the conversation mentions are not the recipient: their birthday, age, interests, possessions and dislikes belong in no field.
+`
+    : "";
   const fullExtractionPrompt = `COMPREHENSIVE RECIPIENT DATA EXTRACTION
 
 Based on this conversation, extract all available information about the gift recipient.
@@ -195,7 +203,7 @@ PRIORITY FIELDS (use these if found):
 
 Conversation:
 ${conversationHistory}
-${storedInterestsBlock}
+${subjectBlock}${storedInterestsBlock}
 
 Look for birthday mentions like: "her birthday is...", "she was born on...", "he turns [age] on..."
 Look for holidays, occasions, and special events like: "we celebrate Christmas", "Mother's Day", "anniversaries", "Valentine's Day", "New Year's", "Spring Equinox", "Autumn Equinox", "our anniversary", or any other special dates mentioned.
