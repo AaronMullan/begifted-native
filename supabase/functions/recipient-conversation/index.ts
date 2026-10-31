@@ -14,7 +14,7 @@ import type { IntakeRules } from "./intake-rules.ts";
 import { screenInput } from "../_shared/moderation.ts";
 import { recordGateIncident } from "../_shared/safety-incidents.ts";
 
-import { parseOpenAIJSON } from "./utils.ts";
+import { isPartOfStoredName, parseOpenAIJSON } from "./utils.ts";
 import { loadAIConfig, type AIOverride } from "../_shared/ai-config-loader.ts";
 import {
   internalErrorResponse,
@@ -436,6 +436,12 @@ serve(async (req) => {
                   )
                 : undefined
             );
+            result.extractedData.name = isPartOfStoredName(
+              result.extractedData.name,
+              existingData?.name
+            )
+              ? undefined
+              : result.extractedData.name;
           } else {
             // Extract based on conversation type
             const fieldMap = {

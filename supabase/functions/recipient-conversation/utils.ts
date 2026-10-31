@@ -90,3 +90,25 @@ export function convertHolidaysToOccasions(
 
   return occasions;
 }
+
+// An update note that calls someone by first name ("Lena is into…") extracts
+// name "Lena", and the update note writes any non-empty name over the stored
+// one, shortening "Lena Ortiz". A name made only of words already in the stored
+// name says nothing new; a longer or different name still counts.
+export function isPartOfStoredName(
+  extracted: unknown,
+  stored: unknown
+): boolean {
+  if (typeof extracted !== "string" || typeof stored !== "string") return false;
+  const words = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/[.,!?"]/g, "")
+      .split(/\s+/)
+      .filter(Boolean);
+  const storedWords = new Set(words(stored));
+  const extractedWords = words(extracted);
+  return (
+    extractedWords.length > 0 && extractedWords.every((w) => storedWords.has(w))
+  );
+}
