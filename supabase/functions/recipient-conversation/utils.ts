@@ -93,22 +93,29 @@ export function convertHolidaysToOccasions(
 
 // An update note that calls someone by first name ("Lena is into…") extracts
 // name "Lena", and the update note writes any non-empty name over the stored
-// one, shortening "Lena Ortiz". A name made only of words already in the stored
-// name says nothing new; a longer or different name still counts.
+// one, shortening "Lena Ortiz". Only a single word is treated as a mention: a
+// multi-word name, even a shorter one ("goes by Lena Ortiz now"), is a rename.
+// Accents, apostrophe style and hyphens are folded so "Zoe" matches "Zoë" and
+// "Mary" matches "Mary-Kate".
 export function isPartOfStoredName(
   extracted: unknown,
   stored: unknown
 ): boolean {
   if (typeof extracted !== "string" || typeof stored !== "string") return false;
-  const words = (s: string) =>
+  const trimmed = extracted.trim();
+  if (!trimmed || /\s/.test(trimmed)) return false;
+  const parts = (s: string) =>
     s
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase()
+      .replace(/[\u2018\u2019]/g, "'")
       .replace(/[.,!?"]/g, "")
-      .split(/\s+/)
+      .split(/[\s-]+/)
       .filter(Boolean);
-  const storedWords = new Set(words(stored));
-  const extractedWords = words(extracted);
+  const storedParts = new Set(parts(stored));
+  const extractedParts = parts(trimmed);
   return (
-    extractedWords.length > 0 && extractedWords.every((w) => storedWords.has(w))
+    extractedParts.length > 0 && extractedParts.every((w) => storedParts.has(w))
   );
 }
