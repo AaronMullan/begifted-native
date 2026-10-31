@@ -187,13 +187,33 @@ Deno.test(
 );
 
 Deno.test("isPronounOnly rejects pronouns posing as a relationship", () => {
-  for (const p of ["she", "She", " he ", "they", "her", "she/her", "She."]) {
+  for (const p of [
+    "she",
+    "She",
+    " he ",
+    "they",
+    "her",
+    "she/her",
+    "she / her",
+    "She.",
+    "she's",
+    "She\u2019s",
+    "they're",
+  ]) {
     assertEquals(isPronounOnly(p), true, p);
   }
 });
 
 Deno.test("isPronounOnly keeps real relationships", () => {
-  for (const r of ["sister", "my sister", "her sister", "sis", "", null]) {
+  for (const r of [
+    "sister",
+    "my sister",
+    "her sister",
+    "sis",
+    "Shelby",
+    "",
+    null,
+  ]) {
     assertEquals(isPronounOnly(r), false, String(r));
   }
 });

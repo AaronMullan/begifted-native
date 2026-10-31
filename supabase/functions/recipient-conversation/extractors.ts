@@ -132,7 +132,9 @@ Return ONLY valid JSON (no markdown formatting):
     };
   }
   // Don't let a "null"-the-string placeholder pose as a real value (DEV-139).
-  criticalFields.name = coercePlaceholderToNull(criticalFields.name);
+  criticalFields.name = isPronounOnly(criticalFields.name)
+    ? null
+    : coercePlaceholderToNull(criticalFields.name);
   criticalFields.relationship_type = isPronounOnly(
     criticalFields.relationship_type
   )
@@ -250,7 +252,9 @@ IMPORTANT:
   // Final validation and enhancement
   // Strip any "null"-the-string the model echoed back, so it doesn't pose as a
   // real value below or get persisted (DEV-139).
-  extractedData.name = coercePlaceholderToNull(extractedData.name) ?? undefined;
+  extractedData.name = isPronounOnly(extractedData.name)
+    ? undefined
+    : (coercePlaceholderToNull(extractedData.name) ?? undefined);
   extractedData.relationship_type = isPronounOnly(
     extractedData.relationship_type
   )
