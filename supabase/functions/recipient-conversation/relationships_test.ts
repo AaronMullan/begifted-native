@@ -3,6 +3,7 @@ import {
   deriveGiftRelevantRoles,
   householdMentionsChildren,
   inferRolesFromRelationship,
+  isPronounOnly,
   normalizeRelationship,
 } from "./relationships.ts";
 
@@ -184,3 +185,15 @@ Deno.test(
     assertEquals(normalizeRelationship("my mom from work"), "my mom from work");
   }
 );
+
+Deno.test("isPronounOnly rejects pronouns posing as a relationship", () => {
+  for (const p of ["she", "She", " he ", "they", "her", "she/her", "She."]) {
+    assertEquals(isPronounOnly(p), true, p);
+  }
+});
+
+Deno.test("isPronounOnly keeps real relationships", () => {
+  for (const r of ["sister", "my sister", "her sister", "sis", "", null]) {
+    assertEquals(isPronounOnly(r), false, String(r));
+  }
+});
