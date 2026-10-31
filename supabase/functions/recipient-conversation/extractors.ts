@@ -75,11 +75,13 @@ async function addBirthdayAsOccasion(
 
 // Full recipient extraction (for adding new recipients, and for the free-form
 // "Update what we know" flow — which passes existingInterests so removals can
-// be matched against the stored wording).
+// be matched against the stored wording, and savedIdentity so a note about the
+// person isn't read as renaming them).
 export async function extractFullRecipient(
   messages: Message[],
   aiOverride?: AIOverride,
-  existingInterests?: string[]
+  existingInterests?: string[],
+  savedIdentity?: { name: string | null; relationship_type: string | null }
 ): Promise<ExtractionResponse> {
   const aiConfig = await resolveAIConfig(aiOverride);
   console.log("=== FULL RECIPIENT EXTRACTION ===");
@@ -87,8 +89,36 @@ export async function extractFullRecipient(
   const conversationHistory = messages
     .map((m) => `${m.role}: ${m.content}`)
     .join("\n");
-  // PASS 1: Critical fields extraction
-  const criticalFieldsPrompt = `EXTRACT NAME AND RELATIONSHIP - This is the most important task.
+  // PASS 1: Critical fields extraction. An update note is about someone already
+  // saved, and the client writes any name or relationship returned here over
+  // the saved one, so the update prompt returns them only when the note
+  // explicitly changes them; intake's prompt is told to find them aggressively.
+  const criticalFieldsPrompt = savedIdentity
+    ? `CHECK FOR AN EXPLICIT NAME OR RELATIONSHIP CHANGE
+
+The user is updating what we know about someone already saved:
+- Saved name: ${JSON.stringify(savedIdentity.name)}
+- Saved relationship to the user: ${JSON.stringify(savedIdentity.relationship_type)}
+
+Their update note:
+
+${conversationHistory}
+
+Return a name ONLY when the note explicitly says this person's name is different or fuller than the saved name — e.g. "her name is actually Lena Marie Ortiz", "she goes by Lena Park now", "I misspelled it, it's Leena". Return the full new name.
+Return a relationship ONLY when the note explicitly says the user's relationship to this person is different from the saved one — e.g. "she's my cousin, not my sister", "we got married, she's my wife now". Return just the relationship word.
+
+Return null for each field otherwise. None of these is a change:
+- Referring to the person by their first name, last name, a nickname, or a pronoun ("Lena loves…", "Liz is into…", "she likes…")
+- A family or role word used as a name ("Mom is into gardening")
+- Any other person mentioned in the note ("her husband Marco loves golf", "my friend recommended…")
+- Restating the saved name or relationship
+
+Return ONLY valid JSON (no markdown formatting):
+{
+  "name": "new name or null",
+  "relationship_type": "new relationship or null"
+}`
+    : `EXTRACT NAME AND RELATIONSHIP - This is the most important task.
 
 Analyze this conversation and extract ONLY the recipient's name and the user's relationship to them:
 
@@ -155,6 +185,14 @@ ${JSON.stringify(existingInterests)}
 REMOVALS: when the conversation says the recipient is NOT interested in, no longer into, dislikes, or wants to drop a topic, "interests_removed" must include EVERY stored interest above that relates to that topic, copied VERBATIM from the stored list — e.g. if the user says "he does not fish" and the stored list contains "fly fishing occasionally" and "gifts related to fish", interests_removed must include both exact strings. Also include the user's own wording for the dropped topic.
 `
       : "";
+  // Pass 1 returns no name on most updates, which leaves this pass without a
+  // subject; a birthday stated for someone else in the note would then land on
+  // the saved recipient.
+  const subjectBlock = savedIdentity?.name
+    ? `
+The gift recipient is ${JSON.stringify(savedIdentity.name)}. Other people the conversation mentions are not the recipient: their birthday, age, interests, possessions and dislikes belong in no field.
+`
+    : "";
   const fullExtractionPrompt = `COMPREHENSIVE RECIPIENT DATA EXTRACTION
 
 Based on this conversation, extract all available information about the gift recipient.
@@ -165,7 +203,7 @@ PRIORITY FIELDS (use these if found):
 
 Conversation:
 ${conversationHistory}
-${storedInterestsBlock}
+${subjectBlock}${storedInterestsBlock}
 
 Look for birthday mentions like: "her birthday is...", "she was born on...", "he turns [age] on..."
 Look for holidays, occasions, and special events like: "we celebrate Christmas", "Mother's Day", "anniversaries", "Valentine's Day", "New Year's", "Spring Equinox", "Autumn Equinox", "our anniversary", or any other special dates mentioned.
@@ -260,6 +298,13 @@ IMPORTANT:
   )
     ? undefined
     : (coercePlaceholderToNull(extractedData.relationship_type) ?? undefined);
+  if (savedIdentity) {
+    // Pass 2 is still told to find a name and relationship in the note, so on
+    // an update only pass 1's explicit-change answer counts.
+    extractedData.name = criticalFields.name ?? undefined;
+    extractedData.relationship_type =
+      criticalFields.relationship_type ?? undefined;
+  }
   if (criticalFields.name && !extractedData.name) {
     extractedData.name = criticalFields.name;
   }
