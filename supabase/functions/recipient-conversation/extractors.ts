@@ -75,11 +75,13 @@ async function addBirthdayAsOccasion(
 
 // Full recipient extraction (for adding new recipients, and for the free-form
 // "Update what we know" flow — which passes existingInterests so removals can
-// be matched against the stored wording).
+// be matched against the stored wording, and savedIdentity so a note about the
+// person isn't read as renaming them).
 export async function extractFullRecipient(
   messages: Message[],
   aiOverride?: AIOverride,
-  existingInterests?: string[]
+  existingInterests?: string[],
+  savedIdentity?: { name: string | null; relationship_type: string | null }
 ): Promise<ExtractionResponse> {
   const aiConfig = await resolveAIConfig(aiOverride);
   console.log("=== FULL RECIPIENT EXTRACTION ===");
@@ -87,8 +89,36 @@ export async function extractFullRecipient(
   const conversationHistory = messages
     .map((m) => `${m.role}: ${m.content}`)
     .join("\n");
-  // PASS 1: Critical fields extraction
-  const criticalFieldsPrompt = `EXTRACT NAME AND RELATIONSHIP - This is the most important task.
+  // PASS 1: Critical fields extraction. An update note is about someone already
+  // saved, and the client writes any name or relationship returned here over
+  // the saved one, so the update prompt returns them only when the note
+  // explicitly changes them; intake's prompt is told to find them aggressively.
+  const criticalFieldsPrompt = savedIdentity
+    ? `CHECK FOR AN EXPLICIT NAME OR RELATIONSHIP CHANGE
+
+The user is updating what we know about someone already saved:
+- Saved name: ${JSON.stringify(savedIdentity.name)}
+- Saved relationship to the user: ${JSON.stringify(savedIdentity.relationship_type)}
+
+Their update note:
+
+${conversationHistory}
+
+Return a name ONLY when the note explicitly says this person's name is different or fuller than the saved name — e.g. "her name is actually Lena Marie Ortiz", "she goes by Lena Park now", "I misspelled it, it's Leena". Return the full new name.
+Return a relationship ONLY when the note explicitly says the user's relationship to this person is different from the saved one — e.g. "she's my cousin, not my sister", "we got married, she's my wife now". Return just the relationship word.
+
+Return null for each field otherwise. None of these is a change:
+- Referring to the person by their first name, last name, a nickname, or a pronoun ("Lena loves…", "Liz is into…", "she likes…")
+- A family or role word used as a name ("Mom is into gardening")
+- Any other person mentioned in the note ("her husband Marco loves golf", "my friend recommended…")
+- Restating the saved name or relationship
+
+Return ONLY valid JSON (no markdown formatting):
+{
+  "name": "new name or null",
+  "relationship_type": "new relationship or null"
+}`
+    : `EXTRACT NAME AND RELATIONSHIP - This is the most important task.
 
 Analyze this conversation and extract ONLY the recipient's name and the user's relationship to them:
 
@@ -260,6 +290,13 @@ IMPORTANT:
   )
     ? undefined
     : (coercePlaceholderToNull(extractedData.relationship_type) ?? undefined);
+  if (savedIdentity) {
+    // Pass 2 is still told to find a name and relationship in the note, so on
+    // an update only pass 1's explicit-change answer counts.
+    extractedData.name = criticalFields.name ?? undefined;
+    extractedData.relationship_type =
+      criticalFields.relationship_type ?? undefined;
+  }
   if (criticalFields.name && !extractedData.name) {
     extractedData.name = criticalFields.name;
   }

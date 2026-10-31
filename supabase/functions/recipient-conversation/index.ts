@@ -434,7 +434,11 @@ serve(async (req) => {
                 ? existingData.interests.filter(
                     (i: unknown): i is string => typeof i === "string"
                   )
-                : undefined
+                : undefined,
+              {
+                name: existingData?.name ?? null,
+                relationship_type: existingData?.relationship_type ?? null,
+              }
             );
             result.extractedData.name = isPartOfStoredName(
               result.extractedData.name,
