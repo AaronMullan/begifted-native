@@ -57,9 +57,9 @@ When publishing an OTA, update `app_config.whats_new` (`{ "date": "YYYY-MM-DD", 
 
 Tests use Jest + React Native Testing Library (`npm test`); Deno tests cover edge functions.
 
-### Node toolchain — pin to Node 20
+### Node toolchain — pin to Node 24
 
-CI runs on **Node 20 / npm 10.8.2** (see `.github/workflows/ci.yml`; `.nvmrc` pins it — run `nvm use`). Generate `package-lock.json` with this toolchain only. Running `npm install` under a newer Node/npm (e.g. Node 24 / npm 11) rewrites the lockfile into a tree that CI's strict `npm ci` rejects with `EUSAGE … Missing: <pkg> from lock file` — even though `npm ci` passes locally under the newer npm. If CI fails there after a merge or dependency change, `nvm use` then `rm -rf node_modules package-lock.json && npm install` to regenerate a Node-20-consistent lockfile.
+CI runs on **Node 24** (see `.github/workflows/ci.yml`; `.nvmrc` pins it — run `nvm use`). Generate `package-lock.json` with this toolchain only. Running `npm install` under a different Node/npm major rewrites the lockfile into a tree that CI's strict `npm ci` can reject with `EUSAGE … Missing: <pkg> from lock file` — even though `npm ci` passes locally. If CI fails there after a merge or dependency change, `nvm use` then `npm install` to rewrite the lockfile under the pinned toolchain. Avoid deleting `package-lock.json` to regenerate it: that floats every `^`/`~` range to its newest release, which currently breaks resolution (`ERESOLVE` between `jest-expo` and the pinned `react-native` patch).
 
 ## Architecture
 
