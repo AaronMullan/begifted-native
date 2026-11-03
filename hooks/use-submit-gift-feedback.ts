@@ -173,6 +173,24 @@ function pollForBackfill(
   }
 }
 
+/** Triggers the backfill and polls for it. A request that starts no run is
+ * re-read at once, so its pending card shows the failure instead of spinning
+ * out the whole poll schedule. */
+function requestBackfill(
+  queryClient: QueryClient,
+  recipientId: string,
+  occasionId?: string | null
+) {
+  triggerGiftBackfill(recipientId, occasionId).then((started) => {
+    if (!started) {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.giftSuggestions(recipientId),
+      });
+    }
+  });
+  pollForBackfill(queryClient, recipientId, occasionId);
+}
+
 /** A backfill that keeps failing costs one generation per scope per hour,
  * not one per visit. Timed rather than once per session: iOS keeps a
  * backgrounded app's JS alive for days, and the gap would go dead again. */
@@ -215,8 +233,7 @@ export function useRetryStalledBackfill(
             }
           : old
     );
-    triggerGiftBackfill(recipientId, occasionId);
-    pollForBackfill(queryClient, recipientId, occasionId);
+    requestBackfill(queryClient, recipientId, occasionId);
   }, [queryClient, recipientId, occasionId, stalled]);
 }
 
@@ -304,8 +321,7 @@ export function useSubmitGiftFeedback() {
       if (emptySlots(remaining, vars.recipientId, vars.occasionId) === 0) {
         return;
       }
-      triggerGiftBackfill(vars.recipientId, vars.occasionId);
-      pollForBackfill(queryClient, vars.recipientId, vars.occasionId);
+      requestBackfill(queryClient, vars.recipientId, vars.occasionId);
     },
     onSettled: (_data, _err, vars) => {
       queryClient.invalidateQueries({
