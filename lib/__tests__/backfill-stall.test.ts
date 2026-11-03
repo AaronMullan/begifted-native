@@ -102,3 +102,36 @@ test("a later request that starts a run clears the failure", async () => {
   const after = await fetchGiftSuggestions("r1");
   expect(after.scopes["r1:o1"].stalled).toBe(false);
 });
+
+test("a failed request doesn't stall a gap emptied after it", async () => {
+  const removedAt = Date.parse("2026-10-13T12:00:00.000Z");
+  jest.spyOn(Date, "now").mockReturnValue(removedAt - 60_000);
+  respondWith({ ok: false, body: {} });
+  await triggerGiftBackfill("r1", "o1");
+
+  jest.spyOn(Date, "now").mockReturnValue(removedAt + 60_000);
+  const after = await fetchGiftSuggestions("r1");
+  expect(after.scopes["r1:o1"].stalled).toBe(false);
+});
+
+test("an older request failing late doesn't cover a newer one", async () => {
+  let rejectOlder: (err: Error) => void = () => {};
+  globalThis.fetch = jest.fn(
+    () =>
+      new Promise((_resolve, reject) => {
+        rejectOlder = reject;
+      })
+  ) as unknown as typeof fetch;
+  const older = triggerGiftBackfill("r1", "o1");
+  // Let the older request reach fetch before the newer one replaces the mock.
+  await new Promise((r) => setTimeout(r, 0));
+
+  jest.spyOn(Date, "now").mockReturnValue(now + 1);
+  respondWith({ ok: true, body: { queued: true } });
+  expect(await triggerGiftBackfill("r1", "o1")).toBe(true);
+
+  rejectOlder(new TypeError("Failed to fetch"));
+  expect(await older).toBe(false);
+  const after = await fetchGiftSuggestions("r1");
+  expect(after.scopes["r1:o1"].stalled).toBe(false);
+});

@@ -25,10 +25,11 @@ export const backfillScopeKey = (
  * Per scope, so a request for one list can't hide another list's stall. */
 const backfillRequestedAt = new Map<string, number>();
 
-/** Scopes whose latest backfill request never started a run. Nothing is
- * generating for them, so their gap reads as stalled at once instead of
- * after BACKFILL_MAX_MS. */
-const backfillFailed = new Set<string>();
+/** Per scope, the request time of a latest backfill request that started no
+ * run. A gap emptied before that request has nothing generating for it, so it
+ * reads as stalled at once instead of after BACKFILL_MAX_MS; a gap emptied
+ * later is a new removal and goes back to the timer. */
+const backfillFailedAt = new Map<string, number>();
 
 /** One rendered list's standing against its active band. */
 export type ScopeGap = {
@@ -124,7 +125,8 @@ export async function fetchGiftSuggestions(
     scope: string
   ) =>
     !!band?.lastEmptiedAt &&
-    (backfillFailed.has(scope) ||
+    (Date.parse(band.lastEmptiedAt) <=
+      (backfillFailedAt.get(scope) ?? -Infinity) ||
       fetchedAt -
         Math.max(
           Date.parse(band.lastEmptiedAt),
@@ -435,10 +437,15 @@ export async function triggerGiftBackfill(
   const scope = backfillScopeKey(recipientId, occasionId);
   // Stamped before any await: the caller's poll schedule is timed from this
   // call, and its last refetch must land after the stall window closes.
-  backfillRequestedAt.set(scope, Date.now());
-  backfillFailed.delete(scope);
+  const requestedAt = Date.now();
+  backfillRequestedAt.set(scope, requestedAt);
+  backfillFailedAt.delete(scope);
+  // Only the scope's latest request may mark it failed: an older request
+  // rejecting late must not cover a newer one that started a run.
   const fail = () => {
-    backfillFailed.add(scope);
+    if (backfillRequestedAt.get(scope) === requestedAt) {
+      backfillFailedAt.set(scope, requestedAt);
+    }
     return false;
   };
   try {
