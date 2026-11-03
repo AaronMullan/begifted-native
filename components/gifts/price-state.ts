@@ -1,5 +1,7 @@
-// Re-checks run at the reminder points. The longest gap between them inside
-// the reminder window is ~10 days, so 14 covers it with slack.
+// Re-checks run only at reminder points. With the default schedule (21-day
+// lead, 2 reminders) the longest gap between them is ~10 days, so 14 keeps a
+// verified price on screen between checks; schedules with fewer reminders, or
+// none, let it lapse and hide.
 export const PRICE_FRESH_MS = 14 * 24 * 60 * 60 * 1000;
 
 export type PriceState = "verified" | "may_have_changed" | "hidden";

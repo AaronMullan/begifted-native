@@ -223,7 +223,9 @@ export default function PrimaryGiftCard({
             )}
           </View>
           {shownPrice === "may_have_changed" && (
-            <Text style={styles.priceNote}>Price may have changed</Text>
+            <Text variant="bodySmall" style={styles.priceNote}>
+              Price may have changed
+            </Text>
           )}
         </View>
 
