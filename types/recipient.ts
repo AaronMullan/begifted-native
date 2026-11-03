@@ -40,6 +40,11 @@ export interface GiftSuggestion {
   title: string;
   description?: string;
   price?: number;
+  /** A product-page read last confirmed `price`. Null: never confirmed, so
+   * `price` is the model's estimate and the card hides it. */
+  price_verified_at?: string | null;
+  /** A product-page check last ran, whatever it found. */
+  price_checked_at?: string | null;
   link?: string;
   image_url?: string;
   generated_at: string;
