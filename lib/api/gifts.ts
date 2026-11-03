@@ -25,6 +25,12 @@ export const backfillScopeKey = (
  * Per scope, so a request for one list can't hide another list's stall. */
 const backfillRequestedAt = new Map<string, number>();
 
+/** Per scope, the request time of a latest backfill request that started no
+ * run. A gap emptied before that request has nothing generating for it, so it
+ * reads as stalled at once instead of after BACKFILL_MAX_MS; a gap emptied
+ * later is a new removal and goes back to the timer. */
+const backfillFailedAt = new Map<string, number>();
+
 /** One rendered list's standing against its active band. */
 export type ScopeGap = {
   /** Most slots the scope ever held at once. The shortfall against the active
@@ -119,12 +125,14 @@ export async function fetchGiftSuggestions(
     scope: string
   ) =>
     !!band?.lastEmptiedAt &&
-    fetchedAt -
-      Math.max(
-        Date.parse(band.lastEmptiedAt),
-        backfillRequestedAt.get(scope) ?? 0
-      ) >
-      BACKFILL_MAX_MS;
+    (Date.parse(band.lastEmptiedAt) <=
+      (backfillFailedAt.get(scope) ?? -Infinity) ||
+      fetchedAt -
+        Math.max(
+          Date.parse(band.lastEmptiedAt),
+          backfillRequestedAt.get(scope) ?? 0
+        ) >
+        BACKFILL_MAX_MS);
 
   const scopes: Record<string, ScopeGap> = {
     [backfillScopeKey(recipientId)]: {
@@ -415,27 +423,38 @@ export async function checkGiftLinkOnTap(
  * Ask the backend to top the visible gift list back up to 3 after a removal
  * (DEV-118). Fire-and-forget: the backend generates only the deficit (so
  * un-dismissed suggestions are preserved), dedupes against history + the avoid
- * list, and stores the replacement. Failures are only logged: the pending
- * card reads a gap past BACKFILL_MAX_MS as stalled, and the list asks again
- * the next time it shows that gap (`useRetryStalledBackfill`).
+ * list, and stores the replacement. A request that starts no run marks the
+ * scope failed, so its pending card stops at once; a run that starts and then
+ * fails is invisible here, so the card reads a gap past BACKFILL_MAX_MS as
+ * stalled. Either way the list asks again the next time it shows that gap
+ * (`useRetryStalledBackfill`). Resolves false when no run is coming and the
+ * list isn't already served.
  */
 export async function triggerGiftBackfill(
   recipientId: string,
   occasionId?: string | null
-): Promise<void> {
+): Promise<boolean> {
+  const scope = backfillScopeKey(recipientId, occasionId);
   // Stamped before any await: the caller's poll schedule is timed from this
   // call, and its last refetch must land after the stall window closes.
-  backfillRequestedAt.set(
-    backfillScopeKey(recipientId, occasionId),
-    Date.now()
-  );
+  const requestedAt = Date.now();
+  backfillRequestedAt.set(scope, requestedAt);
+  backfillFailedAt.delete(scope);
+  // Only the scope's latest request may mark it failed: an older request
+  // rejecting late must not cover a newer one that started a run.
+  const fail = () => {
+    if (backfillRequestedAt.get(scope) === requestedAt) {
+      backfillFailedAt.set(scope, requestedAt);
+    }
+    return false;
+  };
   try {
     // The backend verifies this JWT and recipient ownership; without a
     // session the request would 401, so skip the doomed call entirely.
     const {
       data: { session },
     } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!session) return fail();
 
     const res = await fetch(`${BEGIFTED_BACKEND_URL}/api/generate-gifts`, {
       method: "POST",
@@ -451,9 +470,17 @@ export async function triggerGiftBackfill(
     });
     if (!res.ok) {
       console.warn(`[backfill] trigger rejected: ${res.status}`);
+      return fail();
     }
+    const body: { skipped?: string } = await res.json().catch(() => ({}));
+    if (body.skipped && !SERVED_SKIPS.has(body.skipped)) {
+      console.warn(`[backfill] skipped: ${body.skipped}`);
+      return fail();
+    }
+    return true;
   } catch (err) {
     console.warn("[backfill] trigger failed (non-blocking):", err);
+    return fail();
   }
 }
 
