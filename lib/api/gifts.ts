@@ -63,9 +63,9 @@ export async function fetchGiftSuggestions(
       .from("gift_suggestions")
       .select("*")
       .eq("recipient_id", recipientId)
-      // Retired by a later refresh: a profile edit generates a replacement set,
-      // and the ideas it replaced must not linger in the list or the Past Gifts
-      // band (DEV-426).
+      // Retired rows are hidden from both the list and Past Gifts. A refresh
+      // never retires the set it replaces (that set moves to Past Gifts), so
+      // this hides only rows deliberately cleared from the data.
       .is("superseded_at", null)
       .not("price", "is", null)
       .gt("price", 0)
