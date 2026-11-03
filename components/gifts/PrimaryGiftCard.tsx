@@ -19,6 +19,7 @@ import LinkFallbackSnackbar from "../LinkFallbackSnackbar";
 import type { GiftSuggestion } from "../../types/recipient";
 import GiftCardActionButton from "./GiftCardActionButton";
 import GiftCardExpandButton from "./GiftCardExpandButton";
+import { priceState } from "./price-state";
 
 type PrimaryGiftCardProps = {
   suggestion: GiftSuggestion;
@@ -50,14 +51,12 @@ const MIN_IMAGE_SIZE = 64;
 const toSecureImageUrl = (url: string) =>
   url.startsWith("http://") ? `https://${url.slice("http://".length)}` : url;
 
-const formatPrice = (price?: number) => {
-  if (!price) return "Price not available";
-  return new Intl.NumberFormat("en-US", {
+const formatPrice = (price: number) =>
+  new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 0,
   }).format(price);
-};
 
 export default function PrimaryGiftCard({
   suggestion,
@@ -170,6 +169,8 @@ export default function PrimaryGiftCard({
     await open(suggestion.link);
   };
 
+  const shownPrice = priceState(suggestion);
+
   return (
     <>
       <View ref={cardRef} style={styles.card} onLayout={handleLayout}>
@@ -203,7 +204,9 @@ export default function PrimaryGiftCard({
             {suggestion.title}
           </Text>
           <View style={styles.priceRow}>
-            <Text style={styles.price}>{formatPrice(suggestion.price)}</Text>
+            {shownPrice !== "hidden" && suggestion.price ? (
+              <Text style={styles.price}>{formatPrice(suggestion.price)}</Text>
+            ) : null}
             {suggestion.link && (
               <Button
                 mode="text"
@@ -212,12 +215,16 @@ export default function PrimaryGiftCard({
                 onPress={handleViewProduct}
                 loading={checkingStock}
                 disabled={checkingStock}
+                style={styles.cta}
                 labelStyle={styles.ctaLabel}
               >
                 View Product ›
               </Button>
             )}
           </View>
+          {shownPrice === "may_have_changed" && (
+            <Text style={styles.priceNote}>Price may have changed</Text>
+          )}
         </View>
 
         {suggestion.description && (
@@ -300,6 +307,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+  },
+  // Pinned right so a hidden price leaves the CTA where it always sits.
+  cta: {
+    marginLeft: "auto",
+  },
+  priceNote: {
+    ...Typography.caption,
+    color: Colors.darks.black,
   },
   ctaLabel: {
     ...Typography.largeCta,
