@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import {
   useMutation,
   useQueryClient,
@@ -203,6 +203,14 @@ const MANUAL_RETRY_COOLDOWN_MS = 30 * 1000;
 /** Last retry per scope, automatic or tapped. Shared so a tap also resets the
  * hourly clock and the two never fire for the same gap back to back. */
 const stalledRetryAt = new Map<string, number>();
+const retryListeners = new Set<() => void>();
+
+const subscribeToRetries = (listener: () => void) => {
+  retryListeners.add(listener);
+  return () => {
+    retryListeners.delete(listener);
+  };
+};
 
 function retryBackfill(
   queryClient: QueryClient,
@@ -211,6 +219,7 @@ function retryBackfill(
 ) {
   const scope = backfillScopeKey(recipientId, occasionId);
   stalledRetryAt.set(scope, Date.now());
+  retryListeners.forEach((listener) => listener());
 
   // Only this scope's verdict: another list's stall is not being retried.
   queryClient.setQueryData<GiftSuggestionsData>(
@@ -253,26 +262,41 @@ export function useRetryStalledBackfill(
 }
 
 /** The Try again action on a stalled gap. While a request is in flight the
- * card shows its spinner, not the button; `coolingDown` covers a request that
- * failed at once and put the button straight back. */
+ * card shows its spinner, not the button. `coolingDown` reads the shared retry
+ * map, not the taps on this mount, so it holds across remounts, occasion
+ * switches and automatic retries, and agrees with the gate in `retry`. */
 export function useRetryBackfillNow(
   recipientId: string,
   occasionId: string | null
 ) {
   const queryClient = useQueryClient();
-  const [coolingDown, setCoolingDown] = useState(false);
+  const scope = backfillScopeKey(recipientId, occasionId);
+  const last = useSyncExternalStore(subscribeToRetries, () =>
+    stalledRetryAt.get(scope)
+  );
+  const [now, setNow] = useState(Date.now);
+  // A stamp newer than `now` reads as cooling down until the timer moves
+  // `now` past the window.
+  const coolingDown =
+    last !== undefined && now - last < MANUAL_RETRY_COOLDOWN_MS;
+
+  useEffect(() => {
+    if (!coolingDown || last === undefined) return;
+    const timer = setTimeout(
+      () => setNow(Date.now()),
+      Math.max(0, MANUAL_RETRY_COOLDOWN_MS - (Date.now() - last))
+    );
+    return () => clearTimeout(timer);
+  }, [coolingDown, last]);
 
   const retry = () => {
-    const last = stalledRetryAt.get(backfillScopeKey(recipientId, occasionId));
-    const wait =
-      last === undefined ? 0 : MANUAL_RETRY_COOLDOWN_MS - (Date.now() - last);
-    if (wait <= 0) retryBackfill(queryClient, recipientId, occasionId);
-    // A retry stamped before this list mounted can still be cooling down.
-    setCoolingDown(true);
-    setTimeout(
-      () => setCoolingDown(false),
-      wait > 0 ? wait : MANUAL_RETRY_COOLDOWN_MS
-    );
+    const latest = stalledRetryAt.get(scope);
+    if (
+      latest === undefined ||
+      Date.now() - latest >= MANUAL_RETRY_COOLDOWN_MS
+    ) {
+      retryBackfill(queryClient, recipientId, occasionId);
+    }
   };
 
   return { retry, coolingDown };

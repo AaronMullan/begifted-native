@@ -60,3 +60,14 @@ test("repeat taps inside the cooldown start no second generation", async () => {
   await act(async () => jest.advanceTimersByTime(30 * 1000));
   expect(hook.result.current.coolingDown).toBe(false);
 });
+
+test("a list mounted inside the cooldown shows the button disabled", async () => {
+  const first = await render("o3");
+  await act(async () => first.hook.result.current.retry());
+  await first.hook.unmount();
+
+  const { hook } = await render("o3");
+  expect(hook.result.current.coolingDown).toBe(true);
+  await act(async () => jest.advanceTimersByTime(30 * 1000));
+  expect(hook.result.current.coolingDown).toBe(false);
+});
