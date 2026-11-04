@@ -35,9 +35,6 @@ jest.mock("../../lib/recipient-photo", () => ({
 jest.mock("../../components/GlobalSnackbar", () => ({
   showSnackbar: jest.fn(),
 }));
-jest.mock("../../components/beta/BetaCheckInProvider", () => ({
-  useBetaCheckIn: () => ({ triggerCheckIn: jest.fn() }),
-}));
 jest.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ invalidateQueries: jest.fn() }),
 }));

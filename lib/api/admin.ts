@@ -496,7 +496,7 @@ export interface BetaFeedbackRow {
   giver_name: string | null;
   screen: BetaCheckInScreen;
   // Answers keyed by question id; single-select values are strings, multi-select
-  // are arrays. The label map for both lives in beta-check-in-configs.ts.
+  // are arrays. The label map for both lives in app/admin/beta-feedback.tsx.
   responses: Record<string, string | string[]>;
   free_text: string | null;
   created_at: string;

@@ -11,7 +11,6 @@ import { useAuth } from "../../hooks/use-auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "../../lib/query-keys";
 import { StateCopy } from "../../lib/state-copy";
-import { useBetaCheckIn } from "../../components/beta/BetaCheckInProvider";
 import AddRecipientLegalNotice from "../../components/recipients/AddRecipientLegalNotice";
 import GradientBackground from "../../components/GradientBackground";
 
@@ -20,7 +19,6 @@ export default function OnboardingRecipient() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { triggerCheckIn } = useBetaCheckIn();
   const [completing, setCompleting] = useState(false);
   const [saveError, setSaveError] = useState("");
 
@@ -36,10 +34,6 @@ export default function OnboardingRecipient() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.userPreferences(user.id),
       });
-      // Onboarding just finished -> fire the first beta check-in. The provider
-      // lives above the router, so the sheet presents over the destination and
-      // survives this navigation.
-      triggerCheckIn("onboarding");
       router.replace(destination);
     } catch (error) {
       // Moving on without the flag saved would send the user through

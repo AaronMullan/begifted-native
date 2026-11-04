@@ -16,7 +16,6 @@ import Header from "../components/Header";
 import AnimatedSplash from "../components/AnimatedSplash";
 import BottomNav from "../components/BottomNav";
 import GiftActionDrawerProvider from "../components/gifts/GiftActionDrawerProvider";
-import BetaCheckInProvider from "../components/beta/BetaCheckInProvider";
 import GlobalSnackbar from "../components/GlobalSnackbar";
 import OtaUpdateGate from "../components/OtaUpdateGate";
 import OfflineBanner from "../components/OfflineBanner";
@@ -239,9 +238,7 @@ export default Sentry.wrap(function RootLayout() {
         <PaperProvider theme={customTheme}>
           <ErrorBoundary>
             <GiftActionDrawerProvider>
-              <BetaCheckInProvider>
-                <AppShell />
-              </BetaCheckInProvider>
+              <AppShell />
             </GiftActionDrawerProvider>
           </ErrorBoundary>
           <GlobalSnackbar />

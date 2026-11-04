@@ -30,7 +30,6 @@ import GiftSuggestionsList from "../../../components/gifts/GiftSuggestionsList";
 import { partitionSuggestions } from "../../../components/gifts/partition";
 import { backfillScopeKey } from "../../../lib/api/gifts";
 import PastGiftsSection from "../../../components/gifts/PastGiftsSection";
-import { useBetaCheckIn } from "../../../components/beta/BetaCheckInProvider";
 import { useAuth } from "../../../hooks/use-auth";
 import { useRecipient } from "../../../hooks/use-recipient";
 import { useGiftSuggestions } from "../../../hooks/use-gift-suggestions";
@@ -206,7 +205,6 @@ export default function RecipientEditPage() {
   const recipientId = params.id;
   const { user, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
-  const { triggerCheckIn } = useBetaCheckIn();
   const scrollRef = useRef<ScrollView>(null);
   const { data: userPreferences } = useUserPreferences();
   const defaultEmotionalTone =
@@ -414,9 +412,6 @@ export default function RecipientEditPage() {
     !!recipient &&
     visibleSuggestionCount > 0;
   const loggedRecommendationsViewRef = useRef(false);
-  useEffect(() => {
-    if (giftsReady) triggerCheckIn("first_gift_set");
-  }, [giftsReady, triggerCheckIn]);
   // Log recommendations_viewed once per screen visit, when the gifts tab
   // actually shows a settled set — not merely on mount, and not the cached
   // list a push tap is still refetching past.

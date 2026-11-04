@@ -1,5 +1,4 @@
 import { AdminNavbar } from "@/components/admin/AdminNavbar";
-import { BETA_CHECK_IN_CONFIGS } from "@/components/beta/beta-check-in-configs";
 import { AdminTheme } from "@/lib/admin-theme";
 import {
   fetchBetaFeedback,
@@ -34,13 +33,72 @@ const SCREEN_LABELS: Record<BetaCheckInScreen, string> = {
   first_gift_set: "First gift set",
 };
 
-// The check-in copy is the source of truth for question/answer labels; the
-// stored `responses` blob only holds the stable value keys.
+type QuestionLabels = {
+  id: string;
+  label: string;
+  options: { value: string; label: string }[];
+};
+
+// The stored `responses` blob only holds the stable question ids and option
+// values; this is the copy the check-ins showed for each, so past answers stay
+// readable.
+const QUESTIONS: Record<BetaCheckInScreen, QuestionLabels[]> = {
+  onboarding: [
+    {
+      id: "felt_easy",
+      label: "Did that feel easy?",
+      options: [
+        { value: "natural_and_easy", label: "Natural and easy" },
+        { value: "a_little_open_ended", label: "A little open-ended" },
+        { value: "form_would_be_easier", label: "A form would be easier" },
+      ],
+    },
+    {
+      id: "used_voice",
+      label: "Did you use voice-to-text?",
+      options: [
+        { value: "yes", label: "Yes" },
+        { value: "no", label: "No" },
+        { value: "no_might_next_time", label: "No, but I might next time" },
+      ],
+    },
+  ],
+  first_recipient: [
+    {
+      id: "easy_to_describe",
+      label: "Did the questions make it easy to describe them?",
+      options: [
+        { value: "yes", label: "Yes" },
+        { value: "no", label: "No" },
+      ],
+    },
+  ],
+  first_gift_set: [
+    {
+      id: "felt_right",
+      label: "Did the ideas feel right for this person?",
+      options: [
+        { value: "spot_on", label: "Spot on" },
+        { value: "close", label: "Close" },
+        { value: "off_base", label: "Off-base" },
+      ],
+    },
+    {
+      id: "stronger_if",
+      label: "What would have made them stronger?",
+      options: [
+        { value: "more_specific_to_them", label: "More specific to them" },
+        { value: "better_price_fit", label: "Better price fit" },
+        { value: "more_their_taste", label: "More their taste" },
+        { value: "other", label: "Other" },
+      ],
+    },
+  ],
+};
+
 function questionLabel(screen: BetaCheckInScreen, questionId: string): string {
-  const chip = BETA_CHECK_IN_CONFIGS[screen].chips.find(
-    (c) => c.id === questionId
-  );
-  return chip?.label ?? questionId;
+  const question = QUESTIONS[screen].find((q) => q.id === questionId);
+  return question?.label ?? questionId;
 }
 
 function answerLabels(
@@ -48,12 +106,10 @@ function answerLabels(
   questionId: string,
   value: string | string[]
 ): string {
-  const chip = BETA_CHECK_IN_CONFIGS[screen].chips.find(
-    (c) => c.id === questionId
-  );
+  const question = QUESTIONS[screen].find((q) => q.id === questionId);
   const values = Array.isArray(value) ? value : [value];
   return values
-    .map((v) => chip?.options.find((o) => o.value === v)?.label ?? v)
+    .map((v) => question?.options.find((o) => o.value === v)?.label ?? v)
     .join(", ");
 }
 
