@@ -58,7 +58,7 @@ occasion (Moments and the About tab, named as its confirm dialog names it),
 and the account (Settings → Profile).
 
 **Recoverable failure (send)** — `StateCopy.sendFailed`. Settings → Support
-(Contact Us) and the beta check-in.
+(Contact Us).
 
 **Removed** — `StateCopy.personRemoved`. A recipient profile opened after the
 person was deleted, with Back to People.

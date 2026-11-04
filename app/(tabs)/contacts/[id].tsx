@@ -30,7 +30,6 @@ import GiftSuggestionsList from "../../../components/gifts/GiftSuggestionsList";
 import { partitionSuggestions } from "../../../components/gifts/partition";
 import { backfillScopeKey } from "../../../lib/api/gifts";
 import PastGiftsSection from "../../../components/gifts/PastGiftsSection";
-import { useBetaCheckIn } from "../../../components/beta/BetaCheckInProvider";
 import { useAuth } from "../../../hooks/use-auth";
 import { useRecipient } from "../../../hooks/use-recipient";
 import { useGiftSuggestions } from "../../../hooks/use-gift-suggestions";
@@ -206,7 +205,6 @@ export default function RecipientEditPage() {
   const recipientId = params.id;
   const { user, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
-  const { triggerCheckIn } = useBetaCheckIn();
   const scrollRef = useRef<ScrollView>(null);
   const { data: userPreferences } = useUserPreferences();
   const defaultEmotionalTone =
@@ -362,12 +360,9 @@ export default function RecipientEditPage() {
   }
   const isGenerating = genBaseline !== null;
 
-  // First gift set reviewed -> fire the third beta check-in once the gifts tab
-  // shows a settled, non-empty set (not still generating). Effect, not a render
-  // latch, because it responds to async data arrival; the provider gates it to
-  // a single showing per user. The check-in only ever shows once, so a
-  // mistimed fire permanently consumes it — every conjunct below guards a way
-  // gift cards could be absent from the screen while suggestion rows exist:
+  // `giftsReady` means the gifts tab shows a settled, non-empty set (not still
+  // generating). Every conjunct guards a way gift cards could be absent from
+  // the screen while suggestion rows exist:
   // the screen must be focused (a notification tap can stack another [id]
   // instance on top while this one keeps polling), the recipient query must
   // have resolved (before that the screen is a bare loading placeholder, and
@@ -414,9 +409,6 @@ export default function RecipientEditPage() {
     !!recipient &&
     visibleSuggestionCount > 0;
   const loggedRecommendationsViewRef = useRef(false);
-  useEffect(() => {
-    if (giftsReady) triggerCheckIn("first_gift_set");
-  }, [giftsReady, triggerCheckIn]);
   // Log recommendations_viewed once per screen visit, when the gifts tab
   // actually shows a settled set — not merely on mount, and not the cached
   // list a push tap is still refetching past.

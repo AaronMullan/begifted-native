@@ -1,31 +1,7 @@
 /**
- * Beta UX check-in feedback API (DEV-191). Append-only inserts from the in-app
- * "quick beta check-in" cards; schema in the *_create_beta_feedback.sql
- * migration. Structured radio answers plus an optional free-text line.
+ * Beta UX check-in feedback (DEV-191). Read-only: the admin tab lists the
+ * `beta_feedback` rows testers submitted; nothing in the app writes them.
  */
-
-import { supabase } from "../supabase";
 
 export type BetaCheckInScreen =
   "onboarding" | "first_recipient" | "first_gift_set";
-
-export interface InsertBetaFeedbackInput {
-  user_id: string;
-  screen: BetaCheckInScreen;
-  // Single-select answers are strings; multi-select questions store arrays.
-  responses: Record<string, string | string[]>;
-  free_text?: string | null;
-}
-
-export async function insertBetaFeedback(
-  input: InsertBetaFeedbackInput
-): Promise<void> {
-  const { error } = await supabase.from("beta_feedback").insert({
-    user_id: input.user_id,
-    screen: input.screen,
-    responses: input.responses,
-    free_text: input.free_text ?? null,
-  });
-
-  if (error) throw error;
-}
