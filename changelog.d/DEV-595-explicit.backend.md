@@ -1,1 +1,0 @@
-- A correction saved through "Update what BeGifted knows" changes someone's name or relationship only when the note says it has changed; nicknames, "Mom", and other people mentioned no longer replace them (DEV-595).

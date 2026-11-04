@@ -19,6 +19,24 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-11-04 — OTA (runtime 1.0.5, Build 63)
+
+### App
+
+- You can now create an account or sign in with Apple or Google, alongside email and password (DEV-513).
+- When a replacement idea can't be requested after you remove a gift, the empty slot now says "We couldn't find a new idea" within seconds instead of spinning for over ten minutes (DEV-596).
+- A gift card shows a price only when the retailer's page has confirmed it. A recently confirmed price the page no longer lets us read now carries a "Price may have changed" line, and a price nobody could confirm is left off rather than shown as fact (DEV-598).
+- Beta check-in questions no longer appear after onboarding, after adding your first person, or when your first gift ideas arrive (DEV-602).
+- A replacement idea that couldn't be found now has a Try again button on its card, so you can ask again right away instead of waiting for the hourly retry (DEV-604).
+
+### Backend
+
+- A correction saved through "Update what BeGifted knows" changes someone's name or relationship only when the note says it has changed; nicknames, "Mom", and other people mentioned no longer replace them (DEV-595).
+- A correction that calls someone by first name no longer shortens their saved full name (DEV-595).
+- A correction saved through "Update what BeGifted knows" no longer replaces someone's relationship with a pronoun such as "she" (DEV-595).
+- On the web app, a moment with no gift ideas yet now gets them instead of showing "We couldn't load … gift ideas", and removing an idea brings a replacement (DEV-597).
+- When a reminder or a profile edit brings a new set of gift ideas, the earlier ideas now stay in the list, under Past Gifts, instead of disappearing. Ideas you turned down stay hidden (DEV-599).
+
 ## 2026-10-19 — OTA
 
 ### App
