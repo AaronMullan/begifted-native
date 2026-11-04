@@ -1,1 +1,0 @@
-- A correction that calls someone by first name no longer shortens their saved full name (DEV-595).
