@@ -12,7 +12,10 @@ import CollapsedGiftCard from "./CollapsedGiftCard";
 import GiftGenerationWaiting from "./GiftGenerationWaiting";
 import PendingGiftCard from "./PendingGiftCard";
 import { partitionSuggestions } from "./partition";
-import { useRetryStalledBackfill } from "../../hooks/use-submit-gift-feedback";
+import {
+  useRetryBackfillNow,
+  useRetryStalledBackfill,
+} from "../../hooks/use-submit-gift-feedback";
 import type { GiftIdeasEmptyState } from "./gift-ideas-state";
 import StateMessage from "../StateMessage";
 import { StateCopy } from "../../lib/state-copy";
@@ -111,6 +114,8 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
     occasionId,
     pendingSlots > 0 && pendingStalled
   );
+  const { retry: retryBackfill, coolingDown: retryCoolingDown } =
+    useRetryBackfillNow(recipientId, occasionId);
 
   // If the currently open gift was just removed (or filtered out of view), the
   // stale `expandedId` would match no card and collapse the page to a list-only
@@ -272,7 +277,12 @@ const GiftSuggestionsList: React.FC<GiftSuggestionsListProps> = ({
         {/* Holds each slot a removal emptied so no past row slides up into it
             while the replacement generates (DEV-488). */}
         {Array.from({ length: pendingSlots }, (_, i) => (
-          <PendingGiftCard key={`pending-${i}`} stalled={pendingStalled} />
+          <PendingGiftCard
+            key={`pending-${i}`}
+            stalled={pendingStalled}
+            onRetry={retryBackfill}
+            retryDisabled={retryCoolingDown}
+          />
         ))}
       </View>
     </View>

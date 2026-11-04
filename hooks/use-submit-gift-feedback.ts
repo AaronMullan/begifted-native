@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   useMutation,
   useQueryClient,
@@ -195,7 +195,39 @@ function requestBackfill(
  * not one per visit. Timed rather than once per session: iOS keeps a
  * backgrounded app's JS alive for days, and the gap would go dead again. */
 const STALLED_RETRY_COOLDOWN_MS = 60 * 60 * 1000;
+
+/** A tap on Try again may skip the hourly wait, but not this one, so repeated
+ * taps on a request the backend turns down at once start one generation. */
+const MANUAL_RETRY_COOLDOWN_MS = 30 * 1000;
+
+/** Last retry per scope, automatic or tapped. Shared so a tap also resets the
+ * hourly clock and the two never fire for the same gap back to back. */
 const stalledRetryAt = new Map<string, number>();
+
+function retryBackfill(
+  queryClient: QueryClient,
+  recipientId: string,
+  occasionId: string | null
+) {
+  const scope = backfillScopeKey(recipientId, occasionId);
+  stalledRetryAt.set(scope, Date.now());
+
+  // Only this scope's verdict: another list's stall is not being retried.
+  queryClient.setQueryData<GiftSuggestionsData>(
+    queryKeys.giftSuggestions(recipientId),
+    (old) =>
+      old?.scopes[scope]
+        ? {
+            ...old,
+            scopes: {
+              ...old.scopes,
+              [scope]: { ...old.scopes[scope], stalled: false },
+            },
+          }
+        : old
+  );
+  requestBackfill(queryClient, recipientId, occasionId);
+}
 
 /**
  * Asks again for a replacement when the list shows a gap whose backfill never
@@ -212,29 +244,38 @@ export function useRetryStalledBackfill(
 
   useEffect(() => {
     if (!recipientId || !stalled) return;
-    const scope = backfillScopeKey(recipientId, occasionId);
-    const last = stalledRetryAt.get(scope);
+    const last = stalledRetryAt.get(backfillScopeKey(recipientId, occasionId));
     if (last !== undefined && Date.now() - last < STALLED_RETRY_COOLDOWN_MS) {
       return;
     }
-    stalledRetryAt.set(scope, Date.now());
-
-    // Only this scope's verdict: another list's stall is not being retried.
-    queryClient.setQueryData<GiftSuggestionsData>(
-      queryKeys.giftSuggestions(recipientId),
-      (old) =>
-        old?.scopes[scope]
-          ? {
-              ...old,
-              scopes: {
-                ...old.scopes,
-                [scope]: { ...old.scopes[scope], stalled: false },
-              },
-            }
-          : old
-    );
-    requestBackfill(queryClient, recipientId, occasionId);
+    retryBackfill(queryClient, recipientId, occasionId);
   }, [queryClient, recipientId, occasionId, stalled]);
+}
+
+/** The Try again action on a stalled gap. While a request is in flight the
+ * card shows its spinner, not the button; `coolingDown` covers a request that
+ * failed at once and put the button straight back. */
+export function useRetryBackfillNow(
+  recipientId: string,
+  occasionId: string | null
+) {
+  const queryClient = useQueryClient();
+  const [coolingDown, setCoolingDown] = useState(false);
+
+  const retry = () => {
+    const last = stalledRetryAt.get(backfillScopeKey(recipientId, occasionId));
+    const wait =
+      last === undefined ? 0 : MANUAL_RETRY_COOLDOWN_MS - (Date.now() - last);
+    if (wait <= 0) retryBackfill(queryClient, recipientId, occasionId);
+    // A retry stamped before this list mounted can still be cooling down.
+    setCoolingDown(true);
+    setTimeout(
+      () => setCoolingDown(false),
+      wait > 0 ? wait : MANUAL_RETRY_COOLDOWN_MS
+    );
+  };
+
+  return { retry, coolingDown };
 }
 
 export function useSubmitGiftFeedback() {
