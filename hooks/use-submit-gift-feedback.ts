@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import {
   useMutation,
   useQueryClient,
@@ -195,7 +195,48 @@ function requestBackfill(
  * not one per visit. Timed rather than once per session: iOS keeps a
  * backgrounded app's JS alive for days, and the gap would go dead again. */
 const STALLED_RETRY_COOLDOWN_MS = 60 * 60 * 1000;
+
+/** A tap on Try again may skip the hourly wait, but not this one, so repeated
+ * taps on a request the backend turns down at once start one generation. */
+const MANUAL_RETRY_COOLDOWN_MS = 30 * 1000;
+
+/** Last retry per scope, automatic or tapped. Shared so a tap also resets the
+ * hourly clock and the two never fire for the same gap back to back. */
 const stalledRetryAt = new Map<string, number>();
+const retryListeners = new Set<() => void>();
+
+const subscribeToRetries = (listener: () => void) => {
+  retryListeners.add(listener);
+  return () => {
+    retryListeners.delete(listener);
+  };
+};
+
+function retryBackfill(
+  queryClient: QueryClient,
+  recipientId: string,
+  occasionId: string | null
+) {
+  const scope = backfillScopeKey(recipientId, occasionId);
+  stalledRetryAt.set(scope, Date.now());
+  retryListeners.forEach((listener) => listener());
+
+  // Only this scope's verdict: another list's stall is not being retried.
+  queryClient.setQueryData<GiftSuggestionsData>(
+    queryKeys.giftSuggestions(recipientId),
+    (old) =>
+      old?.scopes[scope]
+        ? {
+            ...old,
+            scopes: {
+              ...old.scopes,
+              [scope]: { ...old.scopes[scope], stalled: false },
+            },
+          }
+        : old
+  );
+  requestBackfill(queryClient, recipientId, occasionId);
+}
 
 /**
  * Asks again for a replacement when the list shows a gap whose backfill never
@@ -212,29 +253,55 @@ export function useRetryStalledBackfill(
 
   useEffect(() => {
     if (!recipientId || !stalled) return;
-    const scope = backfillScopeKey(recipientId, occasionId);
-    const last = stalledRetryAt.get(scope);
+    const last = stalledRetryAt.get(backfillScopeKey(recipientId, occasionId));
     if (last !== undefined && Date.now() - last < STALLED_RETRY_COOLDOWN_MS) {
       return;
     }
-    stalledRetryAt.set(scope, Date.now());
-
-    // Only this scope's verdict: another list's stall is not being retried.
-    queryClient.setQueryData<GiftSuggestionsData>(
-      queryKeys.giftSuggestions(recipientId),
-      (old) =>
-        old?.scopes[scope]
-          ? {
-              ...old,
-              scopes: {
-                ...old.scopes,
-                [scope]: { ...old.scopes[scope], stalled: false },
-              },
-            }
-          : old
-    );
-    requestBackfill(queryClient, recipientId, occasionId);
+    retryBackfill(queryClient, recipientId, occasionId);
   }, [queryClient, recipientId, occasionId, stalled]);
+}
+
+/** The Try again action on a stalled gap. While a request is in flight the
+ * card shows its spinner, not the button. `coolingDown` reads the shared retry
+ * map, not the taps on this mount, so it holds across remounts, occasion
+ * switches and automatic retries, and agrees with the gate in `retry`. */
+export function useRetryBackfillNow(
+  recipientId: string,
+  occasionId: string | null
+) {
+  const queryClient = useQueryClient();
+  const scope = backfillScopeKey(recipientId, occasionId);
+  const last = useSyncExternalStore(subscribeToRetries, () =>
+    stalledRetryAt.get(scope)
+  );
+  const [now, setNow] = useState(Date.now);
+  // A stamp newer than `now` reads as cooling down until the timer moves
+  // `now` past the window.
+  const coolingDown =
+    last !== undefined && now - last < MANUAL_RETRY_COOLDOWN_MS;
+
+  useEffect(() => {
+    if (!coolingDown || last === undefined) return;
+    const timer = setTimeout(
+      () => setNow(Date.now()),
+      Math.max(0, MANUAL_RETRY_COOLDOWN_MS - (Date.now() - last))
+    );
+    return () => clearTimeout(timer);
+    // `now` too: a timer that fires before the wall clock clears the window
+    // must schedule the next one, or the button stays disabled.
+  }, [coolingDown, last, now]);
+
+  const retry = () => {
+    const latest = stalledRetryAt.get(scope);
+    if (
+      latest === undefined ||
+      Date.now() - latest >= MANUAL_RETRY_COOLDOWN_MS
+    ) {
+      retryBackfill(queryClient, recipientId, occasionId);
+    }
+  };
+
+  return { retry, coolingDown };
 }
 
 export function useSubmitGiftFeedback() {

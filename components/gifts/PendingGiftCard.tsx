@@ -1,11 +1,14 @@
 import { StyleSheet, View } from "react-native";
-import { ActivityIndicator, Text } from "react-native-paper";
+import { ActivityIndicator, Button, Text } from "react-native-paper";
 import { Colors } from "../../lib/colors";
 import { Typography, Radii } from "../../lib/typography";
 
 type Props = {
   /** The replacement is past any time a backfill could take; stop spinning. */
   stalled?: boolean;
+  /** Asks for the replacement again; shown only once stalled. */
+  onRetry?: () => void;
+  retryDisabled?: boolean;
 };
 
 /**
@@ -16,14 +19,31 @@ type Props = {
  * up is what made a Past Gift read as a fresh recommendation (DEV-488), and
  * generation takes minutes, so there is a real wait to account for.
  */
-const PendingGiftCard: React.FC<Props> = ({ stalled = false }) =>
+const PendingGiftCard: React.FC<Props> = ({
+  stalled = false,
+  onRetry,
+  retryDisabled = false,
+}) =>
   stalled ? (
     <View style={styles.row}>
-      <Text style={styles.title}>{"We couldn't find a new idea"}</Text>
+      <Text style={[styles.title, styles.faded]}>
+        {"We couldn't find a new idea"}
+      </Text>
+      {onRetry && (
+        <Button
+          mode="text"
+          compact
+          onPress={onRetry}
+          disabled={retryDisabled}
+          textColor={Colors.brand.darkTeal}
+        >
+          Try again
+        </Button>
+      )}
     </View>
   ) : (
     <View
-      style={styles.row}
+      style={[styles.row, styles.faded]}
       accessibilityRole="progressbar"
       accessibilityLabel="Finding a new gift idea"
     >
@@ -46,6 +66,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
+  },
+  // The failure row fades only its copy, so its button doesn't read as
+  // disabled.
+  faded: {
     opacity: 0.6,
   },
   title: {
