@@ -287,7 +287,9 @@ export function useRetryBackfillNow(
       Math.max(0, MANUAL_RETRY_COOLDOWN_MS - (Date.now() - last))
     );
     return () => clearTimeout(timer);
-  }, [coolingDown, last]);
+    // `now` too: a timer that fires before the wall clock clears the window
+    // must schedule the next one, or the button stays disabled.
+  }, [coolingDown, last, now]);
 
   const retry = () => {
     const latest = stalledRetryAt.get(scope);
