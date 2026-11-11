@@ -24,6 +24,7 @@ export function useUpdateAppConfig() {
           | "recommendations_enabled"
           | "notifications_enabled"
           | "signups_enabled"
+          | "invites_enabled"
           | "ai_provider"
           | "ai_model"
         >

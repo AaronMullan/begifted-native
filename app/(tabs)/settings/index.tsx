@@ -12,6 +12,7 @@ import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import GradientBackground from "../../../components/GradientBackground";
 import StateMessage from "../../../components/StateMessage";
 import { StateCopy } from "../../../lib/state-copy";
+import { useAppConfig } from "../../../hooks/use-app-config";
 
 type SettingsRowProps = {
   label: string;
@@ -41,6 +42,7 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [signOutVisible, setSignOutVisible] = useState(false);
   const router = useRouter();
+  const invitesEnabled = useAppConfig().data?.invites_enabled === true;
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -130,6 +132,15 @@ export default function Settings() {
               label="Billing & Subscription"
               onPress={push("/settings/billing")}
             />
+            {invitesEnabled && (
+              <>
+                <Divider />
+                <SettingsRow
+                  label="Invite Friends"
+                  onPress={push("/settings/invite")}
+                />
+              </>
+            )}
             <Divider />
             <SettingsRow label="FAQ" onPress={push("/faq")} />
             <SettingsRow
