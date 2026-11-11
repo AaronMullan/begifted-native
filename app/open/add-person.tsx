@@ -9,7 +9,9 @@ import { Colors } from "../../lib/colors";
 // app/+native-intent.tsx routes it, so this renders only where the link
 // didn't hand off: the app isn't installed, or the link was opened in a
 // browser that doesn't follow universal links.
-const NATIVE_DEEP_LINK = "begifted://contacts/add";
+// The empty host keeps "/open/add-person" as the path, so the link passes
+// through app/+native-intent.tsx and the auth gate like the universal link.
+const NATIVE_DEEP_LINK = "begifted:///open/add-person";
 const TESTFLIGHT_URL = "https://testflight.apple.com/join/2DRWAZgn";
 
 function go(url: string) {
