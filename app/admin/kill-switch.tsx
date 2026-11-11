@@ -25,7 +25,10 @@ const KillSwitchScreen: React.FC = () => {
 
   function toggle(
     flag:
-      "recommendations_enabled" | "notifications_enabled" | "signups_enabled"
+      | "recommendations_enabled"
+      | "notifications_enabled"
+      | "signups_enabled"
+      | "invites_enabled"
   ) {
     if (!config) return;
     updateConfig.mutate({ [flag]: !config[flag] });
@@ -79,6 +82,14 @@ const KillSwitchScreen: React.FC = () => {
               description="Allow new users to create accounts"
               enabled={config.signups_enabled}
               onToggle={() => toggle("signups_enabled")}
+              disabled={isPending}
+            />
+            <Divider style={styles.divider} />
+            <KillSwitchRow
+              label="Friend Invites"
+              description="Show Invite Friends in Settings and let users send up to five invite links"
+              enabled={config.invites_enabled}
+              onToggle={() => toggle("invites_enabled")}
               disabled={isPending}
             />
           </Card.Content>

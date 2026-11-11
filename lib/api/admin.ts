@@ -241,6 +241,7 @@ export interface AppConfig {
   recommendations_enabled: boolean;
   notifications_enabled: boolean;
   signups_enabled: boolean;
+  invites_enabled: boolean;
   ai_provider: "openai" | "anthropic" | "google";
   ai_model: string;
   whats_new: WhatsNewContent | null;
@@ -266,6 +267,7 @@ export async function updateAppConfig(
       | "recommendations_enabled"
       | "notifications_enabled"
       | "signups_enabled"
+      | "invites_enabled"
       | "ai_provider"
       | "ai_model"
     >

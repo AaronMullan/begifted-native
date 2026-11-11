@@ -1,6 +1,10 @@
 import type { Href } from "expo-router";
 import { supabase } from "../lib/supabase";
 import { setLaunchLink } from "../lib/launch-link";
+import {
+  flushPendingInvite,
+  setPendingInviteCode,
+} from "../lib/pending-invite";
 
 // Universal links on https://begifted.vercel.app/open/* (claimed in
 // public/.well-known/apple-app-site-association) and the in-app route each
@@ -9,6 +13,13 @@ import { setLaunchLink } from "../lib/launch-link";
 const OPEN_LINKS: Record<string, Href> = {
   "/open/add-person": "/contacts/add",
 };
+
+const INVITE_PATH = "/open/invite";
+
+function inviteCodeOf(url: string): string | null {
+  const match = /[?&]code=([^&#]+)/.exec(url);
+  return match ? decodeURIComponent(match[1]) : null;
+}
 
 function pathnameOf(url: string): string {
   return url
@@ -25,6 +36,17 @@ export async function redirectSystemPath({
   initial: boolean;
 }): Promise<string | null> {
   try {
+    if (pathnameOf(path) === INVITE_PATH) {
+      // An invite link has no screen of its own: the code waits on the device
+      // and is redeemed by the auth gate once the friend has signed in.
+      const code = inviteCodeOf(path);
+      if (code) await setPendingInviteCode(code);
+      if (initial) return "/";
+      const { data } = await supabase.auth.getSession();
+      if (data.session && code) void flushPendingInvite();
+      return null;
+    }
+
     const target = OPEN_LINKS[pathnameOf(path)];
     if (!target) return path;
 
