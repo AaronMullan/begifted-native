@@ -2,7 +2,7 @@
   "expo": {
     "name": "BeGifted",
     "slug": "begifted",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "begifted",
@@ -16,7 +16,8 @@
         "NSContactsUsageDescription": "This app would like to access your contacts to help you import gift recipients.",
         "NSPhotoLibraryUsageDescription": "BeGifted needs access to your photos so you can attach a screenshot to a bug report.",
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "associatedDomains": ["applinks:begifted.vercel.app"]
     },
     "android": {
       "package": "com.begifted.app",

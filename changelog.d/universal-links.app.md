@@ -1,0 +1,1 @@
+- Links in BeGifted emails can now open the app straight to adding a person.
