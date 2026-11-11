@@ -25,7 +25,7 @@ import { hasSeenIntro, markIntroSeen } from "../lib/intro-storage";
 import { flushPendingLegalAcceptance } from "../lib/legal-acceptance";
 import { consumeLaunchLink, discardLaunchLink } from "../lib/launch-link";
 import { flushPendingSignUpName } from "../lib/signup-name";
-import { flushPendingInvite } from "../lib/pending-invite";
+import { creditInvite } from "../lib/pending-invite";
 import { queryKeys } from "../lib/query-keys";
 
 export default function Index() {
@@ -49,7 +49,7 @@ export default function Index() {
       // Signup via email verification couldn't record the legal acceptance
       // (no JWT yet); flush any stashed marker now that we have a session.
       void flushPendingLegalAcceptance(session.user.id);
-      void flushPendingInvite();
+      void creditInvite(session.user);
       void flushPendingSignUpName(session.user).then((wrote) => {
         if (wrote) {
           void queryClient.invalidateQueries({

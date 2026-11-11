@@ -4,7 +4,7 @@
  * enforces the five-invite limit and the app_config.invites_enabled switch.
  */
 
-import { supabase } from "../supabase";
+import { supabase, supabaseAnonKey, supabaseUrl } from "../supabase";
 
 export const INVITE_LIMIT = 5;
 
@@ -59,6 +59,33 @@ export async function acceptInvite(code: string): Promise<boolean> {
   const { data, error } = await supabase.rpc("accept_invite", {
     invite_code: code,
   });
+  if (error) throw error;
+  return data === true;
+}
+
+/**
+ * Records the email a friend will sign up with, from the web page, before
+ * they install. Fire-and-forget by design: the caller navigates away in the
+ * same tap, and `keepalive` lets the request outlive the page — the
+ * supabase-js client offers no way to set it. The server ignores malformed
+ * emails and unknown codes without saying which.
+ */
+export function claimInvite(code: string, email: string): void {
+  void fetch(`${supabaseUrl}/rest/v1/rpc/claim_invite`, {
+    method: "POST",
+    keepalive: true,
+    headers: {
+      "Content-Type": "application/json",
+      apikey: supabaseAnonKey,
+      Authorization: `Bearer ${supabaseAnonKey}`,
+    },
+    body: JSON.stringify({ invite_code: code, email }),
+  }).catch(() => undefined);
+}
+
+/** Credits the signed-in new account to an invite claimed with its email. */
+export async function acceptInviteByEmail(): Promise<boolean> {
+  const { data, error } = await supabase.rpc("accept_invite_by_email");
   if (error) throw error;
   return data === true;
 }
