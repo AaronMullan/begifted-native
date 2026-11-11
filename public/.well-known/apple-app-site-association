@@ -1,0 +1,10 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["QK8CD38ZYU.com.begifted.app"],
+        "components": [{ "/": "/open/*" }]
+      }
+    ]
+  }
+}

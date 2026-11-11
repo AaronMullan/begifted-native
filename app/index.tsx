@@ -23,6 +23,7 @@ import StateMessage from "../components/StateMessage";
 import { StateCopy } from "../lib/state-copy";
 import { hasSeenIntro, markIntroSeen } from "../lib/intro-storage";
 import { flushPendingLegalAcceptance } from "../lib/legal-acceptance";
+import { consumeLaunchLink, discardLaunchLink } from "../lib/launch-link";
 import { flushPendingSignUpName } from "../lib/signup-name";
 import { queryKeys } from "../lib/query-keys";
 
@@ -67,6 +68,7 @@ export default function Index() {
         hasNavigated.current = true;
         if (!data?.onboarding_completed) {
           discardLaunchNotification();
+          discardLaunchLink();
           router.replace("/onboarding/welcome" as Href);
           return;
         }
@@ -79,9 +81,11 @@ export default function Index() {
           queryClient,
           session.user.id
         );
+        const launchLinkHref = consumeLaunchLink();
+        const launchHref = notificationHref ?? launchLinkHref;
         router.replace("/dashboard" as Href);
-        if (notificationHref) {
-          setTimeout(() => router.push(notificationHref), 0);
+        if (launchHref) {
+          setTimeout(() => router.push(launchHref), 0);
         }
       } catch {
         if (!isMounted || hasNavigated.current) return;
@@ -93,6 +97,7 @@ export default function Index() {
     async function routeUnauthenticated() {
       // A tap left in the tray must not follow whichever account signs in next.
       discardLaunchNotification();
+      discardLaunchLink();
       // The intro slider is touch-only (swipe paging, CTA on the last slide),
       // so on desktop web it strands signed-out users with no path to sign-in.
       // Web skips the intro gate and goes straight to <Auth />.
