@@ -32,7 +32,11 @@ import {
   renderRequiredFields,
 } from "./intake-rules.ts";
 import type { IntakeRules } from "./intake-rules.ts";
-import { stripAllSetCompletion, stripQuestions } from "./completion.ts";
+import {
+  stripAllSetCompletion,
+  stripHandoffClaims,
+  stripQuestions,
+} from "./completion.ts";
 // @ts-ignore - Deno environment variables are resolved at runtime
 export const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 // @ts-ignore - Deno environment variables are resolved at runtime
@@ -286,14 +290,13 @@ export async function handleConversation(
     }
   }
 
-  // Anchor logic and the deterministic wrap-up are specific to the add_recipient
+  // Anchor logic and the ready-turn closing are specific to the add_recipient
   // flow. Update flows don't have required anchors — the recipient already
   // exists, so the user decides when to save and the button is always visible.
   let textureNeedsFollowup = false;
-  // When the ready turn carries a meaningful final answer, we fall through to the
-  // reply LLM for its recognition sentence but still append this fixed close so
-  // completion copy stays consistent. Null on every non-acknowledgment path.
-  let readyAcknowledgmentClose: string | null = null;
+  // Set only on the add_recipient ready turn; doubles as the ready-turn marker
+  // for the post-processing below.
+  let readyClosingFallback: string | null = null;
   const intakeRules = (await intakeRulesPromise) ?? DEFAULT_INTAKE_RULES;
   if (conversationType === "add_recipient") {
     // The extractor is not asked for a readiness block: the runtime is the
@@ -341,37 +344,18 @@ export async function handleConversation(
     contextInfo.occasions_needing_dates = derived.pendingDates;
     textureNeedsFollowup = derived.textureNeedsFollowup;
 
-    // All anchors satisfied. The closing line "[Name]'s all set." is always
-    // runtime-owned so completion copy stays consistent and the surrounding
-    // prompt's enthusiasm/CTA requirements can never leak into the close.
+    // All anchors satisfied. The reply LLM always writes the closing, drawing
+    // on the whole conversation; the fixed wrap-up line is only the fallback
+    // when its reply has nothing usable left after post-processing below.
     if (contextInfo.readiness.state === "ready") {
       const wrapUpName =
         contextInfo.name || contextInfo.existing_name || "this person";
       const wrapUpTemplate =
         (await wrapUpTemplatePromise) ?? ADD_RECIPIENT_WRAP_UP_DEFAULT;
-      const wrapUpLine = wrapUpTemplate.replace(
+      readyClosingFallback = wrapUpTemplate.replace(
         /\{\{recipientName\}\}/g,
         wrapUpName
       );
-      // A bare final anchor answer (age/price/date), an explicit skip, a vague
-      // follow-up answer, or the one-follow-up cap reaches "ready" with no
-      // meaningful final detail to acknowledge — a generated line would only
-      // invent meaning, so close deterministically. `final_answer_added_texture`
-      // is per-turn, so distinguishing texture volunteered earlier (then
-      // completed on a later anchor) also lands here, not on the ack path.
-      if (!contextInfo.final_answer_added_texture) {
-        return {
-          reply: wrapUpLine,
-          shouldShowNextStepButton: true,
-          conversationContext: contextInfo,
-          resolvedSystemPrompt: null,
-          timings: finishTimings("ready"),
-        };
-      }
-      // Meaningful final answer: fall through to let the reply LLM generate the
-      // recognition sentence, then append this close (see below). The next-step
-      // button shows either way.
-      readyAcknowledgmentClose = wrapUpLine;
     }
   }
 
@@ -457,7 +441,7 @@ export async function handleConversation(
   // prompt) so it applies to every source of `systemPrompt` and can't be
   // dropped by a stale prompt version.
   const replyStartedAt = Date.now();
-  let reply = await callAI(aiConfig.provider, aiConfig.model, aiConfig.apiKey, {
+  const replyCall = callAI(aiConfig.provider, aiConfig.model, aiConfig.apiKey, {
     messages: [
       { role: "system", content: `${SAFETY_PREAMBLE}\n\n${systemPrompt}` },
       { role: "user", content: "Please respond to continue the conversation." },
@@ -465,6 +449,16 @@ export async function handleConversation(
     maxTokens: 300,
     temperature: 0.7,
   });
+  // A failed closing call must not fail a turn that is already ready: the
+  // fixed fallback line keeps the close and the Next Step button deterministic.
+  let reply = readyClosingFallback
+    ? await replyCall.catch((err) => {
+        // A provider refusal must still reach the top-level safety handler.
+        if (err instanceof AIRefusalError) throw err;
+        console.error("Ready-turn closing call failed:", err);
+        return "";
+      })
+    : await replyCall;
   timings.reply_ms = Date.now() - replyStartedAt;
 
   // Guard: if the LLM returned a JSON object instead of plain text, extract the
@@ -482,22 +476,16 @@ export async function handleConversation(
   }
   if (isPreambleDecline(reply)) throw new AIRefusalError(reply);
 
-  // Acknowledgment path: the reply LLM should produce only the recognition
-  // sentence. Strip any close it wrote anyway (against the recognition-only
-  // guidance), AND strip any question it appended: at "ready" every required
-  // field is already satisfied in canonical state, so a required-field question
-  // here is spurious, and letting it survive would ship it alongside the
-  // runtime-appended close — the mutually-exclusive "…relationship to Sarah?
-  // Sarah's all set." The completion contract holds by construction: a required-
-  // field question can never share a response with the close. Append the
-  // runtime-owned close exactly once so completion copy is consistent.
-  if (readyAcknowledgmentClose) {
-    const recognition = stripQuestions(
-      stripAllSetCompletion(reply, recipientName)
-    );
-    reply = recognition
-      ? `${recognition}\n\n${readyAcknowledgmentClose}`
-      : readyAcknowledgmentClose;
+  // Ready turn: every required field is satisfied in canonical state, so any
+  // question the model appended is spurious, an "all set" line would read as a
+  // bolted-on second close, and the closing must not claim
+  // the recipient is saved or that gift ideas have started — neither has
+  // happened until the review screen. Enforced here, not only in the prompt.
+  if (readyClosingFallback) {
+    reply =
+      stripQuestions(
+        stripHandoffClaims(stripAllSetCompletion(reply, recipientName))
+      ) || readyClosingFallback;
   } else if (
     conversationType === "add_recipient" &&
     contextInfo.readiness?.state !== "ready"
@@ -511,12 +499,9 @@ export async function handleConversation(
     if (stripped) reply = stripped;
   }
 
-  // For add_recipient the button stays hidden until the recipient is ready:
-  // either the deterministic wrap-up branch above fired, or we fell through to
-  // the reply LLM at "ready" to let the prompt acknowledge the final meaningful
-  // answer — in which case the button must still show. For every other
-  // conversation type (update_field, extract_*) the recipient already exists,
-  // so the user can save at any point.
+  // For add_recipient the button stays hidden until the recipient is ready.
+  // For every other conversation type (update_field, extract_*) the recipient
+  // already exists, so the user can save at any point.
   return {
     reply,
     shouldShowNextStepButton:

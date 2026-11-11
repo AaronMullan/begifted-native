@@ -177,19 +177,25 @@ export function buildStateGuidance(
         ? `→ What we know about ${recipientName} so far is broad. Ask exactly one targeted follow-up that sharpens a single interest they already mentioned, then proceed.`
         : `→ Ask the user to describe ${recipientName} naturally — what they're like, their interests, personality, or lifestyle.`;
     case "ready":
-      // The runtime only routes to the reply LLM at "ready" when the user's
-      // final answer carried distinguishing texture (bare/vague completions take
-      // the deterministic wrap-up and never see this), so recognition is
-      // unconditional — don't let the model re-litigate whether the detail was
-      // "meaningful" and skip it. The job is to REFLECT the supplied detail, not
-      // summarize and not extrapolate: name one distinction and stay strictly
-      // inside what was stated. Over-inference is the failure this guards — a
-      // detail ("watches most Blazers games") gets stretched into an unstated
-      // implication ("must make sports a lively part of his routine"). The
-      // runtime appends the fixed close itself, so the model must NOT write one;
-      // that keeps the surrounding prompt's enthusiasm/CTA rules out of the
-      // completion line.
-      return `→ All required information is captured, and the user's most recent answer shared a telling detail about ${recipientName}. Reply with EXACTLY one short sentence that names the SINGLE most telling detail they gave and reflects it back plainly — enough to show you registered what it says about ${recipientName}, and staying strictly within what was actually stated. Stay grounded in the supplied detail itself: do NOT extrapolate to broader claims about their life, routine, personality, or what the detail "must" mean. For example, from "watches most Blazers games", "the Blazers are clearly a real interest for him" is right; "that must make sports a lively part of his routine" over-infers and is wrong. Do NOT summarize the profile, do NOT enumerate a list of facts, and do NOT simply restate or rephrase the user's own sentence; you may tie a couple of closely related details into one read (e.g. "ceramics and minimal interiors give a clear read on her taste"). Recognition, not praise: no enthusiasm, no compliments, no question, no call-to-action, and invent no meaning that was not stated. Do NOT write a closing line or any "all set" wording — that is appended automatically. Say nothing else.`;
+      // The reply LLM writes the whole closing on every ready turn, so this is
+      // the completion behavior the live prompt defers to ("use only the
+      // completion behavior required by the product implementation"). The
+      // observation draws on the whole conversation, not the last message —
+      // the final answer is often only a date, age or amount. Two failure modes
+      // it must keep avoiding: restating the profile, and extrapolating past
+      // what was said ("watches most Blazers games" → "must make sports a
+      // lively part of his routine"). On sparse intake it writes no
+      // observation rather than invent one. Saving and gift-idea claims are
+      // also stripped by the runtime (stripHandoffClaims).
+      return `→ COMPLETION BEHAVIOR REQUIRED BY THE PRODUCT IMPLEMENTATION: every required field for ${recipientName} is captured. Write the closing message for this intake: exactly ONE short sentence, and nothing else. No question.
+
+Read the WHOLE conversation, not only the most recent message — the last answer is often just a date, age, or amount. Where the user corrected something, use only the corrected fact.
+
+If the conversation includes at least one distinguishing detail about ${recipientName} — something specific about their taste, interests, habits, or how they engage with something they care about — the sentence is one grounded observation drawn from it. Name the single most telling detail, or tie a couple of closely related details into one read, and stay strictly within what was actually stated. Do NOT extrapolate to broader claims about their life, routine, personality, or what a detail "must" mean: from "watches most Blazers games", "the Blazers are clearly a real interest for him" is right; "that must make sports a lively part of his routine" is wrong. Do NOT summarize the profile, list facts, or rephrase the user's own sentence. Write it in plain words; avoid filing-note phrasing ("is noted", "stands out", "has been captured"). That one observation IS the whole closing: do not add a second sentence saying intake is done.
+
+If the conversation holds only broad or routine information (a relationship, occasions, dates, age, amount, loose categories like "books and sports", or "not sure"), do NOT make an observation about ${recipientName}. The sentence is a plain signal that this part is done, such as "That covers what's needed for ${recipientName}."
+
+Recognition, not praise: no enthusiasm, no compliments. Do NOT say or imply that ${recipientName} has been saved or added, that gift ideas, suggestions, or recommendations are being found or have started, or that BeGifted will "take it from here". Do NOT mention gifts, next steps, buttons, or adding more.`;
     default:
       return "";
   }
@@ -231,7 +237,8 @@ export function buildPriorityGuidance(contextInfo: ContextInfo): string {
     .join("\n")}`;
 }
 
-// Default wrap-up message shown when the conversation reaches the "ready" state.
+// Fallback closing for the "ready" turn, shown only when the reply LLM's
+// closing has nothing usable left after post-processing.
 // Editable via the admin playground under prompt_key "add_recipient_wrap_up".
 // Supports {{recipientName}} interpolation.
 //
