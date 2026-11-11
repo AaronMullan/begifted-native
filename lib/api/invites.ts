@@ -62,3 +62,23 @@ export async function acceptInvite(code: string): Promise<boolean> {
   if (error) throw error;
   return data === true;
 }
+
+/**
+ * Records the email a friend will sign up with, from the web page, before
+ * they install. Works without a session; the server ignores malformed emails
+ * and unknown codes without saying which.
+ */
+export async function claimInvite(code: string, email: string): Promise<void> {
+  const { error } = await supabase.rpc("claim_invite", {
+    invite_code: code,
+    email,
+  });
+  if (error) throw error;
+}
+
+/** Credits the signed-in new account to an invite claimed with its email. */
+export async function acceptInviteByEmail(): Promise<boolean> {
+  const { data, error } = await supabase.rpc("accept_invite_by_email");
+  if (error) throw error;
+  return data === true;
+}
