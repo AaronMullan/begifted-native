@@ -87,6 +87,15 @@ BEGIN
 
   PERFORM pg_advisory_xact_lock(hashtext('invites:' || uid::text));
 
+  -- Already sent (a retry, or a friend accepted it first): nothing to do, and
+  -- not an error — the share itself went through.
+  IF NOT EXISTS (
+    SELECT 1 FROM public.invites
+    WHERE id = invite_id AND inviter_id = uid AND sent_at IS NULL
+  ) THEN
+    RETURN;
+  END IF;
+
   IF (SELECT count(*) FROM public.invites
       WHERE inviter_id = uid AND sent_at IS NOT NULL) >= 5 THEN
     RAISE EXCEPTION 'no invites left';
@@ -128,8 +137,10 @@ BEGIN
     SET accepted_by = uid,
         accepted_at = now(),
         sent_at = COALESCE(sent_at, now())
+    -- accepted_at, not accepted_by: accepted_by is nulled if the friend
+    -- deletes their account, and the link must stay used.
     WHERE code = invite_code
-      AND accepted_by IS NULL
+      AND accepted_at IS NULL
       AND inviter_id <> uid;
   GET DIAGNOSTICS updated = ROW_COUNT;
   RETURN updated > 0;

@@ -33,6 +33,21 @@ function formatDay(iso: string): string {
   });
 }
 
+// Once the sheet reports a share, the link is out. If recording that fails,
+// the invite stays pending and the next share would hand the same code to a
+// second friend, so retry before giving up.
+async function markSentWithRetry(inviteId: string): Promise<void> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await markInviteSent(inviteId);
+      return;
+    } catch (err) {
+      if (attempt >= 3) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+    }
+  }
+}
+
 type InviteRowProps = {
   invite: Invite;
 };
@@ -51,7 +66,7 @@ export default function InviteSettings() {
   const headerSpacerHeight = Math.max(HEADER_HEIGHT, insets.top + 60);
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const configQuery = useAppConfig();
   const invitesQuery = useSentInvites(user?.id);
   const [sharing, setSharing] = useState(false);
@@ -65,11 +80,11 @@ export default function InviteSettings() {
     try {
       const invite = await createInvite();
       const result = await Share.share({
-        message: `Here's an invite to the BeGifted beta: ${inviteLink(invite.code)}`,
+        message: `Here's a link to try the BeGifted beta: ${inviteLink(invite.code)}`,
       });
       // A dismissed sheet leaves the invite pending; the next share reuses it.
       if (result.action === Share.sharedAction) {
-        await markInviteSent(invite.id);
+        await markSentWithRetry(invite.id);
       }
     } catch (err) {
       Sentry.captureException(
@@ -99,7 +114,9 @@ export default function InviteSettings() {
   );
 
   let body: React.ReactNode;
-  if (configQuery.isLoading || invitesQuery.isLoading) {
+  // isPending, not isLoading: the invites query is disabled until the session
+  // resolves, and a disabled query isn't "loading" — it would render 5 of 5.
+  if (authLoading || configQuery.isPending || invitesQuery.isPending) {
     body = (
       <StateMessage loading message={StateCopy.inProgress("your invites")} />
     );
@@ -117,7 +134,7 @@ export default function InviteSettings() {
     body = (
       <>
         <Text style={styles.intro}>
-          Bring a few people into the beta. Each link works once.
+          Send a few friends a link to the beta. Each link is for one person.
         </Text>
 
         <Text style={styles.count}>
