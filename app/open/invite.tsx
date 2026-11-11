@@ -73,7 +73,14 @@ export default function OpenInvite() {
               setEmail(value);
               setBlurred(false);
             }}
-            onBlur={() => setBlurred(true)}
+            onBlur={() => {
+              setBlurred(true);
+              // Tapping Join blurs the field first, so the claim is already
+              // in flight before the tap navigates away. Repeats are no-ops.
+              if (code && trimmed && !emailMalformed) {
+                claimInvite(code, trimmed);
+              }
+            }}
             autoCapitalize="none"
             autoComplete="email"
             keyboardType="email-address"

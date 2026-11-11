@@ -50,9 +50,11 @@ BEGIN
 
   INSERT INTO public.invite_claims (invite_id, email)
     VALUES (target, normalized)
-    -- By constraint name: the `email` parameter (named for the RPC's JSON
-    -- body) makes a bare column list ambiguous.
-    ON CONFLICT ON CONSTRAINT invite_claims_pkey DO UPDATE SET claimed_at = now();
+    -- Keeps the first claim time: moving it forward on a repeat claim would
+    -- put it after an account already created, and that account would never
+    -- be credited. By constraint name because the `email` parameter (named
+    -- for the RPC's JSON body) makes a bare column list ambiguous.
+    ON CONFLICT ON CONSTRAINT invite_claims_pkey DO NOTHING;
 END;
 $$;
 
