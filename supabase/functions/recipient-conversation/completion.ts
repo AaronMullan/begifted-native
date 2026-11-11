@@ -91,9 +91,12 @@ const HANDOFF_CLAIM_PATTERNS: RegExp[] = [
   /\bsuggestions?\b/i,
   /\btake it from here\b/i,
   /\bnext steps?\b/i,
-  /\b(?:been|now|is|are|all)\s+(?:saved|added|stored)\b/i,
-  /\b(?:saved|added|stored)\s+(?:to|in|for)\s+(?:your|the)\b/i,
-  /\b(?:I|we|BeGifted)(?:'ll|’ll| will| am| are| is|'m|’m|'re|’re)\s+(?:now\s+)?(?:start|begin|get|work|pull|put|find|look|search|handle)/i,
+  /\b(?:been|now|all|is|are|['’]s)\s+(?:now\s+)?(?:saved|added)(?:\s+(?:to|in)\s+(?:your|the)\b|[.!?]*$)/i,
+  /\b(?:saved|added)\s+(?:\w+\s+)?(?:to|in)\s+your\b/i,
+  /\bon\s+(?:your|the)\s+list\b/i,
+  /\bon\s+(?:the|their|its)\s+way\b/i,
+  /\b(?:profile|setup)\s+is\s+(?:complete|done|ready)\b/i,
+  /\b(?:I|we|BeGifted)(?:['’](?:ll|ve|m|re)| will| am| are| is| have)\s+(?:now\s+)?(?:start|begin|get|got|work|pull|put|find|look|search|handle|add|save)/i,
 ];
 
 /**

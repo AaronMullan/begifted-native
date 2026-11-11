@@ -232,3 +232,27 @@ Deno.test("does not treat 'saves' or 'add' in a detail as a claim", () => {
     "She saves every ticket stub, and the add-on tours are her thing.";
   assertEquals(stripHandoffClaims(line), line);
 });
+
+Deno.test("catches short saving and handoff claims", () => {
+  for (const s of [
+    "Tom's saved.",
+    "I've added Lena to your list.",
+    "Lena's on your list now.",
+    "Ideas for Tom are on the way.",
+    "Tom's profile is complete.",
+    "We've got what we need to start finding ideas.",
+  ]) {
+    assertEquals(stripHandoffClaims(s), "", s);
+  }
+});
+
+Deno.test("keeps details that mention saving, storing, or doing", () => {
+  for (const s of [
+    "He has saved for the Japan trip for years, so travel clearly matters to him.",
+    "Her film photos are stored in shoeboxes she still flips through.",
+    "Kai is getting serious about bouldering.",
+    "Naomi is starting to throw pottery.",
+  ]) {
+    assertEquals(stripHandoffClaims(s), s, s);
+  }
+});

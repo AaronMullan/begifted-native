@@ -453,6 +453,8 @@ export async function handleConversation(
   // fixed fallback line keeps the close and the Next Step button deterministic.
   let reply = readyClosingFallback
     ? await replyCall.catch((err) => {
+        // A provider refusal must still reach the top-level safety handler.
+        if (err instanceof AIRefusalError) throw err;
         console.error("Ready-turn closing call failed:", err);
         return "";
       })
@@ -475,11 +477,15 @@ export async function handleConversation(
   if (isPreambleDecline(reply)) throw new AIRefusalError(reply);
 
   // Ready turn: every required field is satisfied in canonical state, so any
-  // question the model appended is spurious, and the closing must not claim
+  // question the model appended is spurious, an "all set" line would read as a
+  // bolted-on second close, and the closing must not claim
   // the recipient is saved or that gift ideas have started — neither has
   // happened until the review screen. Enforced here, not only in the prompt.
   if (readyClosingFallback) {
-    reply = stripQuestions(stripHandoffClaims(reply)) || readyClosingFallback;
+    reply =
+      stripQuestions(
+        stripHandoffClaims(stripAllSetCompletion(reply, recipientName))
+      ) || readyClosingFallback;
   } else if (
     conversationType === "add_recipient" &&
     contextInfo.readiness?.state !== "ready"
