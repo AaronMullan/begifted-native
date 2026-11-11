@@ -1,11 +1,12 @@
 /**
  * Runtime-owned completion-line handling for the add-recipient flow.
  *
- * The closing line "[Name]'s all set." is owned by the runtime so completion
- * copy stays consistent and can only appear once the deterministic readiness
- * gate reaches "ready". The reply LLM must never introduce it: on a non-ready
- * turn it produces the contradiction of a required-field question shipping
- * alongside a completion (e.g. "About how old is Daniel? Daniel's all set.").
+ * Completion can only appear once the deterministic readiness gate reaches
+ * "ready". On a non-ready turn a stray "[Name]'s all set." produces the
+ * contradiction of a required-field question shipping alongside a completion
+ * (e.g. "About how old is Daniel? Daniel's all set."). On the ready turn the
+ * reply LLM writes the closing, and it is filtered so it can't claim more than
+ * has happened.
  *
  * Pure module — no env, no AI, no I/O — so Deno tests can import it directly.
  */
@@ -78,4 +79,35 @@ export function stripQuestions(text: string): string {
     .replace(/\s{2,}/g, " ")
     .trim();
   return result.includes("?") ? "" : result;
+}
+
+// Each pattern marks a sentence that claims more than has happened at the
+// moment the closing shows: the recipient is not saved until the review screen,
+// and gift generation has not started. The live conversation prompt also bars
+// any mention of gifts, recommendations, or next steps in the completion.
+const HANDOFF_CLAIM_PATTERNS: RegExp[] = [
+  /\bgift(?:s|ing)?\b/i,
+  /\brecommend/i,
+  /\bsuggestions?\b/i,
+  /\btake it from here\b/i,
+  /\bnext steps?\b/i,
+  /\b(?:been|now|is|are|all)\s+(?:saved|added|stored)\b/i,
+  /\b(?:saved|added|stored)\s+(?:to|in|for)\s+(?:your|the)\b/i,
+  /\b(?:I|we|BeGifted)(?:'ll|’ll| will| am| are| is|'m|’m|'re|’re)\s+(?:now\s+)?(?:start|begin|get|work|pull|put|find|look|search|handle)/i,
+];
+
+/**
+ * Drop any sentence of the ready-turn closing that says or implies the
+ * recipient is saved, that gift ideas have started, or that BeGifted is taking
+ * it from here. Same sentence split as stripQuestions, so decimals and
+ * abbreviations survive. Returns "" when nothing truthful remains, so the
+ * caller falls back to the fixed close.
+ */
+export function stripHandoffClaims(text: string): string {
+  return text
+    .split(/(?<=[.!?])\s+/)
+    .filter((s) => !HANDOFF_CLAIM_PATTERNS.some((re) => re.test(s)))
+    .join(" ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }

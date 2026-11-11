@@ -1,5 +1,9 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { stripAllSetCompletion, stripQuestions } from "./completion.ts";
+import {
+  stripAllSetCompletion,
+  stripHandoffClaims,
+  stripQuestions,
+} from "./completion.ts";
 
 // A required-field question and the runtime-owned completion line must never
 // share one response. On a non-ready turn the reply LLM sometimes appends the
@@ -174,3 +178,57 @@ Deno.test(
     );
   }
 );
+
+// The ready-turn closing must not claim the recipient is saved, that gift
+// ideas have started, or that BeGifted is taking over — none of that has
+// happened until the review screen.
+
+Deno.test(
+  "drops a take-it-from-here / gift-ideas sentence, keeps the observation",
+  () => {
+    assertEquals(
+      stripHandoffClaims(
+        "The Blazers are clearly a real interest for him. I'll take it from here and start pulling together a few gift ideas for Tom."
+      ),
+      "The Blazers are clearly a real interest for him."
+    );
+  }
+);
+
+Deno.test("drops a saved/added claim", () => {
+  assertEquals(
+    stripHandoffClaims("That covers what's needed. Lena has been saved."),
+    "That covers what's needed."
+  );
+  assertEquals(
+    stripHandoffClaims(
+      "Lena is added to your list. Ceramics gives a clear read."
+    ),
+    "Ceramics gives a clear read."
+  );
+});
+
+Deno.test("drops recommendation and next-step language", () => {
+  assertEquals(
+    stripHandoffClaims(
+      "Sunday pasta says a lot. BeGifted will now find recommendations."
+    ),
+    "Sunday pasta says a lot."
+  );
+});
+
+Deno.test("returns empty when nothing truthful remains", () => {
+  assertEquals(stripHandoffClaims("Gift ideas for Sam are on the way."), "");
+});
+
+Deno.test("leaves a grounded observation untouched", () => {
+  const line =
+    "History and political biographies give a clear read on what he reaches for.";
+  assertEquals(stripHandoffClaims(line), line);
+});
+
+Deno.test("does not treat 'saves' or 'add' in a detail as a claim", () => {
+  const line =
+    "She saves every ticket stub, and the add-on tours are her thing.";
+  assertEquals(stripHandoffClaims(line), line);
+});
