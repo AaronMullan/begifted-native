@@ -6,8 +6,8 @@ import { AppState, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient, processLock } from "@supabase/supabase-js";
 
-const supabaseUrl = "https://qgcyndtymegkobgfcpdh.supabase.co";
-const supabaseAnonKey = "sb_publishable_zQoX48Kvts7b8XOViU-JXg_QNpr35lp";
+export const supabaseUrl = "https://qgcyndtymegkobgfcpdh.supabase.co";
+export const supabaseAnonKey = "sb_publishable_zQoX48Kvts7b8XOViU-JXg_QNpr35lp";
 
 // Where the verification email returns the user. Must be an https URL: email
 // clients refuse to follow the verify endpoint's redirect into a custom

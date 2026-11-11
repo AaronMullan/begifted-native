@@ -9,8 +9,8 @@ import { claimInvite } from "../../lib/api/invites";
 // The web page behind https://begifted.vercel.app/open/invite?code=… links.
 // With the app installed, iOS opens the app instead and app/+native-intent.tsx
 // keeps the code. A friend without the app installs it from TestFlight, which
-// drops the code, so this page asks for the email they'll sign up with; the
-// account with that email is credited on its first sign-in.
+// drops the code, so this page asks for the email they'll sign up with; an
+// account with that email created afterwards is credited to the invite.
 const TESTFLIGHT_URL = "https://testflight.apple.com/join/2DRWAZgn";
 
 function go(url: string) {
@@ -23,14 +23,9 @@ function go(url: string) {
 
 const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-// Long enough for a normal round trip; the friend is never held on this page
-// by a slow or failed save.
-const CLAIM_TIMEOUT_MS = 4000;
-
 export default function OpenInvite() {
   const { code } = useLocalSearchParams<{ code?: string }>();
   const [email, setEmail] = useState("");
-  const [saving, setSaving] = useState(false);
   // Judged on blur, so a half-typed address isn't flagged mid-keystroke.
   const [blurred, setBlurred] = useState(false);
 
@@ -38,18 +33,15 @@ export default function OpenInvite() {
   const emailMalformed = trimmed.length > 0 && !EMAIL_PATTERN.test(trimmed);
   const emailInvalid = blurred && emailMalformed;
 
-  const handleJoin = async () => {
+  // Navigates inside the tap itself: iOS hands testflight.apple.com to the
+  // TestFlight app only for a navigation that comes straight from a gesture,
+  // so the claim is sent without waiting for it.
+  const handleJoin = () => {
     if (emailMalformed) {
       setBlurred(true);
       return;
     }
-    if (code && trimmed) {
-      setSaving(true);
-      await Promise.race([
-        claimInvite(code, trimmed).catch(() => undefined),
-        new Promise((resolve) => setTimeout(resolve, CLAIM_TIMEOUT_MS)),
-      ]);
-    }
+    if (code && trimmed) claimInvite(code, trimmed);
     go(TESTFLIGHT_URL);
   };
 
@@ -100,8 +92,7 @@ export default function OpenInvite() {
         <Button
           mode="contained"
           onPress={handleJoin}
-          loading={saving}
-          disabled={saving || emailInvalid}
+          disabled={emailInvalid}
           buttonColor={Colors.brand.buttonTeal}
           textColor={Colors.white}
         >
@@ -112,7 +103,7 @@ export default function OpenInvite() {
           onPress={() => go(nativeLink)}
           textColor={Colors.brand.darkTeal}
         >
-          Already have BeGifted? Open it
+          Open BeGifted
         </Button>
       </View>
     </View>
