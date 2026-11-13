@@ -7,6 +7,14 @@ jest.mock("../supabase", () => ({
   supabase: { auth: { getSession: () => mockGetSession() } },
 }));
 
+const mockSetPendingInviteCode = jest.fn();
+const mockFlushPendingInvite = jest.fn();
+
+jest.mock("../pending-invite", () => ({
+  setPendingInviteCode: (code: string) => mockSetPendingInviteCode(code),
+  flushPendingInvite: () => mockFlushPendingInvite(),
+}));
+
 const RECIPIENT = "0b6f3c2e-8a4d-4f1b-9c7e-2d5a6b8c9e01";
 const OCCASION = "7c1e9a4b-3d2f-4e6a-8b0c-1f2e3d4c5b6a";
 const ORIGIN = "https://begifted.vercel.app";
@@ -16,6 +24,7 @@ async function warm(path: string) {
 }
 
 beforeEach(() => {
+  jest.clearAllMocks();
   discardLaunchLink();
   mockGetSession.mockResolvedValue({ data: { session: { user: {} } } });
 });
@@ -87,5 +96,21 @@ describe("redirectSystemPath", () => {
     expect(await warm(`${ORIGIN}/auth/callback?code=x`)).toBe(
       `${ORIGIN}/auth/callback?code=x`
     );
+  });
+
+  it("stores an invite code and lets the gate redeem it on a cold launch", async () => {
+    const result = await redirectSystemPath({
+      path: `${ORIGIN}/open/invite?code=ABC123`,
+      initial: true,
+    });
+    expect(result).toBe("/");
+    expect(mockSetPendingInviteCode).toHaveBeenCalledWith("ABC123");
+    expect(mockFlushPendingInvite).not.toHaveBeenCalled();
+  });
+
+  it("redeems an invite right away in a signed-in running app", async () => {
+    expect(await warm("begifted:///open/invite?code=ABC123")).toBeNull();
+    expect(mockSetPendingInviteCode).toHaveBeenCalledWith("ABC123");
+    expect(mockFlushPendingInvite).toHaveBeenCalled();
   });
 });

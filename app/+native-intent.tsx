@@ -1,6 +1,10 @@
 import type { Href } from "expo-router";
 import { supabase } from "../lib/supabase";
 import { setLaunchLink } from "../lib/launch-link";
+import {
+  flushPendingInvite,
+  setPendingInviteCode,
+} from "../lib/pending-invite";
 
 const HOME: Href = "/dashboard";
 
@@ -40,6 +44,8 @@ const OPEN_LINKS: Record<string, (query: Query) => Href> = {
   "/open/home": () => HOME,
 };
 
+const INVITE_PATH = "/open/invite";
+
 function stripOrigin(url: string): string {
   return url.replace(/^[a-z][a-z0-9+.-]*:\/\/[^/?#]*/i, "");
 }
@@ -73,6 +79,17 @@ export async function redirectSystemPath({
   initial: boolean;
 }): Promise<string | null> {
   try {
+    if (pathnameOf(path) === INVITE_PATH) {
+      // An invite link has no screen of its own: the code waits on the device
+      // and is redeemed by the auth gate once the friend has signed in.
+      const code = queryOf(path).code || null;
+      if (code) await setPendingInviteCode(code);
+      if (initial) return "/";
+      const { data } = await supabase.auth.getSession();
+      if (data.session && code) void flushPendingInvite();
+      return null;
+    }
+
     const route = OPEN_LINKS[pathnameOf(path)];
     if (!route) return path;
     const target = route(queryOf(path));
