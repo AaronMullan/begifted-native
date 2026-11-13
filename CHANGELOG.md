@@ -19,6 +19,17 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-11-12 — OTA (runtime 1.0.6, Build 67)
+
+### App
+
+- Links in BeGifted emails can now open the app straight to adding a person (DEV-608).
+- Email links can now open BeGifted straight to adding a moment for someone, to their gift ideas, to Billing & Subscription, or to Home (DEV-612).
+
+### Backend
+
+- A reminder that can't bring a new set of gift ideas now waits and tries again the next day, rather than pointing to the same ideas. The day before the occasion, the reminder arrives regardless, without saying new ideas are ready (DEV-607).
+
 ## 2026-11-04 — OTA (runtime 1.0.5, Build 63)
 
 ### App
