@@ -11,7 +11,9 @@ import {
 import { Button, Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Updates from "expo-updates";
+import { useRouter } from "expo-router";
 import { useAppConfig } from "../hooks/use-app-config";
+import { useInvitesAnnouncement } from "../hooks/use-invites-announcement";
 import type { WhatsNewSection } from "../lib/api";
 import { Colors } from "../lib/colors";
 import { Typography } from "../lib/typography";
@@ -62,6 +64,18 @@ const FALLBACK_SECTIONS: WhatsNewSection[] = [
   },
 ];
 
+const INVITES_SECTIONS: WhatsNewSection[] = [
+  {
+    title: "Give the gift of BeGifted to five of your people.",
+    body: "Share the love. Give someone the gift of their very own personal gifting concierge. You can now invite up to five friends to BeGifted.\n\nYou’ll find your invitations anytime in Settings → Invite Friends.",
+  },
+];
+
+type Props = {
+  /** False while the launch splash still covers the app. */
+  ready: boolean;
+};
+
 /**
  * Downloads a published OTA update as soon as the app is opened or
  * foregrounded, then offers a one-tap restart via the "What's New" card
@@ -69,9 +83,13 @@ const FALLBACK_SECTIONS: WhatsNewSection[] = [
  * flow needs two full force-quits before an update runs — beta testers rarely
  * do that, so published fixes sat unapplied indefinitely.
  */
-const OtaUpdateGate: React.FC = () => {
+const OtaUpdateGate: React.FC<Props> = ({ ready }) => {
   const [cardVisible, setCardVisible] = useState(false);
+  const router = useRouter();
   const { data: appConfig } = useAppConfig();
+  // One modal serves both: iOS won't present a second Modal over a visible
+  // one, so the invites announcement waits until the update card closes.
+  const announcement = useInvitesAnnouncement(cardVisible || !ready);
   const { height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   // Refs, not state: the AppState listener would otherwise close over stale
@@ -110,17 +128,28 @@ const OtaUpdateGate: React.FC = () => {
   // Backdrop tap is "later", and it's safe to honor quietly: the update is
   // already downloaded and will run on the next cold start even without the
   // restart.
-  const dismiss = () => setCardVisible(false);
+  const dismiss = () => {
+    if (cardVisible) setCardVisible(false);
+    else announcement.markSeen();
+  };
 
   const restart = () => {
-    Updates.reloadAsync().catch(dismiss);
+    Updates.reloadAsync().catch(() => setCardVisible(false));
+  };
+
+  const openInvites = () => {
+    announcement.markSeen();
+    router.push("/settings/invite");
   };
 
   const whatsNew = appConfig?.whats_new;
-  const sections = whatsNew?.sections?.length
-    ? whatsNew.sections
-    : FALLBACK_SECTIONS;
-  const chipDate = formatChipDate(whatsNew?.date);
+  const showingUpdate = cardVisible;
+  const sections = !showingUpdate
+    ? INVITES_SECTIONS
+    : whatsNew?.sections?.length
+      ? whatsNew.sections
+      : FALLBACK_SECTIONS;
+  const chipDate = showingUpdate ? formatChipDate(whatsNew?.date) : null;
 
   // An absolute bound rather than a percentage: a percentage maxHeight depends
   // on the modal's parent having a definite height at measure time, and when
@@ -130,7 +159,7 @@ const OtaUpdateGate: React.FC = () => {
 
   return (
     <Modal
-      visible={cardVisible}
+      visible={cardVisible || announcement.visible}
       transparent
       animationType="fade"
       onRequestClose={dismiss}
@@ -177,14 +206,16 @@ const OtaUpdateGate: React.FC = () => {
             mode="contained"
             buttonColor={Colors.brand.darkTeal}
             textColor={Colors.white}
-            onPress={restart}
-            accessibilityLabel="Restart to apply the update"
+            onPress={showingUpdate ? restart : openInvites}
+            accessibilityLabel={
+              showingUpdate ? "Restart to apply the update" : "Invite a friend"
+            }
             style={styles.cta}
             contentStyle={styles.ctaContent}
             labelStyle={styles.ctaLabel}
             maxFontSizeMultiplier={FIXED_TEXT_MAX_FONT_SCALE}
           >
-            Let&apos;s Go
+            {showingUpdate ? "Let's Go" : "Invite a friend"}
           </Button>
         </View>
       </View>
