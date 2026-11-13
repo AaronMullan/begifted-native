@@ -23,6 +23,9 @@ export const Colors = {
     // Destructive text (e.g. "Remove Person"). No Figma variable is bound to
     // it; pixel-sampled from the Person Overflow Menu frame (4840:5643).
     destructiveRed: "#B23333",
+    // BETA header badge fill. No Figma variable; taken from the badge SVG the
+    // design team handed off, which is deliberately more muted than `gold`.
+    betaBadge: "#9A8453",
   },
 
   // Linear gradient stops used by the "BeGifted light gradient" frame

@@ -1,10 +1,12 @@
 import { View, StyleSheet, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Link, usePathname } from "expo-router";
 import { useAuth } from "../hooks/use-auth";
 import { useProfile } from "../hooks/use-profile";
 import { Colors } from "../lib/colors";
+import { Typography } from "../lib/typography";
 import { openBugReport } from "../lib/feedback";
 import { interceptLeave } from "../lib/leave-guard";
 import Avatar, { deriveUserInitials } from "./Avatar";
@@ -55,6 +57,11 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
           >
             <BrandMark size={BRAND_MARK_SIZE} />
             <BrandWordmark height={16} />
+            <View style={styles.betaBadge}>
+              <Text style={[Typography.smallCta, styles.betaBadgeText]}>
+                BETA
+              </Text>
+            </View>
           </Pressable>
         </Link>
         <View style={styles.rightSection}>
@@ -113,6 +120,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+  },
+  betaBadge: {
+    height: 22,
+    paddingHorizontal: 10,
+    borderRadius: 11,
+    justifyContent: "center",
+    backgroundColor: Colors.brand.betaBadge,
+    marginLeft: 2,
+  },
+  betaBadgeText: {
+    letterSpacing: 0.6,
+    color: Colors.white,
   },
   rightSection: {
     flexDirection: "row",
