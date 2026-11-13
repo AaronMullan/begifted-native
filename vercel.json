@@ -15,6 +15,10 @@
       "handle": "filesystem"
     },
     {
+      "src": "/open/invite/?",
+      "dest": "/open/invite.html"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
