@@ -42,7 +42,12 @@ const OPEN_LINKS: Record<string, (query: Query) => Href> = {
   },
   "/open/billing": () => "/settings/billing",
   "/open/home": () => HOME,
+  "/open/invite-friends": () => "/settings/invite",
 };
+
+// Links that open the same screen for any account, so a signed-out user is
+// taken there after signing in rather than dropped on Home.
+const SURVIVES_SIGN_IN = new Set(["/open/invite-friends"]);
 
 const INVITE_PATH = "/open/invite";
 
@@ -90,21 +95,27 @@ export async function redirectSystemPath({
       return null;
     }
 
-    const route = OPEN_LINKS[pathnameOf(path)];
+    const pathname = pathnameOf(path);
+    const route = OPEN_LINKS[pathname];
     if (!route) return path;
     const target = route(queryOf(path));
+    const survivesSignIn = SURVIVES_SIGN_IN.has(pathname);
 
     // The routes behind these links have no auth gate of their own; a cold
     // launch must pass through "/" first, which signs in or onboards the
     // user before following the link. The gate already lands on Home, so
     // parking Home would push a second copy of it.
     if (initial) {
-      if (target !== HOME) setLaunchLink(target);
+      if (target !== HOME) setLaunchLink(target, { survivesSignIn });
       return "/";
     }
 
     const { data } = await supabase.auth.getSession();
-    return data.session ? String(target) : null;
+    if (data.session) return String(target);
+    // Signed out, the app is already on the auth gate; it follows the parked
+    // link once someone signs in.
+    if (survivesSignIn) setLaunchLink(target, { survivesSignIn });
+    return null;
   } catch {
     // A throw here crashes the app; landing on the gate is always safe.
     return "/";

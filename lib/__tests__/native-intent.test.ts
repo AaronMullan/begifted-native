@@ -1,5 +1,9 @@
 import { redirectSystemPath } from "../../app/+native-intent";
-import { consumeLaunchLink, discardLaunchLink } from "../launch-link";
+import {
+  consumeLaunchLink,
+  discardAccountLaunchLink,
+  discardLaunchLink,
+} from "../launch-link";
 
 const mockGetSession = jest.fn();
 
@@ -47,6 +51,7 @@ describe("redirectSystemPath", () => {
     ["/open/billing", "/settings/billing"],
     ["/open/home", "/dashboard"],
     ["/open/home/", "/dashboard"],
+    ["/open/invite-friends", "/settings/invite"],
   ])("routes %s to %s", async (path, expected) => {
     expect(await warm(`${ORIGIN}${path}`)).toBe(expected);
     expect(await warm(`begifted://${path}`)).toBe(expected);
@@ -90,6 +95,41 @@ describe("redirectSystemPath", () => {
   it("stays put when a running app has no session", async () => {
     mockGetSession.mockResolvedValue({ data: { session: null } });
     expect(await warm(`${ORIGIN}/open/billing`)).toBeNull();
+  });
+
+  it("parks Invite Friends for after sign-in when a running app has no session", async () => {
+    mockGetSession.mockResolvedValue({ data: { session: null } });
+    expect(await warm(`${ORIGIN}/open/invite-friends`)).toBeNull();
+    discardAccountLaunchLink();
+    expect(consumeLaunchLink()).toBe("/settings/invite");
+  });
+
+  it("keeps a cold-launch Invite Friends link through the signed-out gate", async () => {
+    await redirectSystemPath({
+      path: `${ORIGIN}/open/invite-friends`,
+      initial: true,
+    });
+    discardAccountLaunchLink();
+    expect(consumeLaunchLink()).toBe("/settings/invite");
+  });
+
+  it("drops a parked Invite Friends link once the sign-in window has passed", async () => {
+    mockGetSession.mockResolvedValue({ data: { session: null } });
+    const now = Date.now();
+    const spy = jest.spyOn(Date, "now").mockReturnValue(now);
+    await warm(`${ORIGIN}/open/invite-friends`);
+    spy.mockReturnValue(now + 16 * 60 * 1000);
+    expect(consumeLaunchLink()).toBeNull();
+    spy.mockRestore();
+  });
+
+  it("drops an account-specific link at the signed-out gate", async () => {
+    await redirectSystemPath({
+      path: `${ORIGIN}/open/add-moment?recipient_id=${RECIPIENT}`,
+      initial: true,
+    });
+    discardAccountLaunchLink();
+    expect(consumeLaunchLink()).toBeNull();
   });
 
   it("passes unrelated paths through", async () => {

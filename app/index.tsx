@@ -23,7 +23,11 @@ import StateMessage from "../components/StateMessage";
 import { StateCopy } from "../lib/state-copy";
 import { hasSeenIntro, markIntroSeen } from "../lib/intro-storage";
 import { flushPendingLegalAcceptance } from "../lib/legal-acceptance";
-import { consumeLaunchLink, discardLaunchLink } from "../lib/launch-link";
+import {
+  consumeLaunchLink,
+  discardAccountLaunchLink,
+  discardLaunchLink,
+} from "../lib/launch-link";
 import { flushPendingSignUpName } from "../lib/signup-name";
 import { creditInvite } from "../lib/pending-invite";
 import { queryKeys } from "../lib/query-keys";
@@ -99,7 +103,7 @@ export default function Index() {
     async function routeUnauthenticated() {
       // A tap left in the tray must not follow whichever account signs in next.
       discardLaunchNotification();
-      discardLaunchLink();
+      discardAccountLaunchLink();
       // The intro slider is touch-only (swipe paging, CTA on the last slide),
       // so on desktop web it strands signed-out users with no path to sign-in.
       // Web skips the intro gate and goes straight to <Auth />.
