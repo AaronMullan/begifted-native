@@ -33,6 +33,17 @@ function formatDay(iso: string): string {
   });
 }
 
+// The link sits inside `message`, not `url`: on iOS a separate `url` becomes
+// an attachment in Messages, and the sender couldn't edit around it.
+function inviteMessage(link: string): string {
+  return [
+    "Hey — I’ve been using BeGifted, and I think you’d love it. It’s like having a personal gifting concierge for everyone in your life.",
+    "It gets to know your people, your relationship with them, and how you like to give. Then, as birthdays, holidays, and other occasions come up, it finds three thoughtful gift ideas and lets you know when they’re ready. It remembers what you share and gets better with your feedback.",
+    "It’s still in beta for iPhone. Here’s my invite:",
+    link,
+  ].join("\n\n");
+}
+
 // Once the sheet reports a share, the link is out. If recording that fails,
 // the invite stays pending and the next share would hand the same code to a
 // second friend, so retry before giving up.
@@ -80,7 +91,7 @@ export default function InviteSettings() {
     try {
       const invite = await createInvite();
       const result = await Share.share({
-        message: `Here's a link to try the BeGifted beta: ${inviteLink(invite.code)}`,
+        message: inviteMessage(inviteLink(invite.code)),
       });
       // A dismissed sheet leaves the invite pending; the next share reuses it.
       if (result.action === Share.sharedAction) {
