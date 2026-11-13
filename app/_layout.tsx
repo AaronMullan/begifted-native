@@ -179,7 +179,11 @@ const customTheme = {
   },
 };
 
-function AppShell() {
+type AppShellProps = {
+  splashDone: boolean;
+};
+
+const AppShell: React.FC<AppShellProps> = ({ splashDone }) => {
   // Set up push notification registration, handlers, and deep linking
   const pushIntro = usePushNotifications();
   useAppOpenTracking();
@@ -191,6 +195,9 @@ function AppShell() {
         onContinue={pushIntro.acceptIntro}
         onClose={pushIntro.declineIntro}
       />
+      {/* Inside AppShell so the announcement can wait out the push
+          explainer: two RN Modals on screen at once is not a state to rely on. */}
+      <OtaUpdateGate ready={splashDone && !pushIntro.introVisible} />
       <Header colorful={false} />
       <Stack
         screenOptions={{
@@ -210,7 +217,7 @@ function AppShell() {
       <BottomNav />
     </View>
   );
-}
+};
 
 export default Sentry.wrap(function RootLayout() {
   const fontsLoaded = useFontsLoader();
@@ -238,11 +245,10 @@ export default Sentry.wrap(function RootLayout() {
         <PaperProvider theme={customTheme}>
           <ErrorBoundary>
             <GiftActionDrawerProvider>
-              <AppShell />
+              <AppShell splashDone={splashDone} />
             </GiftActionDrawerProvider>
           </ErrorBoundary>
           <GlobalSnackbar />
-          <OtaUpdateGate ready={splashDone} />
           <OfflineBanner />
           {!splashDone && (
             <AnimatedSplash

@@ -72,7 +72,7 @@ const INVITES_SECTIONS: WhatsNewSection[] = [
 ];
 
 type Props = {
-  /** False while the launch splash still covers the app. */
+  /** False while the launch splash or another modal covers the app. */
   ready: boolean;
 };
 
@@ -85,11 +85,13 @@ type Props = {
  */
 const OtaUpdateGate: React.FC<Props> = ({ ready }) => {
   const [cardVisible, setCardVisible] = useState(false);
+  // Once an update is offered, the announcement waits for the next launch:
+  // swapping it into the open card would put it under a "later" tap meant for
+  // the update, and the card keeps rendering through its fade-out.
+  const [updateOffered, setUpdateOffered] = useState(false);
   const router = useRouter();
-  const { data: appConfig } = useAppConfig();
-  // One modal serves both: iOS won't present a second Modal over a visible
-  // one, so the invites announcement waits until the update card closes.
-  const announcement = useInvitesAnnouncement(cardVisible || !ready);
+  const { data: appConfig, refetch: refetchAppConfig } = useAppConfig();
+  const announcement = useInvitesAnnouncement(updateOffered || !ready);
   const { height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   // Refs, not state: the AppState listener would otherwise close over stale
@@ -98,10 +100,9 @@ const OtaUpdateGate: React.FC<Props> = ({ ready }) => {
   const settled = useRef(false);
 
   useEffect(() => {
-    // checkForUpdateAsync throws in dev clients and Expo Go.
-    if (!Updates.isEnabled) return;
-
     const check = async () => {
+      // checkForUpdateAsync throws in dev clients and Expo Go.
+      if (!Updates.isEnabled) return;
       if (checking.current || settled.current) return;
       checking.current = true;
       try {
@@ -109,6 +110,7 @@ const OtaUpdateGate: React.FC<Props> = ({ ready }) => {
         if (isAvailable) {
           await Updates.fetchUpdateAsync();
           settled.current = true;
+          setUpdateOffered(true);
           setCardVisible(true);
         }
       } catch {
@@ -120,16 +122,20 @@ const OtaUpdateGate: React.FC<Props> = ({ ready }) => {
 
     check();
     const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active") check();
+      if (state !== "active") return;
+      check();
+      // The invites switch flips without an OTA; a warm return has to re-read
+      // it or the announcement waits for the next cold start.
+      void refetchAppConfig();
     });
     return () => subscription.remove();
-  }, []);
+  }, [refetchAppConfig]);
 
   // Backdrop tap is "later", and it's safe to honor quietly: the update is
   // already downloaded and will run on the next cold start even without the
   // restart.
   const dismiss = () => {
-    if (cardVisible) setCardVisible(false);
+    if (updateOffered) setCardVisible(false);
     else announcement.markSeen();
   };
 
@@ -143,7 +149,7 @@ const OtaUpdateGate: React.FC<Props> = ({ ready }) => {
   };
 
   const whatsNew = appConfig?.whats_new;
-  const showingUpdate = cardVisible;
+  const showingUpdate = updateOffered;
   const sections = !showingUpdate
     ? INVITES_SECTIONS
     : whatsNew?.sections?.length
