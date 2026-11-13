@@ -5,6 +5,11 @@ import type { Href } from "expo-router";
 // the user may go there — the same path a launch notification takes.
 let pendingHref: Href | null = null;
 let survivesSignIn = false;
+let parkedAt = 0;
+
+// A link kept through sign-in is followed only if that sign-in comes soon
+// after the tap; hours later the user has signed in for some other reason.
+const SIGN_IN_WINDOW_MS = 15 * 60 * 1000;
 
 /**
  * `survivesSignIn` marks a link that names no account's data (Invite Friends),
@@ -17,11 +22,13 @@ export function setLaunchLink(
 ): void {
   pendingHref = href;
   survivesSignIn = options.survivesSignIn ?? false;
+  parkedAt = Date.now();
 }
 
 export function consumeLaunchLink(): Href | null {
   const href = pendingHref;
   pendingHref = null;
+  if (survivesSignIn && Date.now() - parkedAt > SIGN_IN_WINDOW_MS) return null;
   return href;
 }
 

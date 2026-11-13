@@ -113,6 +113,16 @@ describe("redirectSystemPath", () => {
     expect(consumeLaunchLink()).toBe("/settings/invite");
   });
 
+  it("drops a parked Invite Friends link once the sign-in window has passed", async () => {
+    mockGetSession.mockResolvedValue({ data: { session: null } });
+    const now = Date.now();
+    const spy = jest.spyOn(Date, "now").mockReturnValue(now);
+    await warm(`${ORIGIN}/open/invite-friends`);
+    spy.mockReturnValue(now + 16 * 60 * 1000);
+    expect(consumeLaunchLink()).toBeNull();
+    spy.mockRestore();
+  });
+
   it("drops an account-specific link at the signed-out gate", async () => {
     await redirectSystemPath({
       path: `${ORIGIN}/open/add-moment?recipient_id=${RECIPIENT}`,
