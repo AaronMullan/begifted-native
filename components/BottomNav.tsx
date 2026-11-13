@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../lib/colors";
 import { interceptLeave } from "../lib/leave-guard";
 import { Typography } from "../lib/typography";
+import { INVITE_PATH } from "./open/InviteLinkPreview";
 
 // Glyphs are matched to the "Footer Navigation" design frame: an outlined house,
 // a filled group (front figure + one behind), and an outlined month calendar.
@@ -51,14 +52,16 @@ export default function BottomNav() {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
 
-  // Hide on admin, onboarding, and pre-auth intro/verify routes. The tab bar
-  // on /verify-email would let an unverified (still signed-out) user tap into
-  // the (tabs) group instead of acting on the verification prompt.
+  // Hide on admin, onboarding, pre-auth intro/verify routes, and the invite
+  // landing page a friend without the app sees. The tab bar on /verify-email
+  // would let an unverified (still signed-out) user tap into the (tabs) group
+  // instead of acting on the verification prompt.
   if (
     pathname.startsWith("/admin") ||
     pathname.startsWith("/onboarding") ||
     pathname.startsWith("/intro") ||
-    pathname.startsWith("/verify-email")
+    pathname.startsWith("/verify-email") ||
+    pathname === INVITE_PATH
   ) {
     return null;
   }

@@ -10,6 +10,7 @@ import { interceptLeave } from "../lib/leave-guard";
 import Avatar, { deriveUserInitials } from "./Avatar";
 import BrandMark from "./BrandMark";
 import BrandWordmark from "./BrandWordmark";
+import { INVITE_PATH } from "./open/InviteLinkPreview";
 
 type HeaderProps = {
   colorful?: boolean;
@@ -21,7 +22,11 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
   const { user } = useAuth();
   const { data: profile } = useProfile();
 
-  if (pathname.startsWith("/onboarding") || pathname.startsWith("/intro")) {
+  if (
+    pathname.startsWith("/onboarding") ||
+    pathname.startsWith("/intro") ||
+    pathname === INVITE_PATH
+  ) {
     return null;
   }
 

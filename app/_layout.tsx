@@ -20,6 +20,7 @@ import GlobalSnackbar from "../components/GlobalSnackbar";
 import OtaUpdateGate from "../components/OtaUpdateGate";
 import OfflineBanner from "../components/OfflineBanner";
 import PushNotificationsIntro from "../components/PushNotificationsIntro";
+import InviteLinkPreview from "../components/open/InviteLinkPreview";
 import { Colors } from "../lib/colors";
 import { useFontsLoader } from "../hooks/use-fonts-loader";
 import { usePushNotifications } from "../hooks/use-push-notifications";
@@ -223,11 +224,12 @@ export default Sentry.wrap(function RootLayout() {
   }
 
   if (!fontsLoaded) {
-    return null;
+    return <InviteLinkPreview />;
   }
 
   return (
     <GestureHandlerRootView style={styles.root}>
+      <InviteLinkPreview />
       {/* Explicit dark icons: Android edge-to-edge leaves the transparent
           status bar's contrast to the OS theme, and the header beige is light. */}
       <StatusBar style="dark" />
