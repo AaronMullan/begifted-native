@@ -1,10 +1,12 @@
-import { View, StyleSheet, Pressable } from "react-native";
+import { View, StyleSheet, Pressable, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Text } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Link, usePathname } from "expo-router";
 import { useAuth } from "../hooks/use-auth";
 import { useProfile } from "../hooks/use-profile";
 import { Colors } from "../lib/colors";
+import { Typography } from "../lib/typography";
 import { openBugReport } from "../lib/feedback";
 import { interceptLeave } from "../lib/leave-guard";
 import Avatar, { deriveUserInitials } from "./Avatar";
@@ -18,6 +20,7 @@ type HeaderProps = {
 
 export default function Header({ colorful: _colorful = false }: HeaderProps) {
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
   const pathname = usePathname();
   const { user } = useAuth();
   const { data: profile } = useProfile();
@@ -32,6 +35,10 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
 
   const fullName = profile?.full_name ?? "";
   const initials = deriveUserInitials(fullName, user?.email ?? "");
+  const wordmarkHeight =
+    windowWidth < NARROW_WINDOW_WIDTH
+      ? WORDMARK_HEIGHT_NARROW
+      : WORDMARK_HEIGHT;
 
   return (
     <View
@@ -50,11 +57,19 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
         >
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Go to Begifted home"
+            accessibilityLabel="Go to Begifted home. Beta version"
             style={styles.brandRow}
           >
             <BrandMark size={BRAND_MARK_SIZE} />
-            <BrandWordmark height={16} />
+            <BrandWordmark height={wordmarkHeight} />
+            <View style={styles.betaBadge}>
+              <Text
+                style={[Typography.smallCta, styles.betaBadgeText]}
+                maxFontSizeMultiplier={1}
+              >
+                BETA
+              </Text>
+            </View>
           </Pressable>
         </Link>
         <View style={styles.rightSection}>
@@ -94,6 +109,12 @@ export default function Header({ colorful: _colorful = false }: HeaderProps) {
 }
 
 const BRAND_MARK_SIZE = 36;
+const WORDMARK_HEIGHT = 16;
+// No item in the header row can shrink, and with the BETA badge the row needs
+// ~387pt at the full wordmark size — wider than 375pt phones (SE, mini). The
+// smaller wordmark brings it to ~370pt there.
+const NARROW_WINDOW_WIDTH = 390;
+const WORDMARK_HEIGHT_NARROW = 14;
 
 const styles = StyleSheet.create({
   headerBackground: {
@@ -113,6 +134,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+  },
+  // The badge is a fixed-size brand graphic like the SVG wordmark beside it, so
+  // its label opts out of Dynamic Type (maxFontSizeMultiplier=1); scaled text
+  // would overflow the 22pt pill and push the avatar off-screen.
+  betaBadge: {
+    height: 22,
+    paddingHorizontal: 10,
+    borderRadius: 11,
+    justifyContent: "center",
+    backgroundColor: Colors.brand.betaBadge,
+    marginLeft: 2,
+  },
+  betaBadgeText: {
+    letterSpacing: 0.6,
+    color: Colors.white,
   },
   rightSection: {
     flexDirection: "row",
