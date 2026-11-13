@@ -14,6 +14,7 @@ import * as Updates from "expo-updates";
 import { useRouter } from "expo-router";
 import { useAppConfig } from "../hooks/use-app-config";
 import { useInvitesAnnouncement } from "../hooks/use-invites-announcement";
+import { usePushIntroVisible } from "../lib/push-intro-visibility";
 import type { WhatsNewSection } from "../lib/api";
 import { Colors } from "../lib/colors";
 import { Typography } from "../lib/typography";
@@ -72,8 +73,8 @@ const INVITES_SECTIONS: WhatsNewSection[] = [
 ];
 
 type Props = {
-  /** False while the launch splash or another modal covers the app. */
-  ready: boolean;
+  /** False while the launch splash still covers the app. */
+  splashDone: boolean;
 };
 
 /**
@@ -83,7 +84,7 @@ type Props = {
  * flow needs two full force-quits before an update runs — beta testers rarely
  * do that, so published fixes sat unapplied indefinitely.
  */
-const OtaUpdateGate: React.FC<Props> = ({ ready }) => {
+const OtaUpdateGate: React.FC<Props> = ({ splashDone }) => {
   const [cardVisible, setCardVisible] = useState(false);
   // Once an update is offered, the announcement waits for the next launch:
   // swapping it into the open card would put it under a "later" tap meant for
@@ -91,7 +92,12 @@ const OtaUpdateGate: React.FC<Props> = ({ ready }) => {
   const [updateOffered, setUpdateOffered] = useState(false);
   const router = useRouter();
   const { data: appConfig, refetch: refetchAppConfig } = useAppConfig();
-  const announcement = useInvitesAnnouncement(updateOffered || !ready);
+  // Two RN Modals on screen at once is not a state to rely on, so the
+  // announcement also waits out the push-notifications explainer.
+  const pushIntroVisible = usePushIntroVisible();
+  const announcement = useInvitesAnnouncement(
+    updateOffered || !splashDone || pushIntroVisible
+  );
   const { height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   // Refs, not state: the AppState listener would otherwise close over stale
