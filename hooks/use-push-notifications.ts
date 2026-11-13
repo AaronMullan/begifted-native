@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { AppState, Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -12,6 +12,10 @@ import {
   noteNotificationTap,
 } from "./use-app-open-tracking";
 import { logProductEvent } from "../lib/api";
+import {
+  setPushIntroVisible as setIntroVisible,
+  usePushIntroVisible,
+} from "../lib/push-intro-visibility";
 import { queryKeys } from "../lib/query-keys";
 import {
   isPushPermissionGranted,
@@ -143,7 +147,7 @@ export function usePushNotifications(): PushIntroControls {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const previousUserId = useRef<string | null>(null);
-  const [introVisible, setIntroVisible] = useState(false);
+  const introVisible = usePushIntroVisible();
 
   // Register/unregister based on auth state. The OS permission prompt must be
   // preceded by the in-app explainer, so when a prompt would fire we show the

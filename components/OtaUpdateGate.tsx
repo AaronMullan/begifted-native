@@ -11,7 +11,10 @@ import {
 import { Button, Text } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Updates from "expo-updates";
+import { useRouter } from "expo-router";
 import { useAppConfig } from "../hooks/use-app-config";
+import { useInvitesAnnouncement } from "../hooks/use-invites-announcement";
+import { usePushIntroVisible } from "../lib/push-intro-visibility";
 import type { WhatsNewSection } from "../lib/api";
 import { Colors } from "../lib/colors";
 import { Typography } from "../lib/typography";
@@ -62,6 +65,18 @@ const FALLBACK_SECTIONS: WhatsNewSection[] = [
   },
 ];
 
+const INVITES_SECTIONS: WhatsNewSection[] = [
+  {
+    title: "Give the gift of BeGifted to five of your people.",
+    body: "Share the love. Give someone the gift of their very own personal gifting concierge. You can now invite up to five friends to BeGifted.\n\nYou’ll find your invitations anytime in Settings → Invite Friends.",
+  },
+];
+
+type Props = {
+  /** False while the launch splash still covers the app. */
+  splashDone: boolean;
+};
+
 /**
  * Downloads a published OTA update as soon as the app is opened or
  * foregrounded, then offers a one-tap restart via the "What's New" card
@@ -69,9 +84,20 @@ const FALLBACK_SECTIONS: WhatsNewSection[] = [
  * flow needs two full force-quits before an update runs — beta testers rarely
  * do that, so published fixes sat unapplied indefinitely.
  */
-const OtaUpdateGate: React.FC = () => {
+const OtaUpdateGate: React.FC<Props> = ({ splashDone }) => {
   const [cardVisible, setCardVisible] = useState(false);
-  const { data: appConfig } = useAppConfig();
+  // Once an update is offered, the announcement waits for the next launch:
+  // swapping it into the open card would put it under a "later" tap meant for
+  // the update, and the card keeps rendering through its fade-out.
+  const [updateOffered, setUpdateOffered] = useState(false);
+  const router = useRouter();
+  const { data: appConfig, refetch: refetchAppConfig } = useAppConfig();
+  // Two RN Modals on screen at once is not a state to rely on, so the
+  // announcement also waits out the push-notifications explainer.
+  const pushIntroVisible = usePushIntroVisible();
+  const announcement = useInvitesAnnouncement(
+    updateOffered || !splashDone || pushIntroVisible
+  );
   const { height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   // Refs, not state: the AppState listener would otherwise close over stale
@@ -80,10 +106,9 @@ const OtaUpdateGate: React.FC = () => {
   const settled = useRef(false);
 
   useEffect(() => {
-    // checkForUpdateAsync throws in dev clients and Expo Go.
-    if (!Updates.isEnabled) return;
-
     const check = async () => {
+      // checkForUpdateAsync throws in dev clients and Expo Go.
+      if (!Updates.isEnabled) return;
       if (checking.current || settled.current) return;
       checking.current = true;
       try {
@@ -91,6 +116,7 @@ const OtaUpdateGate: React.FC = () => {
         if (isAvailable) {
           await Updates.fetchUpdateAsync();
           settled.current = true;
+          setUpdateOffered(true);
           setCardVisible(true);
         }
       } catch {
@@ -102,25 +128,40 @@ const OtaUpdateGate: React.FC = () => {
 
     check();
     const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active") check();
+      if (state !== "active") return;
+      check();
+      // The invites switch flips without an OTA; a warm return has to re-read
+      // it or the announcement waits for the next cold start.
+      void refetchAppConfig();
     });
     return () => subscription.remove();
-  }, []);
+  }, [refetchAppConfig]);
 
   // Backdrop tap is "later", and it's safe to honor quietly: the update is
   // already downloaded and will run on the next cold start even without the
   // restart.
-  const dismiss = () => setCardVisible(false);
+  const dismiss = () => {
+    if (updateOffered) setCardVisible(false);
+    else announcement.markSeen();
+  };
 
   const restart = () => {
-    Updates.reloadAsync().catch(dismiss);
+    Updates.reloadAsync().catch(() => setCardVisible(false));
+  };
+
+  const openInvites = () => {
+    announcement.markSeen();
+    router.push("/settings/invite");
   };
 
   const whatsNew = appConfig?.whats_new;
-  const sections = whatsNew?.sections?.length
-    ? whatsNew.sections
-    : FALLBACK_SECTIONS;
-  const chipDate = formatChipDate(whatsNew?.date);
+  const showingUpdate = updateOffered;
+  const sections = !showingUpdate
+    ? INVITES_SECTIONS
+    : whatsNew?.sections?.length
+      ? whatsNew.sections
+      : FALLBACK_SECTIONS;
+  const chipDate = showingUpdate ? formatChipDate(whatsNew?.date) : null;
 
   // An absolute bound rather than a percentage: a percentage maxHeight depends
   // on the modal's parent having a definite height at measure time, and when
@@ -130,7 +171,7 @@ const OtaUpdateGate: React.FC = () => {
 
   return (
     <Modal
-      visible={cardVisible}
+      visible={cardVisible || announcement.visible}
       transparent
       animationType="fade"
       onRequestClose={dismiss}
@@ -177,14 +218,16 @@ const OtaUpdateGate: React.FC = () => {
             mode="contained"
             buttonColor={Colors.brand.darkTeal}
             textColor={Colors.white}
-            onPress={restart}
-            accessibilityLabel="Restart to apply the update"
+            onPress={showingUpdate ? restart : openInvites}
+            accessibilityLabel={
+              showingUpdate ? "Restart to apply the update" : "Invite a friend"
+            }
             style={styles.cta}
             contentStyle={styles.ctaContent}
             labelStyle={styles.ctaLabel}
             maxFontSizeMultiplier={FIXED_TEXT_MAX_FONT_SCALE}
           >
-            Let&apos;s Go
+            {showingUpdate ? "Let's Go" : "Invite a friend"}
           </Button>
         </View>
       </View>

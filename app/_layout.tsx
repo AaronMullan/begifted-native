@@ -242,7 +242,7 @@ export default Sentry.wrap(function RootLayout() {
             </GiftActionDrawerProvider>
           </ErrorBoundary>
           <GlobalSnackbar />
-          <OtaUpdateGate />
+          <OtaUpdateGate splashDone={splashDone} />
           <OfflineBanner />
           {!splashDone && (
             <AnimatedSplash
