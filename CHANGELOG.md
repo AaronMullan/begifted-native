@@ -19,6 +19,19 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-11-13 — OTA (runtime 1.0.6, Build 67)
+
+### App
+
+- The header now carries a small BETA badge beside the BeGifted wordmark (DEV-603).
+- When invites are switched on, What's New announces them once, with an Invite a friend button that opens Settings → Invite Friends (DEV-613).
+- Sharing an invite now opens with a short note about what BeGifted does, followed by your personal invite link — edit it however you like before sending (DEV-614).
+- Links in BeGifted emails can now open Settings → Invite Friends directly; if you're signed out, you land there right after signing in (DEV-616).
+
+### Backend
+
+- A friend who opens an invite link without the app now sees a standalone page explaining what BeGifted does, with no app menus around it, and the link shows a proper preview in Messages (DEV-615).
+
 ## 2026-11-12 — OTA (runtime 1.0.6, Build 67)
 
 ### App
