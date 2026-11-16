@@ -3,8 +3,9 @@
 -- the default is FALSE: a maximum is a hard limit unless the giver framed it as
 -- a typical or approximate amount ("around $150", "I usually spend about $50").
 -- Budgets saved before this column existed, and any typed into a form, stay
--- hard. Gift generation will not accept an unconfirmed price against a hard
--- limit; against guidance it may.
+-- hard. Against a hard limit, gift generation accepts an estimate the store
+-- page couldn't confirm only when it sits well under the limit; against
+-- guidance it accepts any estimate.
 ALTER TABLE recipients
   ADD COLUMN IF NOT EXISTS gift_budget_is_guidance BOOLEAN NOT NULL DEFAULT FALSE;
 
