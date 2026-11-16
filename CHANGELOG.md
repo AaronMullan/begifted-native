@@ -19,6 +19,16 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-11-16 — OTA (runtime 1.0.6)
+
+### App
+
+- The message that opens when you share an invite is shorter: two lines about BeGifted, then your invite link (DEV-614).
+
+### Backend
+
+- The last message when adding someone now draws on the whole conversation — one observation when there's something specific to go on, a plain close when there isn't — and no longer says the person is saved or that gift ideas have started. (DEV-610)
+
 ## 2026-11-13 — OTA (runtime 1.0.6, Build 67)
 
 ### App
