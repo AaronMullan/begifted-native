@@ -18,8 +18,7 @@ import {
 import type { Invite } from "../../../lib/api";
 import { queryKeys } from "../../../lib/query-keys";
 import { useAuth } from "../../../hooks/use-auth";
-import { useAppConfig } from "../../../hooks/use-app-config";
-import { useSentInvites } from "../../../hooks/use-invites";
+import { useInvitesEnabled, useSentInvites } from "../../../hooks/use-invites";
 import { showSnackbar } from "../../../components/GlobalSnackbar";
 import { PrimaryCta } from "../../../components/PrimaryCta";
 import GradientBackground from "../../../components/GradientBackground";
@@ -78,7 +77,7 @@ export default function InviteSettings() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
-  const configQuery = useAppConfig();
+  const invitesEnabled = useInvitesEnabled();
   const invitesQuery = useSentInvites(user?.id);
   const [sharing, setSharing] = useState(false);
 
@@ -127,11 +126,11 @@ export default function InviteSettings() {
   let body: React.ReactNode;
   // isPending, not isLoading: the invites query is disabled until the session
   // resolves, and a disabled query isn't "loading" — it would render 5 of 5.
-  if (authLoading || configQuery.isPending || invitesQuery.isPending) {
+  if (authLoading || invitesEnabled.isPending || invitesQuery.isPending) {
     body = (
       <StateMessage loading message={StateCopy.inProgress("your invites")} />
     );
-  } else if (!configQuery.data?.invites_enabled) {
+  } else if (!invitesEnabled.enabled) {
     body = <StateMessage message={StateCopy.disabled("Inviting friends")} />;
   } else if (invitesQuery.isError) {
     body = (
