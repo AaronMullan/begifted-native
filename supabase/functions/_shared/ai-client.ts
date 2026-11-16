@@ -2,6 +2,12 @@ export type Provider = "openai" | "anthropic" | "google";
 
 export const CONVERSATION_MODEL = "gpt-4.1-mini";
 
+// Writes only the Add Recipient closing line. GPT-4.1 mini could not write a
+// grounded observation without inventing facts or drifting into gift advice;
+// the rest of the conversation, including readiness, stays on
+// CONVERSATION_MODEL.
+export const CLOSING_MODEL = "gpt-5.4";
+
 export type AIMessage = {
   role: "system" | "user" | "assistant";
   content: string;

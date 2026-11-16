@@ -177,19 +177,42 @@ export function buildStateGuidance(
         ? `→ What we know about ${recipientName} so far is broad. Ask exactly one targeted follow-up that sharpens a single interest they already mentioned, then proceed.`
         : `→ Ask the user to describe ${recipientName} naturally — what they're like, their interests, personality, or lifestyle.`;
     case "ready":
-      // The runtime only routes to the reply LLM at "ready" when the user's
-      // final answer carried distinguishing texture (bare/vague completions take
-      // the deterministic wrap-up and never see this), so recognition is
-      // unconditional — don't let the model re-litigate whether the detail was
-      // "meaningful" and skip it. The job is to REFLECT the supplied detail, not
-      // summarize and not extrapolate: name one distinction and stay strictly
-      // inside what was stated. Over-inference is the failure this guards — a
-      // detail ("watches most Blazers games") gets stretched into an unstated
-      // implication ("must make sports a lively part of his routine"). The
-      // runtime appends the fixed close itself, so the model must NOT write one;
-      // that keeps the surrounding prompt's enthusiasm/CTA rules out of the
-      // completion line.
-      return `→ All required information is captured, and the user's most recent answer shared a telling detail about ${recipientName}. Reply with EXACTLY one short sentence that names the SINGLE most telling detail they gave and reflects it back plainly — enough to show you registered what it says about ${recipientName}, and staying strictly within what was actually stated. Stay grounded in the supplied detail itself: do NOT extrapolate to broader claims about their life, routine, personality, or what the detail "must" mean. For example, from "watches most Blazers games", "the Blazers are clearly a real interest for him" is right; "that must make sports a lively part of his routine" over-infers and is wrong. Do NOT summarize the profile, do NOT enumerate a list of facts, and do NOT simply restate or rephrase the user's own sentence; you may tie a couple of closely related details into one read (e.g. "ceramics and minimal interiors give a clear read on her taste"). Recognition, not praise: no enthusiasm, no compliments, no question, no call-to-action, and invent no meaning that was not stated. Do NOT write a closing line or any "all set" wording — that is appended automatically. Say nothing else.`;
+      // The reply LLM writes the whole closing on every ready turn (on
+      // CLOSING_MODEL), so this is the completion behavior the live prompt
+      // defers to ("use only the completion behavior required by the product
+      // implementation"). Written for and tested on that model: it splits
+      // "two details meet" from "one strong detail" because the combination
+      // case is where it writes a real observation, and it bans the
+      // "X, not just Y" contrast shape, which it otherwise reaches for on almost
+      // every line. Saving and gift-idea claims are also stripped by the runtime
+      // (stripHandoffClaims).
+      return `→ COMPLETION BEHAVIOR REQUIRED BY THE PRODUCT IMPLEMENTATION: every required field for ${recipientName} is captured. Write the closing message for this intake: exactly one sentence, and nothing else.
+
+What the sentence is for: the user has just told BeGifted about someone they care about. The closing should show that BeGifted listened, the way a thoughtful friend would after hearing it: one observation about ${recipientName} that is worth remembering when choosing something for them. It should feel noticed, not summarized.
+
+Read the whole conversation, not only the last message; the last answer is often just a date, age, or amount. If the user corrected something, use only the corrected version and don't mention the old one.
+
+Finding the observation. First decide which case you are in.
+- Two details meet: an interest plus a circumstance that affects it (space, health, diet, timing, where they live, money they mentioned for it). Say plainly what the combination means for anyone choosing for ${recipientName}: "she loves X, but Y means anything for it has to Z." This is the strongest kind of closing.
+- One strong detail: pick the single most telling part of what the user said (the specific style, the fact that they make or fix it themselves, how often, the way they track it) and say why that part is the one to remember about ${recipientName}, in a few concrete words. Use the user's own specifics; don't generalize them.
+Stay inside what the user said. Don't attribute feelings, values, motives, or personality the user didn't state. Don't name or suggest specific items or kinds of gifts. Never say that ${recipientName} "knows the basics", "already has the basics", or "will notice" quality, generic things, or ordinary things.
+
+How to write it:
+- A complete, natural sentence that someone would say out loud. Start with ${recipientName} or "she"/"he"/"they".
+- Plain, concrete, everyday words. Around 12 to 22 words.
+- Say it directly. Do not build it as a contrast: no "not just", "not only", "rather than", "instead of", ", not ...", or "more than". No colon or dash set-ups that lead to a reveal.
+- Don't restate the detail after "so" ("she boulders three nights a week, so climbing is part of her routine" says nothing new).
+- Don't end on a vague phrase that could follow anything ("matters", "the details matter", "narrows what fits", "is the thing to keep in mind").
+- No jargon or metaphor ("lane", "corner", "thread", "world").
+- Don't list several interests. Don't mention the amount, dates, or age.
+
+Examples for other people, to show the register (do not reuse their wording):
+- Told: "he loves cooking for friends but his kitchen is tiny" → "Sol cooks for a crowd out of a very small kitchen, so anything for it has to earn its counter space."
+- Told: "loves hiking, but just moved to the city and doesn't have a car" → "Ray loves to hike, but without a car he's limited to trails he can reach by train or bus."
+
+If the conversation holds nothing distinguishing about ${recipientName} (only a relationship, occasions, dates, age, amount, loose categories, a personality word like "nice", or "not sure"), make no observation. Write exactly: "Thanks — that's enough to continue with ${recipientName}."
+
+Do not ask a question. Do not say or imply that ${recipientName} has been saved or added, that gift ideas have started, or that BeGifted will take it from here.`;
     default:
       return "";
   }
@@ -231,7 +254,8 @@ export function buildPriorityGuidance(contextInfo: ContextInfo): string {
     .join("\n")}`;
 }
 
-// Default wrap-up message shown when the conversation reaches the "ready" state.
+// Fallback closing for the "ready" turn, shown only when the reply LLM's
+// closing has nothing usable left after post-processing.
 // Editable via the admin playground under prompt_key "add_recipient_wrap_up".
 // Supports {{recipientName}} interpolation.
 //

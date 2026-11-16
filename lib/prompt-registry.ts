@@ -160,8 +160,8 @@ RESPONSE REQUIREMENTS:
     key: "add_recipient_wrap_up",
     label: "Add Recipient Wrap-up",
     description:
-      "Deterministic reply shown the moment the Add Recipient chat is ready (all anchors satisfied). Bypasses the LLM so the message and the Next Step button stay in sync.",
-    defaultPrompt: `Got it — I have what I need. I'll take it from here and start pulling together a few gift ideas for {{recipientName}}.`,
+      "Fixed fallback line for the end of the Add Recipient chat. The conversation prompt writes the closing; this shows only when that reply is empty or fails. Must not say the person is saved, that gift ideas have started, or that BeGifted will take it from here.",
+    defaultPrompt: `{{recipientName}}'s all set.`,
     templateVariables: ["recipientName"],
     taskModel: { provider: "openai", model: "gpt-4.1-mini" },
   },
