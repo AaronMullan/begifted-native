@@ -4,6 +4,7 @@ import {
   callAI,
   getApiKey,
   CONVERSATION_MODEL,
+  CLOSING_MODEL,
   AIRefusalError,
 } from "../_shared/ai-client.ts";
 import type {
@@ -441,7 +442,13 @@ export async function handleConversation(
   // prompt) so it applies to every source of `systemPrompt` and can't be
   // dropped by a stale prompt version.
   const replyStartedAt = Date.now();
-  const replyCall = callAI(aiConfig.provider, aiConfig.model, aiConfig.apiKey, {
+  // A playground override applies to every call, closing included, so the
+  // chosen provider/model is what gets tested.
+  const replyModel =
+    readyClosingFallback && !(aiOverride?.provider && aiOverride?.model)
+      ? CLOSING_MODEL
+      : aiConfig.model;
+  const replyCall = callAI(aiConfig.provider, replyModel, aiConfig.apiKey, {
     messages: [
       { role: "system", content: `${SAFETY_PREAMBLE}\n\n${systemPrompt}` },
       { role: "user", content: "Please respond to continue the conversation." },
