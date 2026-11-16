@@ -42,32 +42,32 @@ jobs:
           SUPABASE_PROJECT_REF: qgcyndtymegkobgfcpdh
         run: |
           if [ -d "supabase/functions" ]; then
-            supabase functions deploy recipient-conversation --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy extract-user-preferences --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy refine-prompt --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy synthesize-giver-profile --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy synthesize-recipient-profile --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy upload-recipient-photo --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy upload-avatar --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy record-legal-acceptance --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy delete-account --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy send-support-message --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy customerio-sync --no-verify-jwt --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy admin-feedback-tickets --project-ref $SUPABASE_PROJECT_REF
+            supabase functions deploy recipient-conversation --project-ref $SUPABASE_PROJECT_REF --yes
+            supabase functions deploy extract-user-preferences --project-ref $SUPABASE_PROJECT_REF --yes
+            supabase functions deploy refine-prompt --project-ref $SUPABASE_PROJECT_REF --yes
+            supabase functions deploy synthesize-giver-profile --project-ref $SUPABASE_PROJECT_REF --yes
+            supabase functions deploy synthesize-recipient-profile --project-ref $SUPABASE_PROJECT_REF --yes
+            supabase functions deploy upload-recipient-photo --project-ref $SUPABASE_PROJECT_REF --yes
+            supabase functions deploy upload-avatar --project-ref $SUPABASE_PROJECT_REF --yes
+            supabase functions deploy record-legal-acceptance --project-ref $SUPABASE_PROJECT_REF --yes
+            supabase functions deploy delete-account --project-ref $SUPABASE_PROJECT_REF --yes
+            supabase functions deploy send-support-message --project-ref $SUPABASE_PROJECT_REF --yes
+            supabase functions deploy customerio-sync --no-verify-jwt --project-ref $SUPABASE_PROJECT_REF --yes
+            supabase functions deploy admin-feedback-tickets --project-ref $SUPABASE_PROJECT_REF --yes
           elif [ -d "begifted/supabase/functions" ]; then
             cd begifted
-            supabase functions deploy recipient-conversation --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy extract-user-preferences --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy refine-prompt --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy synthesize-giver-profile --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy synthesize-recipient-profile --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy upload-recipient-photo --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy upload-avatar --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy record-legal-acceptance --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy delete-account --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy send-support-message --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy customerio-sync --no-verify-jwt --project-ref $SUPABASE_PROJECT_REF
-            supabase functions deploy admin-feedback-tickets --project-ref $SUPABASE_PROJECT_REF
+            supabase functions deploy recipient-conversation --project-ref $SUPABASE_PROJECT_REF --yes
+            supabase functions deploy extract-user-preferences --project-ref $SUPABASE_PROJECT_REF --yes
+            supabase functions deploy refine-prompt --project-ref $SUPABASE_PROJECT_REF --yes
+            supabase functions deploy synthesize-giver-profile --project-ref $SUPABASE_PROJECT_REF --yes
+            supabase functions deploy synthesize-recipient-profile --project-ref $SUPABASE_PROJECT_REF --yes
+            supabase functions deploy upload-recipient-photo --project-ref $SUPABASE_PROJECT_REF --yes
+            supabase functions deploy upload-avatar --project-ref $SUPABASE_PROJECT_REF --yes
+            supabase functions deploy record-legal-acceptance --project-ref $SUPABASE_PROJECT_REF --yes
+            supabase functions deploy delete-account --project-ref $SUPABASE_PROJECT_REF --yes
+            supabase functions deploy send-support-message --project-ref $SUPABASE_PROJECT_REF --yes
+            supabase functions deploy customerio-sync --no-verify-jwt --project-ref $SUPABASE_PROJECT_REF --yes
+            supabase functions deploy admin-feedback-tickets --project-ref $SUPABASE_PROJECT_REF --yes
           else
             echo "Error: Could not find supabase/functions directory"
             exit 1
