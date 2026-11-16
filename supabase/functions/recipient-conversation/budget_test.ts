@@ -68,3 +68,36 @@ Deno.test("a zero maximum is not a ceiling and leaves the flag set", () => {
   normalizeBudgetRange(data);
   assertEquals(data.gift_budget_no_ceiling, true);
 });
+
+Deno.test("guidance holds only alongside a maximum", () => {
+  const withMax: Budget = {
+    gift_budget_max: 190,
+    gift_budget_is_guidance: true,
+  };
+  normalizeBudgetRange(withMax);
+  assertEquals(withMax.gift_budget_is_guidance, true);
+
+  const noMax: Budget = {
+    gift_budget_max: null,
+    gift_budget_is_guidance: true,
+  };
+  normalizeBudgetRange(noMax);
+  assertEquals(noMax.gift_budget_is_guidance, false);
+});
+
+Deno.test("an unclear guidance answer stays a hard limit", () => {
+  for (const flag of [false, "false", null, "maybe", undefined]) {
+    const data: Budget = {
+      gift_budget_max: 100,
+      gift_budget_is_guidance: flag,
+    };
+    normalizeBudgetRange(data);
+    assertEquals(data.gift_budget_is_guidance, false);
+  }
+  const stringTrue: Budget = {
+    gift_budget_max: 100,
+    gift_budget_is_guidance: "true",
+  };
+  normalizeBudgetRange(stringTrue);
+  assertEquals(stringTrue.gift_budget_is_guidance, true);
+});

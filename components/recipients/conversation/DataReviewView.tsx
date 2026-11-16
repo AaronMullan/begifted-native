@@ -252,10 +252,13 @@ export function DataReviewView({
                   label="Budget Max"
                   value={extractedData.gift_budget_max?.toString() || ""}
                   onChangeText={(value) =>
-                    updateField(
-                      "gift_budget_max",
-                      value ? parseInt(value) : undefined
-                    )
+                    // A typed maximum carries no "about" or "usually", so it
+                    // is a limit.
+                    onDataChange({
+                      ...extractedData,
+                      gift_budget_max: value ? parseInt(value) : undefined,
+                      gift_budget_is_guidance: false,
+                    })
                   }
                   placeholder="$"
                   keyboardType="numeric"

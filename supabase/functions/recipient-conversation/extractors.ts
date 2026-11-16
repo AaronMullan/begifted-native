@@ -225,6 +225,7 @@ Extract and return valid JSON (no markdown formatting) with this exact structure
   "gift_budget_min": "Lower end of the gift budget range as a number, or null. RULES: (a) explicit range like \"$50-$75\" -> 50. (b) single anchor like \"around $150\"/\"$150\" -> about 0.8x the anchor (e.g. 120). (c) upper-limit only like \"under $150\"/\"up to $250\" -> null. (d) vague answer like \"flexible\"/\"nothing too expensive\" -> null. (e) no upper limit like \"the sky's the limit\" -> null unless a minimum was also stated. NEVER set min equal to max for a single anchor; a single amount must become a range.",
   "gift_budget_max": "Upper end of the gift budget range as a number, or null. RULES: (a) explicit range like \"$50-$75\" -> 75. (b) single anchor like \"around $150\"/\"$150\" -> about 1.25x the anchor (e.g. 190). (c) upper-limit only like \"under $150\"/\"up to $250\" -> that number (150 / 250). (d) vague answer -> null. (e) no upper limit like \"the sky's the limit\" -> null; never invent a high number for it.",
   "gift_budget_no_ceiling": "true ONLY when the user explicitly says there is no upper limit on price — e.g. \"the sky's the limit\", \"no limit\", \"money is no object\", \"whatever it costs\". false for everything else, including a stated amount or range, an upper limit, a vague answer like \"flexible\"/\"not sure\"/\"whatever feels right\", and no mention of price at all.",
+  "gift_budget_is_guidance": "true ONLY when the user describes the amount as what they typically, usually or roughly spend rather than a limit — e.g. \"around $150\", \"I usually spend about $50\", \"somewhere near $100\", \"$50-75ish\". false when the amount is stated as a limit — \"no more than $100\", \"under $150\", \"up to $250\", \"I can't spend more than $80\", \"my max is $200\" — and false when the framing is unclear, including a bare amount or range like \"$50-$75\", and when there is no maximum at all.",
   "emotional_tone_preference": "string or null",
   "knownRoles": "Array of life roles the recipient EXPLICITLY plays, drawn only from clear conversational signals — e.g. ['mother'] when the user says they have kids together / mentions the recipient's child, ['father'], ['grandmother'], ['grandfather']. CRITICAL: do NOT infer 'mother'/'father' from spouse/partner/wife/husband status alone — only when the conversation makes parenthood explicit (their child, 'we have kids', 'mom of three', etc.). Empty array [] if no role is clearly stated.",
   "householdContext": "Short phrase describing the recipient's household when explicitly mentioned — e.g. 'shares a household with the user and their two children'. null if not stated. Do not infer children or a shared household from spouse/partner status alone.",
@@ -282,6 +283,7 @@ IMPORTANT:
       gift_budget_min: undefined,
       gift_budget_max: undefined,
       gift_budget_no_ceiling: false,
+      gift_budget_is_guidance: false,
       emotional_tone_preference: undefined,
       confidence_score:
         criticalFields.name && criticalFields.relationship_type ? 0.8 : 0.3,

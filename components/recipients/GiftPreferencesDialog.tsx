@@ -90,6 +90,11 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
     setSaveFailed(false);
     const parsedMin = minBudget.trim() === "" ? null : Number(minBudget);
     const parsedMax = maxBudget.trim() === "" ? null : Number(maxBudget);
+    const storedMax =
+      recipient.gift_budget_max != null
+        ? Number(recipient.gift_budget_max)
+        : null;
+    const maxChanged = noCeiling || parsedMax !== storedMax;
     const saved = await onSave({
       emotional_tone_preference: tone.trim() || undefined,
       gift_budget_min:
@@ -101,6 +106,9 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
           ? parsedMax
           : undefined,
       gift_budget_no_ceiling: noCeiling,
+      // A maximum typed here carries no "about" or "usually", so changing it
+      // makes it a limit. An unchanged one keeps what the chat heard.
+      gift_budget_is_guidance: maxChanged ? false : undefined,
     });
     setSaving(false);
     setSaveFailed(!saved);

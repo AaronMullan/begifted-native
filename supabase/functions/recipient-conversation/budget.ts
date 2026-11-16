@@ -7,6 +7,7 @@ export function normalizeBudgetRange(data: {
   gift_budget_min?: number | string | null;
   gift_budget_max?: number | string | null;
   gift_budget_no_ceiling?: unknown;
+  gift_budget_is_guidance?: unknown;
 }): void {
   const toNumber = (v: unknown): number | null => {
     if (v === null || v === undefined || v === "" || v === "null") return null;
@@ -28,6 +29,14 @@ export function normalizeBudgetRange(data: {
     const flag = data.gift_budget_no_ceiling;
     data.gift_budget_no_ceiling =
       (flag === true || flag === "true") && (max === null || max <= 0);
+  }
+
+  // Guidance describes a maximum, so without one there is nothing to soften.
+  // Anything short of a clear true stays a hard limit.
+  if ("gift_budget_is_guidance" in data) {
+    const flag = data.gift_budget_is_guidance;
+    data.gift_budget_is_guidance =
+      (flag === true || flag === "true") && max !== null && max > 0;
   }
 
   // Only intervene on a collapsed single anchor: both set, equal, positive.

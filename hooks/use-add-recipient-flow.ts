@@ -596,6 +596,8 @@ export function useAddRecipientFlow(
         // A maximum typed on the review form is a ceiling, so it wins.
         gift_budget_no_ceiling:
           data.gift_budget_no_ceiling === true && !data.gift_budget_max,
+        gift_budget_is_guidance:
+          data.gift_budget_is_guidance === true && !!data.gift_budget_max,
         address: data.address?.trim() || null,
         address_line_2: data.address_line_2?.trim() || null,
         city: data.city?.trim() || null,
@@ -748,6 +750,7 @@ export function useAddRecipientFlow(
         gift_budget_min: extracted.gift_budget_min || undefined,
         gift_budget_max: extracted.gift_budget_max || undefined,
         gift_budget_no_ceiling: extracted.gift_budget_no_ceiling === true,
+        gift_budget_is_guidance: extracted.gift_budget_is_guidance === true,
         address: extracted.address || initialAddress?.address || undefined,
         address_line_2: extracted.address_line_2 || undefined,
         city: extracted.city || initialAddress?.city || undefined,

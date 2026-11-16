@@ -66,6 +66,7 @@ export interface ExtractedData {
   gift_budget_min?: number;
   gift_budget_max?: number;
   gift_budget_no_ceiling?: boolean;
+  gift_budget_is_guidance?: boolean;
   address?: string;
   address_line_2?: string;
   city?: string;
@@ -90,6 +91,7 @@ export interface RecipientData {
   gift_budget_min?: number;
   gift_budget_max?: number;
   gift_budget_no_ceiling?: boolean;
+  gift_budget_is_guidance?: boolean;
   address?: string;
   address_line_2?: string;
   city?: string;
