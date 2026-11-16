@@ -36,9 +36,8 @@ function formatDay(iso: string): string {
 // an attachment in Messages, and the sender couldn't edit around it.
 function inviteMessage(link: string): string {
   return [
-    "Hey — I’ve been using BeGifted, and I think you’d love it. It’s like having a personal gifting concierge for everyone in your life.",
-    "It gets to know your people, your relationship with them, and how you like to give. Then, as birthdays, holidays, and other occasions come up, it finds three thoughtful gift ideas and lets you know when they’re ready. It remembers what you share and gets better with your feedback.",
-    "It’s still in beta for iPhone. Here’s my invite:",
+    "Hey — I’ve been using BeGifted and thought you’d like it. It’s like having your own personal gifting concierge. It does the work so you don’t have to.",
+    "It’s in beta for iPhone. Here’s my invite:",
     link,
   ].join("\n\n");
 }
