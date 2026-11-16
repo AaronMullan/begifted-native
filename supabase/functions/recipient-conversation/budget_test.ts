@@ -101,3 +101,21 @@ Deno.test("an unclear guidance answer stays a hard limit", () => {
   normalizeBudgetRange(stringTrue);
   assertEquals(stringTrue.gift_budget_is_guidance, true);
 });
+
+Deno.test("a collapsed bare amount keeps its maximum as a limit", () => {
+  const data: Budget = { gift_budget_min: 150, gift_budget_max: 150 };
+  normalizeBudgetRange(data);
+  assertEquals(data.gift_budget_min, 120);
+  assertEquals(data.gift_budget_max, 150);
+});
+
+Deno.test("a collapsed typical amount widens both ways", () => {
+  const data: Budget = {
+    gift_budget_min: 150,
+    gift_budget_max: 150,
+    gift_budget_is_guidance: true,
+  };
+  normalizeBudgetRange(data);
+  assertEquals(data.gift_budget_min, 120);
+  assertEquals(data.gift_budget_max, 190);
+});

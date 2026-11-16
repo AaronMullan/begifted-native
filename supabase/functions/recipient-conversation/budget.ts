@@ -42,9 +42,13 @@ export function normalizeBudgetRange(data: {
   // Only intervene on a collapsed single anchor: both set, equal, positive.
   if (min === null || max === null || min !== max || min <= 0) return;
 
+  // A limit must hold as stated, so only a typical amount widens upward.
   const anchor = min;
   data.gift_budget_min = Math.floor((anchor * 0.8) / 5) * 5;
-  data.gift_budget_max = Math.ceil((anchor * 1.25) / 5) * 5;
+  data.gift_budget_max =
+    data.gift_budget_is_guidance === true
+      ? Math.ceil((anchor * 1.25) / 5) * 5
+      : anchor;
   console.log(
     `Budget collapsed to single value ${anchor}; expanded to ${data.gift_budget_min}-${data.gift_budget_max}`
   );

@@ -94,7 +94,12 @@ export const GiftPreferencesDialog: React.FC<GiftPreferencesDialogProps> = ({
       recipient.gift_budget_max != null
         ? Number(recipient.gift_budget_max)
         : null;
-    const maxChanged = noCeiling || parsedMax !== storedMax;
+    // An empty or invalid entry saves no maximum, so it changes nothing.
+    const maxChanged =
+      noCeiling ||
+      (parsedMax != null &&
+        !Number.isNaN(parsedMax) &&
+        parsedMax !== storedMax);
     const saved = await onSave({
       emotional_tone_preference: tone.trim() || undefined,
       gift_budget_min:
