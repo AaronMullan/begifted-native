@@ -85,6 +85,12 @@ export function ManualDataEntry({
       // unless a maximum typed here replaces it.
       gift_budget_no_ceiling:
         partialData?.gift_budget_no_ceiling === true && !budgetMax,
+      // Only the chat can say a maximum was a typical amount, and only for
+      // the maximum it heard.
+      gift_budget_is_guidance:
+        partialData?.gift_budget_is_guidance === true &&
+        !!budgetMax &&
+        Number(budgetMax) === partialData?.gift_budget_max,
       // No control here either; what the chat heard about owned items and
       // avoids is kept rather than lost to the form.
       already_owns: partialData?.already_owns,

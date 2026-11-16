@@ -17,6 +17,7 @@ interface CreateRecipientData {
   gift_budget_min?: number | null;
   gift_budget_max?: number | null;
   gift_budget_no_ceiling?: boolean;
+  gift_budget_is_guidance?: boolean;
   address?: string | null;
   address_line_2?: string | null;
   city?: string | null;
@@ -35,6 +36,7 @@ interface UpdateRecipientData {
   gift_budget_min?: number | null;
   gift_budget_max?: number | null;
   gift_budget_no_ceiling?: boolean;
+  gift_budget_is_guidance?: boolean;
   address?: string | null;
   address_line_2?: string | null;
   city?: string | null;

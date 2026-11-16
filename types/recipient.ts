@@ -13,6 +13,8 @@ export interface Recipient {
   gift_budget_max?: number | null;
   /** The giver said there is no upper limit. Never true alongside a max. */
   gift_budget_no_ceiling?: boolean;
+  /** The giver framed the maximum as a typical amount, not a limit. */
+  gift_budget_is_guidance?: boolean;
   address?: string;
   address_line_2?: string;
   city?: string;

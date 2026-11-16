@@ -641,6 +641,7 @@ export default function RecipientEditPage() {
     ) {
       updates.gift_budget_no_ceiling = true;
       updates.gift_budget_max = null;
+      updates.gift_budget_is_guidance = false;
       // The stored minimum belonged to the range this answer replaces. Left
       // behind it becomes a hard floor, which "no limit" never asked for; a
       // minimum stated in the same breath was already copied above.
@@ -649,6 +650,9 @@ export default function RecipientEditPage() {
       }
     } else if (updates.gift_budget_max != null) {
       updates.gift_budget_no_ceiling = false;
+      // A new maximum brings its own framing; the old one's doesn't carry over.
+      updates.gift_budget_is_guidance =
+        (extracted as Record<string, unknown>).gift_budget_is_guidance === true;
     }
 
     // The extractor names this one in camelCase, so the sweep above can't see
