@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { usePathname } from "expo-router";
 import { useAuth } from "./use-auth";
-import { useAppConfig } from "./use-app-config";
+import { useInvitesEnabled } from "./use-invites";
 import { useRecipients } from "./use-recipients";
 
 const SEEN_KEY_PREFIX = "@begifted/invites_announcement_seen/";
@@ -18,7 +18,7 @@ type SeenState = { userId: string; seen: boolean };
  */
 export function useInvitesAnnouncement(blocked: boolean) {
   const { user } = useAuth();
-  const { data: appConfig } = useAppConfig();
+  const invitesEnabled = useInvitesEnabled().enabled;
   const { data: recipients } = useRecipients();
   const pathname = usePathname();
   const [seenState, setSeenState] = useState<SeenState | null>(null);
@@ -42,7 +42,7 @@ export function useInvitesAnnouncement(blocked: boolean) {
     !!userId &&
     seenState?.userId === userId &&
     !seenState.seen &&
-    appConfig?.invites_enabled === true &&
+    invitesEnabled &&
     (recipients?.length ?? 0) > 0 &&
     pathname === "/dashboard";
 

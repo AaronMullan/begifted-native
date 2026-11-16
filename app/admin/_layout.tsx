@@ -10,6 +10,7 @@ import AdminBackground from "@/components/admin/AdminBackground";
 import { AdminRail, AdminTopNav } from "@/components/admin/AdminRail";
 import { useAuth } from "@/hooks/use-auth";
 import { fetchIsAdmin } from "@/lib/api";
+import { queryKeys } from "@/lib/query-keys";
 import { AdminTheme, adminPaperTheme } from "@/lib/admin-theme";
 
 // Below this width the vertical rail is cramped, so nav collapses to a
@@ -21,7 +22,7 @@ export default function AdminLayout() {
   const { width } = useWindowDimensions();
 
   const adminQuery = useQuery({
-    queryKey: ["isAdmin", user?.id],
+    queryKey: queryKeys.isAdmin(user?.id ?? ""),
     queryFn: () => fetchIsAdmin(user!.id),
     enabled: !!user?.id,
   });

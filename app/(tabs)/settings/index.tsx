@@ -12,7 +12,7 @@ import { BOTTOM_NAV_HEIGHT } from "../../../lib/constants";
 import GradientBackground from "../../../components/GradientBackground";
 import StateMessage from "../../../components/StateMessage";
 import { StateCopy } from "../../../lib/state-copy";
-import { useAppConfig } from "../../../hooks/use-app-config";
+import { useInvitesEnabled } from "../../../hooks/use-invites";
 
 type SettingsRowProps = {
   label: string;
@@ -42,7 +42,7 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [signOutVisible, setSignOutVisible] = useState(false);
   const router = useRouter();
-  const invitesEnabled = useAppConfig().data?.invites_enabled === true;
+  const invitesEnabled = useInvitesEnabled().enabled;
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
