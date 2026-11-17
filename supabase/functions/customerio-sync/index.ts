@@ -70,6 +70,13 @@ function toUnixSeconds(value: unknown): number | undefined {
   return Number.isNaN(ms) ? undefined : Math.floor(ms / 1000);
 }
 
+// full_name is one free-text field, so the first whitespace-separated word is
+// the best available guess at a first name for email greetings.
+function firstName(fullName: unknown): string | undefined {
+  if (typeof fullName !== "string") return undefined;
+  return fullName.trim().split(/\s+/)[0] || undefined;
+}
+
 function countOrOmit(
   result: { count: number | null; error: { message?: string } | null },
   label: string
@@ -193,6 +200,7 @@ serve(async (req: Request) => {
       email: authUser.email,
       email_verified: Boolean(authUser.email_confirmed_at),
       name: profileAttr(profile?.full_name),
+      first_name: profileAttr(firstName(profile?.full_name)),
       created_at: toUnixSeconds(authUser.created_at),
       trial_status: profileAttr(profile?.trial_status),
       trial_start_date: profileAttr(toUnixSeconds(profile?.trial_start_date)),
