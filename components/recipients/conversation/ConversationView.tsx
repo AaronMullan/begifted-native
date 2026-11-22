@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   inputNotice: {
-    marginBottom: 8,
+    marginBottom: 4,
   },
   inputRow: {
     flexDirection: "row",

@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { StyleSheet, View } from "react-native";
+import { Keyboard, StyleSheet, View } from "react-native";
 import { Button, Text } from "react-native-paper";
 import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 import { Colors } from "../../lib/colors";
@@ -15,18 +15,35 @@ import { Spacing } from "../../lib/spacing";
  */
 const AddRecipientLegalNotice: React.FC = () => {
   const sheetRef = useRef<BottomSheetModal>(null);
+  // dismiss() on a sheet that isn't open can poison the next present(), so a
+  // double-tapped Close must only dismiss once.
+  const openRef = useRef(false);
+
+  // The sheet portals to the root and doesn't see a keyboard that was already
+  // up when it mounted, so it would open hidden behind it.
+  const openSheet = () => {
+    Keyboard.dismiss();
+    sheetRef.current?.present();
+  };
+
+  const closeSheet = () => {
+    if (!openRef.current) return;
+    openRef.current = false;
+    sheetRef.current?.dismiss();
+  };
 
   return (
     <>
-      <Text style={styles.notice}>
+      {/* The whole line is the press target: "Learn more" alone is a ~15pt
+          sliver wedged between the chat input and the Next-step button. */}
+      <Text
+        style={styles.notice}
+        onPress={openSheet}
+        accessibilityRole="button"
+        accessibilityHint="Opens the full notice about adding recipients"
+      >
         BeGifted is for adults. You can add child recipients if authorized.{" "}
-        <Text
-          style={styles.link}
-          onPress={() => sheetRef.current?.present()}
-          accessibilityRole="link"
-        >
-          Learn more
-        </Text>
+        <Text style={styles.link}>Learn more</Text>
       </Text>
 
       <BottomSheetModal
@@ -34,6 +51,12 @@ const AddRecipientLegalNotice: React.FC = () => {
         enableDynamicSizing
         handleIndicatorStyle={styles.sheetHandle}
         backgroundStyle={styles.sheetBackground}
+        onChange={(index) => {
+          openRef.current = index >= 0;
+        }}
+        onDismiss={() => {
+          openRef.current = false;
+        }}
       >
         <BottomSheetView>
           <View style={styles.sheetContent}>
@@ -45,7 +68,7 @@ const AddRecipientLegalNotice: React.FC = () => {
             <Button
               mode="contained"
               buttonColor={Colors.black}
-              onPress={() => sheetRef.current?.dismiss()}
+              onPress={closeSheet}
               style={styles.closeButton}
             >
               Close
@@ -65,6 +88,7 @@ const styles = StyleSheet.create({
     color: Colors.grays.text,
     textAlign: "center",
     paddingHorizontal: 24,
+    paddingVertical: 8,
   },
   link: {
     ...Typography.caption,
