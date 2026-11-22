@@ -19,6 +19,17 @@ commit. Started 2026-06-13; the prior **Build 45** release (2026-06-12) was
 backfilled retroactively so testers have notes for what they're already
 running. Earlier builds (≤ 44) are not backfilled here.
 
+## 2026-11-22 — OTA (runtime 1.0.6)
+
+### App
+
+- When adding someone, the note about adding children is now a single line above the message box instead of a block at the top of the conversation. "Learn more" opens the full wording (DEV-629).
+
+### Backend
+
+- For someone with a firm spending limit, a gift idea whose store page won't show its price is kept only when BeGifted's estimate sits well under the limit; ideas close to the limit come from stores whose price can be confirmed. Saying "around $150" or "I usually spend about $50" when adding someone now counts as a typical amount rather than a limit (DEV-620).
+- Customer.io now receives each person's first name as `first_name`, taken from the first word of the name on their account, so emails can greet people by first name.
+
 ## 2026-11-16 — OTA (runtime 1.0.6)
 
 ### App

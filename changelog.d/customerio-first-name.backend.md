@@ -1,1 +1,0 @@
-- Customer.io now receives each person's first name as `first_name`, taken from the first word of the name on their account, so emails can greet people by first name.
