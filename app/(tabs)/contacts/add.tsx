@@ -564,7 +564,7 @@ const AddRecipientFlowInner = ({
         conversationContext={conversationContext}
         canRetry={canRetrySend}
         onRetry={retryLastSend}
-        headerNotice={<AddRecipientLegalNotice />}
+        inputNotice={<AddRecipientLegalNotice />}
       />
       {duplicateDialog}
     </>
