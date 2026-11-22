@@ -36,11 +36,11 @@ interface ConversationViewProps {
   title?: string;
   finishButtonLabel?: string;
   /**
-   * Renders the add-recipient legal notices under the header. Only the
-   * add-recipient entry point sets this; the update-recipient chat reuses
-   * this view and must not show them.
+   * Renders the add-recipient legal notice once, directly above the chat
+   * input. Only the add-recipient entry point sets this; the
+   * update-recipient chat reuses this view and must not show it.
    */
-  headerNotice?: React.ReactNode;
+  inputNotice?: React.ReactNode;
 }
 
 export function ConversationView({
@@ -56,7 +56,7 @@ export function ConversationView({
   onRetry,
   title = "Add Recipient",
   finishButtonLabel = "Let's Move to the Next Step",
-  headerNotice,
+  inputNotice,
 }: ConversationViewProps) {
   const [inputMessage, setInputMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -148,8 +148,6 @@ export function ConversationView({
         <View style={styles.headerSpacer} />
       </View>
 
-      {headerNotice}
-
       {/* Messages */}
       <ScrollView
         ref={scrollViewRef}
@@ -230,6 +228,10 @@ export function ConversationView({
             {finishButtonLabel}
           </Button>
         )}
+
+        {inputNotice ? (
+          <View style={styles.inputNotice}>{inputNotice}</View>
+        ) : null}
 
         <View style={styles.inputRow}>
           <TextInput
@@ -359,6 +361,9 @@ const styles = StyleSheet.create({
   retryButton: {
     marginBottom: 12,
     alignSelf: "flex-start",
+  },
+  inputNotice: {
+    marginBottom: 8,
   },
   inputRow: {
     flexDirection: "row",
